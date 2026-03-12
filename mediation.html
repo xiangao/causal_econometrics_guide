@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>7&nbsp; Causal Mediation Analysis – Introduction to Causal Econometrics with Observational Data</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./iv-rdd.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-6eb2a311e0ae5a9b436ea9f7e52955e6.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light"><script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script><script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script><script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+</head>
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top"><nav class="quarto-secondary-nav"><div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./mediation.html">Mediation</a></li><li class="breadcrumb-item"><a href="./mediation.html"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Causal Mediation Analysis</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav></header><!-- content --><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto"><div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Introduction to Causal Econometrics with Observational Data</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Foundations</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./identification.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Identification &amp; Potential Outcomes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./estimation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Estimation: RA, IPW, AIPW</span></span></a>
+  </div>
+</li>
+      </ul>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Methods</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./machine-learning.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Machine Learning for Causal Inference</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./nonparametric.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Nonparametric Causal Methods</span></span></a>
+  </div>
+</li>
+      </ul>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Designs</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./did.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Difference-in-Differences</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./iv-rdd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">IV &amp; Regression Discontinuity</span></span></a>
+  </div>
+</li>
+      </ul>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Mediation</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./mediation.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Causal Mediation Analysis</span></span></a>
+  </div>
+</li>
+      </ul>
+</li>
+    </ul>
+</div>
+</nav><div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active"><h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+<li>
+<a href="#classical-mediation" id="toc-classical-mediation" class="nav-link active" data-scroll-target="#classical-mediation"><span class="header-section-number">7.1</span> Classical Mediation</a>
+  <ul class="collapse">
+<li><a href="#problems-with-classical-mediation" id="toc-problems-with-classical-mediation" class="nav-link" data-scroll-target="#problems-with-classical-mediation"><span class="header-section-number">7.1.1</span> Problems with Classical Mediation</a></li>
+  </ul>
+</li>
+  <li>
+<a href="#causal-mediation" id="toc-causal-mediation" class="nav-link" data-scroll-target="#causal-mediation"><span class="header-section-number">7.2</span> Causal Mediation</a>
+  <ul class="collapse">
+<li><a href="#cde" id="toc-cde" class="nav-link" data-scroll-target="#cde"><span class="header-section-number">7.2.1</span> CDE</a></li>
+  <li><a href="#assumptions" id="toc-assumptions" class="nav-link" data-scroll-target="#assumptions"><span class="header-section-number">7.2.2</span> Assumptions</a></li>
+  <li><a href="#estimation" id="toc-estimation" class="nav-link" data-scroll-target="#estimation"><span class="header-section-number">7.2.3</span> Estimation</a></li>
+  <li><a href="#g-computation" id="toc-g-computation" class="nav-link" data-scroll-target="#g-computation"><span class="header-section-number">7.2.4</span> G-computation</a></li>
+  <li><a href="#ipw" id="toc-ipw" class="nav-link" data-scroll-target="#ipw"><span class="header-section-number">7.2.5</span> IPW</a></li>
+  <li><a href="#aipw" id="toc-aipw" class="nav-link" data-scroll-target="#aipw"><span class="header-section-number">7.2.6</span> AIPW</a></li>
+  <li><a href="#example-g-computation" id="toc-example-g-computation" class="nav-link" data-scroll-target="#example-g-computation"><span class="header-section-number">7.2.7</span> Example: G-computation</a></li>
+  <li><a href="#example-ipw" id="toc-example-ipw" class="nav-link" data-scroll-target="#example-ipw"><span class="header-section-number">7.2.8</span> Example: IPW</a></li>
+  <li><a href="#example-aipw" id="toc-example-aipw" class="nav-link" data-scroll-target="#example-aipw"><span class="header-section-number">7.2.9</span> Example: AIPW</a></li>
+  </ul>
+</li>
+  <li>
+<a href="#nie-and-nde-natural-direct-and-indirect-effects" id="toc-nie-and-nde-natural-direct-and-indirect-effects" class="nav-link" data-scroll-target="#nie-and-nde-natural-direct-and-indirect-effects"><span class="header-section-number">7.3</span> NIE and NDE: Natural Direct and Indirect Effects</a>
+  <ul class="collapse">
+<li><a href="#additional-assumption" id="toc-additional-assumption" class="nav-link" data-scroll-target="#additional-assumption"><span class="header-section-number">7.3.1</span> Additional Assumption</a></li>
+  <li><a href="#estimation-1" id="toc-estimation-1" class="nav-link" data-scroll-target="#estimation-1"><span class="header-section-number">7.3.2</span> Estimation</a></li>
+  </ul>
+</li>
+  <li>
+<a href="#iie-and-ide-interventional-direct-and-indirect-effects" id="toc-iie-and-ide-interventional-direct-and-indirect-effects" class="nav-link" data-scroll-target="#iie-and-ide-interventional-direct-and-indirect-effects"><span class="header-section-number">7.4</span> IIE and IDE: Interventional Direct and Indirect Effects</a>
+  <ul class="collapse">
+<li><a href="#example" id="toc-example" class="nav-link" data-scroll-target="#example"><span class="header-section-number">7.4.1</span> Example</a></li>
+  </ul>
+</li>
+  </ul></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./mediation.html">Mediation</a></li><li class="breadcrumb-item"><a href="./mediation.html"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Causal Mediation Analysis</span></a></li></ol></nav><div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">
+<span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Causal Mediation Analysis</span>
+</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header><div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure"><p><img src="mediation_files/figure-html/dag4-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="classical-mediation" class="level2" data-number="7.1"><h2 data-number="7.1" class="anchored" data-anchor-id="classical-mediation">
+<span class="header-section-number">7.1</span> Classical Mediation</h2>
+<p>Traditionally mediation model can be represented in the following equations:</p>
+<p><span class="math display">\[ Y = a W + b M + \epsilon_1 \]</span> <span class="math display">\[ M = c W + \epsilon_2 \]</span></p>
+<p>That is, we’d like to study the effect of <span class="math inline">\(W\)</span> on <span class="math inline">\(Y\)</span>, and we see the effect can be a direct effect, and an indirect effect, through <span class="math inline">\(M\)</span>.</p>
+<p>Baron and Kenny’s (http://davidakenny.net/cm/mediate.htm) method is done in four steps. Modern approach tends to use SEM (structural equation modeling) to model these two equations directly.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://lavaan.ugent.be">lavaan</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">1234</span><span class="op">)</span></span>
+<span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">10000</span></span>
+<span><span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
+<span><span class="va">M</span> <span class="op">&lt;-</span> <span class="fl">0.5</span><span class="op">*</span><span class="va">X</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
+<span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fl">0.7</span><span class="op">*</span><span class="va">M</span> <span class="op">+</span> <span class="fl">0.3</span><span class="op">*</span><span class="va">X</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
+<span><span class="va">Data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>X <span class="op">=</span> <span class="va">X</span>, Y <span class="op">=</span> <span class="va">Y</span>, M <span class="op">=</span> <span class="va">M</span><span class="op">)</span></span>
+<span><span class="va">model</span> <span class="op">&lt;-</span> <span class="st">'   Y ~ a*X + b*M</span></span>
+<span><span class="st">             M ~ c*X</span></span>
+<span><span class="st">           # direct effect (a)</span></span>
+<span><span class="st">           # indirect effect (b*c)</span></span>
+<span><span class="st">             bc := b*c</span></span>
+<span><span class="st">           # total effect</span></span>
+<span><span class="st">             total := a + (b*c)</span></span>
+<span><span class="st">         '</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/lavaan/man/sem.html">sem</a></span><span class="op">(</span><span class="va">model</span>, data <span class="op">=</span> <span class="va">Data</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>lavaan 0.6-21 ended normally after 1 iteration
+
+  Estimator                                         ML
+  Optimization method                           NLMINB
+  Number of model parameters                         5
+
+  Number of observations                         10000
+
+Model Test User Model:
+                                                      
+  Test statistic                                 0.000
+  Degrees of freedom                                 0
+
+Parameter Estimates:
+
+  Standard errors                             Standard
+  Information                                 Expected
+  Information saturated (h1) model          Structured
+
+Regressions:
+                   Estimate  Std.Err  z-value  P(&gt;|z|)
+  Y ~                                                 
+    X          (a)    0.286    0.011   25.233    0.000
+    M          (b)    0.699    0.010   70.384    0.000
+  M ~                                                 
+    X          (c)    0.511    0.010   50.161    0.000
+
+Variances:
+                   Estimate  Std.Err  z-value  P(&gt;|z|)
+   .Y                 0.998    0.014   70.711    0.000
+   .M                 1.012    0.014   70.711    0.000
+
+Defined Parameters:
+                   Estimate  Std.Err  z-value  P(&gt;|z|)
+    bc                0.357    0.009   40.849    0.000
+    total             0.643    0.012   51.956    0.000</code></pre>
+</div>
+</div>
+<section id="problems-with-classical-mediation" class="level3" data-number="7.1.1"><h3 data-number="7.1.1" class="anchored" data-anchor-id="problems-with-classical-mediation">
+<span class="header-section-number">7.1.1</span> Problems with Classical Mediation</h3>
+<ul>
+<li>Lack of causal claim. We have to assume that there is no unmeasured confounder between <span class="math inline">\(M\)</span> and <span class="math inline">\(Y\)</span>. This is a strong assumption.</li>
+<li>Assumption of homogeneous effect.</li>
+</ul></section></section><section id="causal-mediation" class="level2" data-number="7.2"><h2 data-number="7.2" class="anchored" data-anchor-id="causal-mediation">
+<span class="header-section-number">7.2</span> Causal Mediation</h2>
+<section id="cde" class="level3" data-number="7.2.1"><h3 data-number="7.2.1" class="anchored" data-anchor-id="cde">
+<span class="header-section-number">7.2.1</span> CDE</h3>
+<p>Suppose we can set <span class="math inline">\(W\)</span> and <span class="math inline">\(M\)</span> at will to any <span class="math inline">\((w, m)\)</span>, then we have the potential outcome <span class="math inline">\(Y(w,m)\)</span>.</p>
+<p>Conditional direct effect (CDE) is defined as <span class="math display">\[ CDE(m) = E[Y(1,m)-Y(0,m)] \]</span> That is, setting <span class="math inline">\(M\)</span> to <span class="math inline">\(m\)</span>, what is the effect of <span class="math inline">\(W\)</span> on <span class="math inline">\(Y\)</span>?</p>
+</section><section id="assumptions" class="level3" data-number="7.2.2"><h3 data-number="7.2.2" class="anchored" data-anchor-id="assumptions">
+<span class="header-section-number">7.2.2</span> Assumptions</h3>
+<ul>
+<li>Conditional treatment randomization. Suppose we observe confounders X, which can be a joint set of confounders for the W to Y pathway, or the M to Y pathway.</li>
+</ul>
+<p><span class="math display">\[  Y(w,m) \perp W|X  \]</span></p>
+<p>This is the usual conditional independence (unconfoundedness, ignorability, etc.) assumption. This is saying the assignment of treatment, given covariates <span class="math inline">\(X\)</span>, has nothing to do with potential outcomes.</p>
+<ul>
+<li>Conditional mediator randomization.</li>
+</ul>
+<p><span class="math display">\[  Y(a,m) \perp M|X, W=w  \]</span></p>
+<p>This is to say, within each strata of X, given treatment status, the assignment of mediator gives no information about potential outcome. This randomization is usually not implemented during many experiments (random trials). This is the assumption that makes a lot of mediation hard to make a causal claim.</p>
+<ul>
+<li>Positivity (overlap). There are two positivity assumptions:</li>
+</ul>
+<p><span class="math display">\[  P(W=w | X=x) &gt; 0  \]</span> for all <span class="math inline">\(x\)</span>. This is the usual positivity assumption.</p>
+<p><span class="math display">\[  P(M=m | X=x, W=w) &gt; 0   \]</span> for all <span class="math inline">\(w\)</span>. This is the mediator positivity.</p>
+</section><section id="estimation" class="level3" data-number="7.2.3"><h3 data-number="7.2.3" class="anchored" data-anchor-id="estimation">
+<span class="header-section-number">7.2.3</span> Estimation</h3>
+<p>CDE can be estimated using G-computation method, or IPW, or the doubly-robust methods, one of them is AIPW (augmented IPW).</p>
+</section><section id="g-computation" class="level3" data-number="7.2.4"><h3 data-number="7.2.4" class="anchored" data-anchor-id="g-computation">
+<span class="header-section-number">7.2.4</span> G-computation</h3>
+<p>G-computation is to model the outcome equation: <span class="math display">\[ \small
+\begin{eqnarray*}
+CDE_G(m) &amp;=&amp; E[ E[Y(W=1, M=m, X=x)] - \\
+&amp;&amp;  E[Y(W=0, M=m, X=x)]] \\
+&amp;=&amp; \sum_x [ E[Y(W=1, M=m, X=x)] - \\
+&amp;&amp;  E[Y(W=0, M=m, X=x)]]  P(X=x)
+\end{eqnarray*}
+\]</span></p>
+</section><section id="ipw" class="level3" data-number="7.2.5"><h3 data-number="7.2.5" class="anchored" data-anchor-id="ipw">
+<span class="header-section-number">7.2.5</span> IPW</h3>
+<p>IPW is to model the treatment assignment equation and the mediator assignment equation:</p>
+<p><span class="math display">\[ \small
+E[Y(w,m)] = E[{\frac{I(W=w, M=m)}{P(W=w, M=m | X)}} Y]
+\]</span></p>
+<p>Therefore,</p>
+<p><span class="math display">\[ \small
+CDE_{ipw}(m) = E[{\frac{I(W=1,M=m)}{g_M(m|1,X)g_W(1,X)} Y - \frac{I(W=0,M=m)}{g_M(m|0,X)g_W(0,X)}} Y]
+\]</span></p>
+<p>where <span class="math inline">\(g_M\)</span> is the probability of mediator, <span class="math inline">\(g_W\)</span> is the probability of treatment.</p>
+</section><section id="aipw" class="level3" data-number="7.2.6"><h3 data-number="7.2.6" class="anchored" data-anchor-id="aipw">
+<span class="header-section-number">7.2.6</span> AIPW</h3>
+<p><span class="math display">\[ CDE_{AIPW} = CDE_G(m) + B(\bar Q, g_M, g_W) \]</span> where <span class="math inline">\(\bar Q\)</span> is the mean outcome function.</p>
+<p><span class="math display">\[ \small
+\begin{eqnarray*}
+B(\bar Q, g_M, g_W) &amp;=&amp; \frac{1}{n} \sum_n {\frac{I(M=m, W=1)}{g_m(m|1, X) g_W(1|X)}[Y-\bar Q(m,1,X)]} \\
+&amp;  &amp;  - \frac{1}{n} \sum_n {\frac{I(M=m, W=0)}{g_m(m|0, X) g_W(0|X)}[Y-\bar Q(m,0,X)]}
+\end{eqnarray*}
+\]</span></p>
+</section><section id="example-g-computation" class="level3" data-number="7.2.7"><h3 data-number="7.2.7" class="anchored" data-anchor-id="example-g-computation">
+<span class="header-section-number">7.2.7</span> Example: G-computation</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">1234</span><span class="op">)</span></span>
+<span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">5000</span></span>
+<span><span class="co"># confounder of A/Y</span></span>
+<span><span class="va">W1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
+<span><span class="co"># confounder of M/Y</span></span>
+<span><span class="va">W2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
+<span><span class="co"># treatment</span></span>
+<span><span class="va">A</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span><span class="op">(</span><span class="va">n</span>, <span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html">plogis</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span> <span class="op">+</span> <span class="va">W1</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># binary mediator</span></span>
+<span><span class="va">M</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span><span class="op">(</span><span class="va">n</span>, <span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html">plogis</a></span><span class="op">(</span><span class="op">-</span><span class="fl">2</span> <span class="op">+</span> <span class="va">A</span> <span class="op">/</span> <span class="fl">2</span> <span class="op">+</span> <span class="va">W2</span> <span class="op">/</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># binary outcome</span></span>
+<span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span><span class="op">(</span><span class="va">n</span>, <span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html">plogis</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span> <span class="op">+</span> <span class="va">A</span> <span class="op">-</span> <span class="va">M</span> <span class="op">/</span> <span class="fl">2</span> <span class="op">+</span> <span class="va">W1</span> <span class="op">/</span> <span class="fl">3</span> <span class="op">+</span> <span class="va">W2</span> <span class="op">/</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">full_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>W1 <span class="op">=</span> <span class="va">W1</span>, W2 <span class="op">=</span> <span class="va">W2</span>, A <span class="op">=</span> <span class="va">A</span>, M <span class="op">=</span> <span class="va">M</span>, Y <span class="op">=</span> <span class="va">Y</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># fit outcome regression</span></span>
+<span><span class="va">or_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/glm.html">glm</a></span><span class="op">(</span><span class="va">Y</span> <span class="op">~</span> <span class="va">A</span> <span class="op">+</span> <span class="va">M</span> <span class="op">+</span> <span class="va">W1</span> <span class="op">+</span> <span class="va">W2</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html">binomial</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">full_data</span><span class="op">)</span></span>
+<span><span class="co"># new data setting A and M</span></span>
+<span><span class="va">data_A1_M0</span> <span class="op">&lt;-</span> <span class="va">data_A0_M0</span> <span class="op">&lt;-</span> <span class="va">full_data</span></span>
+<span><span class="va">data_A1_M0</span><span class="op">$</span><span class="va">A</span> <span class="op">&lt;-</span> <span class="fl">1</span>; <span class="va">data_A1_M0</span><span class="op">$</span><span class="va">M</span> <span class="op">&lt;-</span> <span class="fl">0</span></span>
+<span><span class="va">data_A0_M0</span><span class="op">$</span><span class="va">A</span> <span class="op">&lt;-</span> <span class="fl">0</span>; <span class="va">data_A0_M0</span><span class="op">$</span><span class="va">M</span> <span class="op">&lt;-</span> <span class="fl">0</span></span>
+<span><span class="co"># predict on new data</span></span>
+<span><span class="va">Qbar_A1_M0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span><span class="op">(</span><span class="va">or_fit</span>, newdata <span class="op">=</span> <span class="va">data_A1_M0</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span></span>
+<span><span class="va">Qbar_A0_M0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span><span class="op">(</span><span class="va">or_fit</span>, newdata <span class="op">=</span> <span class="va">data_A0_M0</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span></span>
+<span><span class="co"># gcomp estimate of CDE(0)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">Qbar_A1_M0</span> <span class="op">-</span> <span class="va">Qbar_A0_M0</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.2515527</code></pre>
+</div>
+</div>
+</section><section id="example-ipw" class="level3" data-number="7.2.8"><h3 data-number="7.2.8" class="anchored" data-anchor-id="example-ipw">
+<span class="header-section-number">7.2.8</span> Example: IPW</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># model for P(A = 1 | W)</span></span>
+<span><span class="va">ps_fit1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/glm.html">glm</a></span><span class="op">(</span><span class="va">A</span> <span class="op">~</span> <span class="va">W1</span> <span class="op">+</span> <span class="va">W2</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html">binomial</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">full_data</span><span class="op">)</span></span>
+<span><span class="va">P_A1_W</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span><span class="op">(</span><span class="va">ps_fit1</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span></span>
+<span><span class="va">P_A0_W</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">-</span> <span class="va">P_A1_W</span></span>
+<span><span class="co"># model for P(M = 0 | A, W)</span></span>
+<span><span class="va">ps_fit2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/glm.html">glm</a></span><span class="op">(</span><span class="va">M</span> <span class="op">~</span> <span class="va">A</span> <span class="op">+</span> <span class="va">W1</span> <span class="op">+</span> <span class="va">W2</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html">binomial</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">full_data</span><span class="op">)</span></span>
+<span><span class="co"># P(M = 0 | A = 1, W)</span></span>
+<span><span class="va">data_A1</span> <span class="op">&lt;-</span> <span class="va">full_data</span>; <span class="va">data_A1</span><span class="op">$</span><span class="va">A</span> <span class="op">&lt;-</span> <span class="fl">1</span></span>
+<span><span class="va">P_M0_A1_W</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span><span class="op">(</span><span class="va">ps_fit2</span>, newdata <span class="op">=</span> <span class="va">data_A1</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span></span>
+<span><span class="co"># P(M = 0 | A = 0, W)</span></span>
+<span><span class="va">data_A0</span> <span class="op">&lt;-</span> <span class="va">full_data</span>; <span class="va">data_A0</span><span class="op">$</span><span class="va">A</span> <span class="op">&lt;-</span> <span class="fl">0</span></span>
+<span><span class="va">P_M0_A0_W</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span><span class="op">(</span><span class="va">ps_fit2</span>, newdata <span class="op">=</span> <span class="va">data_A0</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span></span>
+<span><span class="co"># ipw estimate of CDE(0)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span> <span class="op">(</span><span class="va">A</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span> <span class="op">/</span> <span class="va">P_A1_W</span> <span class="op">*</span> <span class="op">(</span><span class="va">M</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span> <span class="op">/</span> <span class="va">P_M0_A1_W</span> <span class="op">*</span> <span class="va">Y</span> <span class="op">)</span> <span class="op">-</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span> <span class="op">(</span><span class="va">A</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span> <span class="op">/</span> <span class="va">P_A0_W</span> <span class="op">*</span> <span class="op">(</span><span class="va">M</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span> <span class="op">/</span> <span class="va">P_M0_A0_W</span> <span class="op">*</span> <span class="va">Y</span> <span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.2553091</code></pre>
+</div>
+</div>
+</section><section id="example-aipw" class="level3" data-number="7.2.9"><h3 data-number="7.2.9" class="anchored" data-anchor-id="example-aipw">
+<span class="header-section-number">7.2.9</span> Example: AIPW</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># aipw estimate of E[Y(1,0)]</span></span>
+<span><span class="va">aiptw_EY_A1_M0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">Qbar_A1_M0</span><span class="op">)</span> <span class="op">+</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span> <span class="op">(</span><span class="va">A</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span> <span class="op">/</span> <span class="va">P_A1_W</span> <span class="op">*</span> <span class="op">(</span><span class="va">M</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span> <span class="op">/</span> <span class="va">P_M0_A1_W</span> <span class="op">*</span> <span class="op">(</span><span class="va">Y</span> <span class="op">-</span> <span class="va">Qbar_A1_M0</span><span class="op">)</span> <span class="op">)</span></span>
+<span><span class="co"># aipw estimate of E[Y(0,0)]</span></span>
+<span><span class="va">aiptw_EY_A0_M0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">Qbar_A0_M0</span><span class="op">)</span> <span class="op">+</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span> <span class="op">(</span><span class="va">A</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span> <span class="op">/</span> <span class="va">P_A0_W</span> <span class="op">*</span> <span class="op">(</span><span class="va">M</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span> <span class="op">/</span> <span class="va">P_M0_A0_W</span> <span class="op">*</span> <span class="op">(</span><span class="va">Y</span> <span class="op">-</span> <span class="va">Qbar_A0_M0</span><span class="op">)</span> <span class="op">)</span></span>
+<span><span class="co"># aipw estimate of CDE(0)</span></span>
+<span><span class="va">aiptw_EY_A1_M0</span> <span class="op">-</span> <span class="va">aiptw_EY_A0_M0</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.2554265</code></pre>
+</div>
+</div>
+</section></section><section id="nie-and-nde-natural-direct-and-indirect-effects" class="level2" data-number="7.3"><h2 data-number="7.3" class="anchored" data-anchor-id="nie-and-nde-natural-direct-and-indirect-effects">
+<span class="header-section-number">7.3</span> NIE and NDE: Natural Direct and Indirect Effects</h2>
+<p>CDE is to study the effect of treatment, given the level of mediator. Instead, Natural Effect is to set mediator to its natural value with the value of treatment, that is, <span class="math inline">\(M=M(w)\)</span>.</p>
+<p><span class="math display">\[
+\begin{eqnarray*}
+ATE &amp;=&amp; NIE + NDE \\
+&amp;=&amp;  (E[ Y(1,M(1))] - E[Y(1,M(0))]) + \\
+&amp;&amp; (E[Y(1, M(0))] - E[Y(0,M(0))])
+\end{eqnarray*}
+\]</span></p>
+<p>The advantage of NDE and NIE comparing to CDE is that it’s more “natural”; that is, you don’t set the level of mediator deterministically. And it can decompose the ATE into direct and indirect effects.</p>
+<p>However, there is an additional assumption for NDE and NIE identified.</p>
+<section id="additional-assumption" class="level3" data-number="7.3.1"><h3 data-number="7.3.1" class="anchored" data-anchor-id="additional-assumption">
+<span class="header-section-number">7.3.1</span> Additional Assumption</h3>
+<p><span class="math display">\[ Y(w, m) \perp M(w^*) | X\]</span></p>
+<p>This is the “cross-world” condition: the outcome under <span class="math inline">\((w,m)\)</span> is independent of <span class="math inline">\(M\)</span> under <span class="math inline">\(w^*\)</span>. These two situations cannot happen in the same world; you cannot set <span class="math inline">\(W\)</span> to both <span class="math inline">\(w\)</span> and <span class="math inline">\(w^*\)</span>. There is no experiment can implement it.</p>
+</section><section id="estimation-1" class="level3" data-number="7.3.2"><h3 data-number="7.3.2" class="anchored" data-anchor-id="estimation-1">
+<span class="header-section-number">7.3.2</span> Estimation</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># fit outcome regression (include interaction because we can)</span></span>
+<span><span class="va">or_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/glm.html">glm</a></span><span class="op">(</span><span class="va">Y</span> <span class="op">~</span> <span class="va">A</span> <span class="op">+</span> <span class="va">M</span> <span class="op">+</span> <span class="va">W1</span> <span class="op">+</span> <span class="va">W2</span> <span class="op">+</span> <span class="va">A</span><span class="op">*</span><span class="va">M</span> <span class="op">+</span> <span class="va">M</span><span class="op">*</span><span class="va">W1</span>,</span>
+<span>family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html">binomial</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">full_data</span><span class="op">)</span></span>
+<span><span class="co"># need E(Y | A = 0/1, M = 0/1, W1 = W1i, W2 = W2i)</span></span>
+<span><span class="va">get_EY_a_m_Wi</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">full_data</span>, <span class="va">or_fit</span>, <span class="va">a</span>, <span class="va">m</span><span class="op">)</span><span class="op">{</span></span>
+<span><span class="va">data_Aa_Mm_Wi</span> <span class="op">&lt;-</span> <span class="va">full_data</span></span>
+<span><span class="va">data_Aa_Mm_Wi</span><span class="op">$</span><span class="va">A</span> <span class="op">&lt;-</span> <span class="va">a</span>; <span class="va">data_Aa_Mm_Wi</span><span class="op">$</span><span class="va">M</span> <span class="op">&lt;-</span> <span class="va">m</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span><span class="op">(</span><span class="va">or_fit</span>, newdata <span class="op">=</span> <span class="va">data_Aa_Mm_Wi</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">EY_A0_M0_Wi</span> <span class="op">&lt;-</span> <span class="fu">get_EY_a_m_Wi</span><span class="op">(</span><span class="va">full_data</span>, <span class="va">or_fit</span>, a <span class="op">=</span> <span class="fl">0</span>, m <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
+<span><span class="va">EY_A0_M1_Wi</span> <span class="op">&lt;-</span> <span class="fu">get_EY_a_m_Wi</span><span class="op">(</span><span class="va">full_data</span>, <span class="va">or_fit</span>, a <span class="op">=</span> <span class="fl">0</span>, m <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">EY_A1_M0_Wi</span> <span class="op">&lt;-</span> <span class="fu">get_EY_a_m_Wi</span><span class="op">(</span><span class="va">full_data</span>, <span class="va">or_fit</span>, a <span class="op">=</span> <span class="fl">1</span>, m <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
+<span><span class="va">EY_A1_M1_Wi</span> <span class="op">&lt;-</span> <span class="fu">get_EY_a_m_Wi</span><span class="op">(</span><span class="va">full_data</span>, <span class="va">or_fit</span>, a <span class="op">=</span> <span class="fl">1</span>, m <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># include interactions -- why not?</span></span>
+<span><span class="va">med_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/glm.html">glm</a></span><span class="op">(</span><span class="va">M</span> <span class="op">~</span> <span class="va">A</span><span class="op">*</span><span class="va">W1</span> <span class="op">+</span> <span class="va">W1</span><span class="op">*</span><span class="va">W2</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html">binomial</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">full_data</span><span class="op">)</span></span>
+<span><span class="co"># estimates of P(M = m | A = a, W = W_i)</span></span>
+<span><span class="va">get_Pm_a_Wi</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">full_data</span>, <span class="va">med_fit</span>, <span class="va">a</span>, <span class="va">m</span><span class="op">)</span><span class="op">{</span></span>
+<span><span class="va">data_Aa_Wi</span> <span class="op">&lt;-</span> <span class="va">full_data</span>; <span class="va">data_Aa_Wi</span><span class="op">$</span><span class="va">A</span> <span class="op">&lt;-</span> <span class="va">a</span></span>
+<span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span><span class="op">(</span><span class="va">med_fit</span>, newdata <span class="op">=</span> <span class="va">data_Aa_Wi</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span></span>
+<span><span class="kw">if</span><span class="op">(</span><span class="va">m</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span><span class="op">{</span></span>
+<span><span class="va">p</span></span>
+<span><span class="op">}</span><span class="kw">else</span><span class="op">{</span></span>
+<span><span class="fl">1</span> <span class="op">-</span> <span class="va">p</span></span>
+<span><span class="op">}</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">PM0_A0_Wi</span> <span class="op">&lt;-</span> <span class="fu">get_Pm_a_Wi</span><span class="op">(</span><span class="va">full_data</span>, <span class="va">med_fit</span>, a <span class="op">=</span> <span class="fl">0</span>, m <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
+<span><span class="va">PM1_A0_Wi</span> <span class="op">&lt;-</span> <span class="fu">get_Pm_a_Wi</span><span class="op">(</span><span class="va">full_data</span>, <span class="va">med_fit</span>, a <span class="op">=</span> <span class="fl">0</span>, m <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">PM0_A1_Wi</span> <span class="op">&lt;-</span> <span class="fu">get_Pm_a_Wi</span><span class="op">(</span><span class="va">full_data</span>, <span class="va">med_fit</span>, a <span class="op">=</span> <span class="fl">1</span>, m <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
+<span><span class="va">PM1_A1_Wi</span> <span class="op">&lt;-</span> <span class="fu">get_Pm_a_Wi</span><span class="op">(</span><span class="va">full_data</span>, <span class="va">med_fit</span>, a <span class="op">=</span> <span class="fl">1</span>, m <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># E(E(Y | A = 1, M, W) | A = 1, W)</span></span>
+<span><span class="va">EY1M1_Wi</span> <span class="op">&lt;-</span> <span class="va">EY_A1_M1_Wi</span> <span class="op">*</span> <span class="va">PM1_A1_Wi</span> <span class="op">+</span> <span class="va">EY_A1_M0_Wi</span> <span class="op">*</span> <span class="va">PM0_A1_Wi</span></span>
+<span><span class="co"># E(E(Y | A = 0, M, W) | A = 1, W)</span></span>
+<span><span class="va">EY0M1_Wi</span> <span class="op">&lt;-</span> <span class="va">EY_A0_M1_Wi</span> <span class="op">*</span> <span class="va">PM1_A1_Wi</span> <span class="op">+</span> <span class="va">EY_A0_M0_Wi</span> <span class="op">*</span> <span class="va">PM0_A1_Wi</span></span>
+<span><span class="co"># E(E(Y | A = 1, M, W) | A = 0, W)</span></span>
+<span><span class="va">EY1M0_Wi</span> <span class="op">&lt;-</span> <span class="va">EY_A1_M1_Wi</span> <span class="op">*</span> <span class="va">PM1_A0_Wi</span> <span class="op">+</span> <span class="va">EY_A1_M0_Wi</span> <span class="op">*</span> <span class="va">PM0_A0_Wi</span></span>
+<span><span class="co"># E(E(Y | A = 0, M, W) | A = 0, W)</span></span>
+<span><span class="va">EY0M0_Wi</span> <span class="op">&lt;-</span> <span class="va">EY_A0_M1_Wi</span> <span class="op">*</span> <span class="va">PM1_A0_Wi</span> <span class="op">+</span> <span class="va">EY_A0_M0_Wi</span> <span class="op">*</span> <span class="va">PM0_A0_Wi</span></span>
+<span></span>
+<span><span class="co"># estimate of E[Y(1, M(1))]</span></span>
+<span><span class="va">E_Y1M1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">EY1M1_Wi</span><span class="op">)</span></span>
+<span><span class="co"># estimate of E[Y(0, M(1))]</span></span>
+<span><span class="va">E_Y0M1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">EY0M1_Wi</span><span class="op">)</span></span>
+<span><span class="co"># estimate of E[Y(1, M(0))]</span></span>
+<span><span class="va">E_Y1M0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">EY1M0_Wi</span><span class="op">)</span></span>
+<span><span class="co"># estimate of E[Y(0, M(0))]</span></span>
+<span><span class="va">E_Y0M0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">EY0M0_Wi</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section></section><section id="iie-and-ide-interventional-direct-and-indirect-effects" class="level2" data-number="7.4"><h2 data-number="7.4" class="anchored" data-anchor-id="iie-and-ide-interventional-direct-and-indirect-effects">
+<span class="header-section-number">7.4</span> IIE and IDE: Interventional Direct and Indirect Effects</h2>
+<p>People are not happy with the cross-world assumption in general. Interventional direct and indirect effects are introduced to avoid this assumption and still be able to decompose the <span class="math inline">\(ATE\)</span>.</p>
+<p><span class="math display">\[
+\begin{eqnarray*}
+ATE &amp;=&amp; IIE + IDE \\
+&amp;=&amp; (E[ Y(1,M(1))] - E[Y(1,M^*)]) \\
+&amp;&amp; + (E[Y(1,M^*)]-E[Y(0,M(0))])
+\end{eqnarray*}
+\]</span></p>
+<p>The different point here is to set <span class="math inline">\(M=M^*\)</span>, where <span class="math inline">\(M^*\)</span> is a random draw from <span class="math inline">\(M(w^*) | X=x\)</span>. That is, there is a distribution of <span class="math inline">\(M\)</span> in the strata that <span class="math inline">\(X=x\)</span>. We take a random draw, instead of setting to a specific value.</p>
+<p>The advantage of this is that it does not need cross-world assumption to identify <span class="math inline">\(IIE\)</span> and <span class="math inline">\(IDE\)</span>.</p>
+<section id="example" class="level3" data-number="7.4.1"><h3 data-number="7.4.1" class="anchored" data-anchor-id="example">
+<span class="header-section-number">7.4.1</span> Example</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com">data.table</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyverse.tidyverse.org">tidyverse</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/nhejazi/medoutcon">medoutcon</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">1584</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># produces a simple data set based on ca causal model with mediation</span></span>
+<span><span class="va">make_example_data</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">n_obs</span> <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="co">## baseline covariates</span></span>
+<span>  <span class="va">w_1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span><span class="op">(</span><span class="va">n_obs</span>, <span class="fl">1</span>, prob <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span></span>
+<span>  <span class="va">w_2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span><span class="op">(</span><span class="va">n_obs</span>, <span class="fl">1</span>, prob <span class="op">=</span> <span class="fl">0.3</span><span class="op">)</span></span>
+<span>  <span class="va">w_3</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span><span class="op">(</span><span class="va">n_obs</span>, <span class="fl">1</span>, prob <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmin</a></span><span class="op">(</span><span class="fl">0.2</span> <span class="op">+</span> <span class="op">(</span><span class="va">w_1</span> <span class="op">+</span> <span class="va">w_2</span><span class="op">)</span> <span class="op">/</span> <span class="fl">3</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">w</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span><span class="va">w_1</span>, <span class="va">w_2</span>, <span class="va">w_3</span><span class="op">)</span></span>
+<span>  <span class="va">w_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span><span class="op">(</span><span class="st">"W"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html">ncol</a></span><span class="op">(</span><span class="va">w</span><span class="op">)</span><span class="op">)</span>, sep <span class="op">=</span> <span class="st">"_"</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="co">## exposure</span></span>
+<span>  <span class="va">a</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span><span class="op">(</span><span class="va">n_obs</span>, <span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html">plogis</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html">rowSums</a></span><span class="op">(</span><span class="va">w</span><span class="op">)</span> <span class="op">-</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="co">## mediator-outcome confounder affected by treatment</span></span>
+<span>  <span class="va">z</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span><span class="op">(</span><span class="va">n_obs</span>, <span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html">plogis</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html">rowMeans</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span> <span class="op">+</span> <span class="va">w</span> <span class="op">-</span> <span class="va">a</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0.2</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="co">## mediator -- could be multivariate</span></span>
+<span>  <span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span><span class="op">(</span><span class="va">n_obs</span>, <span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html">plogis</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html">rowSums</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html">log</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span> <span class="op">*</span> <span class="va">w</span><span class="op">[</span>, <span class="op">-</span><span class="fl">3</span><span class="op">]</span> <span class="op">+</span> <span class="va">a</span> <span class="op">-</span> <span class="va">z</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">m_names</span> <span class="op">&lt;-</span> <span class="st">"M"</span></span>
+<span></span>
+<span>  <span class="co">## outcome</span></span>
+<span>  <span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span><span class="op">(</span><span class="va">n_obs</span>, <span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html">plogis</a></span><span class="op">(</span><span class="fl">1</span> <span class="op">/</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html">rowSums</a></span><span class="op">(</span><span class="va">w</span><span class="op">)</span> <span class="op">-</span> <span class="va">z</span> <span class="op">+</span> <span class="va">a</span> <span class="op">+</span> <span class="va">m</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="co">## construct output</span></span>
+<span>  <span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html">as.data.table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span>w <span class="op">=</span> <span class="va">w</span>, a <span class="op">=</span> <span class="va">a</span>, z <span class="op">=</span> <span class="va">z</span>, m <span class="op">=</span> <span class="va">m</span>, y <span class="op">=</span> <span class="va">y</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/setattr.html">setnames</a></span><span class="op">(</span><span class="va">dat</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">w_names</span>, <span class="st">"A"</span>, <span class="st">"Z"</span>, <span class="va">m_names</span>, <span class="st">"Y"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="kw"><a href="https://rdrr.io/r/base/function.html">return</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># set seed and simulate example data</span></span>
+<span><span class="va">example_data</span> <span class="op">&lt;-</span> <span class="fu">make_example_data</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">w_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://stringr.tidyverse.org/reference/str_subset.html">str_subset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span><span class="op">(</span><span class="va">example_data</span><span class="op">)</span>, <span class="st">"W"</span><span class="op">)</span></span>
+<span><span class="va">m_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://stringr.tidyverse.org/reference/str_subset.html">str_subset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span><span class="op">(</span><span class="va">example_data</span><span class="op">)</span>, <span class="st">"M"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># quick look at the data</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="va">example_data</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     W_1   W_2   W_3     A     Z     M     Y
+   &lt;num&gt; &lt;num&gt; &lt;num&gt; &lt;num&gt; &lt;num&gt; &lt;num&gt; &lt;num&gt;
+1:     1     0     1     0     0     0     1
+2:     0     1     0     0     0     1     0
+3:     1     1     1     1     0     1     1
+4:     0     1     1     0     0     1     0
+5:     0     0     0     0     0     1     1
+6:     1     0     1     1     0     1     0</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># compute one-step estimate of the interventional direct effect</span></span>
+<span><span class="va">os_de</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/medoutcon/man/medoutcon.html">medoutcon</a></span><span class="op">(</span>W <span class="op">=</span> <span class="va">example_data</span><span class="op">[</span>, <span class="va">..w_names</span><span class="op">]</span>,</span>
+<span>                   A <span class="op">=</span> <span class="va">example_data</span><span class="op">$</span><span class="va">A</span>,</span>
+<span>                   Z <span class="op">=</span> <span class="va">example_data</span><span class="op">$</span><span class="va">Z</span>,</span>
+<span>                   M <span class="op">=</span> <span class="va">example_data</span><span class="op">[</span>, <span class="va">..m_names</span><span class="op">]</span>,</span>
+<span>                   Y <span class="op">=</span> <span class="va">example_data</span><span class="op">$</span><span class="va">Y</span>,</span>
+<span>                   effect <span class="op">=</span> <span class="st">"direct"</span>,</span>
+<span>                   estimator <span class="op">=</span> <span class="st">"onestep"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html">summary</a></span><span class="op">(</span><span class="va">os_de</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 7
+  lwr_ci param_est upr_ci var_est eif_mean estimator param                
+   &lt;dbl&gt;     &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt; &lt;chr&gt;     &lt;chr&gt;                
+1 -0.170   -0.0708 0.0281 0.00254 1.12e-16 onestep   direct_interventional</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># compute targeted minimum loss estimate of the interventional direct effect</span></span>
+<span><span class="va">tmle_de</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/medoutcon/man/medoutcon.html">medoutcon</a></span><span class="op">(</span>W <span class="op">=</span> <span class="va">example_data</span><span class="op">[</span>, <span class="va">..w_names</span><span class="op">]</span>,</span>
+<span>                     A <span class="op">=</span> <span class="va">example_data</span><span class="op">$</span><span class="va">A</span>,</span>
+<span>                     Z <span class="op">=</span> <span class="va">example_data</span><span class="op">$</span><span class="va">Z</span>,</span>
+<span>                     M <span class="op">=</span> <span class="va">example_data</span><span class="op">[</span>, <span class="va">..m_names</span><span class="op">]</span>,</span>
+<span>                     Y <span class="op">=</span> <span class="va">example_data</span><span class="op">$</span><span class="va">Y</span>,</span>
+<span>                     effect <span class="op">=</span> <span class="st">"direct"</span>,</span>
+<span>                     estimator <span class="op">=</span> <span class="st">"tmle"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html">summary</a></span><span class="op">(</span><span class="va">tmle_de</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 7
+  lwr_ci param_est upr_ci var_est eif_mean estimator param                
+   &lt;dbl&gt;     &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt; &lt;chr&gt;     &lt;chr&gt;                
+1 -0.169   -0.0679 0.0332 0.00266   0.0210 tmle      direct_interventional</code></pre>
+</div>
+</div>
+
+
+<!-- -->
+
+</section></section></main><!-- /main --><script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><nav class="page-navigation"><div class="nav-page nav-page-previous">
+      <a href="./iv-rdd.html" class="pagination-link" aria-label="IV &amp; Regression Discontinuity">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">IV &amp; Regression Discontinuity</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+  </div>
+</nav><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># Causal Mediation Analysis</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: false</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggdag)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lavaan)</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(medoutcon)</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a><span class="in">```{r dag4, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">dagify</span>(</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>  y <span class="sc">~</span> m,</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>  w <span class="sc">~</span> c,</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>  y <span class="sc">~</span> c,</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>  m <span class="sc">~</span> w,</span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>  m <span class="sc">~</span> c,</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">exposure =</span> <span class="st">"w"</span>,</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome =</span> <span class="st">"y"</span>,</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">coords =</span> <span class="fu">list</span>(<span class="at">x =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="dv">2</span>, <span class="at">c =</span> <span class="dv">2</span>, <span class="at">y =</span> <span class="dv">4</span>, <span class="at">w=</span><span class="dv">0</span>),</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>                <span class="at">y =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="dv">2</span>, <span class="at">c =</span> <span class="dv">3</span>, <span class="at">y =</span> <span class="dv">2</span>, <span class="at">w=</span><span class="dv">2</span>))</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a><span class="fu">ggdag</span>(g)</span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a><span class="fu">## Classical Mediation</span></span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>Traditionally mediation model can be represented in the following equations:</span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>$$ Y = a W + b M + \epsilon_1 $$ $$ M = c W + \epsilon_2 $$</span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>That is, we'd like to study the effect of $W$ on $Y$, and we see the effect can be a direct effect, and an indirect effect, through $M$.</span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a>Baron and Kenny's (http://davidakenny.net/cm/mediate.htm) method is done in four steps. Modern approach tends to use SEM (structural equation modeling) to model these two equations directly.</span>
+<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-41"><a href="#cb18-41" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lavaan)</span>
+<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1234</span>)</span>
+<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">10000</span></span>
+<span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n)</span>
+<span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a>M <span class="ot">&lt;-</span> <span class="fl">0.5</span><span class="sc">*</span>X <span class="sc">+</span> <span class="fu">rnorm</span>(n)</span>
+<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a>Y <span class="ot">&lt;-</span> <span class="fl">0.7</span><span class="sc">*</span>M <span class="sc">+</span> <span class="fl">0.3</span><span class="sc">*</span>X <span class="sc">+</span> <span class="fu">rnorm</span>(n)</span>
+<span id="cb18-47"><a href="#cb18-47" aria-hidden="true" tabindex="-1"></a>Data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">X =</span> X, <span class="at">Y =</span> Y, <span class="at">M =</span> M)</span>
+<span id="cb18-48"><a href="#cb18-48" aria-hidden="true" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="st">'   Y ~ a*X + b*M</span></span>
+<span id="cb18-49"><a href="#cb18-49" aria-hidden="true" tabindex="-1"></a><span class="st">             M ~ c*X</span></span>
+<span id="cb18-50"><a href="#cb18-50" aria-hidden="true" tabindex="-1"></a><span class="st">           # direct effect (a)</span></span>
+<span id="cb18-51"><a href="#cb18-51" aria-hidden="true" tabindex="-1"></a><span class="st">           # indirect effect (b*c)</span></span>
+<span id="cb18-52"><a href="#cb18-52" aria-hidden="true" tabindex="-1"></a><span class="st">             bc := b*c</span></span>
+<span id="cb18-53"><a href="#cb18-53" aria-hidden="true" tabindex="-1"></a><span class="st">           # total effect</span></span>
+<span id="cb18-54"><a href="#cb18-54" aria-hidden="true" tabindex="-1"></a><span class="st">             total := a + (b*c)</span></span>
+<span id="cb18-55"><a href="#cb18-55" aria-hidden="true" tabindex="-1"></a><span class="st">         '</span></span>
+<span id="cb18-56"><a href="#cb18-56" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-57"><a href="#cb18-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-58"><a href="#cb18-58" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-59"><a href="#cb18-59" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">sem</span>(model, <span class="at">data =</span> Data)</span>
+<span id="cb18-60"><a href="#cb18-60" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(fit)</span>
+<span id="cb18-61"><a href="#cb18-61" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-62"><a href="#cb18-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-63"><a href="#cb18-63" aria-hidden="true" tabindex="-1"></a><span class="fu">### Problems with Classical Mediation</span></span>
+<span id="cb18-64"><a href="#cb18-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-65"><a href="#cb18-65" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Lack of causal claim. We have to assume that there is no unmeasured confounder between $M$ and $Y$. This is a strong assumption.</span>
+<span id="cb18-66"><a href="#cb18-66" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Assumption of homogeneous effect.</span>
+<span id="cb18-67"><a href="#cb18-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-68"><a href="#cb18-68" aria-hidden="true" tabindex="-1"></a><span class="fu">## Causal Mediation</span></span>
+<span id="cb18-69"><a href="#cb18-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-70"><a href="#cb18-70" aria-hidden="true" tabindex="-1"></a><span class="fu">### CDE</span></span>
+<span id="cb18-71"><a href="#cb18-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-72"><a href="#cb18-72" aria-hidden="true" tabindex="-1"></a>Suppose we can set $W$ and $M$ at will to any $(w, m)$, then we have the potential outcome $Y(w,m)$.</span>
+<span id="cb18-73"><a href="#cb18-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-74"><a href="#cb18-74" aria-hidden="true" tabindex="-1"></a>Conditional direct effect (CDE) is defined as $$ CDE(m) = E<span class="co">[</span><span class="ot">Y(1,m)-Y(0,m)</span><span class="co">]</span> $$ That is, setting $M$ to $m$, what is the effect of $W$ on $Y$?</span>
+<span id="cb18-75"><a href="#cb18-75" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-76"><a href="#cb18-76" aria-hidden="true" tabindex="-1"></a><span class="fu">### Assumptions</span></span>
+<span id="cb18-77"><a href="#cb18-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-78"><a href="#cb18-78" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Conditional treatment randomization. Suppose we observe confounders X, which can be a joint set of confounders for the W to Y pathway, or the M to Y pathway.</span>
+<span id="cb18-79"><a href="#cb18-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-80"><a href="#cb18-80" aria-hidden="true" tabindex="-1"></a>$$  Y(w,m) \perp W|X  $$</span>
+<span id="cb18-81"><a href="#cb18-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-82"><a href="#cb18-82" aria-hidden="true" tabindex="-1"></a>This is the usual conditional independence (unconfoundedness, ignorability, etc.) assumption. This is saying the assignment of treatment, given covariates $X$, has nothing to do with potential outcomes.</span>
+<span id="cb18-83"><a href="#cb18-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-84"><a href="#cb18-84" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Conditional mediator randomization.</span>
+<span id="cb18-85"><a href="#cb18-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-86"><a href="#cb18-86" aria-hidden="true" tabindex="-1"></a>$$  Y(a,m) \perp M|X, W=w  $$</span>
+<span id="cb18-87"><a href="#cb18-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-88"><a href="#cb18-88" aria-hidden="true" tabindex="-1"></a>This is to say, within each strata of X, given treatment status, the assignment of mediator gives no information about potential outcome. This randomization is usually not implemented during many experiments (random trials). This is the assumption that makes a lot of mediation hard to make a causal claim.</span>
+<span id="cb18-89"><a href="#cb18-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-90"><a href="#cb18-90" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Positivity (overlap). There are two positivity assumptions:</span>
+<span id="cb18-91"><a href="#cb18-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-92"><a href="#cb18-92" aria-hidden="true" tabindex="-1"></a>$$  P(W=w | X=x) &gt; 0  $$ for all $x$. This is the usual positivity assumption.</span>
+<span id="cb18-93"><a href="#cb18-93" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-94"><a href="#cb18-94" aria-hidden="true" tabindex="-1"></a>$$  P(M=m | X=x, W=w) &gt; 0   $$ for all $w$. This is the mediator positivity.</span>
+<span id="cb18-95"><a href="#cb18-95" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-96"><a href="#cb18-96" aria-hidden="true" tabindex="-1"></a><span class="fu">### Estimation</span></span>
+<span id="cb18-97"><a href="#cb18-97" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-98"><a href="#cb18-98" aria-hidden="true" tabindex="-1"></a>CDE can be estimated using G-computation method, or IPW, or the doubly-robust methods, one of them is AIPW (augmented IPW).</span>
+<span id="cb18-99"><a href="#cb18-99" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-100"><a href="#cb18-100" aria-hidden="true" tabindex="-1"></a><span class="fu">### G-computation</span></span>
+<span id="cb18-101"><a href="#cb18-101" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-102"><a href="#cb18-102" aria-hidden="true" tabindex="-1"></a>G-computation is to model the outcome equation: $$ \small</span>
+<span id="cb18-103"><a href="#cb18-103" aria-hidden="true" tabindex="-1"></a>\begin{eqnarray*}</span>
+<span id="cb18-104"><a href="#cb18-104" aria-hidden="true" tabindex="-1"></a>CDE_G(m) &amp;=&amp; E<span class="co">[</span><span class="ot"> E[Y(W=1, M=m, X=x)</span><span class="co">]</span> - <span class="sc">\\</span></span>
+<span id="cb18-105"><a href="#cb18-105" aria-hidden="true" tabindex="-1"></a>&amp;&amp;  E<span class="co">[</span><span class="ot">Y(W=0, M=m, X=x)</span><span class="co">]</span>] <span class="sc">\\</span></span>
+<span id="cb18-106"><a href="#cb18-106" aria-hidden="true" tabindex="-1"></a>&amp;=&amp; \sum_x <span class="co">[</span><span class="ot"> E[Y(W=1, M=m, X=x)</span><span class="co">]</span> - <span class="sc">\\</span></span>
+<span id="cb18-107"><a href="#cb18-107" aria-hidden="true" tabindex="-1"></a>&amp;&amp;  E<span class="co">[</span><span class="ot">Y(W=0, M=m, X=x)</span><span class="co">]</span>]  P(X=x)</span>
+<span id="cb18-108"><a href="#cb18-108" aria-hidden="true" tabindex="-1"></a>\end{eqnarray*}</span>
+<span id="cb18-109"><a href="#cb18-109" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb18-110"><a href="#cb18-110" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-111"><a href="#cb18-111" aria-hidden="true" tabindex="-1"></a><span class="fu">### IPW</span></span>
+<span id="cb18-112"><a href="#cb18-112" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-113"><a href="#cb18-113" aria-hidden="true" tabindex="-1"></a>IPW is to model the treatment assignment equation and the mediator assignment equation:</span>
+<span id="cb18-114"><a href="#cb18-114" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-115"><a href="#cb18-115" aria-hidden="true" tabindex="-1"></a>$$ \small</span>
+<span id="cb18-116"><a href="#cb18-116" aria-hidden="true" tabindex="-1"></a>E<span class="co">[</span><span class="ot">Y(w,m)</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">{\frac{I(W=w, M=m)}{P(W=w, M=m | X)}} Y</span><span class="co">]</span></span>
+<span id="cb18-117"><a href="#cb18-117" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb18-118"><a href="#cb18-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-119"><a href="#cb18-119" aria-hidden="true" tabindex="-1"></a>Therefore,</span>
+<span id="cb18-120"><a href="#cb18-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-121"><a href="#cb18-121" aria-hidden="true" tabindex="-1"></a>$$ \small</span>
+<span id="cb18-122"><a href="#cb18-122" aria-hidden="true" tabindex="-1"></a>CDE_{ipw}(m) = E<span class="co">[</span><span class="ot">{\frac{I(W=1,M=m)}{g_M(m|1,X)g_W(1,X)} Y - \frac{I(W=0,M=m)}{g_M(m|0,X)g_W(0,X)}} Y</span><span class="co">]</span></span>
+<span id="cb18-123"><a href="#cb18-123" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb18-124"><a href="#cb18-124" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-125"><a href="#cb18-125" aria-hidden="true" tabindex="-1"></a>where $g_M$ is the probability of mediator, $g_W$ is the probability of treatment.</span>
+<span id="cb18-126"><a href="#cb18-126" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-127"><a href="#cb18-127" aria-hidden="true" tabindex="-1"></a><span class="fu">### AIPW</span></span>
+<span id="cb18-128"><a href="#cb18-128" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-129"><a href="#cb18-129" aria-hidden="true" tabindex="-1"></a>$$ CDE_{AIPW} = CDE_G(m) + B(\bar Q, g_M, g_W) $$ where $\bar Q$ is the mean outcome function.</span>
+<span id="cb18-130"><a href="#cb18-130" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-131"><a href="#cb18-131" aria-hidden="true" tabindex="-1"></a>$$ \small</span>
+<span id="cb18-132"><a href="#cb18-132" aria-hidden="true" tabindex="-1"></a>\begin{eqnarray*}</span>
+<span id="cb18-133"><a href="#cb18-133" aria-hidden="true" tabindex="-1"></a>B(\bar Q, g_M, g_W) &amp;=&amp; \frac{1}{n} \sum_n {\frac{I(M=m, W=1)}{g_m(m|1, X) g_W(1|X)}<span class="co">[</span><span class="ot">Y-\bar Q(m,1,X)</span><span class="co">]</span>} <span class="sc">\\</span></span>
+<span id="cb18-134"><a href="#cb18-134" aria-hidden="true" tabindex="-1"></a>&amp;  &amp;  - \frac{1}{n} \sum_n {\frac{I(M=m, W=0)}{g_m(m|0, X) g_W(0|X)}<span class="co">[</span><span class="ot">Y-\bar Q(m,0,X)</span><span class="co">]</span>}</span>
+<span id="cb18-135"><a href="#cb18-135" aria-hidden="true" tabindex="-1"></a>\end{eqnarray*}</span>
+<span id="cb18-136"><a href="#cb18-136" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb18-137"><a href="#cb18-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-138"><a href="#cb18-138" aria-hidden="true" tabindex="-1"></a><span class="fu">### Example: G-computation</span></span>
+<span id="cb18-139"><a href="#cb18-139" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-140"><a href="#cb18-140" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med3, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-141"><a href="#cb18-141" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1234</span>)</span>
+<span id="cb18-142"><a href="#cb18-142" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">5000</span></span>
+<span id="cb18-143"><a href="#cb18-143" aria-hidden="true" tabindex="-1"></a><span class="co"># confounder of A/Y</span></span>
+<span id="cb18-144"><a href="#cb18-144" aria-hidden="true" tabindex="-1"></a>W1 <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n)</span>
+<span id="cb18-145"><a href="#cb18-145" aria-hidden="true" tabindex="-1"></a><span class="co"># confounder of M/Y</span></span>
+<span id="cb18-146"><a href="#cb18-146" aria-hidden="true" tabindex="-1"></a>W2 <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n)</span>
+<span id="cb18-147"><a href="#cb18-147" aria-hidden="true" tabindex="-1"></a><span class="co"># treatment</span></span>
+<span id="cb18-148"><a href="#cb18-148" aria-hidden="true" tabindex="-1"></a>A <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="sc">-</span><span class="dv">1</span> <span class="sc">+</span> W1 <span class="sc">/</span> <span class="dv">2</span>))</span>
+<span id="cb18-149"><a href="#cb18-149" aria-hidden="true" tabindex="-1"></a><span class="co"># binary mediator</span></span>
+<span id="cb18-150"><a href="#cb18-150" aria-hidden="true" tabindex="-1"></a>M <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="sc">-</span><span class="dv">2</span> <span class="sc">+</span> A <span class="sc">/</span> <span class="dv">2</span> <span class="sc">+</span> W2 <span class="sc">/</span> <span class="dv">3</span>))</span>
+<span id="cb18-151"><a href="#cb18-151" aria-hidden="true" tabindex="-1"></a><span class="co"># binary outcome</span></span>
+<span id="cb18-152"><a href="#cb18-152" aria-hidden="true" tabindex="-1"></a>Y <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="sc">-</span><span class="dv">1</span> <span class="sc">+</span> A <span class="sc">-</span> M <span class="sc">/</span> <span class="dv">2</span> <span class="sc">+</span> W1 <span class="sc">/</span> <span class="dv">3</span> <span class="sc">+</span> W2 <span class="sc">/</span> <span class="dv">3</span>))</span>
+<span id="cb18-153"><a href="#cb18-153" aria-hidden="true" tabindex="-1"></a>full_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">W1 =</span> W1, <span class="at">W2 =</span> W2, <span class="at">A =</span> A, <span class="at">M =</span> M, <span class="at">Y =</span> Y)</span>
+<span id="cb18-154"><a href="#cb18-154" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-155"><a href="#cb18-155" aria-hidden="true" tabindex="-1"></a><span class="co"># fit outcome regression</span></span>
+<span id="cb18-156"><a href="#cb18-156" aria-hidden="true" tabindex="-1"></a>or_fit <span class="ot">&lt;-</span> <span class="fu">glm</span>(Y <span class="sc">~</span> A <span class="sc">+</span> M <span class="sc">+</span> W1 <span class="sc">+</span> W2, <span class="at">family =</span> <span class="fu">binomial</span>(), <span class="at">data =</span> full_data)</span>
+<span id="cb18-157"><a href="#cb18-157" aria-hidden="true" tabindex="-1"></a><span class="co"># new data setting A and M</span></span>
+<span id="cb18-158"><a href="#cb18-158" aria-hidden="true" tabindex="-1"></a>data_A1_M0 <span class="ot">&lt;-</span> data_A0_M0 <span class="ot">&lt;-</span> full_data</span>
+<span id="cb18-159"><a href="#cb18-159" aria-hidden="true" tabindex="-1"></a>data_A1_M0<span class="sc">$</span>A <span class="ot">&lt;-</span> <span class="dv">1</span>; data_A1_M0<span class="sc">$</span>M <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb18-160"><a href="#cb18-160" aria-hidden="true" tabindex="-1"></a>data_A0_M0<span class="sc">$</span>A <span class="ot">&lt;-</span> <span class="dv">0</span>; data_A0_M0<span class="sc">$</span>M <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb18-161"><a href="#cb18-161" aria-hidden="true" tabindex="-1"></a><span class="co"># predict on new data</span></span>
+<span id="cb18-162"><a href="#cb18-162" aria-hidden="true" tabindex="-1"></a>Qbar_A1_M0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(or_fit, <span class="at">newdata =</span> data_A1_M0, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb18-163"><a href="#cb18-163" aria-hidden="true" tabindex="-1"></a>Qbar_A0_M0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(or_fit, <span class="at">newdata =</span> data_A0_M0, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb18-164"><a href="#cb18-164" aria-hidden="true" tabindex="-1"></a><span class="co"># gcomp estimate of CDE(0)</span></span>
+<span id="cb18-165"><a href="#cb18-165" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(Qbar_A1_M0 <span class="sc">-</span> Qbar_A0_M0)</span>
+<span id="cb18-166"><a href="#cb18-166" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-167"><a href="#cb18-167" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-168"><a href="#cb18-168" aria-hidden="true" tabindex="-1"></a><span class="fu">### Example: IPW</span></span>
+<span id="cb18-169"><a href="#cb18-169" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-170"><a href="#cb18-170" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med4, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-171"><a href="#cb18-171" aria-hidden="true" tabindex="-1"></a><span class="co"># model for P(A = 1 | W)</span></span>
+<span id="cb18-172"><a href="#cb18-172" aria-hidden="true" tabindex="-1"></a>ps_fit1 <span class="ot">&lt;-</span> <span class="fu">glm</span>(A <span class="sc">~</span> W1 <span class="sc">+</span> W2, <span class="at">family =</span> <span class="fu">binomial</span>(), <span class="at">data =</span> full_data)</span>
+<span id="cb18-173"><a href="#cb18-173" aria-hidden="true" tabindex="-1"></a>P_A1_W <span class="ot">&lt;-</span> <span class="fu">predict</span>(ps_fit1, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb18-174"><a href="#cb18-174" aria-hidden="true" tabindex="-1"></a>P_A0_W <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">-</span> P_A1_W</span>
+<span id="cb18-175"><a href="#cb18-175" aria-hidden="true" tabindex="-1"></a><span class="co"># model for P(M = 0 | A, W)</span></span>
+<span id="cb18-176"><a href="#cb18-176" aria-hidden="true" tabindex="-1"></a>ps_fit2 <span class="ot">&lt;-</span> <span class="fu">glm</span>(M <span class="sc">~</span> A <span class="sc">+</span> W1 <span class="sc">+</span> W2, <span class="at">family =</span> <span class="fu">binomial</span>(), <span class="at">data =</span> full_data)</span>
+<span id="cb18-177"><a href="#cb18-177" aria-hidden="true" tabindex="-1"></a><span class="co"># P(M = 0 | A = 1, W)</span></span>
+<span id="cb18-178"><a href="#cb18-178" aria-hidden="true" tabindex="-1"></a>data_A1 <span class="ot">&lt;-</span> full_data; data_A1<span class="sc">$</span>A <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb18-179"><a href="#cb18-179" aria-hidden="true" tabindex="-1"></a>P_M0_A1_W <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">-</span> <span class="fu">predict</span>(ps_fit2, <span class="at">newdata =</span> data_A1, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb18-180"><a href="#cb18-180" aria-hidden="true" tabindex="-1"></a><span class="co"># P(M = 0 | A = 0, W)</span></span>
+<span id="cb18-181"><a href="#cb18-181" aria-hidden="true" tabindex="-1"></a>data_A0 <span class="ot">&lt;-</span> full_data; data_A0<span class="sc">$</span>A <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb18-182"><a href="#cb18-182" aria-hidden="true" tabindex="-1"></a>P_M0_A0_W <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">-</span> <span class="fu">predict</span>(ps_fit2, <span class="at">newdata =</span> data_A0, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb18-183"><a href="#cb18-183" aria-hidden="true" tabindex="-1"></a><span class="co"># ipw estimate of CDE(0)</span></span>
+<span id="cb18-184"><a href="#cb18-184" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>( (A <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">/</span> P_A1_W <span class="sc">*</span> (M <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">/</span> P_M0_A1_W <span class="sc">*</span> Y ) <span class="sc">-</span></span>
+<span id="cb18-185"><a href="#cb18-185" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>( (A <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">/</span> P_A0_W <span class="sc">*</span> (M <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">/</span> P_M0_A0_W <span class="sc">*</span> Y )</span>
+<span id="cb18-186"><a href="#cb18-186" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-187"><a href="#cb18-187" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-188"><a href="#cb18-188" aria-hidden="true" tabindex="-1"></a><span class="fu">### Example: AIPW</span></span>
+<span id="cb18-189"><a href="#cb18-189" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-190"><a href="#cb18-190" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med5, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-191"><a href="#cb18-191" aria-hidden="true" tabindex="-1"></a><span class="co"># aipw estimate of E[Y(1,0)]</span></span>
+<span id="cb18-192"><a href="#cb18-192" aria-hidden="true" tabindex="-1"></a>aiptw_EY_A1_M0 <span class="ot">&lt;-</span> <span class="fu">mean</span>(Qbar_A1_M0) <span class="sc">+</span></span>
+<span id="cb18-193"><a href="#cb18-193" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>( (A <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">/</span> P_A1_W <span class="sc">*</span> (M <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">/</span> P_M0_A1_W <span class="sc">*</span> (Y <span class="sc">-</span> Qbar_A1_M0) )</span>
+<span id="cb18-194"><a href="#cb18-194" aria-hidden="true" tabindex="-1"></a><span class="co"># aipw estimate of E[Y(0,0)]</span></span>
+<span id="cb18-195"><a href="#cb18-195" aria-hidden="true" tabindex="-1"></a>aiptw_EY_A0_M0 <span class="ot">&lt;-</span> <span class="fu">mean</span>(Qbar_A0_M0) <span class="sc">+</span></span>
+<span id="cb18-196"><a href="#cb18-196" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>( (A <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">/</span> P_A0_W <span class="sc">*</span> (M <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">/</span> P_M0_A0_W <span class="sc">*</span> (Y <span class="sc">-</span> Qbar_A0_M0) )</span>
+<span id="cb18-197"><a href="#cb18-197" aria-hidden="true" tabindex="-1"></a><span class="co"># aipw estimate of CDE(0)</span></span>
+<span id="cb18-198"><a href="#cb18-198" aria-hidden="true" tabindex="-1"></a>aiptw_EY_A1_M0 <span class="sc">-</span> aiptw_EY_A0_M0</span>
+<span id="cb18-199"><a href="#cb18-199" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-200"><a href="#cb18-200" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-201"><a href="#cb18-201" aria-hidden="true" tabindex="-1"></a><span class="fu">## NIE and NDE: Natural Direct and Indirect Effects</span></span>
+<span id="cb18-202"><a href="#cb18-202" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-203"><a href="#cb18-203" aria-hidden="true" tabindex="-1"></a>CDE is to study the effect of treatment, given the level of mediator. Instead, Natural Effect is to set mediator to its natural value with the value of treatment, that is, $M=M(w)$.</span>
+<span id="cb18-204"><a href="#cb18-204" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-205"><a href="#cb18-205" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb18-206"><a href="#cb18-206" aria-hidden="true" tabindex="-1"></a>\begin{eqnarray*}</span>
+<span id="cb18-207"><a href="#cb18-207" aria-hidden="true" tabindex="-1"></a>ATE &amp;=&amp; NIE + NDE <span class="sc">\\</span></span>
+<span id="cb18-208"><a href="#cb18-208" aria-hidden="true" tabindex="-1"></a>&amp;=&amp;  (E<span class="co">[</span><span class="ot"> Y(1,M(1))</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y(1,M(0))</span><span class="co">]</span>) + <span class="sc">\\</span></span>
+<span id="cb18-209"><a href="#cb18-209" aria-hidden="true" tabindex="-1"></a>&amp;&amp; (E<span class="co">[</span><span class="ot">Y(1, M(0))</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y(0,M(0))</span><span class="co">]</span>)</span>
+<span id="cb18-210"><a href="#cb18-210" aria-hidden="true" tabindex="-1"></a>\end{eqnarray*}</span>
+<span id="cb18-211"><a href="#cb18-211" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb18-212"><a href="#cb18-212" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-213"><a href="#cb18-213" aria-hidden="true" tabindex="-1"></a>The advantage of NDE and NIE comparing to CDE is that it's more "natural"; that is, you don't set the level of mediator deterministically. And it can decompose the ATE into direct and indirect effects.</span>
+<span id="cb18-214"><a href="#cb18-214" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-215"><a href="#cb18-215" aria-hidden="true" tabindex="-1"></a>However, there is an additional assumption for NDE and NIE identified.</span>
+<span id="cb18-216"><a href="#cb18-216" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-217"><a href="#cb18-217" aria-hidden="true" tabindex="-1"></a><span class="fu">### Additional Assumption</span></span>
+<span id="cb18-218"><a href="#cb18-218" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-219"><a href="#cb18-219" aria-hidden="true" tabindex="-1"></a>$$ Y(w, m) \perp M(w^*) | X$$</span>
+<span id="cb18-220"><a href="#cb18-220" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-221"><a href="#cb18-221" aria-hidden="true" tabindex="-1"></a>This is the "cross-world" condition: the outcome under $(w,m)$ is independent of $M$ under $w^*$. These two situations cannot happen in the same world; you cannot set $W$ to both $w$ and $w^*$. There is no experiment can implement it.</span>
+<span id="cb18-222"><a href="#cb18-222" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-223"><a href="#cb18-223" aria-hidden="true" tabindex="-1"></a><span class="fu">### Estimation</span></span>
+<span id="cb18-224"><a href="#cb18-224" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-225"><a href="#cb18-225" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med6, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-226"><a href="#cb18-226" aria-hidden="true" tabindex="-1"></a><span class="co"># fit outcome regression (include interaction because we can)</span></span>
+<span id="cb18-227"><a href="#cb18-227" aria-hidden="true" tabindex="-1"></a>or_fit <span class="ot">&lt;-</span> <span class="fu">glm</span>(Y <span class="sc">~</span> A <span class="sc">+</span> M <span class="sc">+</span> W1 <span class="sc">+</span> W2 <span class="sc">+</span> A<span class="sc">*</span>M <span class="sc">+</span> M<span class="sc">*</span>W1,</span>
+<span id="cb18-228"><a href="#cb18-228" aria-hidden="true" tabindex="-1"></a><span class="at">family =</span> <span class="fu">binomial</span>(), <span class="at">data =</span> full_data)</span>
+<span id="cb18-229"><a href="#cb18-229" aria-hidden="true" tabindex="-1"></a><span class="co"># need E(Y | A = 0/1, M = 0/1, W1 = W1i, W2 = W2i)</span></span>
+<span id="cb18-230"><a href="#cb18-230" aria-hidden="true" tabindex="-1"></a>get_EY_a_m_Wi <span class="ot">&lt;-</span> <span class="cf">function</span>(full_data, or_fit, a, m){</span>
+<span id="cb18-231"><a href="#cb18-231" aria-hidden="true" tabindex="-1"></a>data_Aa_Mm_Wi <span class="ot">&lt;-</span> full_data</span>
+<span id="cb18-232"><a href="#cb18-232" aria-hidden="true" tabindex="-1"></a>data_Aa_Mm_Wi<span class="sc">$</span>A <span class="ot">&lt;-</span> a; data_Aa_Mm_Wi<span class="sc">$</span>M <span class="ot">&lt;-</span> m</span>
+<span id="cb18-233"><a href="#cb18-233" aria-hidden="true" tabindex="-1"></a><span class="fu">predict</span>(or_fit, <span class="at">newdata =</span> data_Aa_Mm_Wi, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb18-234"><a href="#cb18-234" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-235"><a href="#cb18-235" aria-hidden="true" tabindex="-1"></a>EY_A0_M0_Wi <span class="ot">&lt;-</span> <span class="fu">get_EY_a_m_Wi</span>(full_data, or_fit, <span class="at">a =</span> <span class="dv">0</span>, <span class="at">m =</span> <span class="dv">0</span>)</span>
+<span id="cb18-236"><a href="#cb18-236" aria-hidden="true" tabindex="-1"></a>EY_A0_M1_Wi <span class="ot">&lt;-</span> <span class="fu">get_EY_a_m_Wi</span>(full_data, or_fit, <span class="at">a =</span> <span class="dv">0</span>, <span class="at">m =</span> <span class="dv">1</span>)</span>
+<span id="cb18-237"><a href="#cb18-237" aria-hidden="true" tabindex="-1"></a>EY_A1_M0_Wi <span class="ot">&lt;-</span> <span class="fu">get_EY_a_m_Wi</span>(full_data, or_fit, <span class="at">a =</span> <span class="dv">1</span>, <span class="at">m =</span> <span class="dv">0</span>)</span>
+<span id="cb18-238"><a href="#cb18-238" aria-hidden="true" tabindex="-1"></a>EY_A1_M1_Wi <span class="ot">&lt;-</span> <span class="fu">get_EY_a_m_Wi</span>(full_data, or_fit, <span class="at">a =</span> <span class="dv">1</span>, <span class="at">m =</span> <span class="dv">1</span>)</span>
+<span id="cb18-239"><a href="#cb18-239" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-240"><a href="#cb18-240" aria-hidden="true" tabindex="-1"></a><span class="co"># include interactions -- why not?</span></span>
+<span id="cb18-241"><a href="#cb18-241" aria-hidden="true" tabindex="-1"></a>med_fit <span class="ot">&lt;-</span> <span class="fu">glm</span>(M <span class="sc">~</span> A<span class="sc">*</span>W1 <span class="sc">+</span> W1<span class="sc">*</span>W2, <span class="at">family =</span> <span class="fu">binomial</span>(), <span class="at">data =</span> full_data)</span>
+<span id="cb18-242"><a href="#cb18-242" aria-hidden="true" tabindex="-1"></a><span class="co"># estimates of P(M = m | A = a, W = W_i)</span></span>
+<span id="cb18-243"><a href="#cb18-243" aria-hidden="true" tabindex="-1"></a>get_Pm_a_Wi <span class="ot">&lt;-</span> <span class="cf">function</span>(full_data, med_fit, a, m){</span>
+<span id="cb18-244"><a href="#cb18-244" aria-hidden="true" tabindex="-1"></a>data_Aa_Wi <span class="ot">&lt;-</span> full_data; data_Aa_Wi<span class="sc">$</span>A <span class="ot">&lt;-</span> a</span>
+<span id="cb18-245"><a href="#cb18-245" aria-hidden="true" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fu">predict</span>(med_fit, <span class="at">newdata =</span> data_Aa_Wi, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb18-246"><a href="#cb18-246" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(m <span class="sc">==</span> <span class="dv">1</span>){</span>
+<span id="cb18-247"><a href="#cb18-247" aria-hidden="true" tabindex="-1"></a>p</span>
+<span id="cb18-248"><a href="#cb18-248" aria-hidden="true" tabindex="-1"></a>}<span class="cf">else</span>{</span>
+<span id="cb18-249"><a href="#cb18-249" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span> <span class="sc">-</span> p</span>
+<span id="cb18-250"><a href="#cb18-250" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-251"><a href="#cb18-251" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-252"><a href="#cb18-252" aria-hidden="true" tabindex="-1"></a>PM0_A0_Wi <span class="ot">&lt;-</span> <span class="fu">get_Pm_a_Wi</span>(full_data, med_fit, <span class="at">a =</span> <span class="dv">0</span>, <span class="at">m =</span> <span class="dv">0</span>)</span>
+<span id="cb18-253"><a href="#cb18-253" aria-hidden="true" tabindex="-1"></a>PM1_A0_Wi <span class="ot">&lt;-</span> <span class="fu">get_Pm_a_Wi</span>(full_data, med_fit, <span class="at">a =</span> <span class="dv">0</span>, <span class="at">m =</span> <span class="dv">1</span>)</span>
+<span id="cb18-254"><a href="#cb18-254" aria-hidden="true" tabindex="-1"></a>PM0_A1_Wi <span class="ot">&lt;-</span> <span class="fu">get_Pm_a_Wi</span>(full_data, med_fit, <span class="at">a =</span> <span class="dv">1</span>, <span class="at">m =</span> <span class="dv">0</span>)</span>
+<span id="cb18-255"><a href="#cb18-255" aria-hidden="true" tabindex="-1"></a>PM1_A1_Wi <span class="ot">&lt;-</span> <span class="fu">get_Pm_a_Wi</span>(full_data, med_fit, <span class="at">a =</span> <span class="dv">1</span>, <span class="at">m =</span> <span class="dv">1</span>)</span>
+<span id="cb18-256"><a href="#cb18-256" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-257"><a href="#cb18-257" aria-hidden="true" tabindex="-1"></a><span class="co"># E(E(Y | A = 1, M, W) | A = 1, W)</span></span>
+<span id="cb18-258"><a href="#cb18-258" aria-hidden="true" tabindex="-1"></a>EY1M1_Wi <span class="ot">&lt;-</span> EY_A1_M1_Wi <span class="sc">*</span> PM1_A1_Wi <span class="sc">+</span> EY_A1_M0_Wi <span class="sc">*</span> PM0_A1_Wi</span>
+<span id="cb18-259"><a href="#cb18-259" aria-hidden="true" tabindex="-1"></a><span class="co"># E(E(Y | A = 0, M, W) | A = 1, W)</span></span>
+<span id="cb18-260"><a href="#cb18-260" aria-hidden="true" tabindex="-1"></a>EY0M1_Wi <span class="ot">&lt;-</span> EY_A0_M1_Wi <span class="sc">*</span> PM1_A1_Wi <span class="sc">+</span> EY_A0_M0_Wi <span class="sc">*</span> PM0_A1_Wi</span>
+<span id="cb18-261"><a href="#cb18-261" aria-hidden="true" tabindex="-1"></a><span class="co"># E(E(Y | A = 1, M, W) | A = 0, W)</span></span>
+<span id="cb18-262"><a href="#cb18-262" aria-hidden="true" tabindex="-1"></a>EY1M0_Wi <span class="ot">&lt;-</span> EY_A1_M1_Wi <span class="sc">*</span> PM1_A0_Wi <span class="sc">+</span> EY_A1_M0_Wi <span class="sc">*</span> PM0_A0_Wi</span>
+<span id="cb18-263"><a href="#cb18-263" aria-hidden="true" tabindex="-1"></a><span class="co"># E(E(Y | A = 0, M, W) | A = 0, W)</span></span>
+<span id="cb18-264"><a href="#cb18-264" aria-hidden="true" tabindex="-1"></a>EY0M0_Wi <span class="ot">&lt;-</span> EY_A0_M1_Wi <span class="sc">*</span> PM1_A0_Wi <span class="sc">+</span> EY_A0_M0_Wi <span class="sc">*</span> PM0_A0_Wi</span>
+<span id="cb18-265"><a href="#cb18-265" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-266"><a href="#cb18-266" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate of E[Y(1, M(1))]</span></span>
+<span id="cb18-267"><a href="#cb18-267" aria-hidden="true" tabindex="-1"></a>E_Y1M1 <span class="ot">&lt;-</span> <span class="fu">mean</span>(EY1M1_Wi)</span>
+<span id="cb18-268"><a href="#cb18-268" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate of E[Y(0, M(1))]</span></span>
+<span id="cb18-269"><a href="#cb18-269" aria-hidden="true" tabindex="-1"></a>E_Y0M1 <span class="ot">&lt;-</span> <span class="fu">mean</span>(EY0M1_Wi)</span>
+<span id="cb18-270"><a href="#cb18-270" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate of E[Y(1, M(0))]</span></span>
+<span id="cb18-271"><a href="#cb18-271" aria-hidden="true" tabindex="-1"></a>E_Y1M0 <span class="ot">&lt;-</span> <span class="fu">mean</span>(EY1M0_Wi)</span>
+<span id="cb18-272"><a href="#cb18-272" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate of E[Y(0, M(0))]</span></span>
+<span id="cb18-273"><a href="#cb18-273" aria-hidden="true" tabindex="-1"></a>E_Y0M0 <span class="ot">&lt;-</span> <span class="fu">mean</span>(EY0M0_Wi)</span>
+<span id="cb18-274"><a href="#cb18-274" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-275"><a href="#cb18-275" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-276"><a href="#cb18-276" aria-hidden="true" tabindex="-1"></a><span class="fu">## IIE and IDE: Interventional Direct and Indirect Effects</span></span>
+<span id="cb18-277"><a href="#cb18-277" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-278"><a href="#cb18-278" aria-hidden="true" tabindex="-1"></a>People are not happy with the cross-world assumption in general. Interventional direct and indirect effects are introduced to avoid this assumption and still be able to decompose the $ATE$.</span>
+<span id="cb18-279"><a href="#cb18-279" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-280"><a href="#cb18-280" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb18-281"><a href="#cb18-281" aria-hidden="true" tabindex="-1"></a>\begin{eqnarray*}</span>
+<span id="cb18-282"><a href="#cb18-282" aria-hidden="true" tabindex="-1"></a>ATE &amp;=&amp; IIE + IDE <span class="sc">\\</span></span>
+<span id="cb18-283"><a href="#cb18-283" aria-hidden="true" tabindex="-1"></a>&amp;=&amp; (E<span class="co">[</span><span class="ot"> Y(1,M(1))</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y(1,M^*)</span><span class="co">]</span>) <span class="sc">\\</span></span>
+<span id="cb18-284"><a href="#cb18-284" aria-hidden="true" tabindex="-1"></a>&amp;&amp; + (E<span class="co">[</span><span class="ot">Y(1,M^*)</span><span class="co">]</span>-E<span class="co">[</span><span class="ot">Y(0,M(0))</span><span class="co">]</span>)</span>
+<span id="cb18-285"><a href="#cb18-285" aria-hidden="true" tabindex="-1"></a>\end{eqnarray*}</span>
+<span id="cb18-286"><a href="#cb18-286" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb18-287"><a href="#cb18-287" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-288"><a href="#cb18-288" aria-hidden="true" tabindex="-1"></a>The different point here is to set $M=M^*$, where $M^*$ is a random draw from $M(w^*) | X=x$. That is, there is a distribution of $M$ in the strata that $X=x$. We take a random draw, instead of setting to a specific value.</span>
+<span id="cb18-289"><a href="#cb18-289" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-290"><a href="#cb18-290" aria-hidden="true" tabindex="-1"></a>The advantage of this is that it does not need cross-world assumption to identify $IIE$ and $IDE$.</span>
+<span id="cb18-291"><a href="#cb18-291" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-292"><a href="#cb18-292" aria-hidden="true" tabindex="-1"></a><span class="fu">### Example</span></span>
+<span id="cb18-293"><a href="#cb18-293" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-294"><a href="#cb18-294" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med7, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-295"><a href="#cb18-295" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
+<span id="cb18-296"><a href="#cb18-296" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb18-297"><a href="#cb18-297" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(medoutcon)</span>
+<span id="cb18-298"><a href="#cb18-298" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1584</span>)</span>
+<span id="cb18-299"><a href="#cb18-299" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-300"><a href="#cb18-300" aria-hidden="true" tabindex="-1"></a><span class="co"># produces a simple data set based on ca causal model with mediation</span></span>
+<span id="cb18-301"><a href="#cb18-301" aria-hidden="true" tabindex="-1"></a>make_example_data <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">n_obs =</span> <span class="dv">1000</span>) {</span>
+<span id="cb18-302"><a href="#cb18-302" aria-hidden="true" tabindex="-1"></a>  <span class="do">## baseline covariates</span></span>
+<span id="cb18-303"><a href="#cb18-303" aria-hidden="true" tabindex="-1"></a>  w_1 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fl">0.6</span>)</span>
+<span id="cb18-304"><a href="#cb18-304" aria-hidden="true" tabindex="-1"></a>  w_2 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fl">0.3</span>)</span>
+<span id="cb18-305"><a href="#cb18-305" aria-hidden="true" tabindex="-1"></a>  w_3 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fu">pmin</span>(<span class="fl">0.2</span> <span class="sc">+</span> (w_1 <span class="sc">+</span> w_2) <span class="sc">/</span> <span class="dv">3</span>, <span class="dv">1</span>))</span>
+<span id="cb18-306"><a href="#cb18-306" aria-hidden="true" tabindex="-1"></a>  w <span class="ot">&lt;-</span> <span class="fu">cbind</span>(w_1, w_2, w_3)</span>
+<span id="cb18-307"><a href="#cb18-307" aria-hidden="true" tabindex="-1"></a>  w_names <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="st">"W"</span>, <span class="fu">seq_len</span>(<span class="fu">ncol</span>(w)), <span class="at">sep =</span> <span class="st">"_"</span>)</span>
+<span id="cb18-308"><a href="#cb18-308" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-309"><a href="#cb18-309" aria-hidden="true" tabindex="-1"></a>  <span class="do">## exposure</span></span>
+<span id="cb18-310"><a href="#cb18-310" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fu">rowSums</span>(w) <span class="sc">-</span> <span class="dv">2</span>)))</span>
+<span id="cb18-311"><a href="#cb18-311" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-312"><a href="#cb18-312" aria-hidden="true" tabindex="-1"></a>  <span class="do">## mediator-outcome confounder affected by treatment</span></span>
+<span id="cb18-313"><a href="#cb18-313" aria-hidden="true" tabindex="-1"></a>  z <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fu">rowMeans</span>(<span class="sc">-</span><span class="fu">log</span>(<span class="dv">2</span>) <span class="sc">+</span> w <span class="sc">-</span> a) <span class="sc">+</span> <span class="fl">0.2</span>))</span>
+<span id="cb18-314"><a href="#cb18-314" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-315"><a href="#cb18-315" aria-hidden="true" tabindex="-1"></a>  <span class="do">## mediator -- could be multivariate</span></span>
+<span id="cb18-316"><a href="#cb18-316" aria-hidden="true" tabindex="-1"></a>  m <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fu">rowSums</span>(<span class="fu">log</span>(<span class="dv">3</span>) <span class="sc">*</span> w[, <span class="sc">-</span><span class="dv">3</span>] <span class="sc">+</span> a <span class="sc">-</span> z)))</span>
+<span id="cb18-317"><a href="#cb18-317" aria-hidden="true" tabindex="-1"></a>  m_names <span class="ot">&lt;-</span> <span class="st">"M"</span></span>
+<span id="cb18-318"><a href="#cb18-318" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-319"><a href="#cb18-319" aria-hidden="true" tabindex="-1"></a>  <span class="do">## outcome</span></span>
+<span id="cb18-320"><a href="#cb18-320" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="dv">1</span> <span class="sc">/</span> (<span class="fu">rowSums</span>(w) <span class="sc">-</span> z <span class="sc">+</span> a <span class="sc">+</span> m)))</span>
+<span id="cb18-321"><a href="#cb18-321" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-322"><a href="#cb18-322" aria-hidden="true" tabindex="-1"></a>  <span class="do">## construct output</span></span>
+<span id="cb18-323"><a href="#cb18-323" aria-hidden="true" tabindex="-1"></a>  dat <span class="ot">&lt;-</span> <span class="fu">as.data.table</span>(<span class="fu">cbind</span>(<span class="at">w =</span> w, <span class="at">a =</span> a, <span class="at">z =</span> z, <span class="at">m =</span> m, <span class="at">y =</span> y))</span>
+<span id="cb18-324"><a href="#cb18-324" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setnames</span>(dat, <span class="fu">c</span>(w_names, <span class="st">"A"</span>, <span class="st">"Z"</span>, m_names, <span class="st">"Y"</span>))</span>
+<span id="cb18-325"><a href="#cb18-325" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(dat)</span>
+<span id="cb18-326"><a href="#cb18-326" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-327"><a href="#cb18-327" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-328"><a href="#cb18-328" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-329"><a href="#cb18-329" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med8, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-330"><a href="#cb18-330" aria-hidden="true" tabindex="-1"></a><span class="co"># set seed and simulate example data</span></span>
+<span id="cb18-331"><a href="#cb18-331" aria-hidden="true" tabindex="-1"></a>example_data <span class="ot">&lt;-</span> <span class="fu">make_example_data</span>()</span>
+<span id="cb18-332"><a href="#cb18-332" aria-hidden="true" tabindex="-1"></a>w_names <span class="ot">&lt;-</span> <span class="fu">str_subset</span>(<span class="fu">colnames</span>(example_data), <span class="st">"W"</span>)</span>
+<span id="cb18-333"><a href="#cb18-333" aria-hidden="true" tabindex="-1"></a>m_names <span class="ot">&lt;-</span> <span class="fu">str_subset</span>(<span class="fu">colnames</span>(example_data), <span class="st">"M"</span>)</span>
+<span id="cb18-334"><a href="#cb18-334" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-335"><a href="#cb18-335" aria-hidden="true" tabindex="-1"></a><span class="co"># quick look at the data</span></span>
+<span id="cb18-336"><a href="#cb18-336" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(example_data)</span>
+<span id="cb18-337"><a href="#cb18-337" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-338"><a href="#cb18-338" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-339"><a href="#cb18-339" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med9, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-340"><a href="#cb18-340" aria-hidden="true" tabindex="-1"></a><span class="co"># compute one-step estimate of the interventional direct effect</span></span>
+<span id="cb18-341"><a href="#cb18-341" aria-hidden="true" tabindex="-1"></a>os_de <span class="ot">&lt;-</span> <span class="fu">medoutcon</span>(<span class="at">W =</span> example_data[, ..w_names],</span>
+<span id="cb18-342"><a href="#cb18-342" aria-hidden="true" tabindex="-1"></a>                   <span class="at">A =</span> example_data<span class="sc">$</span>A,</span>
+<span id="cb18-343"><a href="#cb18-343" aria-hidden="true" tabindex="-1"></a>                   <span class="at">Z =</span> example_data<span class="sc">$</span>Z,</span>
+<span id="cb18-344"><a href="#cb18-344" aria-hidden="true" tabindex="-1"></a>                   <span class="at">M =</span> example_data[, ..m_names],</span>
+<span id="cb18-345"><a href="#cb18-345" aria-hidden="true" tabindex="-1"></a>                   <span class="at">Y =</span> example_data<span class="sc">$</span>Y,</span>
+<span id="cb18-346"><a href="#cb18-346" aria-hidden="true" tabindex="-1"></a>                   <span class="at">effect =</span> <span class="st">"direct"</span>,</span>
+<span id="cb18-347"><a href="#cb18-347" aria-hidden="true" tabindex="-1"></a>                   <span class="at">estimator =</span> <span class="st">"onestep"</span>)</span>
+<span id="cb18-348"><a href="#cb18-348" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(os_de)</span>
+<span id="cb18-349"><a href="#cb18-349" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-350"><a href="#cb18-350" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-351"><a href="#cb18-351" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med10, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-352"><a href="#cb18-352" aria-hidden="true" tabindex="-1"></a><span class="co"># compute targeted minimum loss estimate of the interventional direct effect</span></span>
+<span id="cb18-353"><a href="#cb18-353" aria-hidden="true" tabindex="-1"></a>tmle_de <span class="ot">&lt;-</span> <span class="fu">medoutcon</span>(<span class="at">W =</span> example_data[, ..w_names],</span>
+<span id="cb18-354"><a href="#cb18-354" aria-hidden="true" tabindex="-1"></a>                     <span class="at">A =</span> example_data<span class="sc">$</span>A,</span>
+<span id="cb18-355"><a href="#cb18-355" aria-hidden="true" tabindex="-1"></a>                     <span class="at">Z =</span> example_data<span class="sc">$</span>Z,</span>
+<span id="cb18-356"><a href="#cb18-356" aria-hidden="true" tabindex="-1"></a>                     <span class="at">M =</span> example_data[, ..m_names],</span>
+<span id="cb18-357"><a href="#cb18-357" aria-hidden="true" tabindex="-1"></a>                     <span class="at">Y =</span> example_data<span class="sc">$</span>Y,</span>
+<span id="cb18-358"><a href="#cb18-358" aria-hidden="true" tabindex="-1"></a>                     <span class="at">effect =</span> <span class="st">"direct"</span>,</span>
+<span id="cb18-359"><a href="#cb18-359" aria-hidden="true" tabindex="-1"></a>                     <span class="at">estimator =</span> <span class="st">"tmle"</span>)</span>
+<span id="cb18-360"><a href="#cb18-360" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-361"><a href="#cb18-361" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(tmle_de)</span>
+<span id="cb18-362"><a href="#cb18-362" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+</code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+
+
+
+</body></html>

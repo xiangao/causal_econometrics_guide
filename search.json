@@ -1,0 +1,485 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Introduction to Causal Econometrics with Observational Data",
+    "section": "",
+    "text": "Preface\nThis book provides an introduction to causal econometrics with observational data. It covers the key frameworks, estimation strategies, and modern methods that allow researchers to make causal claims from non-experimental data.\nThe material progresses from foundational concepts to advanced methods:\n\nFoundations: The potential outcomes framework, identification assumptions, and core estimation strategies (regression adjustment, IPW, doubly robust methods).\nMethods: Machine learning for causal inference and nonparametric estimators (influence function methods, TMLE, DoubleML).\nDesigns: Difference-in-differences (including staggered treatment timing), synthetic control, instrumental variables, and regression discontinuity.\nMediation: Classical and causal mediation analysis, including CDE, natural effects, and interventional effects.\n\nAll examples use R with real and simulated datasets.",
+    "crumbs": [
+      "Preface"
+    ]
+  },
+  {
+    "objectID": "identification.html",
+    "href": "identification.html",
+    "title": "\n1  Identification & Potential Outcomes\n",
+    "section": "",
+    "text": "1.1 Why Do We Need Tools for Causal Inference?\nThe main reason we need tools for causal inference is that “association is not causation”. We have known how to do association for a long time. In econometrics, people have studied various models for different situations, but mostly associational. But why is association not causation?\nThe reason is that we may have confounding variables.",
+    "crumbs": [
+      "Foundations",
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Identification & Potential Outcomes</span>"
+    ]
+  },
+  {
+    "objectID": "identification.html#confounders",
+    "href": "identification.html#confounders",
+    "title": "\n1  Identification & Potential Outcomes\n",
+    "section": "\n1.2 Confounders",
+    "text": "1.2 Confounders\n\n\n\n\n\n\n\n\nHere is a concrete example with 401(k) participation and assets:\n\n\n\n\n\n\n\n\nAnd another example with birth weight and maternal smoking:",
+    "crumbs": [
+      "Foundations",
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Identification & Potential Outcomes</span>"
+    ]
+  },
+  {
+    "objectID": "identification.html#controlled-and-uncontrolled-confounders",
+    "href": "identification.html#controlled-and-uncontrolled-confounders",
+    "title": "\n1  Identification & Potential Outcomes\n",
+    "section": "\n1.3 Controlled and Uncontrolled Confounders",
+    "text": "1.3 Controlled and Uncontrolled Confounders\nIf we can control for all confounders then we still have causation from correlation. However, first, do we have all confounders in our data? Secondly, how do we control for them. In a randomised experiment, we don’t have these problems. In an observational study, we have these two problems. In the graph, we may have “c2” unobserved, “c1” observed, for example. Then any estimation of the effect from \\(w\\) to \\(y\\) is biased.",
+    "crumbs": [
+      "Foundations",
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Identification & Potential Outcomes</span>"
+    ]
+  },
+  {
+    "objectID": "identification.html#potential-outcome-setup",
+    "href": "identification.html#potential-outcome-setup",
+    "title": "\n1  Identification & Potential Outcomes\n",
+    "section": "\n1.4 Potential Outcome Setup",
+    "text": "1.4 Potential Outcome Setup\nWe use the Potential Outcomes framework, also called counterfactual framework to study causal effect. What is a potential outcome? Suppose we have the simplest situation. A treatment has two states, treated and control (untreated). And we have a person (subject) who then has two potential outcomes \\(Y(1)\\) and \\(Y(0)\\). Consider these two fixed.\nThat is, every one subject has two potential outcomes. That can be seen as pre-determined. That is, even before the experiment, or program, they are already there. The experiment is to try to recover them. However, recovering each individual treatment effect \\(\\tau_i = Y_i(1) - Y_i(0)\\) is not possible, because it’s impossible to observe both \\(Y_i(1)\\) and \\(Y_i(0)\\). Only some average treatment effects can be estimated.\nWe label treatment assignment status \\(W\\), covariates \\(X\\).",
+    "crumbs": [
+      "Foundations",
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Identification & Potential Outcomes</span>"
+    ]
+  },
+  {
+    "objectID": "identification.html#ate-att-and-atu",
+    "href": "identification.html#ate-att-and-atu",
+    "title": "\n1  Identification & Potential Outcomes\n",
+    "section": "\n1.5 ATE, ATT and ATU",
+    "text": "1.5 ATE, ATT and ATU\n\\[ \\tau_{ATE} = E[Y(1) - Y(0)] \\]\n\\[ \\tau_{ATT} =  E[Y(1) - Y(0) | W=1] \\]\n\\[ \\tau_{ATU} =  E[Y(1) - Y(0)| W=0] \\]\n\\[ \\tau_{ATE} = \\rho \\tau_{ATT} + (1-\\rho) \\tau_{ATU}\\]\nwhere \\(\\rho= P(W=1)\\).",
+    "crumbs": [
+      "Foundations",
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Identification & Potential Outcomes</span>"
+    ]
+  },
+  {
+    "objectID": "identification.html#identification-from-potential-outcome-to-observed",
+    "href": "identification.html#identification-from-potential-outcome-to-observed",
+    "title": "\n1  Identification & Potential Outcomes\n",
+    "section": "\n1.6 Identification: From Potential Outcome to Observed",
+    "text": "1.6 Identification: From Potential Outcome to Observed\nWe focus on \\(\\tau_{ATT}\\). To identify it, we need: \\[ E[Y(1) | W=1)]\\] which is easy, because we observe it.\nAnd we need \\[ E[Y(0) | W=1]\\]\nTo identify this, we’ll need unconfoundedness: \\[ E[Y(0) | W, X] = E[Y(0)| X] \\] and overlap: \\[ \\pi(X)= P(W=1 | X=x) &lt; 1 \\]\nUnder unconfoundedness:\n\\[ E[Y(0)| W=1] = E[Y(0) | W=0] \\]\n\\[ \\small \\begin{align}\n\\tau_{ATT} &=  E[Y(1) - Y(0) | W=1] \\\\\n&= E[Y(1)|W=1] - E[Y(0)|W=0] \\\\\n&= E[Y|W=1] - E[Y|W=0]\n\\end{align}\n\\]\nTherefore ATT is identified. In randomised experiments, we can assume unconfoundedness. A difference-in-means estimator is consistent.\n\\[ \\hat{\\tau_{ATT}} = \\bar Y_1 - \\bar Y_0 \\]\nBut in observational studies, most cases we cannot assume unconfoundedness. What can we do to justify unconfoundedness better?",
+    "crumbs": [
+      "Foundations",
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Identification & Potential Outcomes</span>"
+    ]
+  },
+  {
+    "objectID": "identification.html#unconfoundedness-and-overlap",
+    "href": "identification.html#unconfoundedness-and-overlap",
+    "title": "\n1  Identification & Potential Outcomes\n",
+    "section": "\n1.7 Unconfoundedness and Overlap",
+    "text": "1.7 Unconfoundedness and Overlap\nWeaker Assumptions: Unconfoundedness (conditional independence, or ignorability): \\[ E[Y(0) | W, X] = E[Y(0)| X] \\] Overlap: \\[ \\pi(X)= P(W=1 | X=x) &lt; 1 \\] SUTVA (stable unit treatment value assumption): 1. No interference between units. No spillovers. 2. Consistency. No hidden versions of treatment or control. Treatment is clearly defined.\nWithin each subgroup of \\(X=x\\), W is independent of \\(Y(0)\\). With the overlap assumption, we ensure there is a comparable control unit for each treated unit.\nHowever, these two criteria are often contradictory: we may need more covariates to satisfy conditional independence; meanwhile, if the dimension of covariates goes high, then it’s likely in some partition we don’t have control units.\nFour assumptions for identification:\n\nUnconfoundedness (conditional independence, or ignorability)\nOverlap (positivity, common support)\nNo interference\nConsistency",
+    "crumbs": [
+      "Foundations",
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Identification & Potential Outcomes</span>"
+    ]
+  },
+  {
+    "objectID": "identification.html#observational-data-flowchart",
+    "href": "identification.html#observational-data-flowchart",
+    "title": "\n1  Identification & Potential Outcomes\n",
+    "section": "\n1.8 Observational Data Flowchart",
+    "text": "1.8 Observational Data Flowchart\n\n\n\n\n\nflowchart LR\n  A[Observational data Y,W,X] --&gt; B{Unconfoundedness?}\n  B --&gt; | Yes | C{Parametric?}\n  C --&gt; | Yes | D(RA)\n  C --&gt; | Yes | E(IPW)\n  C --&gt; | Yes | F(AIPW)\n  C --&gt; | Yes | G(IPWRA)\n  C --&gt; | No | H(IF based estimators)\n  C --&gt; | No | I(TMLE)\n  C --&gt; | No | J(DoubleML)\n  B --&gt; | No | K{Panel data?}\n  K --&gt; | Yes | L{Parallel Trend?}\n  L --&gt; | Yes | M(DID)\n  L --&gt; | No | N(Synthetic Control)\n  L --&gt; | No | O(Synthetic DID)\n  K --&gt; | No | P{Instrument?}\n  P --&gt; | Yes | Q(IV or RDD)\n  P --&gt; | No | R(You are stuck!)",
+    "crumbs": [
+      "Foundations",
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Identification & Potential Outcomes</span>"
+    ]
+  },
+  {
+    "objectID": "estimation.html",
+    "href": "estimation.html",
+    "title": "\n2  Estimation: RA, IPW, AIPW\n",
+    "section": "",
+    "text": "2.1 Experimental Data\nIf we have experimental data, then we have the assumptions satisfied. We can directly compare the treated and control groups. We can use a difference-in-means estimator. \\[ \\hat{\\tau_{ATT}} = \\bar Y_1 - \\bar Y_0 \\]\nIn experimental setting, we can do a t test for the difference in means. We can also do a regression of \\(Y\\) on \\(W\\) and \\(X\\).",
+    "crumbs": [
+      "Foundations",
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Estimation: RA, IPW, AIPW</span>"
+    ]
+  },
+  {
+    "objectID": "estimation.html#adjustment-formula",
+    "href": "estimation.html#adjustment-formula",
+    "title": "\n2  Estimation: RA, IPW, AIPW\n",
+    "section": "\n2.2 Adjustment Formula",
+    "text": "2.2 Adjustment Formula\nFrom causal to estimation: \\[ \\small \\begin{align}\nE[Y(1)-Y(0)] &= E[Y(1)] - E[Y(0)] \\\\\n&=E_X[E[Y(1)|X]] - E_X[E[Y(0)|X]] \\\\\n&=E_X[E[Y(1)|W=1, X]] - E_X[E[Y(0)|W=0, X]] \\\\\n&=E_X[E[Y|W=1, X]] - E_X[E[Y|W=0, X]]\n\\end{align} \\] where the first step is linear expectation. Second step is law of iterated expectation. Third step is unconfoundedness and overlap. Fourth step is consistency.",
+    "crumbs": [
+      "Foundations",
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Estimation: RA, IPW, AIPW</span>"
+    ]
+  },
+  {
+    "objectID": "estimation.html#regression-adjustment",
+    "href": "estimation.html#regression-adjustment",
+    "title": "\n2  Estimation: RA, IPW, AIPW\n",
+    "section": "\n2.3 Regression Adjustment",
+    "text": "2.3 Regression Adjustment\nHow do we get \\(E[Y|W=w, X=x]\\)? We can use regression adjustment.\nWe define a conditional mean function:\n\\[  \\begin{align}\n\\mu_0(X) &\\equiv E[Y|W=0, X] \\\\\n&= E[Y(0)|W=0, X]  \\\\\n&= E[Y(0)|W=1, X]\n\\end{align}  \\]\nThe RA estimators are:\n\\[ \\hat \\tau_{ATT} = \\sum_{i=1}^n (W_i(Y_i-\\hat \\mu_0(X_i)) /n_1\\] \\[ \\hat \\tau_{ATE} = \\sum_{i=1}^n (W_i(Y_i-\\hat \\mu_0(X_i)) + (1-W_i)(\\hat \\mu_1(X_i) - Y_i)) /n\\]\nwhere \\(\\hat \\mu_0(X_i)\\) is the predicted value of \\(Y_i\\) from a regression of \\(Y\\) on \\(X\\) for the control group.\nTarget: \\[  \\begin{align}\n\\tau_{ATT} &= E[Y|W=1] - E[Y(0)|W=1] \\\\\n&= E[Y|W=1, X] - \\mu_0(X)  \\\\\n& = E[Y|W=1, X] - (\\alpha_0 + E(X) \\beta_0)\n\\end{align}\n\\]\nThe last term is a linear form of \\(\\mu_0(X)\\). We can specify other forms, but the idea is to model it with some functional form. For parametric forms, we need to make sure extrapolation does not go out of control.",
+    "crumbs": [
+      "Foundations",
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Estimation: RA, IPW, AIPW</span>"
+    ]
+  },
+  {
+    "objectID": "estimation.html#linear-ra",
+    "href": "estimation.html#linear-ra",
+    "title": "\n2  Estimation: RA, IPW, AIPW\n",
+    "section": "\n2.4 Linear RA",
+    "text": "2.4 Linear RA\nRegression Adjustment is basically an imputation estimator. While we observe \\(E[Y|W=1,X]\\), we model \\(E[Y(0)|W=1]\\), based on unconfoundedness and a functional form (say linear form). We estimate \\(\\beta_0\\) on the control sample, then get the expected values for the treated sample, for each value of \\(X\\).\nImplementation of linear RA is easy. We regress \\(Y\\) on \\(X\\) and \\(W\\) and their interaction. It’s shown that we need to de-mean \\(X\\) to get the effect correct.\n\ndata(pension)\ndata &lt;- pension %&gt;%\n  mutate(inc_dm=inc-mean(inc), age_dm=age-mean(age))\n\ndata &lt;- pension %&gt;%\n  mutate(inc_dm=inc-mean(pension$inc[pension$p401==1]), age_dm=age- mean(pension$age[pension$p401==1]))\n#  for ATT, we de-mean X by deducting the mean of X in the treated group\n#  for ATE, we de-mean X by deducting the mean of X in the whole sample\nlm_ra &lt;- lm(net_tfa ~ p401*(inc_dm + age_dm),data=data)\nsummary(lm_ra)\n\n\nCall:\nlm(formula = net_tfa ~ p401 * (inc_dm + age_dm), data = data)\n\nResiduals:\n    Min      1Q  Median      3Q     Max \n-508262  -17176   -3497    9223 1444086 \n\nCoefficients:\n             Estimate Std. Error t value Pr(&gt;|t|)    \n(Intercept) 2.410e+04  8.312e+02  28.998  &lt; 2e-16 ***\np401        1.416e+04  1.397e+03  10.134  &lt; 2e-16 ***\ninc_dm      7.723e-01  3.009e-02  25.670  &lt; 2e-16 ***\nage_dm      7.977e+02  6.350e+01  12.561  &lt; 2e-16 ***\np401:inc_dm 3.300e-01  5.133e-02   6.429 1.34e-10 ***\np401:age_dm 8.153e+02  1.333e+02   6.118 9.81e-10 ***\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\nResidual standard error: 57210 on 9909 degrees of freedom\nMultiple R-squared:  0.1894,    Adjusted R-squared:  0.1889 \nF-statistic: 462.9 on 5 and 9909 DF,  p-value: &lt; 2.2e-16\n\n#coeftest(lm_ra, vcov=vcovHC(lm_ra, type='HC2'))[2,]\n\n\n2.4.1 Questions on RA\n\nWhy do we have to do interaction of \\(W\\) and \\(X\\)? What if we don’t do it?\nWhat if we don’t de-mean \\(X\\)?\n\nAnswers:\n\nIt has been shown (Słoczyński (2022, REStat)) that with heterogeneous treatment effect, and unequal divide between treated and control, we need to do the interaction term. Otherwise, we’ll get biased estimates, for \\(\\tau_{ATT}\\) or \\(\\tau_{ATE}\\). The intuition is that we need to model the difference between treated and control, and the difference is not constant across \\(X\\).\nIf we don’t de-mean \\(X\\), then the coefficient on \\(W\\) is not the average treatment effect. We can still retrieve the ATT or ATE by calculating the marginal effect of \\(W\\) though.",
+    "crumbs": [
+      "Foundations",
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Estimation: RA, IPW, AIPW</span>"
+    ]
+  },
+  {
+    "objectID": "estimation.html#ipw",
+    "href": "estimation.html#ipw",
+    "title": "\n2  Estimation: RA, IPW, AIPW\n",
+    "section": "\n2.5 IPW",
+    "text": "2.5 IPW\nUnder unconfoundedness and overlap,\n\\[ \\small \\begin{align}\nE[Y(w)] &= E[E[y|W=w,X]] \\\\\n&= \\sum_x (\\sum_y P(y|w,x)) P(x) \\\\\n&= \\sum_x \\sum_y P(y|w,x)) P(x) {\\frac{P(w|x)}{P(w|x)}} \\\\\n&= \\sum_x \\sum_y y P(y,w,x) {\\frac{1}{P(w|x)}} \\\\\n&= \\sum_x E[\\mathbb{1}(W=w,X=x)Y] {\\frac{1}{P(w|x)}} \\\\\n&= E[\\frac{\\mathbb{1}(W=w)Y} {P(w|X)}]\n\\end{align}\n\\]\nThe IPW equation means that the expected value of the potential outcome is the weighted average of the observed outcome, where the weight is the inverse of the propensity score \\(P(w|x)\\). \\(\\mathbb{1}(W=w)\\) is an indicator function, which is 1 if \\(W=w\\) and 0 otherwise.\n\\[ \\begin{align}\n\\tau_{ATE} &= E[Y(1)] - E[Y(0)] \\\\\n&= E[\\frac{W Y} {\\pi_1(X)}] - E[\\frac{(1-W) Y} {1-\\pi_1(X)}] \\\\\n\\end{align}\n\\]\nThe sample estimators are:\n\\[ \\begin{align}\n\\hat \\tau_{ATE, IPW} &= \\frac{1}{N} \\sum_i \\frac{W_i Y_i} {\\hat\\pi(X_i)} - \\frac{1}{N} \\sum_i \\frac{(1-W_i) Y_i} {1-\\hat \\pi(X_i)}\n\\end{align}\n\\]\n\\[ \\begin{align}\n\\hat \\tau_{ATT, IPW} &= \\bar Y_1 - \\frac{1}{N_1} \\sum_i \\frac{(1-W_i) Y_i} {1-\\hat \\pi(X_i)}\n\\end{align}\n\\]\n\n2.5.1 IPW Intuition\nIPW removes confounding \\(X\\) by creating a pseudo-population in which \\(X\\) is independent of \\(W\\). The intuition is that we can create a pseudo-population in which \\(X\\) is independent of \\(W\\), by weighting the observations by the inverse of the propensity score. Once \\(X\\) is independent of \\(W\\), \\(X\\) is not a confounder anymore. We can then estimate the effect of \\(W\\) on \\(Y\\) by comparing the weighted average of \\(Y\\) for \\(W=1\\) and \\(W=0\\).\nSuppose there are two types of people, one type has high probability to be treated, the other one has low probability to be treated. Without adjusting for the propensity score, the treated group will be dominated by the first type, and the control group will be dominated by the second type. The difference between the treated and control group will be due to the difference in the composition of the two groups, not due to the treatment effect. By weighting the observations by the inverse of the propensity score, we can create a pseudo-population in which the two groups have the same composition. The difference between the treated and control group will be due to the treatment effect.",
+    "crumbs": [
+      "Foundations",
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Estimation: RA, IPW, AIPW</span>"
+    ]
+  },
+  {
+    "objectID": "estimation.html#doubly-robust-estimators",
+    "href": "estimation.html#doubly-robust-estimators",
+    "title": "\n2  Estimation: RA, IPW, AIPW\n",
+    "section": "\n2.6 Doubly Robust Estimators",
+    "text": "2.6 Doubly Robust Estimators\nWe can model both outcome and treatment assignment, and use both models to estimate the treatment effect. The intuition is that if either model is correct, the estimator will be consistent. The estimator is called doubly robust because it is robust to either model being misspecified.\n\n2.6.1 AIPW\n\\[ \\mu_1^{AIPW} = E[\\frac{W(Y-\\mu_1(X))}{\\pi(X)} + \\mu_1(X)] \\]\n\\[ \\mu_0^{AIPW} = E[\\frac{(1-W)(Y-\\mu_0(X))}{1-\\pi(X)} + \\mu_0(X)] \\]\n\ndata &lt;- read_dta(file=\"https://www.stata-press.com/data/r18/cattaneo2.dta\")\nmu &lt;- lm(bweight ~ mbsmoke*(prenatal1 + mmarried + mage + fbaby), data=data)\npi &lt;- glm( mbsmoke ~ mmarried + mage + fbaby + medu, data=data, family=binomial(link=\"logit\"))\nmm1 &lt;- predict(mu, newdata=data %&gt;% mutate(mbsmoke=1))\nmm0 &lt;- predict(mu, newdata=data %&gt;% mutate(mbsmoke=0))\npi1 &lt;- predict(pi, newdata=data, type=\"response\")\ndata &lt;- data %&gt;%\n  mutate(w=mbsmoke, y=bweight, m1=mm1, m0=mm0, pi1=pi1)\ndata2 &lt;- data %&gt;%\n  mutate(mu1=(w*(y-m1)/pi1 + m1), mu0=((1-w)*(y-m0)/(1-pi1) + m0)) %&gt;%\n  mutate(tau=mu1-mu0)\ndata2 %&gt;% summarise(mean(tau))\n\n# A tibble: 1 × 1\n  `mean(tau)`\n        &lt;dbl&gt;\n1       -234.\n\n\n\n2.6.2 IPWRA\nThe idea of IPWRA is to combine RA and IPW. Basically RA with IPW weights.\nImplementation:\n\nEstimate propensity score. Get predicted probability of treated for each observation.\nEstimate outcome model. But cannot use fully interaction of treatment and covariates. Instead, estimate two equations, one for treated and one for control. Use \\(1/\\hat \\pi(X)\\) as weights for treated group and \\(1/(1-\\hat \\pi(X))\\) as weights for control group.\nGet predicted values for setting everyone treated. Get predicted values for setting everyone control. These are the two potential outcomes.\nTake difference. The average is the ATE.\n\n\ndata &lt;- read_dta(file=\"https://www.stata-press.com/data/r18/cattaneo2.dta\")\npi &lt;- glm( mbsmoke ~ mmarried + mage + fbaby + medu, data=data, family=binomial(link=\"logit\"))\npi1 &lt;- predict(pi, newdata=data, type=\"response\")\ndata &lt;- data %&gt;%\n  mutate(pi1=pi1)\ndata1 &lt;- data %&gt;% filter(mbsmoke==1)\ndata0 &lt;- data %&gt;% filter(mbsmoke==0)\nmu1 &lt;- lm(bweight ~ prenatal1 + mmarried + mage + fbaby, data=data1, weights=1/data1$pi1)\nmu0 &lt;- lm(bweight ~ prenatal1 + mmarried + mage + fbaby, data=data0, weights=1/(1-data0$pi1))\nmm1 &lt;- predict(mu1, newdata=data %&gt;% mutate(mbsmoke=1))\nmm0 &lt;- predict(mu0, newdata=data %&gt;% mutate(mbsmoke=0))\ndata &lt;- data %&gt;%\n  mutate(w=mbsmoke, y=bweight, m1=mm1, m0=mm0, pi1=pi1)\ndata2 &lt;- data %&gt;%\n  mutate(tau=m1-m0)\ndata2 %&gt;% summarise(mean(tau))\n\n# A tibble: 1 × 1\n  `mean(tau)`\n        &lt;dbl&gt;\n1       -233.",
+    "crumbs": [
+      "Foundations",
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Estimation: RA, IPW, AIPW</span>"
+    ]
+  },
+  {
+    "objectID": "machine-learning.html",
+    "href": "machine-learning.html",
+    "title": "\n3  Machine Learning for Causal Inference\n",
+    "section": "",
+    "text": "3.1 Regression and Penalized Regression\nThis chapter introduces machine learning methods relevant to causal inference: penalized regression, trees, and forests. These methods are used both as standalone prediction tools and as building blocks for the causal estimators in later chapters.\nlibrary(glmnet)\nfmla &lt;- formula(paste(\" ~ 0 + \", paste0(covariates, collapse=\" + \")))\nXX &lt;- model.matrix(fmla, data)\nY &lt;- data[, outcome]\n\n# Fit a lasso model.\n# Note this automatically performs cross-validation.\nlasso &lt;- cv.glmnet(\n  x=XX, y=Y,\n  family=\"gaussian\", # use 'binomial' for logistic regression\n  alpha=1. # use alpha=0 for ridge, or alpha in (0, 1) for elastic net\n)\n\npar(oma=c(0,0,3,0))\nplot(lasso, las=1)\nmtext('Number of Non-Zero Coefficients', side=3, line = 3)\n\n\n\n\n\n\n# prepare data\nfmla &lt;- formula(paste0(outcome, \"~\", paste0(covariates, collapse=\"+\")))\nXX &lt;- model.matrix(fmla, data)[,-1]  # [,-1] drops the intercept\nY &lt;- data[,outcome]\n\n# fit ols, lasso and ridge models\nols &lt;- lm(fmla, data)\nlasso &lt;- cv.glmnet(x=XX, y=Y, alpha=1.)  # alpha = 1 for lasso\nridge &lt;- cv.glmnet(x=XX, y=Y, alpha=0.)  # alpha = 0 for ridge\n\n# retrieve ols, lasso and ridge coefficients\nlambda.grid &lt;- c(0, sort(lasso$lambda))\nols.coefs &lt;- coef(ols)\nlasso.coefs &lt;- as.matrix(coef(lasso, s=lambda.grid))\nridge.coefs &lt;- as.matrix(coef(ridge, s=lambda.grid))\n\n# loop over lasso coefficients and re-fit OLS to get post-lasso coefficients\nplasso.coefs &lt;- apply(lasso.coefs, 2, function(beta) {\n\n    # which slopes are non-zero\n    non.zero &lt;- which(beta[-1] != 0)  # [-1] excludes intercept\n\n    # if there are any non zero coefficients, estimate OLS\n    fmla &lt;- formula(paste0(outcome, \"~\", paste0(c(\"1\", covariates[non.zero]), collapse=\"+\")))\n    beta &lt;- rep(0, ncol(XX) + 1)\n\n    # populate post-lasso coefficients\n    beta[c(1, non.zero + 1)] &lt;- coef(lm(fmla, data))\n\n    beta\n  })\n\nselected &lt;- 'mage'\nk &lt;- which(rownames(lasso.coefs) == selected) # index of coefficient to plot\ncoefs &lt;- cbind(postlasso=plasso.coefs[k,],  lasso=lasso.coefs[k,], ridge=ridge.coefs[k,], ols=ols.coefs[k])\nmatplot(lambda.grid, coefs, col=1:4, type=\"b\", pch=20, lwd=2, las=1, xlab=\"Lambda\", ylab=\"Coefficient estimate\")\nabline(h = 0, lty=\"dashed\", col=\"gray\")\n\nlegend(\"bottomleft\",\n  legend = colnames(coefs),\n  bty=\"n\", col=1:4,   inset=c(.05, .05), lwd=2)\n\n\n\n\n\n\ncovs &lt;- which(covariates %in% c(\"mmarried\",\"mhisp\",\"fhisp\"))\nmatplot(lambda.grid, t(lasso.coefs[covs+1,]), type=\"l\", lwd=2, las=1, xlab=\"Lambda\", ylab=\"Coefficient estimate\")\nlegend(\"topright\", legend = covariates[covs], bty=\"n\", col=1:p,  lty=1:p, inset=c(.05, .05), lwd=2, cex=.6)",
+    "crumbs": [
+      "Methods",
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Machine Learning for Causal Inference</span>"
+    ]
+  },
+  {
+    "objectID": "machine-learning.html#tree",
+    "href": "machine-learning.html#tree",
+    "title": "\n3  Machine Learning for Causal Inference\n",
+    "section": "\n3.2 Tree",
+    "text": "3.2 Tree\n\n# Fit tree without pruning first\nfmla &lt;- formula(paste(outcome, \"~\", paste(covariates, collapse=\" + \")))\ntree &lt;- rpart(fmla, data=data, cp=0, method=\"anova\")  # use method=\"class\" for classification\nplot(tree, uniform=TRUE)\n\n\n\n\n\n\n# Retrieves the optimal parameter\ncp.min &lt;- which.min(tree$cptable[,\"xerror\"]) # minimum error\ncp.idx &lt;- which(tree$cptable[,\"xerror\"] - tree$cptable[cp.min,\"xerror\"] &lt; tree$cptable[,\"xstd\"])[1]  # at most one std. error from minimum error\ncp.best &lt;- tree$cptable[cp.idx,\"CP\"]\n\n# Prune the tree\npruned.tree &lt;- prune(tree, cp=cp.best)\n\nplot(pruned.tree, uniform=TRUE, margin = .05)\ntext(pruned.tree, cex=.7)",
+    "crumbs": [
+      "Methods",
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Machine Learning for Causal Inference</span>"
+    ]
+  },
+  {
+    "objectID": "machine-learning.html#forest",
+    "href": "machine-learning.html#forest",
+    "title": "\n3  Machine Learning for Causal Inference\n",
+    "section": "\n3.3 Forest",
+    "text": "3.3 Forest\n\nX &lt;- data[,covariates]\n\nY &lt;- as.vector(data$bweight)\n\n\n# Fitting the forest\n# We'll use few trees for speed here.\n# In a practical application please use a higher number of trees.\nforest &lt;- regression_forest(X=X, Y=Y, num.trees=200)\n\n# There usually isn't a lot of benefit in tuning forest parameters, but the next code does so automatically (expect longer training times)\n# forest &lt;- regression_forest(X=X, Y=Y, tune.parameters=\"all\")\n\n# Retrieving forest predictions\ny.hat &lt;- predict(forest)$predictions\n\n# Evaluation (out-of-bag mse)\nmse.oob &lt;- mean(predict(forest)$debiased.error)\nprint(paste(\"Forest MSE (out-of-bag):\", mse.oob))\n\n[1] \"Forest MSE (out-of-bag): 203738.024947331\"\n\nvar.imp &lt;- variable_importance(forest)\nnames(var.imp) &lt;- covariates\nsort(var.imp, decreasing = TRUE)[1:10] # showing only first few\n\n   lbweight   nprenatal      msmoke       mrace     mbsmoke       frace \n0.476876242 0.174079728 0.066249201 0.057619894 0.047567523 0.029784236 \n   mmarried        mage     noise15      noise6 \n0.021313644 0.008727242 0.007568319 0.007050859",
+    "crumbs": [
+      "Methods",
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Machine Learning for Causal Inference</span>"
+    ]
+  },
+  {
+    "objectID": "nonparametric.html",
+    "href": "nonparametric.html",
+    "title": "\n4  Nonparametric Causal Methods\n",
+    "section": "",
+    "text": "4.1 Why Do We Need Nonparametric Methods?\nConsiderations:",
+    "crumbs": [
+      "Methods",
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Nonparametric Causal Methods</span>"
+    ]
+  },
+  {
+    "objectID": "nonparametric.html#why-do-we-need-nonparametric-methods",
+    "href": "nonparametric.html#why-do-we-need-nonparametric-methods",
+    "title": "\n4  Nonparametric Causal Methods\n",
+    "section": "",
+    "text": "Parametric models are often mis-specified\nNonparametric models are more flexible; less assumptions\nWhat kind of nonparametrics are good?\n\n\n\nPlug-in estimators are easy\nBut they are biased, or inefficient, because they are trying to estimate \\(E[Y(0)]\\) and \\(E[Y(1)]\\), not the difference.\nThey can be consistent, but convergence rate can be terrible, especially when the dimension is high\nIdeally we can correct the biases, and get efficiency\nInfluence function based estimators are shown to be efficient.",
+    "crumbs": [
+      "Methods",
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Nonparametric Causal Methods</span>"
+    ]
+  },
+  {
+    "objectID": "nonparametric.html#influence-function-based-estimators",
+    "href": "nonparametric.html#influence-function-based-estimators",
+    "title": "\n4  Nonparametric Causal Methods\n",
+    "section": "\n4.2 Influence Function Based Estimators",
+    "text": "4.2 Influence Function Based Estimators\nEstimators based on efficient influence function are often \\(\\sqrt n\\) consistent, meaning they converge to the truth as fast as \\(\\sqrt n\\) rate. This means the bias not only goes to 0 with \\(n\\) goes to infinity, but also as fast as \\(1/ \\sqrt n\\) goes to 0. Why does this matter? Because we have limited sample size, when we are based on asymptotics, the faster the bias goes to 0 the smaller sample size we need.\nIf we have an estimator such that \\[ \\sqrt n (\\hat \\psi - \\psi) = \\sqrt n P_n(\\phi) + o_P(1) \\rightarrow N(0, var(\\phi))\\]\nThen this estimator is \\(\\sqrt n\\) consistent and asymptotically normal; and \\(\\phi\\) is the influence function. The efficient influence function is the one with variance at the lower bound (similar to parametric case for Cramer-Rao lower bound).\nUnfortunately there is no universal formula for efficient influence function for every problem. We need to derive it for each problem. For example, ATE has an IF based estimator, but ATT needs a different formula; and LATE has a different formula too, etc. Deriving them is hard!\nFor ATE, target parameter \\(\\psi = E \\{ E(Y | X, A=1) \\}\\), the efficient influence function is \\[\\phi (Z; P) = \\frac{A}{\\pi (X)} \\{ Y - \\mu (X) \\} + \\mu(X) - \\psi\\] where \\(\\pi (X) = P(A=1 | X)\\) the propensity score model, \\(\\mu (X) = E(Y |X, A=1)\\), the outcome model.\nFor example, an IF-based bias-corrected estimator \\[\\hat \\psi = P_n [ \\frac{A}{\\hat \\pi (X)} \\{ Y - \\hat \\mu (X) \\} + \\hat \\mu(X) ]\\] where \\(P_n\\) means sample mean. This is the familiar AIPW estimator. It is known to be doubly robust.\nSince we know the influence function, we can calculate its variance. This variance is the same as variance of \\(\\hat \\psi\\) since they differ by a constant \\(\\psi\\). We can use any estimators to estimate the nuisance parameters, then get \\(\\hat \\psi\\). Then the sample variance is the variance of the influence function; and the sample mean is the ATE.\nIn this estimator, both \\(\\hat \\mu\\) and \\(\\hat \\pi\\) can be done using any estimator, such as machine learning.\n\n4.2.1 Simulation Setup\n\nset.seed(1)\nn=1000\nw1 &lt;- rbinom(n, size=1, prob=0.5)\nw2 &lt;- rbinom(n, size=1, prob=0.5)\nw3 &lt;- round(runif(n, min=0, max=4), digits=3)\nw4 &lt;- round(runif(n, min=0, max=5), digits=3)\nA  &lt;- rbinom(n, size=1, prob= plogis(-0.4 + 0.2*w2 + 0.15*w3 + 0.2*w4 + 0.15*w2*w4))\nY.1 &lt;- rbinom(n, size=1, prob= plogis(-1 + 1 -0.1*w1 + 0.3*w2 + 0.25*w3 + 0.2*w4 + 0.15*w2*w4))\nY.0 &lt;- rbinom(n, size=1, prob= plogis(-1 + 0 -0.1*w1 + 0.3*w2 + 0.25*w3 + 0.2*w4 + 0.15*w2*w4))\nY &lt;- Y.1*A + Y.0*(1 - A)\nW&lt;-data.frame(cbind(w1,w2,w3,w4))\ndata &lt;-  data.frame(w1, w2, w3, w4, A, Y, Y.1, Y.0)\nTrue_Psi &lt;- mean(data$Y.1-data$Y.0);\ncat(\" True_Psi:\", True_Psi)\n\n True_Psi: 0.21\n\n\n\nSL.library &lt;- c(\"SL.earth\",\"SL.gam\",\"SL.glmnet\",\"SL.glm.interaction\", \"SL.mean\",\"SL.ranger\", \"SL.xgboost\")\n\n\n4.2.2 Plug-in Estimator from Outcome Regression\n\nset.seed(1)\nmufit &lt;- SuperLearner(Y=data$Y, X=data %&gt;% dplyr::select(w1,w2,w3,w4,A),\n                                     SL.library=SL.library, family=\"binomial\")\nmuhat &lt;- predict(mufit, X=data %&gt;% dplyr::select(w1,w2,w3,w4,A))$pred\n# predict the PO Y^1\nmu1hat&lt;- predict(mufit, newdata=data %&gt;% dplyr::select(w1,w2,w3,w4,A) %&gt;% mutate(A=1))$pred\nmu0hat&lt;- predict(mufit, newdata=data %&gt;% dplyr::select(w1,w2,w3,w4,A) %&gt;% mutate(A=0))$pred\nmean(mu1hat-mu0hat)\n\n[1] 0.1824593\n\n\n\n4.2.3 AIPW ATE\n\nset.seed(123)\npifit &lt;- SuperLearner(Y=data$A, X=data %&gt;% dplyr::select(w1,w2,w3,w4),\n                    SL.library=SL.library, family=\"binomial\")\npi1hat &lt;- pifit$SL.predict\npi0hat &lt;- 1- pi1hat\nIF.1&lt;-((data$A/pi1hat)*(data$Y-mu1hat)+mu1hat)\nIF.0&lt;-(((1-data$A)/pi0hat)*(data$Y-mu0hat)+mu0hat)\nIF&lt;-IF.1-IF.0\naipw.1&lt;-mean(IF.1);aipw.0&lt;-mean(IF.0)\naipw.manual&lt;-aipw.1-aipw.0\nci.lb&lt;-mean(IF)-qnorm(.975)*sd(IF)/sqrt(length(IF))\nci.ub&lt;-mean(IF)+qnorm(.975)*sd(IF)/sqrt(length(IF))\nres.manual.aipw&lt;-c(aipw.manual,ci.lb, ci.ub)\nres.manual.aipw\n\n[1] 0.1893510 0.1291976 0.2495044\n\n\n\n4.2.4 AIPW ATE Using npcausal\n\nlibrary(npcausal)\naipw&lt;- ate(y=Y, a=A, x=W, nsplits=1, sl.lib=SL.library)\n\n\n  |                                                                            \n  |                                                                      |   0%\n  |                                                                            \n  |==================                                                    |  25%\n  |                                                                            \n  |===================================                                   |  50%\n  |                                                                            \n  |====================================================                  |  75%\n  |                                                                            \n  |======================================================================| 100%\n     parameter       est         se     ci.ll     ci.ul pval\n1      E{Y(0)} 0.5623481 0.02540723 0.5125500 0.6121463    0\n2      E{Y(1)} 0.7531483 0.01690698 0.7200106 0.7862859    0\n3 E{Y(1)-Y(0)} 0.1908001 0.03004444 0.1319130 0.2496872    0\n\n\n\n4.2.5 AIPW ATT\n\ndata2 &lt;- data %&gt;%\n  dplyr::mutate(pi0hat=as.numeric(pi0hat), pi1hat=as.numeric(pi1hat))\nset.seed(1)\ndata0 &lt;- data2 %&gt;% dplyr::filter(A==0)\ndata1 &lt;- data2 %&gt;% dplyr::filter(A==1)\nmufit &lt;- SuperLearner(Y=data0$Y, X=data0 %&gt;% dplyr::select(w1,w2,w3,w4),\n                                     SL.library=SL.library, family=\"binomial\")\n\nmu0hat&lt;- as.numeric(predict(mufit, newdata=data1 %&gt;% dplyr::select(w1,w2,w3,w4))$pred)\nIF.0&lt;-(((1-data1$A)/data1$pi0hat)*(data1$Y-mu0hat)+mu0hat)\nIF&lt;-data1$Y-IF.0\naipw.manual.att &lt;- mean(IF)\nci.lb&lt;-mean(IF)-qnorm(.975)*sd(IF)/sqrt(length(IF))\nci.ub&lt;-mean(IF)+qnorm(.975)*sd(IF)/sqrt(length(IF))\nres.manual.aipw.att&lt;-c(aipw.manual.att,ci.lb, ci.ub)\nres.manual.aipw.att\n\n[1] 0.1891531 0.1570391 0.2212671\n\n\n\n4.2.6 AIPW ATT Using npcausal\n\nlibrary(npcausal)\naipw&lt;- att(y=Y, a=A, x=W, nsplits=1, sl.lib=SL.library)\n\n\n  |                                                                            \n  |                                                                      |   0%\n  |                                                                            \n  |===================================                                   |  50%\n  |                                                                            \n  |======================================================================| 100%\n      parameter       est         se      ci.ll     ci.ul pval\n1      E(Y|A=1) 0.7668232 0.01686602 0.73376577 0.7998806    0\n2   E{Y(0)|A=1} 0.5852036 0.04690930 0.49326137 0.6771458    0\n3 E{Y-Y(0)|A=1} 0.1816196 0.04939721 0.08480102 0.2784381    0",
+    "crumbs": [
+      "Methods",
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Nonparametric Causal Methods</span>"
+    ]
+  },
+  {
+    "objectID": "nonparametric.html#tmle",
+    "href": "nonparametric.html#tmle",
+    "title": "\n4  Nonparametric Causal Methods\n",
+    "section": "\n4.3 TMLE",
+    "text": "4.3 TMLE\nTMLE is a variant of IF based estimator. It is also a doubly robust estimator. See Mark van der Laan and his coauthors for the recent development of TMLE.\nWe should expect npcausal and tmle give similar answers.\n\nlibrary(tmle)\nTMLE&lt;- tmle(Y=data$Y,A=data$A,W=W, family=\"binomial\", Q.SL.library=SL.library, g.SL.library=SL.library)\n\nTMLE$estimates$ATE\n\n$psi\n[1] 0.1892973\n\n$var.psi\n[1] 0.0009517339\n\n$CI\n[1] 0.1288321 0.2497626\n\n$pvalue\n[1] 8.461495e-10\n\n$bs.var\n[1] NA\n\n$bs.CI.twosided\n[1] NA NA\n\n$bs.CI.onesided.lower\n[1] -Inf   NA\n\n$bs.CI.onesided.upper\n[1]  NA Inf",
+    "crumbs": [
+      "Methods",
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Nonparametric Causal Methods</span>"
+    ]
+  },
+  {
+    "objectID": "nonparametric.html#doubleml",
+    "href": "nonparametric.html#doubleml",
+    "title": "\n4  Nonparametric Causal Methods\n",
+    "section": "\n4.4 DoubleML",
+    "text": "4.4 DoubleML\nThe R package DoubleML implements the double/debiased machine learning framework of Chernozhukov et al. (2018). It provides functionalities to estimate parameters in causal models based on machine learning methods. The double machine learning framework consists of three key ingredients: Neyman orthogonality, High-quality machine learning estimation and Sample splitting.\nThey consider a partially linear model:\n\\[ y_i = \\theta d_i + g_0(x_i) + \\eta_i \\]\n\\[ d_i = m_0(x_i) + v_i \\]\nThis model is quite general, except it does not allow interaction of \\(d\\) and \\(x\\); therefore no heterogeneous treatment effect across \\(x\\). But “DoubleML” implements more than partially linear model, it actually allows for heterogeneous treatment effects, in models such as interactive regression model.\nThe basic idea of doubleML is to use any machine learning algorithm to estimate outcome equation (\\(l_0(X) = E(Y | X)\\)) and treatment equation (\\(m_0(X) = E(D | X)\\)). Then get the residuals, namely \\(\\hat W=Y-\\hat l_0(X)\\) and \\(\\hat V = D - \\hat m_0(X)\\).\nThen regress \\(\\hat W\\) on \\(\\hat V\\). Based on FWL theorem, you get \\(\\hat \\theta\\).\nAn important component here is to specify a Neyman-orthogonal score function. In the case of PLR, it can be the product of the two residuals:\n\\[\\psi (W; \\theta, \\eta) = (Y-D\\theta -g(X))(D-m(X)) \\]\nThe estimator \\(\\hat \\theta\\) is to solve the equation that the sample mean of this score function being 0.\nAnd the variance of this score function is used as the variance of the doubleML estimator’s variance.\n\nlibrary(DoubleML)\ndml_data = DoubleMLData$new(data,\n                             y_col = \"Y\",\n                             d_cols = \"A\",\n                             x_cols = c(\"w1\",\"w2\",\"w3\",\"w4\"))\nprint(dml_data)\n\n================= DoubleMLData Object ==================\n\n\n------------------ Data summary      ------------------\nOutcome variable: Y\nTreatment variable(s): A\nCovariates: w1, w2, w3, w4\nInstrument(s): \nSelection variable: \nNo. Observations: 1000\n\n\n\nlibrary(mlr3)\nlibrary(mlr3learners)\n# surpress messages from mlr3 package during fitting\nlgr::get_logger(\"mlr3\")$set_threshold(\"warn\")\nlearner = lrn(\"regr.ranger\", num.trees=500,  max.depth=5, min.node.size=2)\nml_l = learner$clone()\nml_m = learner$clone()\nlearner = lrn(\"regr.glmnet\")\nml_g_sim = learner$clone()\nml_m_sim = learner$clone()\nset.seed(123)\nobj_dml_plr = DoubleMLPLR$new(dml_data, ml_l=ml_l, ml_m=ml_m)\nobj_dml_plr$fit()\nobj_dml_plr$summary()\n\nEstimates and significance testing of the effect of target variables\n  Estimate. Std. Error t value Pr(&gt;|t|)    \nA   0.19257    0.03136    6.14 8.24e-10 ***\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1",
+    "crumbs": [
+      "Methods",
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Nonparametric Causal Methods</span>"
+    ]
+  },
+  {
+    "objectID": "did.html",
+    "href": "did.html",
+    "title": "\n5  Difference-in-Differences\n",
+    "section": "",
+    "text": "5.1 \\(T=2\\) Panel Data\nWhat if unconfoundedness fails? We have to settle for weaker assumptions. One such assumption is the parallel trends assumption. If we have this assumption, we can use a difference-in-differences estimator.\nSuppose we have two periods, \\(t = (1,2)\\). Some units are treated just prior to period 2. For each individual \\(i\\), there are four potential outcomes:\n\\[ [Y_{i1}(0), Y_{i1}(1), Y_{i2}(0), Y_{i2}(1)] \\]\nWe use \\(D\\) to identify the treated group.\nThe ATT when \\(T=2\\):\n\\[ \\tau_{2,att} = E(Y_2(1) - Y_2(0) | D=1) \\]\nIn words, we are interested in the ATT in the second period. The difficult part is the second term.",
+    "crumbs": [
+      "Designs",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Difference-in-Differences</span>"
+    ]
+  },
+  {
+    "objectID": "did.html#parallel-trends-assumption",
+    "href": "did.html#parallel-trends-assumption",
+    "title": "\n5  Difference-in-Differences\n",
+    "section": "\n5.2 Parallel Trends Assumption",
+    "text": "5.2 Parallel Trends Assumption\n\\[ E[Y_2(0) -Y_1(0) | D=1] = E[Y_2(0) - Y_1(0) | D =0] \\]\nor\n\\[ E[\\Delta Y(0) | D=1] = E[\\Delta Y(0) | D =0] \\]\nIn other words, this means the change of potential outcome for untreated state between period 1 and 2 is independent of treatment assignment (unconfounded).",
+    "crumbs": [
+      "Designs",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Difference-in-Differences</span>"
+    ]
+  },
+  {
+    "objectID": "did.html#no-anticipation-assumption",
+    "href": "did.html#no-anticipation-assumption",
+    "title": "\n5  Difference-in-Differences\n",
+    "section": "\n5.3 No Anticipation Assumption",
+    "text": "5.3 No Anticipation Assumption\n\\[ E[Y_1(1) - Y_1(0) | D=1] = 0 \\]\nThis is to say, in period 1, there is no treatment effect for the treated group.",
+    "crumbs": [
+      "Designs",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Difference-in-Differences</span>"
+    ]
+  },
+  {
+    "objectID": "did.html#did-is-identified-with-pt-and-na",
+    "href": "did.html#did-is-identified-with-pt-and-na",
+    "title": "\n5  Difference-in-Differences\n",
+    "section": "\n5.4 DiD is Identified with PT and NA",
+    "text": "5.4 DiD is Identified with PT and NA\nWith Parallel Trends, we notice \\[\\small  E[Y_2(0) | D=1 ]= E[Y_1(0) | D=1] + E[Y_2(0) - Y_1(0) | D=0] \\]\nThen, with No Anticipation, \\[\\small  \\begin{align}\nE[Y_2(0) | D=1 ] &= E[Y_1(1) | D=1] + E[Y_2(0) - Y_1(0) | D=0]\\\\\n&= E[Y_1 | D=1] + E[Y_2-Y_1 | D=0]\n\\end{align} \\]\n\\[\\small  \\tau_{2,att} = E[Y_2 - Y_1 | D=1] - E[Y_2-Y_1 | D=0] \\]",
+    "crumbs": [
+      "Designs",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Difference-in-Differences</span>"
+    ]
+  },
+  {
+    "objectID": "did.html#advantages-and-disadvantages-of-did",
+    "href": "did.html#advantages-and-disadvantages-of-did",
+    "title": "\n5  Difference-in-Differences\n",
+    "section": "\n5.5 Advantages and Disadvantages of DiD",
+    "text": "5.5 Advantages and Disadvantages of DiD\nAdvantages:\n\nNo need to assume unconfoundedness. We “only” need PT and NA. Or say we don’t need treatment itself to be independent of potential outcomes, but we do need it to be independent to the change in potential outcome at least for untreated state. This is importantly weaker in a lot of situations. There can be selection bias. If the selection bias does not change over time, then DiD can handle it.\n\nDisadvantages:\n\nPT and NA might be violated.\nPT is not scale free, in the sense that even if outcome can have PT, but then non-linear transformation of outcome won’t have PT (for example log of Y).",
+    "crumbs": [
+      "Designs",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Difference-in-Differences</span>"
+    ]
+  },
+  {
+    "objectID": "did.html#traditional-did",
+    "href": "did.html#traditional-did",
+    "title": "\n5  Difference-in-Differences\n",
+    "section": "\n5.6 Traditional DiD",
+    "text": "5.6 Traditional DiD\nIn practice, DiD in many period setting is usually done with\n\\[ Y_{it} = \\alpha_i + \\phi_t + W_{it} \\beta + \\epsilon_{it} \\]\nhere \\(W_{it} =(1[t=2] \\cdot D_i)\\), which is the interaction of post-treatment indicator and treatment group indicator.\nThis is usually called Two Way Fixed Effect (TWFE). There are multiple ways to implement the same model in practice.\nTWFE can be done by “Pooled OLS”. That is, using OLS on time dummies and firm (individual) dummies. Wooldridge (2021) shows it’s equivalent to use treatment dummies, instead of individual dummies. He also shows that this model can be equivalently implemented with fixed effect model and random effect model.",
+    "crumbs": [
+      "Designs",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Difference-in-Differences</span>"
+    ]
+  },
+  {
+    "objectID": "did.html#twfe-with-staggered-treatment-timing",
+    "href": "did.html#twfe-with-staggered-treatment-timing",
+    "title": "\n5  Difference-in-Differences\n",
+    "section": "\n5.7 TWFE with Staggered Treatment Timing",
+    "text": "5.7 TWFE with Staggered Treatment Timing\nThe problem comes in when there is different timing of treatment. People used to still use\n\\[ Y_{it} = \\alpha_i + \\phi_t + W_{it} \\beta + \\epsilon_{it} \\]\nwhere \\(W_{it}\\) now is a dummy when an individual \\(i\\) gets treated at time \\(t\\).\nHowever, what is \\(\\beta\\) here?",
+    "crumbs": [
+      "Designs",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Difference-in-Differences</span>"
+    ]
+  },
+  {
+    "objectID": "did.html#goodman-bacon-decomposition",
+    "href": "did.html#goodman-bacon-decomposition",
+    "title": "\n5  Difference-in-Differences\n",
+    "section": "\n5.8 Goodman-Bacon Decomposition",
+    "text": "5.8 Goodman-Bacon Decomposition\nGoodman-Bacon (2021) showed that \\(\\beta\\) in the TWFE is a weighted average of many different treatment effects, between treated cohorts, and control units, both can be different at different time points. The weights are a function of the size of the subsample, relative size of treatment and control units, and the timing of treatment in the sub sample. They can be negative. The units treated earlier can still be used as controls later. Therefore there is no meaningful interpretation of \\(\\beta\\). It does not need to be a convex combination of treatment effects.\n\n\nBacon decomposition\n\n\n\nBacon decomposition",
+    "crumbs": [
+      "Designs",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Difference-in-Differences</span>"
+    ]
+  },
+  {
+    "objectID": "did.html#wooldridges-etwfe",
+    "href": "did.html#wooldridges-etwfe",
+    "title": "\n5  Difference-in-Differences\n",
+    "section": "\n5.9 Wooldridge’s ETWFE",
+    "text": "5.9 Wooldridge’s ETWFE\nThere are a lot of ways to deal with staggered DiD situation. Wooldridge (2021) is basically saying: This is not a problem of TWFE, it’s a mis-use of TWFE. The reason we get non-sensible result of \\(\\beta\\) is that we know there is heterogeneous treatment effect, in the sense the treatment effect differs across cohort, but we force them to be the same. If we relax it, it can work. As he shows, this works when we specify cohort effects accordingly.\n\\[ y_{it} = \\alpha_i + \\phi_t + \\sum_{g=g_0}^G \\sum_{t=g}^T \\lambda_{g,t} \\times 1(g,t) + \\epsilon_{i,t} \\]\nHere \\(g\\) is a cohort indicator, a cohort is determined by the time of getting treatment. ETWFE is allowing each cohort to have different effect at each different time point after being treated. The baseline group is the never treated group. If there is no never treated group, it can easily changed to comparing to the last treated group.",
+    "crumbs": [
+      "Designs",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Difference-in-Differences</span>"
+    ]
+  },
+  {
+    "objectID": "did.html#example-1-us-teen-employment",
+    "href": "did.html#example-1-us-teen-employment",
+    "title": "\n5  Difference-in-Differences\n",
+    "section": "\n5.10 Example 1: US Teen Employment",
+    "text": "5.10 Example 1: US Teen Employment\nWe’ll use the mpdta dataset on US teen employment from the did package. “Treatment” in this dataset refers to an increase in the minimum wage rate. Our goal is to estimate the effect of this minimum wage treatment (treat) on the log of teen employment (lemp). Notice that the panel ID is at the county level (countyreal), but treatment was staggered across cohorts (first.treat) so that a group of counties were treated at the same time. In addition to these staggered treatment effects, we also observe log population (lpop) as a potential control variable.\n\ndata(\"mpdta\", package = \"did\")\nhead(mpdta)\n\n    year countyreal     lpop     lemp first.treat treat\n866 2003       8001 5.896761 8.461469        2007     1\n841 2004       8001 5.896761 8.336870        2007     1\n842 2005       8001 5.896761 8.340217        2007     1\n819 2006       8001 5.896761 8.378161        2007     1\n827 2007       8001 5.896761 8.487352        2007     1\n937 2003       8019 2.232377 4.997212        2007     1\n\n\n\ntable(mpdta$year)\n\n\n2003 2004 2005 2006 2007 \n 500  500  500  500  500 \n\ntable(mpdta$treat)\n\n\n   0    1 \n1545  955 \n\ntable(mpdta$first.treat)\n\n\n   0 2004 2006 2007 \n1545  100  200  655 \n\n\n\nlibrary(etwfe)\n\nmod =\n  etwfe(\n    fml  = lemp ~ lpop, # outcome ~ controls\n    tvar = year,        # time variable\n    gvar = first.treat, # group variable\n    data = mpdta,       # dataset\n    vcov = ~countyreal  # vcov adjustment (here: clustered)\n    )\n\n\nmod\n\nOLS estimation, Dep. Var.: lemp\nObservations: 2,500\nFixed-effects: first.treat: 4,  year: 5\nStandard-errors: Clustered (countyreal) \n                        Estimate Std. Error   t value  Pr(&gt;|t|)    \nlpop                    1.065461   0.021824 48.821102 &lt; 2.2e-16 ***\nfirst.treat::2004:lpop  0.050982   0.037756  1.350320  0.177525    \nfirst.treat::2006:lpop -0.041095   0.047390 -0.867183  0.386259    \nfirst.treat::2007:lpop  0.055518   0.039212  1.415838  0.157447    \nyear::2004:lpop         0.011014   0.007554  1.458043  0.145458    \nyear::2005:lpop         0.020733   0.008104  2.558268  0.010814 *  \nyear::2006:lpop         0.010535   0.010816  0.974084  0.330487    \nyear::2007:lpop         0.020921   0.011808  1.771708  0.077053 .  \n... 14 coefficients remaining (display them with summary() or use\nargument n)\n... 10 variables were removed because of collinearity\n(.Dtreat:first.treat::2006:year::2004,\n.Dtreat:first.treat::2006:year::2005 and 8 others [full set in\n$collin.var])\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\nRMSE: 0.537131     Adj. R2: 0.871722\n                 Within R2: 0.869464\n\n\n\nemfx(mod)\n\n\n .Dtreat Estimate Std. Error     z Pr(&gt;|z|)    S   2.5 %  97.5 %\n    TRUE  -0.0506     0.0125 -4.05   &lt;0.001 14.3 -0.0751 -0.0261\n\nTerm: .Dtreat\nType: response\nComparison: TRUE - FALSE\n\n\n\nmod_es = emfx(mod, type = \"event\")\nmod_es\n\n\n event Estimate Std. Error     z Pr(&gt;|z|)    S   2.5 %   97.5 %\n     0  -0.0332     0.0134 -2.48    0.013  6.3 -0.0594 -0.00702\n     1  -0.0573     0.0171 -3.34   &lt;0.001 10.2 -0.0910 -0.02373\n     2  -0.1379     0.0308 -4.48   &lt;0.001 17.0 -0.1982 -0.07753\n     3  -0.1095     0.0323 -3.39   &lt;0.001 10.5 -0.1729 -0.04620\n\nTerm: .Dtreat\nType: response\nComparison: TRUE - FALSE\n\n\n\nmod_es2 = emfx(mod, type = \"event\", post_only = FALSE)\n\nggplot(mod_es2, aes(x = event, y = estimate, ymin = conf.low, ymax = conf.high)) +\n  geom_hline(yintercept = 0) +\n  geom_vline(xintercept = -1, lty = 2) +\n  geom_pointrange(col = \"darkcyan\") +\n  labs(\n    x = \"Years post treatment\", y = \"Effect on log teen employment\",\n    caption = \"Note: Zero pre-treatment effects for illustrative purposes only.\"\n  )",
+    "crumbs": [
+      "Designs",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Difference-in-Differences</span>"
+    ]
+  },
+  {
+    "objectID": "did.html#example-2-staggered-did",
+    "href": "did.html#example-2-staggered-did",
+    "title": "\n5  Difference-in-Differences\n",
+    "section": "\n5.11 Example 2: Staggered DiD",
+    "text": "5.11 Example 2: Staggered DiD\n\n# now we do staggered did.\nlibrary(haven)\ndid_data &lt;- read_dta('data/did_staggered_6.dta') %&gt;%\n  mutate(first_treat = case_when(d4==1 ~ 2004,\n                                  d5==1 ~ 2005,\n                                  d6==1 ~ 2006,\n                                  .default = 0))\n\nhead(did_data %&gt;% select(id, year, y, x,d4, d5, d6, te4, te5, te6, first_treat ))\n\n# A tibble: 6 × 11\n     id  year     y     x    d4    d5    d6   te4   te5   te6 first_treat\n  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;       &lt;dbl&gt;\n1     1  2001  18.4 0.900     0     0     0  0     0    0               0\n2     1  2002  18.1 0.900     0     0     0  0     0    0               0\n3     1  2003  18.6 0.900     0     0     0  0     0    0               0\n4     1  2004  16.5 0.900     0     0     0  1.43  0    0               0\n5     1  2005  20.0 0.900     0     0     0  2.57  2.25 0               0\n6     1  2006  19.9 0.900     0     0     0  5.07  4.23 0.786           0\n\n\n\ntable(did_data$first_treat)\n\n\n   0 2004 2005 2006 \n1572  714  498  216 \n\n\n\ndid_data &lt;- did_data %&gt;%\n  mutate(treated_cohort1 =    case_when(d4 & f04 ~ \"d4f04\",\n                              d4 & f05 ~ \"d4f05\",\n                              d4 & f06 ~ \"d4f06\"),\n         treated_cohort2 = case_when (\n                              d5 & f05 ~ \"d5f05\",\n                              d5 & f06 ~ \"d5f06\"),\n         treated_cohort3= case_when(\n                              d6 & f06 ~ \"d6f06\"))\n\n  did_data %&gt;%\n    group_by(treated_cohort1) %&gt;%\n    summarise(mean4=mean(te4))\n\n# A tibble: 4 × 2\n  treated_cohort1 mean4\n  &lt;chr&gt;           &lt;dbl&gt;\n1 d4f04            3.76\n2 d4f05            4.02\n3 d4f06            4.58\n4 &lt;NA&gt;             1.83\n\n\n\n  did_data %&gt;%\n    group_by(treated_cohort2) %&gt;%\n    summarise(mean5=mean(te5))\n\n# A tibble: 3 × 2\n  treated_cohort2 mean5\n  &lt;chr&gt;           &lt;dbl&gt;\n1 d5f05           2.74 \n2 d5f06           3.52 \n3 &lt;NA&gt;            0.978\n\n  did_data %&gt;%\n    group_by(treated_cohort3) %&gt;%\n    summarise(mean6=mean(te6))\n\n# A tibble: 2 × 2\n  treated_cohort3 mean6\n  &lt;chr&gt;           &lt;dbl&gt;\n1 d6f06           1.85 \n2 &lt;NA&gt;            0.329\n\n\n\nlibrary(etwfe)\n\n# this replicates Jeff's results with pooled ols or xtreg, with covariate x.\nmod =\n  etwfe(\n    fml  = y ~ x, # outcome ~ controls\n    tvar = year,        # time variable\n    gvar = first_treat, # group variable\n    data = did_data,       # dataset\n    vcov = ~id\n        )\n\nmod\n\nOLS estimation, Dep. Var.: y\nObservations: 3,000\nFixed-effects: first_treat: 4,  year: 6\nStandard-errors: Clustered (id) \n                     Estimate Std. Error   t value  Pr(&gt;|t|)    \nx                    0.240952   0.452664  0.532298 0.5947564    \nfirst_treat::2004:x -1.191253   0.934130 -1.275254 0.2028127    \nfirst_treat::2005:x  0.551133   0.606947  0.908042 0.3642944    \nfirst_treat::2006:x  0.994478   0.827570  1.201685 0.2300556    \nyear::2002:x         0.395894   0.327576  1.208558 0.2274050    \nyear::2003:x         0.975554   0.319476  3.053604 0.0023818 ** \nyear::2004:x         0.330593   0.350924  0.942064 0.3466155    \nyear::2005:x         0.238847   0.398165  0.599869 0.5488659    \n... 13 coefficients remaining (display them with summary() or use\nargument n)\n... 18 variables were removed because of collinearity\n(.Dtreat:first_treat::2004:year::2002,\n.Dtreat:first_treat::2004:year::2003 and 16 others [full set in\n$collin.var])\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\nRMSE: 2.92391     Adj. R2: 0.194759\n                Within R2: 0.110397\n\n\n\nemfx(mod)\n\n\n .Dtreat Estimate Std. Error    z Pr(&gt;|z|)     S 2.5 % 97.5 %\n    TRUE     3.67      0.172 21.3   &lt;0.001 333.2  3.33   4.01\n\nTerm: .Dtreat\nType: response\nComparison: TRUE - FALSE\n\n\n\nmod_es = emfx(mod, type = \"event\")\nmod_es\n\n\n event Estimate Std. Error    z Pr(&gt;|z|)     S 2.5 % 97.5 %\n     0     3.11      0.213 14.6   &lt;0.001 158.5  2.69   3.53\n     1     4.02      0.248 16.2   &lt;0.001 193.4  3.53   4.51\n     2     4.21      0.331 12.7   &lt;0.001 120.9  3.56   4.86\n\nTerm: .Dtreat\nType: response\nComparison: TRUE - FALSE\n\n\n\nmod_es2 = emfx(mod, type = \"calendar\")\nmod_es2\n\n\n year Estimate Std. Error    z Pr(&gt;|z|)     S 2.5 % 97.5 %\n 2004     3.51      0.303 11.6   &lt;0.001 100.6  2.92   4.10\n 2005     3.73      0.253 14.7   &lt;0.001 160.9  3.24   4.23\n 2006     3.70      0.249 14.8   &lt;0.001 163.0  3.21   4.19\n\nTerm: .Dtreat\nType: response\nComparison: TRUE - FALSE",
+    "crumbs": [
+      "Designs",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Difference-in-Differences</span>"
+    ]
+  },
+  {
+    "objectID": "did.html#synthetic-control",
+    "href": "did.html#synthetic-control",
+    "title": "\n5  Difference-in-Differences\n",
+    "section": "\n5.12 Synthetic Control",
+    "text": "5.12 Synthetic Control\nThe biggest problem with DiD is the PT assumption. There is not really a test for it, just like the unconfoundedness assumption. It is less demanding than unconfoundedness assumption, but nevertheless hard to justify sometimes.\nAbadie (2010)’s idea is to construct a control unit, out of many control units (donor pool), which is a weighted average of all donor units, that then hopefully is very close to the treated unit in terms of outcome, in the pre-treatment periods. This works pretty well in practice, when you have a somewhat large donor pool. Of course there is still no test for post-treatment period, but for pre-treatment periods, usually it can get almost identical trend as the treated unit. This was designed for single treated unit at the beginning, but got extended to multiple treated units later on.",
+    "crumbs": [
+      "Designs",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Difference-in-Differences</span>"
+    ]
+  },
+  {
+    "objectID": "did.html#synthetic-did",
+    "href": "did.html#synthetic-did",
+    "title": "\n5  Difference-in-Differences\n",
+    "section": "\n5.13 Synthetic DiD",
+    "text": "5.13 Synthetic DiD\nArkhangelsky et al (2021) tries to combine the idea of DiD and SC. SC assigns different weights to different control units. The standard DiD is a TWFE, assigning equal weights to all time periods and units.\nTo see that, DiD objective function:\n\\[ \\small (\\hat \\tau^{did}, \\hat \\mu, \\hat \\alpha, \\hat \\beta) = \\underset{\\tau, \\mu, \\alpha, \\beta}{argmin} { \\Sigma_{i=1}^N \\Sigma_{t=1}^T (Y_{it} - \\mu - \\alpha_i - \\beta_t - W_{it} \\tau)^2}\\]\nSC objective function: \\[ (\\hat \\tau^{sc}, \\hat \\mu, \\hat \\beta) = \\underset{\\tau, \\mu, \\beta}{argmin} { \\Sigma_{i=1}^N \\Sigma_{t=1}^T (Y_{it} - \\mu - \\beta_t - W_{it} \\tau)^2 \\hat \\omega^{sc}}\\]\nIt’s a weighted version of DiD. In this sense, DiD is a special case of SC, setting all weights to 1. The weights are set to optimally match donor units to treated unit so that they are as close as possible, in each time point. Note there is no \\(\\alpha_i\\), since it’s forced to be 0.\nSDiD:\n\\[ \\small (\\hat \\tau^{sdid}, \\hat \\mu, \\hat \\alpha, \\hat \\beta) = \\underset{\\tau, \\mu, \\alpha, \\beta}{argmin} { \\Sigma_{i=1}^N \\Sigma_{t=1}^T (Y_{it} - \\mu - \\alpha_i - \\beta_t - W_{it} \\tau)^2} \\hat \\omega_i^{sdid} \\lambda_t^{sdid}\\]\nSDiD sets another weight in addition to SC weights, which changes over time. The SC weights are trying to construct a control unit that is close to the treated unit; the SDiD weights are trying to put more weights on pre-treatment periods that are more similar to post-treatment periods.\n\n5.13.1 Example: California Proposition 99\n\nlibrary(synthdid)\ndata('california_prop99')\nsetup = panel.matrices(california_prop99)\ntau.hat = synthdid_estimate(setup$Y, setup$N0, setup$T0)\n\n\nsummary(tau.hat)\n\n$estimate\n[1] -15.60383\n\n$se\n     [,1]\n[1,]   NA\n\n$controls\n               estimate 1\nNevada              0.124\nNew Hampshire       0.105\nConnecticut         0.078\nDelaware            0.070\nColorado            0.058\nIllinois            0.053\nNebraska            0.048\nMontana             0.045\nUtah                0.042\nNew Mexico          0.041\nMinnesota           0.039\nWisconsin           0.037\nWest Virginia       0.034\nNorth Carolina      0.033\nIdaho               0.031\nOhio                0.031\nMaine               0.028\nIowa                0.026\n\n$periods\n     estimate 1\n1988      0.427\n1986      0.366\n1987      0.206\n\n$dimensions\n          N1           N0 N0.effective           T1           T0 T0.effective \n       1.000       38.000       16.388       12.000       19.000        2.783 \n\n\n\ntau.sc   = sc_estimate(setup$Y, setup$N0, setup$T0)\ntau.did  = did_estimate(setup$Y, setup$N0, setup$T0)\nestimates = list(tau.did, tau.sc, tau.hat)\nnames(estimates) = c('Diff-in-Diff', 'Synthetic Control', 'Synthetic Diff-in-Diff')\nprint(unlist(estimates))\n\n          Diff-in-Diff      Synthetic Control Synthetic Diff-in-Diff \n             -27.34911              -19.61966              -15.60383 \n\n\n\nplot &lt;- synthdid_plot(estimates, facet.vertical=FALSE,\n              control.name='control', treated.name='california',\n              lambda.comparable=TRUE, se.method = 'none',\n              trajectory.linetype = 1, line.width=.75, effect.curvature=-.4,\n              trajectory.alpha=.7, effect.alpha=.7,\n              diagram.alpha=1, onset.alpha=.7) +\n    theme(legend.position=c(.26,.07), legend.direction='horizontal',\n          legend.key=element_blank(), legend.background=element_blank(),\n          strip.background=element_blank(), strip.text.x = element_blank())\n\n\nplot\n\n\n\n\n\n\n\nNote: \\(\\lambda_t\\) is plotted at the bottom.",
+    "crumbs": [
+      "Designs",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Difference-in-Differences</span>"
+    ]
+  },
+  {
+    "objectID": "iv-rdd.html",
+    "href": "iv-rdd.html",
+    "title": "\n6  IV & Regression Discontinuity\n",
+    "section": "",
+    "text": "6.1 Instrumental Variables\nIf we have an unobserved confounder, unconfoundedness fails. Even when we have random experiment, we could have noncompliance. In that case, subjects are randomly assigned to treatment or control, but some of them do not comply with the assignment. In other words, there is selection bias in the sense that the treated group is self-selected. This selection could be correlated with the outcome.",
+    "crumbs": [
+      "Designs",
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>IV & Regression Discontinuity</span>"
+    ]
+  },
+  {
+    "objectID": "iv-rdd.html#instrumental-variables",
+    "href": "iv-rdd.html#instrumental-variables",
+    "title": "\n6  IV & Regression Discontinuity\n",
+    "section": "",
+    "text": "6.1.1 Uncontrolled Confounder\n\n\n\n\n\n\n\n\n\n6.1.2 Why Does IV Work?\n\n\n\n\n\n\n\n\n\n6.1.3 IV Under Potential Outcomes\n\nW has two potential outcomes W(1) and W(0), as a function of Z.\nY has two potential outcomes Y(1) and Y(0), as a function of W.\n\nIntention to Treat (ITT) is the average treatment effect of the treatment assignment Z. It is the difference between the average potential outcome under treatment and the average potential outcome under control. It is the average treatment effect of the treatment assignment Z, regardless of whether the subject complies with the assignment.\nThere are four possible groups of subjects in the case of binary treatment and binary instrument. For example treatment assignment Z and treated status W could be:\n\nZ=0, W=0: never-taker\nZ=0, W=1: complier\nZ=1, W=0: defier\nZ=1, W=1: always-taker\n\n\ncompliance groups\n\n\nW(1)=0\nW(1)=1\n\n\n\nW(0)=0\nN\nC\n\n\nW(0)=1\nD\nA\n\n\n\nThese four groups (stratum) have different causal mechanisms. For example, the compliers are the only group that is affected by the treatment assignment Z in the same direction. The defiers are the only group that is affected by the treatment assignment Z in the opposite direction. The always-takers and never-takers are not affected by the treatment assignment Z.\nUnfortunately we cannot identify the compliance group by looking at the data.\n\n\nZ\nW\nG\n\n\n\n0\n0\nC, N\n\n\n0\n1\nA, D\n\n\n1\n0\nN, D\n\n\n1\n1\nC, A\n\n\n\n6.1.4 Assumptions\n\nExclusion restriction: \\(Y(w, 1) = Y(w,0)\\)\n\nExogeneity of instrument: \\(Z \\perp [W(0),W(1), Y(0), Y(1)]\\)\n\nMonotonicity (no defiers): \\(W(0) \\leq W(1)\\)\n\n\n6.1.5 LATE Identification\nSince we excluded defiers, and the other two groups (always-takers and never-takers) are not affected by the treatment assignment Z. The only effect we can identify is the treatment effect on the compliers. This is called the Local Average Treatment Effect (LATE).\n\\[ \\small\n\\begin{aligned}\n& E[Y(Z=1) - Y(Z=0) | G = C] \\\\\n&= \\frac{E[Y(Z=1) - Y(Z=0)]}{P(W(1)=1, W(0)=0)} \\\\\n&= \\frac{E[Y|Z=1] - E[Y|Z=0]}{1-P(W=0|Z=1)-P(W=1|Z=0)} \\text{ (rule out groups A and N) } \\\\\n&= \\frac{E[Y|Z=1] - E[Y|Z=0]}{P(W=1|Z=1)-P(W=1|Z=0)} \\\\\n&= \\frac{E[Y|Z=1] - E[Y|Z=0]}{E[W|Z=1)-E[W|Z=0]}\n\\end{aligned}\n\\]\n\n6.1.6 Parametric Models\nIf we assume linearity, then this becomes the ratio of two OLS coefficients, sometimes called the Wald estimator.\n\\[\n\\begin{aligned}\n\\tau_{ATE} &= \\frac{E[Y|Z=1] - E[Y|Z=0]}{E[W|Z=1)-E[W|Z=0]} \\\\\n&= \\frac{Cov(Y,Z)}{Cov(W,Z)}\n\\end{aligned}\n\\]\nWhy do covariates help? Because we hope even if we don’t have exogeneity or exclusion assumption held, we would have those assumptions held within each level of \\(X\\).\n\n6.1.7 Example\n\n## DGP: data$y &lt;- data$x + data$z + data$u\nlibrary(sem)\nset.seed(66)\nnobs=10000\nnDim = 3\nsdww = 1\nsdzz=1\nsdmm=1\n## here we have three variables x,z,w.\n## m is the omitted variable,x and m are correlated,  z is the instrument, which is correlated with x, but not m.  u is indepent of everything else.\ncrwm=.6\ncrmz=0\ncrwz=.8\ncovarMat = matrix( c(sdww^2, crwm^2, crwz^2, crwm^2, sdmm^2, crmz^2,  crwz^2, crmz^2, sdzz^2 ) , nrow=nDim , ncol=nDim )\ndata  = data.frame(MASS::mvrnorm(n=nobs, mu=rep(0,nDim), Sigma=covarMat ))\nnames(data) &lt;- c('w','m','z')\ndata$u &lt;- rnorm(nobs,0,1)\n# dgp\ndata$y &lt;- data$w +  data$m + data$u\nlm &lt;- lm(y~w, data=data)\nlm.full &lt;- lm(y~ w + m, data=data)\ntsls.model &lt;- sem::tsls(y ~ w , ~ z , data=data)\n\n\n# lm is biased\nsummary(lm)$coefficients\n\n                Estimate Std. Error    t value  Pr(&gt;|t|)\n(Intercept) -0.003580657 0.01372253 -0.2609326 0.7941498\nw            1.358930425 0.01396918 97.2805995 0.0000000\n\n# lm.full is good\nsummary(lm.full)$coefficients\n\n               Estimate  Std. Error    t value  Pr(&gt;|t|)\n(Intercept) 0.001833551 0.009973474  0.1838428 0.8541405\nw           0.992438925 0.010868032 91.3172630 0.0000000\nm           1.013403057 0.010723435 94.5035837 0.0000000\n\n# tsls is good.\nsummary(tsls.model)$coefficients\n\n               Estimate Std. Error    t value  Pr(&gt;|t|)\n(Intercept) 0.006008287 0.01424525  0.4217749 0.6731984\nw           0.972416527 0.02312558 42.0493890 0.0000000",
+    "crumbs": [
+      "Designs",
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>IV & Regression Discontinuity</span>"
+    ]
+  },
+  {
+    "objectID": "iv-rdd.html#regression-discontinuity-design",
+    "href": "iv-rdd.html#regression-discontinuity-design",
+    "title": "\n6  IV & Regression Discontinuity\n",
+    "section": "\n6.2 Regression Discontinuity Design",
+    "text": "6.2 Regression Discontinuity Design\nRDD (regression discontinuity design) is a quasi-experimental design that is used to estimate causal effects of interventions when assignment to the intervention is determined by whether a subject’s value on an observed covariate exceeds a threshold. The idea is that the assignment is as good as random, so we can estimate the causal effect of the intervention by comparing the outcomes of subjects who are just above and just below the threshold.\n\n6.2.1 Sharp RDD\nWe have a continuous variable \\(X\\), called the running variable, which determines the binary treatment \\(W\\). The treatment is assigned according to a threshold \\(c\\). The outcome variable \\(Y\\) is a function of \\(X\\) and \\(W\\).\n\\[ W=\\mathbb{1}(X&gt;c)\\]\nLee (2008) studies the effect of incumbency advantage in elections. His identification strategy is based on the discontinuity generated by the rule that the party with a majority vote share wins. The forcing variable \\(X_i\\) is the difference in vote share between the Democratic and Republican parties in one election, with the threshold \\(c = 0\\). The outcome variable \\(Y_i\\) is vote share at the second election.\n\nlibrary(rdrobust)\ndata(rdrobust_RDsenate)\nrdplot(x=rdrobust_RDsenate$margin, y=rdrobust_RDsenate$vote)\n\n\n\n\n\n\n\n\n6.2.2 Identification of SRDD\n\\[ \\tau_{RD} = \\lim_{x \\to c^+} E[Y|X=x] - \\lim_{x \\to c^-} E[Y|X=x] \\]\nIn words, the treatment effect is the difference in the outcome from the right side and from the left side. This is the same as the difference in the outcome at the threshold, as if the treatment is assigned randomly.\n\n6.2.3 Estimation of SRDD\n\nGPA &lt;- runif(1000, 0, 4)\nfuture_success &lt;- 10 + 1.5 * GPA + 2 * (GPA &lt;= 3) + rnorm(1000)\nrdplot(x=GPA, y=future_success, c=3)\n\n\n\n\n\n\n\n\n# estimate the sharp RDD model\nrdd_gpa &lt;- rdrobust(x=GPA, y=future_success, c=3)\nsummary(rdd_gpa)\n\nSharp RD estimates using local polynomial regression.\n\nNumber of Obs.                 1000\nBW type                       mserd\nKernel                   Triangular\nVCE method                       NN\n\nNumber of Obs.                  745          255\nEff. Number of Obs.              71           71\nOrder est. (p)                    1            1\nOrder bias  (q)                   2            2\nBW est. (h)                   0.322        0.322\nBW bias (b)                   0.525        0.525\nrho (h/b)                     0.613        0.613\nUnique Obs.                     745          255\n\n=====================================================================\n                   Point    Robust Inference\n                Estimate         z     P&gt;|z|      [ 95% C.I. ]       \n---------------------------------------------------------------------\n     RD Effect    -1.859    -4.562     0.000    [-2.607 , -1.040]    \n=====================================================================\n\n\n\n6.2.4 Nonparametric Estimation\n\nrdd_house &lt;- rdrobust(x=rdrobust_RDsenate$margin, y=rdrobust_RDsenate$vote, c=0, all=TRUE)\nsummary(rdd_house)\n\nSharp RD estimates using local polynomial regression.\n\nNumber of Obs.                 1297\nBW type                       mserd\nKernel                   Triangular\nVCE method                       NN\n\nNumber of Obs.                  595          702\nEff. Number of Obs.             360          323\nOrder est. (p)                    1            1\nOrder bias  (q)                   2            2\nBW est. (h)                  17.754       17.754\nBW bias (b)                  28.028       28.028\nrho (h/b)                     0.633        0.633\nUnique Obs.                     595          665\n\n=======================================================================================\n        Method     Coef. Std. Err.         z     P&gt;|z|      [ 95% C.I. ]       \n=======================================================================================\n  Conventional     7.414     1.459     5.083     0.000     [4.555 , 10.273]    \nBias-Corrected     7.507     1.459     5.146     0.000     [4.647 , 10.366]    \n        Robust     7.507     1.741     4.311     0.000     [4.094 , 10.919]    \n=======================================================================================\n\n\n\n6.2.5 Fuzzy RDD\nIn fuzzy RDD, the treatment is assigned according to a threshold \\(c\\), but there exist non-compliance. This is similar to IV case.\n\\[ \\tau_{FRD} = \\frac{\\lim_{x \\to c^+} E[Y|X=x] - \\lim_{x \\to c^-} E[Y|X=x]}{\\lim_{x \\to c^+} E[W|X=x] - \\lim_{x \\to c^-} E[W|X=x]} \\]\nFor example, if food stamp eligibility is given to all households below a certain income, but not all households receive the food stamps. In other words, income does not solely determine the assignment. Cutoff point increases the probability of treatment but doesn’t completely determine treatment.\nFRDD is IV.\n\n6.2.6 FRDD Example\nFetter (2013)’s main question of interest is how much of the increase in the home ownership rate in the midcentury US was due to mortgage subsidies given out by the government.\nWe’re using the running variable quarter of birth (qob), which has been centered on the quarter of birth you’d need to be to be eligible for a mortgage subsidy for fighting in the Korean War (qob_minus_kw). This determines whether you were a veteran of either the Korean War or World War II (vet_wwko).\n\nvet &lt;- causaldata::mortgages\n# Create an \"above-cutoff\" variable as the instrument\nvet &lt;- vet %&gt;% mutate(above = qob_minus_kw &gt; 0)\n# Impose a bandwidth of 12 quarters on either side\nvet &lt;- vet %&gt;%  filter(abs(qob_minus_kw) &lt; 12)\nm &lt;- feols(home_ownership ~\n    nonwhite  | # Control for race\n    bpl + qob | # fixed effect controls\n    qob_minus_kw*vet_wwko ~ # Instrument our standard RDD\n    qob_minus_kw*above, # with being above the cutoff\n    se = 'hetero', # heteroskedasticity-robust SEs\n    data = vet)\nsummary(m)\n\nTSLS estimation - Dep. Var.: home_ownership\n                  Endo.    : qob_minus_kw, vet_wwko,\n                  qob_minus_kw:vet_wwko\n                  Instr.   : qob_minus_kw, above, qob_minus_kw:above\nSecond stage: Dep. Var.: home_ownership\nObservations: 56,901\nFixed-effects: bpl: 52,  qob: 4\nStandard-errors: Heteroskedasticity-robust \n                           Estimate Std. Error   t value   Pr(&gt;|t|)    \nfit_qob_minus_kw          -0.007151   0.001773  -4.03209 5.5355e-05 ***\nfit_vet_wwko               0.170172   0.045933   3.70479 2.1177e-04 ***\nfit_qob_minus_kw:vet_wwko -0.002853   0.002637  -1.08159 2.7944e-01    \nnonwhite                  -0.190434   0.006892 -27.63141  &lt; 2.2e-16 ***\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\nRMSE: 0.441909     Adj. R2: 0.066481\n                 Within R2: 0.051235\nF-test (1st stage), qob_minus_kw         : stat = 14,276,113,954,118,300,000,000,000,000,000,000.0000, p &lt; 2.2e-16 , on 3 and 56,842 DoF.\nF-test (1st stage), vet_wwko             : stat =                                          2,541.2120, p &lt; 2.2e-16 , on 3 and 56,842 DoF.\nF-test (1st stage), qob_minus_kw:vet_wwko: stat =                                         14,465.7762, p &lt; 2.2e-16 , on 3 and 56,842 DoF.\n                               Wu-Hausman: stat =                                              4.4989, p = 0.003679, on 3 and 56,839 DoF.\n\n\n\ncontrols &lt;- vet %&gt;%\n    select(nonwhite, bpl, qob) %&gt;%\n    mutate(qob = factor(qob))\nconmatrix &lt;- model.matrix(~., data = controls)\nm &lt;- rdrobust(vet$home_ownership,\n              vet$qob_minus_kw,\n              fuzzy = vet$vet_wwko,\n              c = 0,\n              covs = conmatrix)\nm$Estimate\n\n        tau.us    tau.bc       se.us       se.rb\n[1,] 0.8339441 0.8320108 0.002823468 0.003482787\n\n\nThese two results are very different, which is one of RDD’s problems. It can be sensitive to model selection. For example, in the case of 2SLS, it’s a linear model. In the case of “rdrobust”, it’s a local regression, which can be sensitive to bandwidth selection.",
+    "crumbs": [
+      "Designs",
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>IV & Regression Discontinuity</span>"
+    ]
+  },
+  {
+    "objectID": "mediation.html",
+    "href": "mediation.html",
+    "title": "\n7  Causal Mediation Analysis\n",
+    "section": "",
+    "text": "7.1 Classical Mediation\nTraditionally mediation model can be represented in the following equations:\n\\[ Y = a W + b M + \\epsilon_1 \\] \\[ M = c W + \\epsilon_2 \\]\nThat is, we’d like to study the effect of \\(W\\) on \\(Y\\), and we see the effect can be a direct effect, and an indirect effect, through \\(M\\).\nBaron and Kenny’s (http://davidakenny.net/cm/mediate.htm) method is done in four steps. Modern approach tends to use SEM (structural equation modeling) to model these two equations directly.\nlibrary(lavaan)\nset.seed(1234)\nn &lt;- 10000\nX &lt;- rnorm(n)\nM &lt;- 0.5*X + rnorm(n)\nY &lt;- 0.7*M + 0.3*X + rnorm(n)\nData &lt;- data.frame(X = X, Y = Y, M = M)\nmodel &lt;- '   Y ~ a*X + b*M\n             M ~ c*X\n           # direct effect (a)\n           # indirect effect (b*c)\n             bc := b*c\n           # total effect\n             total := a + (b*c)\n         '\nfit &lt;- sem(model, data = Data)\nsummary(fit)\n\nlavaan 0.6-21 ended normally after 1 iteration\n\n  Estimator                                         ML\n  Optimization method                           NLMINB\n  Number of model parameters                         5\n\n  Number of observations                         10000\n\nModel Test User Model:\n                                                      \n  Test statistic                                 0.000\n  Degrees of freedom                                 0\n\nParameter Estimates:\n\n  Standard errors                             Standard\n  Information                                 Expected\n  Information saturated (h1) model          Structured\n\nRegressions:\n                   Estimate  Std.Err  z-value  P(&gt;|z|)\n  Y ~                                                 \n    X          (a)    0.286    0.011   25.233    0.000\n    M          (b)    0.699    0.010   70.384    0.000\n  M ~                                                 \n    X          (c)    0.511    0.010   50.161    0.000\n\nVariances:\n                   Estimate  Std.Err  z-value  P(&gt;|z|)\n   .Y                 0.998    0.014   70.711    0.000\n   .M                 1.012    0.014   70.711    0.000\n\nDefined Parameters:\n                   Estimate  Std.Err  z-value  P(&gt;|z|)\n    bc                0.357    0.009   40.849    0.000\n    total             0.643    0.012   51.956    0.000",
+    "crumbs": [
+      "Mediation",
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>Causal Mediation Analysis</span>"
+    ]
+  },
+  {
+    "objectID": "mediation.html#classical-mediation",
+    "href": "mediation.html#classical-mediation",
+    "title": "\n7  Causal Mediation Analysis\n",
+    "section": "",
+    "text": "7.1.1 Problems with Classical Mediation\n\nLack of causal claim. We have to assume that there is no unmeasured confounder between \\(M\\) and \\(Y\\). This is a strong assumption.\nAssumption of homogeneous effect.",
+    "crumbs": [
+      "Mediation",
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>Causal Mediation Analysis</span>"
+    ]
+  },
+  {
+    "objectID": "mediation.html#causal-mediation",
+    "href": "mediation.html#causal-mediation",
+    "title": "\n7  Causal Mediation Analysis\n",
+    "section": "\n7.2 Causal Mediation",
+    "text": "7.2 Causal Mediation\n\n7.2.1 CDE\nSuppose we can set \\(W\\) and \\(M\\) at will to any \\((w, m)\\), then we have the potential outcome \\(Y(w,m)\\).\nConditional direct effect (CDE) is defined as \\[ CDE(m) = E[Y(1,m)-Y(0,m)] \\] That is, setting \\(M\\) to \\(m\\), what is the effect of \\(W\\) on \\(Y\\)?\n\n7.2.2 Assumptions\n\nConditional treatment randomization. Suppose we observe confounders X, which can be a joint set of confounders for the W to Y pathway, or the M to Y pathway.\n\n\\[  Y(w,m) \\perp W|X  \\]\nThis is the usual conditional independence (unconfoundedness, ignorability, etc.) assumption. This is saying the assignment of treatment, given covariates \\(X\\), has nothing to do with potential outcomes.\n\nConditional mediator randomization.\n\n\\[  Y(a,m) \\perp M|X, W=w  \\]\nThis is to say, within each strata of X, given treatment status, the assignment of mediator gives no information about potential outcome. This randomization is usually not implemented during many experiments (random trials). This is the assumption that makes a lot of mediation hard to make a causal claim.\n\nPositivity (overlap). There are two positivity assumptions:\n\n\\[  P(W=w | X=x) &gt; 0  \\] for all \\(x\\). This is the usual positivity assumption.\n\\[  P(M=m | X=x, W=w) &gt; 0   \\] for all \\(w\\). This is the mediator positivity.\n\n7.2.3 Estimation\nCDE can be estimated using G-computation method, or IPW, or the doubly-robust methods, one of them is AIPW (augmented IPW).\n\n7.2.4 G-computation\nG-computation is to model the outcome equation: \\[ \\small\n\\begin{eqnarray*}\nCDE_G(m) &=& E[ E[Y(W=1, M=m, X=x)] - \\\\\n&&  E[Y(W=0, M=m, X=x)]] \\\\\n&=& \\sum_x [ E[Y(W=1, M=m, X=x)] - \\\\\n&&  E[Y(W=0, M=m, X=x)]]  P(X=x)\n\\end{eqnarray*}\n\\]\n\n7.2.5 IPW\nIPW is to model the treatment assignment equation and the mediator assignment equation:\n\\[ \\small\nE[Y(w,m)] = E[{\\frac{I(W=w, M=m)}{P(W=w, M=m | X)}} Y]\n\\]\nTherefore,\n\\[ \\small\nCDE_{ipw}(m) = E[{\\frac{I(W=1,M=m)}{g_M(m|1,X)g_W(1,X)} Y - \\frac{I(W=0,M=m)}{g_M(m|0,X)g_W(0,X)}} Y]\n\\]\nwhere \\(g_M\\) is the probability of mediator, \\(g_W\\) is the probability of treatment.\n\n7.2.6 AIPW\n\\[ CDE_{AIPW} = CDE_G(m) + B(\\bar Q, g_M, g_W) \\] where \\(\\bar Q\\) is the mean outcome function.\n\\[ \\small\n\\begin{eqnarray*}\nB(\\bar Q, g_M, g_W) &=& \\frac{1}{n} \\sum_n {\\frac{I(M=m, W=1)}{g_m(m|1, X) g_W(1|X)}[Y-\\bar Q(m,1,X)]} \\\\\n&  &  - \\frac{1}{n} \\sum_n {\\frac{I(M=m, W=0)}{g_m(m|0, X) g_W(0|X)}[Y-\\bar Q(m,0,X)]}\n\\end{eqnarray*}\n\\]\n\n7.2.7 Example: G-computation\n\nset.seed(1234)\nn &lt;- 5000\n# confounder of A/Y\nW1 &lt;- rnorm(n)\n# confounder of M/Y\nW2 &lt;- rnorm(n)\n# treatment\nA &lt;- rbinom(n, 1, plogis(-1 + W1 / 2))\n# binary mediator\nM &lt;- rbinom(n, 1, plogis(-2 + A / 2 + W2 / 3))\n# binary outcome\nY &lt;- rbinom(n, 1, plogis(-1 + A - M / 2 + W1 / 3 + W2 / 3))\nfull_data &lt;- data.frame(W1 = W1, W2 = W2, A = A, M = M, Y = Y)\n\n# fit outcome regression\nor_fit &lt;- glm(Y ~ A + M + W1 + W2, family = binomial(), data = full_data)\n# new data setting A and M\ndata_A1_M0 &lt;- data_A0_M0 &lt;- full_data\ndata_A1_M0$A &lt;- 1; data_A1_M0$M &lt;- 0\ndata_A0_M0$A &lt;- 0; data_A0_M0$M &lt;- 0\n# predict on new data\nQbar_A1_M0 &lt;- predict(or_fit, newdata = data_A1_M0, type = \"response\")\nQbar_A0_M0 &lt;- predict(or_fit, newdata = data_A0_M0, type = \"response\")\n# gcomp estimate of CDE(0)\nmean(Qbar_A1_M0 - Qbar_A0_M0)\n\n[1] 0.2515527\n\n\n\n7.2.8 Example: IPW\n\n# model for P(A = 1 | W)\nps_fit1 &lt;- glm(A ~ W1 + W2, family = binomial(), data = full_data)\nP_A1_W &lt;- predict(ps_fit1, type = \"response\")\nP_A0_W &lt;- 1 - P_A1_W\n# model for P(M = 0 | A, W)\nps_fit2 &lt;- glm(M ~ A + W1 + W2, family = binomial(), data = full_data)\n# P(M = 0 | A = 1, W)\ndata_A1 &lt;- full_data; data_A1$A &lt;- 1\nP_M0_A1_W &lt;- 1 - predict(ps_fit2, newdata = data_A1, type = \"response\")\n# P(M = 0 | A = 0, W)\ndata_A0 &lt;- full_data; data_A0$A &lt;- 0\nP_M0_A0_W &lt;- 1 - predict(ps_fit2, newdata = data_A0, type = \"response\")\n# ipw estimate of CDE(0)\nmean( (A == 1) / P_A1_W * (M == 0) / P_M0_A1_W * Y ) -\nmean( (A == 0) / P_A0_W * (M == 0) / P_M0_A0_W * Y )\n\n[1] 0.2553091\n\n\n\n7.2.9 Example: AIPW\n\n# aipw estimate of E[Y(1,0)]\naiptw_EY_A1_M0 &lt;- mean(Qbar_A1_M0) +\nmean( (A == 1) / P_A1_W * (M == 0) / P_M0_A1_W * (Y - Qbar_A1_M0) )\n# aipw estimate of E[Y(0,0)]\naiptw_EY_A0_M0 &lt;- mean(Qbar_A0_M0) +\nmean( (A == 0) / P_A0_W * (M == 0) / P_M0_A0_W * (Y - Qbar_A0_M0) )\n# aipw estimate of CDE(0)\naiptw_EY_A1_M0 - aiptw_EY_A0_M0\n\n[1] 0.2554265",
+    "crumbs": [
+      "Mediation",
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>Causal Mediation Analysis</span>"
+    ]
+  },
+  {
+    "objectID": "mediation.html#nie-and-nde-natural-direct-and-indirect-effects",
+    "href": "mediation.html#nie-and-nde-natural-direct-and-indirect-effects",
+    "title": "\n7  Causal Mediation Analysis\n",
+    "section": "\n7.3 NIE and NDE: Natural Direct and Indirect Effects",
+    "text": "7.3 NIE and NDE: Natural Direct and Indirect Effects\nCDE is to study the effect of treatment, given the level of mediator. Instead, Natural Effect is to set mediator to its natural value with the value of treatment, that is, \\(M=M(w)\\).\n\\[\n\\begin{eqnarray*}\nATE &=& NIE + NDE \\\\\n&=&  (E[ Y(1,M(1))] - E[Y(1,M(0))]) + \\\\\n&& (E[Y(1, M(0))] - E[Y(0,M(0))])\n\\end{eqnarray*}\n\\]\nThe advantage of NDE and NIE comparing to CDE is that it’s more “natural”; that is, you don’t set the level of mediator deterministically. And it can decompose the ATE into direct and indirect effects.\nHowever, there is an additional assumption for NDE and NIE identified.\n\n7.3.1 Additional Assumption\n\\[ Y(w, m) \\perp M(w^*) | X\\]\nThis is the “cross-world” condition: the outcome under \\((w,m)\\) is independent of \\(M\\) under \\(w^*\\). These two situations cannot happen in the same world; you cannot set \\(W\\) to both \\(w\\) and \\(w^*\\). There is no experiment can implement it.\n\n7.3.2 Estimation\n\n# fit outcome regression (include interaction because we can)\nor_fit &lt;- glm(Y ~ A + M + W1 + W2 + A*M + M*W1,\nfamily = binomial(), data = full_data)\n# need E(Y | A = 0/1, M = 0/1, W1 = W1i, W2 = W2i)\nget_EY_a_m_Wi &lt;- function(full_data, or_fit, a, m){\ndata_Aa_Mm_Wi &lt;- full_data\ndata_Aa_Mm_Wi$A &lt;- a; data_Aa_Mm_Wi$M &lt;- m\npredict(or_fit, newdata = data_Aa_Mm_Wi, type = \"response\")\n}\nEY_A0_M0_Wi &lt;- get_EY_a_m_Wi(full_data, or_fit, a = 0, m = 0)\nEY_A0_M1_Wi &lt;- get_EY_a_m_Wi(full_data, or_fit, a = 0, m = 1)\nEY_A1_M0_Wi &lt;- get_EY_a_m_Wi(full_data, or_fit, a = 1, m = 0)\nEY_A1_M1_Wi &lt;- get_EY_a_m_Wi(full_data, or_fit, a = 1, m = 1)\n\n# include interactions -- why not?\nmed_fit &lt;- glm(M ~ A*W1 + W1*W2, family = binomial(), data = full_data)\n# estimates of P(M = m | A = a, W = W_i)\nget_Pm_a_Wi &lt;- function(full_data, med_fit, a, m){\ndata_Aa_Wi &lt;- full_data; data_Aa_Wi$A &lt;- a\np &lt;- predict(med_fit, newdata = data_Aa_Wi, type = \"response\")\nif(m == 1){\np\n}else{\n1 - p\n}\n}\nPM0_A0_Wi &lt;- get_Pm_a_Wi(full_data, med_fit, a = 0, m = 0)\nPM1_A0_Wi &lt;- get_Pm_a_Wi(full_data, med_fit, a = 0, m = 1)\nPM0_A1_Wi &lt;- get_Pm_a_Wi(full_data, med_fit, a = 1, m = 0)\nPM1_A1_Wi &lt;- get_Pm_a_Wi(full_data, med_fit, a = 1, m = 1)\n\n# E(E(Y | A = 1, M, W) | A = 1, W)\nEY1M1_Wi &lt;- EY_A1_M1_Wi * PM1_A1_Wi + EY_A1_M0_Wi * PM0_A1_Wi\n# E(E(Y | A = 0, M, W) | A = 1, W)\nEY0M1_Wi &lt;- EY_A0_M1_Wi * PM1_A1_Wi + EY_A0_M0_Wi * PM0_A1_Wi\n# E(E(Y | A = 1, M, W) | A = 0, W)\nEY1M0_Wi &lt;- EY_A1_M1_Wi * PM1_A0_Wi + EY_A1_M0_Wi * PM0_A0_Wi\n# E(E(Y | A = 0, M, W) | A = 0, W)\nEY0M0_Wi &lt;- EY_A0_M1_Wi * PM1_A0_Wi + EY_A0_M0_Wi * PM0_A0_Wi\n\n# estimate of E[Y(1, M(1))]\nE_Y1M1 &lt;- mean(EY1M1_Wi)\n# estimate of E[Y(0, M(1))]\nE_Y0M1 &lt;- mean(EY0M1_Wi)\n# estimate of E[Y(1, M(0))]\nE_Y1M0 &lt;- mean(EY1M0_Wi)\n# estimate of E[Y(0, M(0))]\nE_Y0M0 &lt;- mean(EY0M0_Wi)",
+    "crumbs": [
+      "Mediation",
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>Causal Mediation Analysis</span>"
+    ]
+  },
+  {
+    "objectID": "mediation.html#iie-and-ide-interventional-direct-and-indirect-effects",
+    "href": "mediation.html#iie-and-ide-interventional-direct-and-indirect-effects",
+    "title": "\n7  Causal Mediation Analysis\n",
+    "section": "\n7.4 IIE and IDE: Interventional Direct and Indirect Effects",
+    "text": "7.4 IIE and IDE: Interventional Direct and Indirect Effects\nPeople are not happy with the cross-world assumption in general. Interventional direct and indirect effects are introduced to avoid this assumption and still be able to decompose the \\(ATE\\).\n\\[\n\\begin{eqnarray*}\nATE &=& IIE + IDE \\\\\n&=& (E[ Y(1,M(1))] - E[Y(1,M^*)]) \\\\\n&& + (E[Y(1,M^*)]-E[Y(0,M(0))])\n\\end{eqnarray*}\n\\]\nThe different point here is to set \\(M=M^*\\), where \\(M^*\\) is a random draw from \\(M(w^*) | X=x\\). That is, there is a distribution of \\(M\\) in the strata that \\(X=x\\). We take a random draw, instead of setting to a specific value.\nThe advantage of this is that it does not need cross-world assumption to identify \\(IIE\\) and \\(IDE\\).\n\n7.4.1 Example\n\nlibrary(data.table)\nlibrary(tidyverse)\nlibrary(medoutcon)\nset.seed(1584)\n\n# produces a simple data set based on ca causal model with mediation\nmake_example_data &lt;- function(n_obs = 1000) {\n  ## baseline covariates\n  w_1 &lt;- rbinom(n_obs, 1, prob = 0.6)\n  w_2 &lt;- rbinom(n_obs, 1, prob = 0.3)\n  w_3 &lt;- rbinom(n_obs, 1, prob = pmin(0.2 + (w_1 + w_2) / 3, 1))\n  w &lt;- cbind(w_1, w_2, w_3)\n  w_names &lt;- paste(\"W\", seq_len(ncol(w)), sep = \"_\")\n\n  ## exposure\n  a &lt;- as.numeric(rbinom(n_obs, 1, plogis(rowSums(w) - 2)))\n\n  ## mediator-outcome confounder affected by treatment\n  z &lt;- rbinom(n_obs, 1, plogis(rowMeans(-log(2) + w - a) + 0.2))\n\n  ## mediator -- could be multivariate\n  m &lt;- rbinom(n_obs, 1, plogis(rowSums(log(3) * w[, -3] + a - z)))\n  m_names &lt;- \"M\"\n\n  ## outcome\n  y &lt;- rbinom(n_obs, 1, plogis(1 / (rowSums(w) - z + a + m)))\n\n  ## construct output\n  dat &lt;- as.data.table(cbind(w = w, a = a, z = z, m = m, y = y))\n  setnames(dat, c(w_names, \"A\", \"Z\", m_names, \"Y\"))\n  return(dat)\n}\n\n\n# set seed and simulate example data\nexample_data &lt;- make_example_data()\nw_names &lt;- str_subset(colnames(example_data), \"W\")\nm_names &lt;- str_subset(colnames(example_data), \"M\")\n\n# quick look at the data\nhead(example_data)\n\n     W_1   W_2   W_3     A     Z     M     Y\n   &lt;num&gt; &lt;num&gt; &lt;num&gt; &lt;num&gt; &lt;num&gt; &lt;num&gt; &lt;num&gt;\n1:     1     0     1     0     0     0     1\n2:     0     1     0     0     0     1     0\n3:     1     1     1     1     0     1     1\n4:     0     1     1     0     0     1     0\n5:     0     0     0     0     0     1     1\n6:     1     0     1     1     0     1     0\n\n\n\n# compute one-step estimate of the interventional direct effect\nos_de &lt;- medoutcon(W = example_data[, ..w_names],\n                   A = example_data$A,\n                   Z = example_data$Z,\n                   M = example_data[, ..m_names],\n                   Y = example_data$Y,\n                   effect = \"direct\",\n                   estimator = \"onestep\")\nsummary(os_de)\n\n# A tibble: 1 × 7\n  lwr_ci param_est upr_ci var_est eif_mean estimator param                \n   &lt;dbl&gt;     &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt; &lt;chr&gt;     &lt;chr&gt;                \n1 -0.170   -0.0708 0.0281 0.00254 1.12e-16 onestep   direct_interventional\n\n\n\n# compute targeted minimum loss estimate of the interventional direct effect\ntmle_de &lt;- medoutcon(W = example_data[, ..w_names],\n                     A = example_data$A,\n                     Z = example_data$Z,\n                     M = example_data[, ..m_names],\n                     Y = example_data$Y,\n                     effect = \"direct\",\n                     estimator = \"tmle\")\n\nsummary(tmle_de)\n\n# A tibble: 1 × 7\n  lwr_ci param_est upr_ci var_est eif_mean estimator param                \n   &lt;dbl&gt;     &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt; &lt;chr&gt;     &lt;chr&gt;                \n1 -0.169   -0.0679 0.0332 0.00266   0.0210 tmle      direct_interventional",
+    "crumbs": [
+      "Mediation",
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>Causal Mediation Analysis</span>"
+    ]
+  }
+]

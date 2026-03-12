@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>6&nbsp; IV &amp; Regression Discontinuity – Introduction to Causal Econometrics with Observational Data</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./mediation.html" rel="next">
+<link href="./did.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-6eb2a311e0ae5a9b436ea9f7e52955e6.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light"><script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script><script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script><script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+</head>
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top"><nav class="quarto-secondary-nav"><div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./did.html">Designs</a></li><li class="breadcrumb-item"><a href="./iv-rdd.html"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">IV &amp; Regression Discontinuity</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav></header><!-- content --><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto"><div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Introduction to Causal Econometrics with Observational Data</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Foundations</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./identification.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Identification &amp; Potential Outcomes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./estimation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Estimation: RA, IPW, AIPW</span></span></a>
+  </div>
+</li>
+      </ul>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Methods</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./machine-learning.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Machine Learning for Causal Inference</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./nonparametric.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Nonparametric Causal Methods</span></span></a>
+  </div>
+</li>
+      </ul>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Designs</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./did.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Difference-in-Differences</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./iv-rdd.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">IV &amp; Regression Discontinuity</span></span></a>
+  </div>
+</li>
+      </ul>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Mediation</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./mediation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Causal Mediation Analysis</span></span></a>
+  </div>
+</li>
+      </ul>
+</li>
+    </ul>
+</div>
+</nav><div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active"><h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+<li>
+<a href="#instrumental-variables" id="toc-instrumental-variables" class="nav-link active" data-scroll-target="#instrumental-variables"><span class="header-section-number">6.1</span> Instrumental Variables</a>
+  <ul class="collapse">
+<li><a href="#uncontrolled-confounder" id="toc-uncontrolled-confounder" class="nav-link" data-scroll-target="#uncontrolled-confounder"><span class="header-section-number">6.1.1</span> Uncontrolled Confounder</a></li>
+  <li><a href="#why-does-iv-work" id="toc-why-does-iv-work" class="nav-link" data-scroll-target="#why-does-iv-work"><span class="header-section-number">6.1.2</span> Why Does IV Work?</a></li>
+  <li><a href="#iv-under-potential-outcomes" id="toc-iv-under-potential-outcomes" class="nav-link" data-scroll-target="#iv-under-potential-outcomes"><span class="header-section-number">6.1.3</span> IV Under Potential Outcomes</a></li>
+  <li><a href="#assumptions" id="toc-assumptions" class="nav-link" data-scroll-target="#assumptions"><span class="header-section-number">6.1.4</span> Assumptions</a></li>
+  <li><a href="#late-identification" id="toc-late-identification" class="nav-link" data-scroll-target="#late-identification"><span class="header-section-number">6.1.5</span> LATE Identification</a></li>
+  <li><a href="#parametric-models" id="toc-parametric-models" class="nav-link" data-scroll-target="#parametric-models"><span class="header-section-number">6.1.6</span> Parametric Models</a></li>
+  <li><a href="#example" id="toc-example" class="nav-link" data-scroll-target="#example"><span class="header-section-number">6.1.7</span> Example</a></li>
+  </ul>
+</li>
+  <li>
+<a href="#regression-discontinuity-design" id="toc-regression-discontinuity-design" class="nav-link" data-scroll-target="#regression-discontinuity-design"><span class="header-section-number">6.2</span> Regression Discontinuity Design</a>
+  <ul class="collapse">
+<li><a href="#sharp-rdd" id="toc-sharp-rdd" class="nav-link" data-scroll-target="#sharp-rdd"><span class="header-section-number">6.2.1</span> Sharp RDD</a></li>
+  <li><a href="#identification-of-srdd" id="toc-identification-of-srdd" class="nav-link" data-scroll-target="#identification-of-srdd"><span class="header-section-number">6.2.2</span> Identification of SRDD</a></li>
+  <li><a href="#estimation-of-srdd" id="toc-estimation-of-srdd" class="nav-link" data-scroll-target="#estimation-of-srdd"><span class="header-section-number">6.2.3</span> Estimation of SRDD</a></li>
+  <li><a href="#nonparametric-estimation" id="toc-nonparametric-estimation" class="nav-link" data-scroll-target="#nonparametric-estimation"><span class="header-section-number">6.2.4</span> Nonparametric Estimation</a></li>
+  <li><a href="#fuzzy-rdd" id="toc-fuzzy-rdd" class="nav-link" data-scroll-target="#fuzzy-rdd"><span class="header-section-number">6.2.5</span> Fuzzy RDD</a></li>
+  <li><a href="#frdd-example" id="toc-frdd-example" class="nav-link" data-scroll-target="#frdd-example"><span class="header-section-number">6.2.6</span> FRDD Example</a></li>
+  </ul>
+</li>
+  </ul></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./did.html">Designs</a></li><li class="breadcrumb-item"><a href="./iv-rdd.html"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">IV &amp; Regression Discontinuity</span></a></li></ol></nav><div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">
+<span class="chapter-number">6</span>&nbsp; <span class="chapter-title">IV &amp; Regression Discontinuity</span>
+</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header><p>If we have an unobserved confounder, unconfoundedness fails. Even when we have random experiment, we could have noncompliance. In that case, subjects are randomly assigned to treatment or control, but some of them do not comply with the assignment. In other words, there is selection bias in the sense that the treated group is self-selected. This selection could be correlated with the outcome.</p>
+<section id="instrumental-variables" class="level2" data-number="6.1"><h2 data-number="6.1" class="anchored" data-anchor-id="instrumental-variables">
+<span class="header-section-number">6.1</span> Instrumental Variables</h2>
+<section id="uncontrolled-confounder" class="level3" data-number="6.1.1"><h3 data-number="6.1.1" class="anchored" data-anchor-id="uncontrolled-confounder">
+<span class="header-section-number">6.1.1</span> Uncontrolled Confounder</h3>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure"><p><img src="iv-rdd_files/figure-html/dag2-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section><section id="why-does-iv-work" class="level3" data-number="6.1.2"><h3 data-number="6.1.2" class="anchored" data-anchor-id="why-does-iv-work">
+<span class="header-section-number">6.1.2</span> Why Does IV Work?</h3>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure"><p><img src="iv-rdd_files/figure-html/dag3-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section><section id="iv-under-potential-outcomes" class="level3" data-number="6.1.3"><h3 data-number="6.1.3" class="anchored" data-anchor-id="iv-under-potential-outcomes">
+<span class="header-section-number">6.1.3</span> IV Under Potential Outcomes</h3>
+<ul>
+<li>W has two potential outcomes W(1) and W(0), as a function of Z.</li>
+<li>Y has two potential outcomes Y(1) and Y(0), as a function of W.</li>
+</ul>
+<p>Intention to Treat (ITT) is the average treatment effect of the treatment assignment Z. It is the difference between the average potential outcome under treatment and the average potential outcome under control. It is the average treatment effect of the treatment assignment Z, regardless of whether the subject complies with the assignment.</p>
+<p>There are four possible groups of subjects in the case of binary treatment and binary instrument. For example treatment assignment Z and treated status W could be:</p>
+<ul>
+<li>Z=0, W=0: never-taker</li>
+<li>Z=0, W=1: complier</li>
+<li>Z=1, W=0: defier</li>
+<li>Z=1, W=1: always-taker</li>
+</ul>
+<table class="caption-top table">
+<caption>compliance groups</caption>
+<thead><tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: left;">W(1)=0</th>
+<th style="text-align: left;">W(1)=1</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">W(0)=0</td>
+<td style="text-align: left;">N</td>
+<td style="text-align: left;">C</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">W(0)=1</td>
+<td style="text-align: left;">D</td>
+<td style="text-align: left;">A</td>
+</tr>
+</tbody>
+</table>
+<p>These four groups (stratum) have different causal mechanisms. For example, the compliers are the only group that is affected by the treatment assignment Z in the same direction. The defiers are the only group that is affected by the treatment assignment Z in the opposite direction. The always-takers and never-takers are not affected by the treatment assignment Z.</p>
+<p>Unfortunately we cannot identify the compliance group by looking at the data.</p>
+<table class="caption-top table">
+<thead><tr class="header">
+<th style="text-align: left;">Z</th>
+<th style="text-align: left;">W</th>
+<th style="text-align: left;">G</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">C, N</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">A, D</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">N, D</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">C, A</td>
+</tr>
+</tbody>
+</table></section><section id="assumptions" class="level3" data-number="6.1.4"><h3 data-number="6.1.4" class="anchored" data-anchor-id="assumptions">
+<span class="header-section-number">6.1.4</span> Assumptions</h3>
+<ul>
+<li>Exclusion restriction: <span class="math inline">\(Y(w, 1) = Y(w,0)\)</span>
+</li>
+<li>Exogeneity of instrument: <span class="math inline">\(Z \perp [W(0),W(1), Y(0), Y(1)]\)</span>
+</li>
+<li>Monotonicity (no defiers): <span class="math inline">\(W(0) \leq W(1)\)</span>
+</li>
+</ul></section><section id="late-identification" class="level3" data-number="6.1.5"><h3 data-number="6.1.5" class="anchored" data-anchor-id="late-identification">
+<span class="header-section-number">6.1.5</span> LATE Identification</h3>
+<p>Since we excluded defiers, and the other two groups (always-takers and never-takers) are not affected by the treatment assignment Z. The only effect we can identify is the treatment effect on the compliers. This is called the Local Average Treatment Effect (LATE).</p>
+<p><span class="math display">\[ \small
+\begin{aligned}
+&amp; E[Y(Z=1) - Y(Z=0) | G = C] \\
+&amp;= \frac{E[Y(Z=1) - Y(Z=0)]}{P(W(1)=1, W(0)=0)} \\
+&amp;= \frac{E[Y|Z=1] - E[Y|Z=0]}{1-P(W=0|Z=1)-P(W=1|Z=0)} \text{ (rule out groups A and N) } \\
+&amp;= \frac{E[Y|Z=1] - E[Y|Z=0]}{P(W=1|Z=1)-P(W=1|Z=0)} \\
+&amp;= \frac{E[Y|Z=1] - E[Y|Z=0]}{E[W|Z=1)-E[W|Z=0]}
+\end{aligned}
+\]</span></p>
+</section><section id="parametric-models" class="level3" data-number="6.1.6"><h3 data-number="6.1.6" class="anchored" data-anchor-id="parametric-models">
+<span class="header-section-number">6.1.6</span> Parametric Models</h3>
+<p>If we assume linearity, then this becomes the ratio of two OLS coefficients, sometimes called the Wald estimator.</p>
+<p><span class="math display">\[
+\begin{aligned}
+\tau_{ATE} &amp;= \frac{E[Y|Z=1] - E[Y|Z=0]}{E[W|Z=1)-E[W|Z=0]} \\
+&amp;= \frac{Cov(Y,Z)}{Cov(W,Z)}
+\end{aligned}
+\]</span></p>
+<p>Why do covariates help? Because we hope even if we don’t have exogeneity or exclusion assumption held, we would have those assumptions held within each level of <span class="math inline">\(X\)</span>.</p>
+</section><section id="example" class="level3" data-number="6.1.7"><h3 data-number="6.1.7" class="anchored" data-anchor-id="example">
+<span class="header-section-number">6.1.7</span> Example</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co">## DGP: data$y &lt;- data$x + data$z + data$u</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://CRAN.R-project.org/package=sem">sem</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">66</span><span class="op">)</span></span>
+<span><span class="va">nobs</span><span class="op">=</span><span class="fl">10000</span></span>
+<span><span class="va">nDim</span> <span class="op">=</span> <span class="fl">3</span></span>
+<span><span class="va">sdww</span> <span class="op">=</span> <span class="fl">1</span></span>
+<span><span class="va">sdzz</span><span class="op">=</span><span class="fl">1</span></span>
+<span><span class="va">sdmm</span><span class="op">=</span><span class="fl">1</span></span>
+<span><span class="co">## here we have three variables x,z,w.</span></span>
+<span><span class="co">## m is the omitted variable,x and m are correlated,  z is the instrument, which is correlated with x, but not m.  u is indepent of everything else.</span></span>
+<span><span class="va">crwm</span><span class="op">=</span><span class="fl">.6</span></span>
+<span><span class="va">crmz</span><span class="op">=</span><span class="fl">0</span></span>
+<span><span class="va">crwz</span><span class="op">=</span><span class="fl">.8</span></span>
+<span><span class="va">covarMat</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span><span class="op">(</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">sdww</span><span class="op">^</span><span class="fl">2</span>, <span class="va">crwm</span><span class="op">^</span><span class="fl">2</span>, <span class="va">crwz</span><span class="op">^</span><span class="fl">2</span>, <span class="va">crwm</span><span class="op">^</span><span class="fl">2</span>, <span class="va">sdmm</span><span class="op">^</span><span class="fl">2</span>, <span class="va">crmz</span><span class="op">^</span><span class="fl">2</span>,  <span class="va">crwz</span><span class="op">^</span><span class="fl">2</span>, <span class="va">crmz</span><span class="op">^</span><span class="fl">2</span>, <span class="va">sdzz</span><span class="op">^</span><span class="fl">2</span> <span class="op">)</span> , nrow<span class="op">=</span><span class="va">nDim</span> , ncol<span class="op">=</span><span class="va">nDim</span> <span class="op">)</span></span>
+<span><span class="va">data</span>  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span><span class="fu">MASS</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/MASS/man/mvrnorm.html">mvrnorm</a></span><span class="op">(</span>n<span class="op">=</span><span class="va">nobs</span>, mu<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fl">0</span>,<span class="va">nDim</span><span class="op">)</span>, Sigma<span class="op">=</span><span class="va">covarMat</span> <span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'w'</span>,<span class="st">'m'</span>,<span class="st">'z'</span><span class="op">)</span></span>
+<span><span class="va">data</span><span class="op">$</span><span class="va">u</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="va">nobs</span>,<span class="fl">0</span>,<span class="fl">1</span><span class="op">)</span></span>
+<span><span class="co"># dgp</span></span>
+<span><span class="va">data</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">$</span><span class="va">w</span> <span class="op">+</span>  <span class="va">data</span><span class="op">$</span><span class="va">m</span> <span class="op">+</span> <span class="va">data</span><span class="op">$</span><span class="va">u</span></span>
+<span><span class="va">lm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html">lm</a></span><span class="op">(</span><span class="va">y</span><span class="op">~</span><span class="va">w</span>, data<span class="op">=</span><span class="va">data</span><span class="op">)</span></span>
+<span><span class="va">lm.full</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html">lm</a></span><span class="op">(</span><span class="va">y</span><span class="op">~</span> <span class="va">w</span> <span class="op">+</span> <span class="va">m</span>, data<span class="op">=</span><span class="va">data</span><span class="op">)</span></span>
+<span><span class="va">tsls.model</span> <span class="op">&lt;-</span> <span class="fu">sem</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/sem/man/tsls.html">tsls</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">w</span> , <span class="op">~</span> <span class="va">z</span> , data<span class="op">=</span><span class="va">data</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># lm is biased</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html">summary</a></span><span class="op">(</span><span class="va">lm</span><span class="op">)</span><span class="op">$</span><span class="va">coefficients</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                Estimate Std. Error    t value  Pr(&gt;|t|)
+(Intercept) -0.003580657 0.01372253 -0.2609326 0.7941498
+w            1.358930425 0.01396918 97.2805995 0.0000000</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># lm.full is good</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html">summary</a></span><span class="op">(</span><span class="va">lm.full</span><span class="op">)</span><span class="op">$</span><span class="va">coefficients</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>               Estimate  Std. Error    t value  Pr(&gt;|t|)
+(Intercept) 0.001833551 0.009973474  0.1838428 0.8541405
+w           0.992438925 0.010868032 91.3172630 0.0000000
+m           1.013403057 0.010723435 94.5035837 0.0000000</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># tsls is good.</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html">summary</a></span><span class="op">(</span><span class="va">tsls.model</span><span class="op">)</span><span class="op">$</span><span class="va">coefficients</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>               Estimate Std. Error    t value  Pr(&gt;|t|)
+(Intercept) 0.006008287 0.01424525  0.4217749 0.6731984
+w           0.972416527 0.02312558 42.0493890 0.0000000</code></pre>
+</div>
+</div>
+</section></section><section id="regression-discontinuity-design" class="level2" data-number="6.2"><h2 data-number="6.2" class="anchored" data-anchor-id="regression-discontinuity-design">
+<span class="header-section-number">6.2</span> Regression Discontinuity Design</h2>
+<p>RDD (regression discontinuity design) is a quasi-experimental design that is used to estimate causal effects of interventions when assignment to the intervention is determined by whether a subject’s value on an observed covariate exceeds a threshold. The idea is that the assignment is as good as random, so we can estimate the causal effect of the intervention by comparing the outcomes of subjects who are just above and just below the threshold.</p>
+<section id="sharp-rdd" class="level3" data-number="6.2.1"><h3 data-number="6.2.1" class="anchored" data-anchor-id="sharp-rdd">
+<span class="header-section-number">6.2.1</span> Sharp RDD</h3>
+<p>We have a continuous variable <span class="math inline">\(X\)</span>, called the running variable, which determines the binary treatment <span class="math inline">\(W\)</span>. The treatment is assigned according to a threshold <span class="math inline">\(c\)</span>. The outcome variable <span class="math inline">\(Y\)</span> is a function of <span class="math inline">\(X\)</span> and <span class="math inline">\(W\)</span>.</p>
+<p><span class="math display">\[ W=\mathbb{1}(X&gt;c)\]</span></p>
+<p>Lee (2008) studies the effect of incumbency advantage in elections. His identification strategy is based on the discontinuity generated by the rule that the party with a majority vote share wins. The forcing variable <span class="math inline">\(X_i\)</span> is the difference in vote share between the Democratic and Republican parties in one election, with the threshold <span class="math inline">\(c = 0\)</span>. The outcome variable <span class="math inline">\(Y_i\)</span> is vote share at the second election.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">rdrobust</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html">data</a></span><span class="op">(</span><span class="va">rdrobust_RDsenate</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/rdrobust/man/rdplot.html">rdplot</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">rdrobust_RDsenate</span><span class="op">$</span><span class="va">margin</span>, y<span class="op">=</span><span class="va">rdrobust_RDsenate</span><span class="op">$</span><span class="va">vote</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure"><p><img src="iv-rdd_files/figure-html/rdd1-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section><section id="identification-of-srdd" class="level3" data-number="6.2.2"><h3 data-number="6.2.2" class="anchored" data-anchor-id="identification-of-srdd">
+<span class="header-section-number">6.2.2</span> Identification of SRDD</h3>
+<p><span class="math display">\[ \tau_{RD} = \lim_{x \to c^+} E[Y|X=x] - \lim_{x \to c^-} E[Y|X=x] \]</span></p>
+<p>In words, the treatment effect is the difference in the outcome from the right side and from the left side. This is the same as the difference in the outcome at the threshold, as if the treatment is assigned randomly.</p>
+</section><section id="estimation-of-srdd" class="level3" data-number="6.2.3"><h3 data-number="6.2.3" class="anchored" data-anchor-id="estimation-of-srdd">
+<span class="header-section-number">6.2.3</span> Estimation of SRDD</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">GPA</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span><span class="op">(</span><span class="fl">1000</span>, <span class="fl">0</span>, <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="va">future_success</span> <span class="op">&lt;-</span> <span class="fl">10</span> <span class="op">+</span> <span class="fl">1.5</span> <span class="op">*</span> <span class="va">GPA</span> <span class="op">+</span> <span class="fl">2</span> <span class="op">*</span> <span class="op">(</span><span class="va">GPA</span> <span class="op">&lt;=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="fl">1000</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/rdrobust/man/rdplot.html">rdplot</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">GPA</span>, y<span class="op">=</span><span class="va">future_success</span>, c<span class="op">=</span><span class="fl">3</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure"><p><img src="iv-rdd_files/figure-html/rdd2-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># estimate the sharp RDD model</span></span>
+<span><span class="va">rdd_gpa</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/rdrobust/man/rdrobust.html">rdrobust</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">GPA</span>, y<span class="op">=</span><span class="va">future_success</span>, c<span class="op">=</span><span class="fl">3</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html">summary</a></span><span class="op">(</span><span class="va">rdd_gpa</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Sharp RD estimates using local polynomial regression.
+
+Number of Obs.                 1000
+BW type                       mserd
+Kernel                   Triangular
+VCE method                       NN
+
+Number of Obs.                  745          255
+Eff. Number of Obs.              71           71
+Order est. (p)                    1            1
+Order bias  (q)                   2            2
+BW est. (h)                   0.322        0.322
+BW bias (b)                   0.525        0.525
+rho (h/b)                     0.613        0.613
+Unique Obs.                     745          255
+
+=====================================================================
+                   Point    Robust Inference
+                Estimate         z     P&gt;|z|      [ 95% C.I. ]       
+---------------------------------------------------------------------
+     RD Effect    -1.859    -4.562     0.000    [-2.607 , -1.040]    
+=====================================================================</code></pre>
+</div>
+</div>
+</section><section id="nonparametric-estimation" class="level3" data-number="6.2.4"><h3 data-number="6.2.4" class="anchored" data-anchor-id="nonparametric-estimation">
+<span class="header-section-number">6.2.4</span> Nonparametric Estimation</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">rdd_house</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/rdrobust/man/rdrobust.html">rdrobust</a></span><span class="op">(</span>x<span class="op">=</span><span class="va">rdrobust_RDsenate</span><span class="op">$</span><span class="va">margin</span>, y<span class="op">=</span><span class="va">rdrobust_RDsenate</span><span class="op">$</span><span class="va">vote</span>, c<span class="op">=</span><span class="fl">0</span>, all<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html">summary</a></span><span class="op">(</span><span class="va">rdd_house</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Sharp RD estimates using local polynomial regression.
+
+Number of Obs.                 1297
+BW type                       mserd
+Kernel                   Triangular
+VCE method                       NN
+
+Number of Obs.                  595          702
+Eff. Number of Obs.             360          323
+Order est. (p)                    1            1
+Order bias  (q)                   2            2
+BW est. (h)                  17.754       17.754
+BW bias (b)                  28.028       28.028
+rho (h/b)                     0.633        0.633
+Unique Obs.                     595          665
+
+=======================================================================================
+        Method     Coef. Std. Err.         z     P&gt;|z|      [ 95% C.I. ]       
+=======================================================================================
+  Conventional     7.414     1.459     5.083     0.000     [4.555 , 10.273]    
+Bias-Corrected     7.507     1.459     5.146     0.000     [4.647 , 10.366]    
+        Robust     7.507     1.741     4.311     0.000     [4.094 , 10.919]    
+=======================================================================================</code></pre>
+</div>
+</div>
+</section><section id="fuzzy-rdd" class="level3" data-number="6.2.5"><h3 data-number="6.2.5" class="anchored" data-anchor-id="fuzzy-rdd">
+<span class="header-section-number">6.2.5</span> Fuzzy RDD</h3>
+<p>In fuzzy RDD, the treatment is assigned according to a threshold <span class="math inline">\(c\)</span>, but there exist non-compliance. This is similar to IV case.</p>
+<p><span class="math display">\[ \tau_{FRD} = \frac{\lim_{x \to c^+} E[Y|X=x] - \lim_{x \to c^-} E[Y|X=x]}{\lim_{x \to c^+} E[W|X=x] - \lim_{x \to c^-} E[W|X=x]} \]</span></p>
+<p>For example, if food stamp eligibility is given to all households below a certain income, but not all households receive the food stamps. In other words, income does not solely determine the assignment. Cutoff point increases the probability of treatment but doesn’t completely determine treatment.</p>
+<p>FRDD is IV.</p>
+</section><section id="frdd-example" class="level3" data-number="6.2.6"><h3 data-number="6.2.6" class="anchored" data-anchor-id="frdd-example">
+<span class="header-section-number">6.2.6</span> FRDD Example</h3>
+<p>Fetter (2013)’s main question of interest is how much of the increase in the home ownership rate in the midcentury US was due to mortgage subsidies given out by the government.</p>
+<p>We’re using the running variable quarter of birth (qob), which has been centered on the quarter of birth you’d need to be to be eligible for a mortgage subsidy for fighting in the Korean War (qob_minus_kw). This determines whether you were a veteran of either the Korean War or World War II (vet_wwko).</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">vet</span> <span class="op">&lt;-</span> <span class="fu">causaldata</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/causaldata/man/mortgages.html">mortgages</a></span></span>
+<span><span class="co"># Create an "above-cutoff" variable as the instrument</span></span>
+<span><span class="va">vet</span> <span class="op">&lt;-</span> <span class="va">vet</span> <span class="op">%&gt;%</span> <span class="fu">mutate</span><span class="op">(</span>above <span class="op">=</span> <span class="va">qob_minus_kw</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span></span>
+<span><span class="co"># Impose a bandwidth of 12 quarters on either side</span></span>
+<span><span class="va">vet</span> <span class="op">&lt;-</span> <span class="va">vet</span> <span class="op">%&gt;%</span>  <span class="fu"><a href="https://rdrr.io/r/stats/filter.html">filter</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">qob_minus_kw</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">12</span><span class="op">)</span></span>
+<span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu">feols</span><span class="op">(</span><span class="va">home_ownership</span> <span class="op">~</span></span>
+<span>    <span class="va">nonwhite</span>  <span class="op">|</span> <span class="co"># Control for race</span></span>
+<span>    <span class="va">bpl</span> <span class="op">+</span> <span class="va">qob</span> <span class="op">|</span> <span class="co"># fixed effect controls</span></span>
+<span>    <span class="va">qob_minus_kw</span><span class="op">*</span><span class="va">vet_wwko</span> <span class="op">~</span> <span class="co"># Instrument our standard RDD</span></span>
+<span>    <span class="va">qob_minus_kw</span><span class="op">*</span><span class="va">above</span>, <span class="co"># with being above the cutoff</span></span>
+<span>    se <span class="op">=</span> <span class="st">'hetero'</span>, <span class="co"># heteroskedasticity-robust SEs</span></span>
+<span>    data <span class="op">=</span> <span class="va">vet</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html">summary</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>TSLS estimation - Dep. Var.: home_ownership
+                  Endo.    : qob_minus_kw, vet_wwko,
+                  qob_minus_kw:vet_wwko
+                  Instr.   : qob_minus_kw, above, qob_minus_kw:above
+Second stage: Dep. Var.: home_ownership
+Observations: 56,901
+Fixed-effects: bpl: 52,  qob: 4
+Standard-errors: Heteroskedasticity-robust 
+                           Estimate Std. Error   t value   Pr(&gt;|t|)    
+fit_qob_minus_kw          -0.007151   0.001773  -4.03209 5.5355e-05 ***
+fit_vet_wwko               0.170172   0.045933   3.70479 2.1177e-04 ***
+fit_qob_minus_kw:vet_wwko -0.002853   0.002637  -1.08159 2.7944e-01    
+nonwhite                  -0.190434   0.006892 -27.63141  &lt; 2.2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+RMSE: 0.441909     Adj. R2: 0.066481
+                 Within R2: 0.051235
+F-test (1st stage), qob_minus_kw         : stat = 14,276,113,954,118,300,000,000,000,000,000,000.0000, p &lt; 2.2e-16 , on 3 and 56,842 DoF.
+F-test (1st stage), vet_wwko             : stat =                                          2,541.2120, p &lt; 2.2e-16 , on 3 and 56,842 DoF.
+F-test (1st stage), qob_minus_kw:vet_wwko: stat =                                         14,465.7762, p &lt; 2.2e-16 , on 3 and 56,842 DoF.
+                               Wu-Hausman: stat =                                              4.4989, p = 0.003679, on 3 and 56,839 DoF.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">controls</span> <span class="op">&lt;-</span> <span class="va">vet</span> <span class="op">%&gt;%</span></span>
+<span>    <span class="fu">select</span><span class="op">(</span><span class="va">nonwhite</span>, <span class="va">bpl</span>, <span class="va">qob</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>    <span class="fu">mutate</span><span class="op">(</span>qob <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">qob</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">conmatrix</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/model.matrix.html">model.matrix</a></span><span class="op">(</span><span class="op">~</span><span class="va">.</span>, data <span class="op">=</span> <span class="va">controls</span><span class="op">)</span></span>
+<span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/rdrobust/man/rdrobust.html">rdrobust</a></span><span class="op">(</span><span class="va">vet</span><span class="op">$</span><span class="va">home_ownership</span>,</span>
+<span>              <span class="va">vet</span><span class="op">$</span><span class="va">qob_minus_kw</span>,</span>
+<span>              fuzzy <span class="op">=</span> <span class="va">vet</span><span class="op">$</span><span class="va">vet_wwko</span>,</span>
+<span>              c <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>              covs <span class="op">=</span> <span class="va">conmatrix</span><span class="op">)</span></span>
+<span><span class="va">m</span><span class="op">$</span><span class="va">Estimate</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        tau.us    tau.bc       se.us       se.rb
+[1,] 0.8339441 0.8320108 0.002823468 0.003482787</code></pre>
+</div>
+</div>
+<p>These two results are very different, which is one of RDD’s problems. It can be sensitive to model selection. For example, in the case of 2SLS, it’s a linear model. In the case of “rdrobust”, it’s a local regression, which can be sensitive to bandwidth selection.</p>
+
+
+<!-- -->
+
+</section></section></main><!-- /main --><script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><nav class="page-navigation"><div class="nav-page nav-page-previous">
+      <a href="./did.html" class="pagination-link" aria-label="Difference-in-Differences">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Difference-in-Differences</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./mediation.html" class="pagination-link" aria-label="Causal Mediation Analysis">
+        <span class="nav-page-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Causal Mediation Analysis</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># IV &amp; Regression Discontinuity</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: false</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggdag)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sem)</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(MASS)</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rdrobust)</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(causaldata)</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fixest)</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>If we have an unobserved confounder, unconfoundedness fails. Even when we have random experiment, we could have noncompliance. In that case, subjects are randomly assigned to treatment or control, but some of them do not comply with the assignment. In other words, there is selection bias in the sense that the treated group is self-selected. This selection could be correlated with the outcome.</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a><span class="fu">## Instrumental Variables</span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a><span class="fu">### Uncontrolled Confounder</span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a><span class="in">```{r dag2, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}</span></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggdag)</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">dagify</span>(</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>  y <span class="sc">~</span> w,</span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>  w <span class="sc">~</span> c,</span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>  y <span class="sc">~</span> c,</span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">exposure =</span> <span class="st">"w"</span>,</span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome =</span> <span class="st">"y"</span>,</span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>  <span class="at">coords =</span> <span class="fu">list</span>(<span class="at">x =</span> <span class="fu">c</span>(<span class="at">w =</span> <span class="dv">2</span>, <span class="at">c =</span> <span class="dv">3</span>, <span class="at">y =</span> <span class="dv">4</span>),</span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>                <span class="at">y =</span> <span class="fu">c</span>(<span class="at">w =</span> <span class="dv">2</span>, <span class="at">c =</span> <span class="dv">3</span>, <span class="at">y =</span> <span class="dv">2</span>))</span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a><span class="fu">ggdag</span>(g)</span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a><span class="fu">### Why Does IV Work?</span></span>
+<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a><span class="in">```{r dag3, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}</span></span>
+<span id="cb18-41"><a href="#cb18-41" aria-hidden="true" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">dagify</span>(</span>
+<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a>  y <span class="sc">~</span> w,</span>
+<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a>  w <span class="sc">~</span> c,</span>
+<span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a>  y <span class="sc">~</span> c,</span>
+<span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a>  w <span class="sc">~</span> z,</span>
+<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a>  <span class="at">exposure =</span> <span class="st">"w"</span>,</span>
+<span id="cb18-47"><a href="#cb18-47" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome =</span> <span class="st">"y"</span>,</span>
+<span id="cb18-48"><a href="#cb18-48" aria-hidden="true" tabindex="-1"></a>  <span class="at">coords =</span> <span class="fu">list</span>(<span class="at">x =</span> <span class="fu">c</span>(<span class="at">w =</span> <span class="dv">2</span>, <span class="at">c =</span> <span class="dv">3</span>, <span class="at">y =</span> <span class="dv">4</span>, <span class="at">z=</span><span class="dv">0</span>),</span>
+<span id="cb18-49"><a href="#cb18-49" aria-hidden="true" tabindex="-1"></a>                <span class="at">y =</span> <span class="fu">c</span>(<span class="at">w =</span> <span class="dv">2</span>, <span class="at">c =</span> <span class="dv">3</span>, <span class="at">y =</span> <span class="dv">2</span>, <span class="at">z=</span><span class="dv">2</span>))</span>
+<span id="cb18-50"><a href="#cb18-50" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-51"><a href="#cb18-51" aria-hidden="true" tabindex="-1"></a><span class="fu">ggdag</span>(g)</span>
+<span id="cb18-52"><a href="#cb18-52" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-53"><a href="#cb18-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-54"><a href="#cb18-54" aria-hidden="true" tabindex="-1"></a><span class="fu">### IV Under Potential Outcomes</span></span>
+<span id="cb18-55"><a href="#cb18-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-56"><a href="#cb18-56" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>W has two potential outcomes W(1) and W(0), as a function of Z.</span>
+<span id="cb18-57"><a href="#cb18-57" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Y has two potential outcomes Y(1) and Y(0), as a function of W.</span>
+<span id="cb18-58"><a href="#cb18-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-59"><a href="#cb18-59" aria-hidden="true" tabindex="-1"></a>Intention to Treat (ITT) is the average treatment effect of the treatment assignment Z. It is the difference between the average potential outcome under treatment and the average potential outcome under control. It is the average treatment effect of the treatment assignment Z, regardless of whether the subject complies with the assignment.</span>
+<span id="cb18-60"><a href="#cb18-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-61"><a href="#cb18-61" aria-hidden="true" tabindex="-1"></a>There are four possible groups of subjects in the case of binary treatment and binary instrument. For example treatment assignment Z and treated status W could be:</span>
+<span id="cb18-62"><a href="#cb18-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-63"><a href="#cb18-63" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Z=0, W=0: never-taker</span>
+<span id="cb18-64"><a href="#cb18-64" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Z=0, W=1: complier</span>
+<span id="cb18-65"><a href="#cb18-65" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Z=1, W=0: defier</span>
+<span id="cb18-66"><a href="#cb18-66" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Z=1, W=1: always-taker</span>
+<span id="cb18-67"><a href="#cb18-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-68"><a href="#cb18-68" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>        <span class="pp">|</span> W(1)=0 <span class="pp">|</span> W(1)=1 <span class="pp">|</span></span>
+<span id="cb18-69"><a href="#cb18-69" aria-hidden="true" tabindex="-1"></a><span class="pp">|:-------|:-------|:-------|</span></span>
+<span id="cb18-70"><a href="#cb18-70" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> W(0)=0 <span class="pp">|</span> N      <span class="pp">|</span> C      <span class="pp">|</span></span>
+<span id="cb18-71"><a href="#cb18-71" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> W(0)=1 <span class="pp">|</span> D      <span class="pp">|</span> A      <span class="pp">|</span></span>
+<span id="cb18-72"><a href="#cb18-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-73"><a href="#cb18-73" aria-hidden="true" tabindex="-1"></a>: compliance groups</span>
+<span id="cb18-74"><a href="#cb18-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-75"><a href="#cb18-75" aria-hidden="true" tabindex="-1"></a>These four groups (stratum) have different causal mechanisms. For example, the compliers are the only group that is affected by the treatment assignment Z in the same direction. The defiers are the only group that is affected by the treatment assignment Z in the opposite direction. The always-takers and never-takers are not affected by the treatment assignment Z.</span>
+<span id="cb18-76"><a href="#cb18-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-77"><a href="#cb18-77" aria-hidden="true" tabindex="-1"></a>Unfortunately we cannot identify the compliance group by looking at the data.</span>
+<span id="cb18-78"><a href="#cb18-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-79"><a href="#cb18-79" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Z   <span class="pp">|</span> W   <span class="pp">|</span> G    <span class="pp">|</span></span>
+<span id="cb18-80"><a href="#cb18-80" aria-hidden="true" tabindex="-1"></a><span class="pp">|:----|:----|:-----|</span></span>
+<span id="cb18-81"><a href="#cb18-81" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 0   <span class="pp">|</span> 0   <span class="pp">|</span> C, N <span class="pp">|</span></span>
+<span id="cb18-82"><a href="#cb18-82" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 0   <span class="pp">|</span> 1   <span class="pp">|</span> A, D <span class="pp">|</span></span>
+<span id="cb18-83"><a href="#cb18-83" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 1   <span class="pp">|</span> 0   <span class="pp">|</span> N, D <span class="pp">|</span></span>
+<span id="cb18-84"><a href="#cb18-84" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 1   <span class="pp">|</span> 1   <span class="pp">|</span> C, A <span class="pp">|</span></span>
+<span id="cb18-85"><a href="#cb18-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-86"><a href="#cb18-86" aria-hidden="true" tabindex="-1"></a><span class="fu">### Assumptions</span></span>
+<span id="cb18-87"><a href="#cb18-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-88"><a href="#cb18-88" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Exclusion restriction: $Y(w, 1) = Y(w,0)$</span>
+<span id="cb18-89"><a href="#cb18-89" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Exogeneity of instrument: $Z \perp <span class="co">[</span><span class="ot">W(0),W(1), Y(0), Y(1)</span><span class="co">]</span>$</span>
+<span id="cb18-90"><a href="#cb18-90" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Monotonicity (no defiers): $W(0) \leq W(1)$</span>
+<span id="cb18-91"><a href="#cb18-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-92"><a href="#cb18-92" aria-hidden="true" tabindex="-1"></a><span class="fu">### LATE Identification</span></span>
+<span id="cb18-93"><a href="#cb18-93" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-94"><a href="#cb18-94" aria-hidden="true" tabindex="-1"></a>Since we excluded defiers, and the other two groups (always-takers and never-takers) are not affected by the treatment assignment Z. The only effect we can identify is the treatment effect on the compliers. This is called the Local Average Treatment Effect (LATE).</span>
+<span id="cb18-95"><a href="#cb18-95" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-96"><a href="#cb18-96" aria-hidden="true" tabindex="-1"></a>$$ \small</span>
+<span id="cb18-97"><a href="#cb18-97" aria-hidden="true" tabindex="-1"></a>\begin{aligned}</span>
+<span id="cb18-98"><a href="#cb18-98" aria-hidden="true" tabindex="-1"></a>&amp; E<span class="co">[</span><span class="ot">Y(Z=1) - Y(Z=0) | G = C</span><span class="co">]</span> <span class="sc">\\</span></span>
+<span id="cb18-99"><a href="#cb18-99" aria-hidden="true" tabindex="-1"></a>&amp;= \frac{E<span class="co">[</span><span class="ot">Y(Z=1) - Y(Z=0)</span><span class="co">]</span>}{P(W(1)=1, W(0)=0)} <span class="sc">\\</span></span>
+<span id="cb18-100"><a href="#cb18-100" aria-hidden="true" tabindex="-1"></a>&amp;= \frac{E<span class="co">[</span><span class="ot">Y|Z=1</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y|Z=0</span><span class="co">]</span>}{1-P(W=0|Z=1)-P(W=1|Z=0)} \text{ (rule out groups A and N) } <span class="sc">\\</span></span>
+<span id="cb18-101"><a href="#cb18-101" aria-hidden="true" tabindex="-1"></a>&amp;= \frac{E<span class="co">[</span><span class="ot">Y|Z=1</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y|Z=0</span><span class="co">]</span>}{P(W=1|Z=1)-P(W=1|Z=0)} <span class="sc">\\</span></span>
+<span id="cb18-102"><a href="#cb18-102" aria-hidden="true" tabindex="-1"></a>&amp;= \frac{E<span class="co">[</span><span class="ot">Y|Z=1</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y|Z=0</span><span class="co">]</span>}{E<span class="co">[</span><span class="ot">W|Z=1)-E[W|Z=0</span><span class="co">]</span>}</span>
+<span id="cb18-103"><a href="#cb18-103" aria-hidden="true" tabindex="-1"></a>\end{aligned}</span>
+<span id="cb18-104"><a href="#cb18-104" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb18-105"><a href="#cb18-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-106"><a href="#cb18-106" aria-hidden="true" tabindex="-1"></a><span class="fu">### Parametric Models</span></span>
+<span id="cb18-107"><a href="#cb18-107" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-108"><a href="#cb18-108" aria-hidden="true" tabindex="-1"></a>If we assume linearity, then this becomes the ratio of two OLS coefficients, sometimes called the Wald estimator.</span>
+<span id="cb18-109"><a href="#cb18-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-110"><a href="#cb18-110" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb18-111"><a href="#cb18-111" aria-hidden="true" tabindex="-1"></a>\begin{aligned}</span>
+<span id="cb18-112"><a href="#cb18-112" aria-hidden="true" tabindex="-1"></a>\tau_{ATE} &amp;= \frac{E<span class="co">[</span><span class="ot">Y|Z=1</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y|Z=0</span><span class="co">]</span>}{E<span class="co">[</span><span class="ot">W|Z=1)-E[W|Z=0</span><span class="co">]</span>} <span class="sc">\\</span></span>
+<span id="cb18-113"><a href="#cb18-113" aria-hidden="true" tabindex="-1"></a>&amp;= \frac{Cov(Y,Z)}{Cov(W,Z)}</span>
+<span id="cb18-114"><a href="#cb18-114" aria-hidden="true" tabindex="-1"></a>\end{aligned}</span>
+<span id="cb18-115"><a href="#cb18-115" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb18-116"><a href="#cb18-116" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-117"><a href="#cb18-117" aria-hidden="true" tabindex="-1"></a>Why do covariates help? Because we hope even if we don't have exogeneity or exclusion assumption held, we would have those assumptions held within each level of $X$.</span>
+<span id="cb18-118"><a href="#cb18-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-119"><a href="#cb18-119" aria-hidden="true" tabindex="-1"></a><span class="fu">### Example</span></span>
+<span id="cb18-120"><a href="#cb18-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-121"><a href="#cb18-121" aria-hidden="true" tabindex="-1"></a><span class="in">```{r iv1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-122"><a href="#cb18-122" aria-hidden="true" tabindex="-1"></a><span class="do">## DGP: data$y &lt;- data$x + data$z + data$u</span></span>
+<span id="cb18-123"><a href="#cb18-123" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sem)</span>
+<span id="cb18-124"><a href="#cb18-124" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">66</span>)</span>
+<span id="cb18-125"><a href="#cb18-125" aria-hidden="true" tabindex="-1"></a>nobs<span class="ot">=</span><span class="dv">10000</span></span>
+<span id="cb18-126"><a href="#cb18-126" aria-hidden="true" tabindex="-1"></a>nDim <span class="ot">=</span> <span class="dv">3</span></span>
+<span id="cb18-127"><a href="#cb18-127" aria-hidden="true" tabindex="-1"></a>sdww <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb18-128"><a href="#cb18-128" aria-hidden="true" tabindex="-1"></a>sdzz<span class="ot">=</span><span class="dv">1</span></span>
+<span id="cb18-129"><a href="#cb18-129" aria-hidden="true" tabindex="-1"></a>sdmm<span class="ot">=</span><span class="dv">1</span></span>
+<span id="cb18-130"><a href="#cb18-130" aria-hidden="true" tabindex="-1"></a><span class="do">## here we have three variables x,z,w.</span></span>
+<span id="cb18-131"><a href="#cb18-131" aria-hidden="true" tabindex="-1"></a><span class="do">## m is the omitted variable,x and m are correlated,  z is the instrument, which is correlated with x, but not m.  u is indepent of everything else.</span></span>
+<span id="cb18-132"><a href="#cb18-132" aria-hidden="true" tabindex="-1"></a>crwm<span class="ot">=</span>.<span class="dv">6</span></span>
+<span id="cb18-133"><a href="#cb18-133" aria-hidden="true" tabindex="-1"></a>crmz<span class="ot">=</span><span class="dv">0</span></span>
+<span id="cb18-134"><a href="#cb18-134" aria-hidden="true" tabindex="-1"></a>crwz<span class="ot">=</span>.<span class="dv">8</span></span>
+<span id="cb18-135"><a href="#cb18-135" aria-hidden="true" tabindex="-1"></a>covarMat <span class="ot">=</span> <span class="fu">matrix</span>( <span class="fu">c</span>(sdww<span class="sc">^</span><span class="dv">2</span>, crwm<span class="sc">^</span><span class="dv">2</span>, crwz<span class="sc">^</span><span class="dv">2</span>, crwm<span class="sc">^</span><span class="dv">2</span>, sdmm<span class="sc">^</span><span class="dv">2</span>, crmz<span class="sc">^</span><span class="dv">2</span>,  crwz<span class="sc">^</span><span class="dv">2</span>, crmz<span class="sc">^</span><span class="dv">2</span>, sdzz<span class="sc">^</span><span class="dv">2</span> ) , <span class="at">nrow=</span>nDim , <span class="at">ncol=</span>nDim )</span>
+<span id="cb18-136"><a href="#cb18-136" aria-hidden="true" tabindex="-1"></a>data  <span class="ot">=</span> <span class="fu">data.frame</span>(MASS<span class="sc">::</span><span class="fu">mvrnorm</span>(<span class="at">n=</span>nobs, <span class="at">mu=</span><span class="fu">rep</span>(<span class="dv">0</span>,nDim), <span class="at">Sigma=</span>covarMat ))</span>
+<span id="cb18-137"><a href="#cb18-137" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(data) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">'w'</span>,<span class="st">'m'</span>,<span class="st">'z'</span>)</span>
+<span id="cb18-138"><a href="#cb18-138" aria-hidden="true" tabindex="-1"></a>data<span class="sc">$</span>u <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(nobs,<span class="dv">0</span>,<span class="dv">1</span>)</span>
+<span id="cb18-139"><a href="#cb18-139" aria-hidden="true" tabindex="-1"></a><span class="co"># dgp</span></span>
+<span id="cb18-140"><a href="#cb18-140" aria-hidden="true" tabindex="-1"></a>data<span class="sc">$</span>y <span class="ot">&lt;-</span> data<span class="sc">$</span>w <span class="sc">+</span>  data<span class="sc">$</span>m <span class="sc">+</span> data<span class="sc">$</span>u</span>
+<span id="cb18-141"><a href="#cb18-141" aria-hidden="true" tabindex="-1"></a>lm <span class="ot">&lt;-</span> <span class="fu">lm</span>(y<span class="sc">~</span>w, <span class="at">data=</span>data)</span>
+<span id="cb18-142"><a href="#cb18-142" aria-hidden="true" tabindex="-1"></a>lm.full <span class="ot">&lt;-</span> <span class="fu">lm</span>(y<span class="sc">~</span> w <span class="sc">+</span> m, <span class="at">data=</span>data)</span>
+<span id="cb18-143"><a href="#cb18-143" aria-hidden="true" tabindex="-1"></a>tsls.model <span class="ot">&lt;-</span> sem<span class="sc">::</span><span class="fu">tsls</span>(y <span class="sc">~</span> w , <span class="sc">~</span> z , <span class="at">data=</span>data)</span>
+<span id="cb18-144"><a href="#cb18-144" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-145"><a href="#cb18-145" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-146"><a href="#cb18-146" aria-hidden="true" tabindex="-1"></a><span class="in">```{r iv2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-147"><a href="#cb18-147" aria-hidden="true" tabindex="-1"></a><span class="co"># lm is biased</span></span>
+<span id="cb18-148"><a href="#cb18-148" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm)<span class="sc">$</span>coefficients</span>
+<span id="cb18-149"><a href="#cb18-149" aria-hidden="true" tabindex="-1"></a><span class="co"># lm.full is good</span></span>
+<span id="cb18-150"><a href="#cb18-150" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm.full)<span class="sc">$</span>coefficients</span>
+<span id="cb18-151"><a href="#cb18-151" aria-hidden="true" tabindex="-1"></a><span class="co"># tsls is good.</span></span>
+<span id="cb18-152"><a href="#cb18-152" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(tsls.model)<span class="sc">$</span>coefficients</span>
+<span id="cb18-153"><a href="#cb18-153" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-154"><a href="#cb18-154" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-155"><a href="#cb18-155" aria-hidden="true" tabindex="-1"></a><span class="fu">## Regression Discontinuity Design</span></span>
+<span id="cb18-156"><a href="#cb18-156" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-157"><a href="#cb18-157" aria-hidden="true" tabindex="-1"></a>RDD (regression discontinuity design) is a quasi-experimental design that is used to estimate causal effects of interventions when assignment to the intervention is determined by whether a subject's value on an observed covariate exceeds a threshold. The idea is that the assignment is as good as random, so we can estimate the causal effect of the intervention by comparing the outcomes of subjects who are just above and just below the threshold.</span>
+<span id="cb18-158"><a href="#cb18-158" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-159"><a href="#cb18-159" aria-hidden="true" tabindex="-1"></a><span class="fu">### Sharp RDD</span></span>
+<span id="cb18-160"><a href="#cb18-160" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-161"><a href="#cb18-161" aria-hidden="true" tabindex="-1"></a>We have a continuous variable $X$, called the running variable, which determines the binary treatment $W$. The treatment is assigned according to a threshold $c$. The outcome variable $Y$ is a function of $X$ and $W$.</span>
+<span id="cb18-162"><a href="#cb18-162" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-163"><a href="#cb18-163" aria-hidden="true" tabindex="-1"></a>$$ W=\mathbb{1}(X&gt;c)$$</span>
+<span id="cb18-164"><a href="#cb18-164" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-165"><a href="#cb18-165" aria-hidden="true" tabindex="-1"></a>Lee (2008) studies the effect of incumbency advantage in elections. His identification strategy is based on the discontinuity generated by the rule that the party with a majority vote share wins. The forcing variable $X_i$ is the difference in vote share between the Democratic and Republican parties in one election, with the threshold $c = 0$. The outcome variable $Y_i$ is vote share at the second election.</span>
+<span id="cb18-166"><a href="#cb18-166" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-167"><a href="#cb18-167" aria-hidden="true" tabindex="-1"></a><span class="in">```{r rdd1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-168"><a href="#cb18-168" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rdrobust)</span>
+<span id="cb18-169"><a href="#cb18-169" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(rdrobust_RDsenate)</span>
+<span id="cb18-170"><a href="#cb18-170" aria-hidden="true" tabindex="-1"></a><span class="fu">rdplot</span>(<span class="at">x=</span>rdrobust_RDsenate<span class="sc">$</span>margin, <span class="at">y=</span>rdrobust_RDsenate<span class="sc">$</span>vote)</span>
+<span id="cb18-171"><a href="#cb18-171" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-172"><a href="#cb18-172" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-173"><a href="#cb18-173" aria-hidden="true" tabindex="-1"></a><span class="fu">### Identification of SRDD</span></span>
+<span id="cb18-174"><a href="#cb18-174" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-175"><a href="#cb18-175" aria-hidden="true" tabindex="-1"></a>$$ \tau_{RD} = \lim_{x \to c^+} E<span class="co">[</span><span class="ot">Y|X=x</span><span class="co">]</span> - \lim_{x \to c^-} E<span class="co">[</span><span class="ot">Y|X=x</span><span class="co">]</span> $$</span>
+<span id="cb18-176"><a href="#cb18-176" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-177"><a href="#cb18-177" aria-hidden="true" tabindex="-1"></a>In words, the treatment effect is the difference in the outcome from the right side and from the left side. This is the same as the difference in the outcome at the threshold, as if the treatment is assigned randomly.</span>
+<span id="cb18-178"><a href="#cb18-178" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-179"><a href="#cb18-179" aria-hidden="true" tabindex="-1"></a><span class="fu">### Estimation of SRDD</span></span>
+<span id="cb18-180"><a href="#cb18-180" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-181"><a href="#cb18-181" aria-hidden="true" tabindex="-1"></a><span class="in">```{r rdd2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-182"><a href="#cb18-182" aria-hidden="true" tabindex="-1"></a>GPA <span class="ot">&lt;-</span> <span class="fu">runif</span>(<span class="dv">1000</span>, <span class="dv">0</span>, <span class="dv">4</span>)</span>
+<span id="cb18-183"><a href="#cb18-183" aria-hidden="true" tabindex="-1"></a>future_success <span class="ot">&lt;-</span> <span class="dv">10</span> <span class="sc">+</span> <span class="fl">1.5</span> <span class="sc">*</span> GPA <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> (GPA <span class="sc">&lt;=</span> <span class="dv">3</span>) <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="dv">1000</span>)</span>
+<span id="cb18-184"><a href="#cb18-184" aria-hidden="true" tabindex="-1"></a><span class="fu">rdplot</span>(<span class="at">x=</span>GPA, <span class="at">y=</span>future_success, <span class="at">c=</span><span class="dv">3</span>)</span>
+<span id="cb18-185"><a href="#cb18-185" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-186"><a href="#cb18-186" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-187"><a href="#cb18-187" aria-hidden="true" tabindex="-1"></a><span class="in">```{r rdd3, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-188"><a href="#cb18-188" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate the sharp RDD model</span></span>
+<span id="cb18-189"><a href="#cb18-189" aria-hidden="true" tabindex="-1"></a>rdd_gpa <span class="ot">&lt;-</span> <span class="fu">rdrobust</span>(<span class="at">x=</span>GPA, <span class="at">y=</span>future_success, <span class="at">c=</span><span class="dv">3</span>)</span>
+<span id="cb18-190"><a href="#cb18-190" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(rdd_gpa)</span>
+<span id="cb18-191"><a href="#cb18-191" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-192"><a href="#cb18-192" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-193"><a href="#cb18-193" aria-hidden="true" tabindex="-1"></a><span class="fu">### Nonparametric Estimation</span></span>
+<span id="cb18-194"><a href="#cb18-194" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-195"><a href="#cb18-195" aria-hidden="true" tabindex="-1"></a><span class="in">```{r rdd4, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-196"><a href="#cb18-196" aria-hidden="true" tabindex="-1"></a>rdd_house <span class="ot">&lt;-</span> <span class="fu">rdrobust</span>(<span class="at">x=</span>rdrobust_RDsenate<span class="sc">$</span>margin, <span class="at">y=</span>rdrobust_RDsenate<span class="sc">$</span>vote, <span class="at">c=</span><span class="dv">0</span>, <span class="at">all=</span><span class="cn">TRUE</span>)</span>
+<span id="cb18-197"><a href="#cb18-197" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(rdd_house)</span>
+<span id="cb18-198"><a href="#cb18-198" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-199"><a href="#cb18-199" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-200"><a href="#cb18-200" aria-hidden="true" tabindex="-1"></a><span class="fu">### Fuzzy RDD</span></span>
+<span id="cb18-201"><a href="#cb18-201" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-202"><a href="#cb18-202" aria-hidden="true" tabindex="-1"></a>In fuzzy RDD, the treatment is assigned according to a threshold $c$, but there exist non-compliance. This is similar to IV case.</span>
+<span id="cb18-203"><a href="#cb18-203" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-204"><a href="#cb18-204" aria-hidden="true" tabindex="-1"></a>$$ \tau_{FRD} = \frac{\lim_{x \to c^+} E<span class="co">[</span><span class="ot">Y|X=x</span><span class="co">]</span> - \lim_{x \to c^-} E<span class="co">[</span><span class="ot">Y|X=x</span><span class="co">]</span>}{\lim_{x \to c^+} E<span class="co">[</span><span class="ot">W|X=x</span><span class="co">]</span> - \lim_{x \to c^-} E<span class="co">[</span><span class="ot">W|X=x</span><span class="co">]</span>} $$</span>
+<span id="cb18-205"><a href="#cb18-205" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-206"><a href="#cb18-206" aria-hidden="true" tabindex="-1"></a>For example, if food stamp eligibility is given to all households below a certain income, but not all households receive the food stamps. In other words, income does not solely determine the assignment. Cutoff point increases the probability of treatment but doesn't completely determine treatment.</span>
+<span id="cb18-207"><a href="#cb18-207" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-208"><a href="#cb18-208" aria-hidden="true" tabindex="-1"></a>FRDD is IV.</span>
+<span id="cb18-209"><a href="#cb18-209" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-210"><a href="#cb18-210" aria-hidden="true" tabindex="-1"></a><span class="fu">### FRDD Example</span></span>
+<span id="cb18-211"><a href="#cb18-211" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-212"><a href="#cb18-212" aria-hidden="true" tabindex="-1"></a>Fetter (2013)'s main question of interest is how much of the increase in the home ownership rate in the midcentury US was due to mortgage subsidies given out by the government.</span>
+<span id="cb18-213"><a href="#cb18-213" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-214"><a href="#cb18-214" aria-hidden="true" tabindex="-1"></a>We're using the running variable quarter of birth (qob), which has been centered on the quarter of birth you'd need to be to be eligible for a mortgage subsidy for fighting in the Korean War (qob_minus_kw). This determines whether you were a veteran of either the Korean War or World War II (vet_wwko).</span>
+<span id="cb18-215"><a href="#cb18-215" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-216"><a href="#cb18-216" aria-hidden="true" tabindex="-1"></a><span class="in">```{r rdd5, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-217"><a href="#cb18-217" aria-hidden="true" tabindex="-1"></a>vet <span class="ot">&lt;-</span> causaldata<span class="sc">::</span>mortgages</span>
+<span id="cb18-218"><a href="#cb18-218" aria-hidden="true" tabindex="-1"></a><span class="co"># Create an "above-cutoff" variable as the instrument</span></span>
+<span id="cb18-219"><a href="#cb18-219" aria-hidden="true" tabindex="-1"></a>vet <span class="ot">&lt;-</span> vet <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">above =</span> qob_minus_kw <span class="sc">&gt;</span> <span class="dv">0</span>)</span>
+<span id="cb18-220"><a href="#cb18-220" aria-hidden="true" tabindex="-1"></a><span class="co"># Impose a bandwidth of 12 quarters on either side</span></span>
+<span id="cb18-221"><a href="#cb18-221" aria-hidden="true" tabindex="-1"></a>vet <span class="ot">&lt;-</span> vet <span class="sc">%&gt;%</span>  <span class="fu">filter</span>(<span class="fu">abs</span>(qob_minus_kw) <span class="sc">&lt;</span> <span class="dv">12</span>)</span>
+<span id="cb18-222"><a href="#cb18-222" aria-hidden="true" tabindex="-1"></a>m <span class="ot">&lt;-</span> <span class="fu">feols</span>(home_ownership <span class="sc">~</span></span>
+<span id="cb18-223"><a href="#cb18-223" aria-hidden="true" tabindex="-1"></a>    nonwhite  <span class="sc">|</span> <span class="co"># Control for race</span></span>
+<span id="cb18-224"><a href="#cb18-224" aria-hidden="true" tabindex="-1"></a>    bpl <span class="sc">+</span> qob <span class="sc">|</span> <span class="co"># fixed effect controls</span></span>
+<span id="cb18-225"><a href="#cb18-225" aria-hidden="true" tabindex="-1"></a>    qob_minus_kw<span class="sc">*</span>vet_wwko <span class="sc">~</span> <span class="co"># Instrument our standard RDD</span></span>
+<span id="cb18-226"><a href="#cb18-226" aria-hidden="true" tabindex="-1"></a>    qob_minus_kw<span class="sc">*</span>above, <span class="co"># with being above the cutoff</span></span>
+<span id="cb18-227"><a href="#cb18-227" aria-hidden="true" tabindex="-1"></a>    <span class="at">se =</span> <span class="st">'hetero'</span>, <span class="co"># heteroskedasticity-robust SEs</span></span>
+<span id="cb18-228"><a href="#cb18-228" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> vet)</span>
+<span id="cb18-229"><a href="#cb18-229" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m)</span>
+<span id="cb18-230"><a href="#cb18-230" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-231"><a href="#cb18-231" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-232"><a href="#cb18-232" aria-hidden="true" tabindex="-1"></a><span class="in">```{r rdd6, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb18-233"><a href="#cb18-233" aria-hidden="true" tabindex="-1"></a>controls <span class="ot">&lt;-</span> vet <span class="sc">%&gt;%</span></span>
+<span id="cb18-234"><a href="#cb18-234" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(nonwhite, bpl, qob) <span class="sc">%&gt;%</span></span>
+<span id="cb18-235"><a href="#cb18-235" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">qob =</span> <span class="fu">factor</span>(qob))</span>
+<span id="cb18-236"><a href="#cb18-236" aria-hidden="true" tabindex="-1"></a>conmatrix <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(<span class="sc">~</span>., <span class="at">data =</span> controls)</span>
+<span id="cb18-237"><a href="#cb18-237" aria-hidden="true" tabindex="-1"></a>m <span class="ot">&lt;-</span> <span class="fu">rdrobust</span>(vet<span class="sc">$</span>home_ownership,</span>
+<span id="cb18-238"><a href="#cb18-238" aria-hidden="true" tabindex="-1"></a>              vet<span class="sc">$</span>qob_minus_kw,</span>
+<span id="cb18-239"><a href="#cb18-239" aria-hidden="true" tabindex="-1"></a>              <span class="at">fuzzy =</span> vet<span class="sc">$</span>vet_wwko,</span>
+<span id="cb18-240"><a href="#cb18-240" aria-hidden="true" tabindex="-1"></a>              <span class="at">c =</span> <span class="dv">0</span>,</span>
+<span id="cb18-241"><a href="#cb18-241" aria-hidden="true" tabindex="-1"></a>              <span class="at">covs =</span> conmatrix)</span>
+<span id="cb18-242"><a href="#cb18-242" aria-hidden="true" tabindex="-1"></a>m<span class="sc">$</span>Estimate</span>
+<span id="cb18-243"><a href="#cb18-243" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-244"><a href="#cb18-244" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-245"><a href="#cb18-245" aria-hidden="true" tabindex="-1"></a>These two results are very different, which is one of RDD's problems. It can be sensitive to model selection. For example, in the case of 2SLS, it's a linear model. In the case of "rdrobust", it's a local regression, which can be sensitive to bandwidth selection.</span>
+</code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+
+
+
+</body></html>

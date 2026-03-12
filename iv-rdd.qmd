@@ -1,0 +1,243 @@
+# IV & Regression Discontinuity
+
+```{r}
+#| include: false
+library(ggplot2)
+library(ggdag)
+library(sem)
+library(MASS)
+library(rdrobust)
+library(causaldata)
+library(fixest)
+library(tidyverse)
+```
+
+If we have an unobserved confounder, unconfoundedness fails. Even when we have random experiment, we could have noncompliance. In that case, subjects are randomly assigned to treatment or control, but some of them do not comply with the assignment. In other words, there is selection bias in the sense that the treated group is self-selected. This selection could be correlated with the outcome.
+
+## Instrumental Variables
+
+### Uncontrolled Confounder
+
+```{r dag2, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}
+library(ggplot2)
+library(ggdag)
+g <- dagify(
+  y ~ w,
+  w ~ c,
+  y ~ c,
+  exposure = "w",
+  outcome = "y",
+  coords = list(x = c(w = 2, c = 3, y = 4),
+                y = c(w = 2, c = 3, y = 2))
+)
+ggdag(g)
+```
+
+### Why Does IV Work?
+
+```{r dag3, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}
+g <- dagify(
+  y ~ w,
+  w ~ c,
+  y ~ c,
+  w ~ z,
+  exposure = "w",
+  outcome = "y",
+  coords = list(x = c(w = 2, c = 3, y = 4, z=0),
+                y = c(w = 2, c = 3, y = 2, z=2))
+)
+ggdag(g)
+```
+
+### IV Under Potential Outcomes
+
+-   W has two potential outcomes W(1) and W(0), as a function of Z.
+-   Y has two potential outcomes Y(1) and Y(0), as a function of W.
+
+Intention to Treat (ITT) is the average treatment effect of the treatment assignment Z. It is the difference between the average potential outcome under treatment and the average potential outcome under control. It is the average treatment effect of the treatment assignment Z, regardless of whether the subject complies with the assignment.
+
+There are four possible groups of subjects in the case of binary treatment and binary instrument. For example treatment assignment Z and treated status W could be:
+
+-   Z=0, W=0: never-taker
+-   Z=0, W=1: complier
+-   Z=1, W=0: defier
+-   Z=1, W=1: always-taker
+
+|        | W(1)=0 | W(1)=1 |
+|:-------|:-------|:-------|
+| W(0)=0 | N      | C      |
+| W(0)=1 | D      | A      |
+
+: compliance groups
+
+These four groups (stratum) have different causal mechanisms. For example, the compliers are the only group that is affected by the treatment assignment Z in the same direction. The defiers are the only group that is affected by the treatment assignment Z in the opposite direction. The always-takers and never-takers are not affected by the treatment assignment Z.
+
+Unfortunately we cannot identify the compliance group by looking at the data.
+
+| Z   | W   | G    |
+|:----|:----|:-----|
+| 0   | 0   | C, N |
+| 0   | 1   | A, D |
+| 1   | 0   | N, D |
+| 1   | 1   | C, A |
+
+### Assumptions
+
+-   Exclusion restriction: $Y(w, 1) = Y(w,0)$
+-   Exogeneity of instrument: $Z \perp [W(0),W(1), Y(0), Y(1)]$
+-   Monotonicity (no defiers): $W(0) \leq W(1)$
+
+### LATE Identification
+
+Since we excluded defiers, and the other two groups (always-takers and never-takers) are not affected by the treatment assignment Z. The only effect we can identify is the treatment effect on the compliers. This is called the Local Average Treatment Effect (LATE).
+
+$$ \small
+\begin{aligned}
+& E[Y(Z=1) - Y(Z=0) | G = C] \\
+&= \frac{E[Y(Z=1) - Y(Z=0)]}{P(W(1)=1, W(0)=0)} \\
+&= \frac{E[Y|Z=1] - E[Y|Z=0]}{1-P(W=0|Z=1)-P(W=1|Z=0)} \text{ (rule out groups A and N) } \\
+&= \frac{E[Y|Z=1] - E[Y|Z=0]}{P(W=1|Z=1)-P(W=1|Z=0)} \\
+&= \frac{E[Y|Z=1] - E[Y|Z=0]}{E[W|Z=1)-E[W|Z=0]}
+\end{aligned}
+$$
+
+### Parametric Models
+
+If we assume linearity, then this becomes the ratio of two OLS coefficients, sometimes called the Wald estimator.
+
+$$
+\begin{aligned}
+\tau_{ATE} &= \frac{E[Y|Z=1] - E[Y|Z=0]}{E[W|Z=1)-E[W|Z=0]} \\
+&= \frac{Cov(Y,Z)}{Cov(W,Z)}
+\end{aligned}
+$$
+
+Why do covariates help? Because we hope even if we don't have exogeneity or exclusion assumption held, we would have those assumptions held within each level of $X$.
+
+### Example
+
+```{r iv1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+## DGP: data$y <- data$x + data$z + data$u
+library(sem)
+set.seed(66)
+nobs=10000
+nDim = 3
+sdww = 1
+sdzz=1
+sdmm=1
+## here we have three variables x,z,w.
+## m is the omitted variable,x and m are correlated,  z is the instrument, which is correlated with x, but not m.  u is indepent of everything else.
+crwm=.6
+crmz=0
+crwz=.8
+covarMat = matrix( c(sdww^2, crwm^2, crwz^2, crwm^2, sdmm^2, crmz^2,  crwz^2, crmz^2, sdzz^2 ) , nrow=nDim , ncol=nDim )
+data  = data.frame(MASS::mvrnorm(n=nobs, mu=rep(0,nDim), Sigma=covarMat ))
+names(data) <- c('w','m','z')
+data$u <- rnorm(nobs,0,1)
+# dgp
+data$y <- data$w +  data$m + data$u
+lm <- lm(y~w, data=data)
+lm.full <- lm(y~ w + m, data=data)
+tsls.model <- sem::tsls(y ~ w , ~ z , data=data)
+```
+
+```{r iv2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+# lm is biased
+summary(lm)$coefficients
+# lm.full is good
+summary(lm.full)$coefficients
+# tsls is good.
+summary(tsls.model)$coefficients
+```
+
+## Regression Discontinuity Design
+
+RDD (regression discontinuity design) is a quasi-experimental design that is used to estimate causal effects of interventions when assignment to the intervention is determined by whether a subject's value on an observed covariate exceeds a threshold. The idea is that the assignment is as good as random, so we can estimate the causal effect of the intervention by comparing the outcomes of subjects who are just above and just below the threshold.
+
+### Sharp RDD
+
+We have a continuous variable $X$, called the running variable, which determines the binary treatment $W$. The treatment is assigned according to a threshold $c$. The outcome variable $Y$ is a function of $X$ and $W$.
+
+$$ W=\mathbb{1}(X>c)$$
+
+Lee (2008) studies the effect of incumbency advantage in elections. His identification strategy is based on the discontinuity generated by the rule that the party with a majority vote share wins. The forcing variable $X_i$ is the difference in vote share between the Democratic and Republican parties in one election, with the threshold $c = 0$. The outcome variable $Y_i$ is vote share at the second election.
+
+```{r rdd1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+library(rdrobust)
+data(rdrobust_RDsenate)
+rdplot(x=rdrobust_RDsenate$margin, y=rdrobust_RDsenate$vote)
+```
+
+### Identification of SRDD
+
+$$ \tau_{RD} = \lim_{x \to c^+} E[Y|X=x] - \lim_{x \to c^-} E[Y|X=x] $$
+
+In words, the treatment effect is the difference in the outcome from the right side and from the left side. This is the same as the difference in the outcome at the threshold, as if the treatment is assigned randomly.
+
+### Estimation of SRDD
+
+```{r rdd2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+GPA <- runif(1000, 0, 4)
+future_success <- 10 + 1.5 * GPA + 2 * (GPA <= 3) + rnorm(1000)
+rdplot(x=GPA, y=future_success, c=3)
+```
+
+```{r rdd3, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+# estimate the sharp RDD model
+rdd_gpa <- rdrobust(x=GPA, y=future_success, c=3)
+summary(rdd_gpa)
+```
+
+### Nonparametric Estimation
+
+```{r rdd4, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+rdd_house <- rdrobust(x=rdrobust_RDsenate$margin, y=rdrobust_RDsenate$vote, c=0, all=TRUE)
+summary(rdd_house)
+```
+
+### Fuzzy RDD
+
+In fuzzy RDD, the treatment is assigned according to a threshold $c$, but there exist non-compliance. This is similar to IV case.
+
+$$ \tau_{FRD} = \frac{\lim_{x \to c^+} E[Y|X=x] - \lim_{x \to c^-} E[Y|X=x]}{\lim_{x \to c^+} E[W|X=x] - \lim_{x \to c^-} E[W|X=x]} $$
+
+For example, if food stamp eligibility is given to all households below a certain income, but not all households receive the food stamps. In other words, income does not solely determine the assignment. Cutoff point increases the probability of treatment but doesn't completely determine treatment.
+
+FRDD is IV.
+
+### FRDD Example
+
+Fetter (2013)'s main question of interest is how much of the increase in the home ownership rate in the midcentury US was due to mortgage subsidies given out by the government.
+
+We're using the running variable quarter of birth (qob), which has been centered on the quarter of birth you'd need to be to be eligible for a mortgage subsidy for fighting in the Korean War (qob_minus_kw). This determines whether you were a veteran of either the Korean War or World War II (vet_wwko).
+
+```{r rdd5, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+vet <- causaldata::mortgages
+# Create an "above-cutoff" variable as the instrument
+vet <- vet %>% mutate(above = qob_minus_kw > 0)
+# Impose a bandwidth of 12 quarters on either side
+vet <- vet %>%  filter(abs(qob_minus_kw) < 12)
+m <- feols(home_ownership ~
+    nonwhite  | # Control for race
+    bpl + qob | # fixed effect controls
+    qob_minus_kw*vet_wwko ~ # Instrument our standard RDD
+    qob_minus_kw*above, # with being above the cutoff
+    se = 'hetero', # heteroskedasticity-robust SEs
+    data = vet)
+summary(m)
+```
+
+```{r rdd6, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+controls <- vet %>%
+    select(nonwhite, bpl, qob) %>%
+    mutate(qob = factor(qob))
+conmatrix <- model.matrix(~., data = controls)
+m <- rdrobust(vet$home_ownership,
+              vet$qob_minus_kw,
+              fuzzy = vet$vet_wwko,
+              c = 0,
+              covs = conmatrix)
+m$Estimate
+```
+
+These two results are very different, which is one of RDD's problems. It can be sensitive to model selection. For example, in the case of 2SLS, it's a linear model. In the case of "rdrobust", it's a local regression, which can be sensitive to bandwidth selection.

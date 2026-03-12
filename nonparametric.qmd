@@ -1,0 +1,200 @@
+# Nonparametric Causal Methods
+
+```{r}
+#| include: false
+library(npcausal)
+library(boot)
+library(SuperLearner)
+library(tmle)
+library(tidyverse)
+library(ranger)
+library(ggplot2)
+library(DoubleML)
+library(mlr3)
+library(mlr3learners)
+```
+
+## Why Do We Need Nonparametric Methods?
+
+-   Parametric models are often mis-specified
+-   Nonparametric models are more flexible; less assumptions
+-   What kind of nonparametrics are good?
+
+Considerations:
+
+-   Plug-in estimators are easy
+-   But they are biased, or inefficient, because they are trying to estimate $E[Y(0)]$ and $E[Y(1)]$, not the difference.
+-   They can be consistent, but convergence rate can be terrible, especially when the dimension is high
+-   Ideally we can correct the biases, and get efficiency
+-   Influence function based estimators are shown to be efficient.
+
+## Influence Function Based Estimators
+
+Estimators based on efficient influence function are often $\sqrt n$ consistent, meaning they converge to the truth as fast as $\sqrt n$ rate. This means the bias not only goes to 0 with $n$ goes to infinity, but also as fast as $1/ \sqrt n$ goes to 0. Why does this matter? Because we have limited sample size, when we are based on asymptotics, the faster the bias goes to 0 the smaller sample size we need.
+
+If we have an estimator such that $$ \sqrt n (\hat \psi - \psi) = \sqrt n P_n(\phi) + o_P(1) \rightarrow N(0, var(\phi))$$
+
+Then this estimator is $\sqrt n$ consistent and asymptotically normal; and $\phi$ is the influence function. The efficient influence function is the one with variance at the lower bound (similar to parametric case for Cramer-Rao lower bound).
+
+Unfortunately there is no universal formula for efficient influence function for every problem. We need to derive it for each problem. For example, ATE has an IF based estimator, but ATT needs a different formula; and LATE has a different formula too, etc. Deriving them is hard!
+
+For ATE, target parameter $\psi = E \{ E(Y | X, A=1) \}$, the efficient influence function is $$\phi (Z; P) = \frac{A}{\pi (X)} \{ Y - \mu (X) \} + \mu(X) - \psi$$ where $\pi (X) = P(A=1 | X)$ the propensity score model, $\mu (X) = E(Y |X, A=1)$, the outcome model.
+
+For example, an IF-based bias-corrected estimator $$\hat \psi = P_n [ \frac{A}{\hat \pi (X)} \{ Y - \hat \mu (X) \} + \hat \mu(X) ]$$ where $P_n$ means sample mean. This is the familiar AIPW estimator. It is known to be doubly robust.
+
+Since we know the influence function, we can calculate its variance. This variance is the same as variance of $\hat \psi$ since they differ by a constant $\psi$. We can use any estimators to estimate the nuisance parameters, then get $\hat \psi$. Then the sample variance is the variance of the influence function; and the sample mean is the ATE.
+
+In this estimator, both $\hat \mu$ and $\hat \pi$ can be done using any estimator, such as machine learning.
+
+### Simulation Setup
+
+```{r npcausal2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+set.seed(1)
+n=1000
+w1 <- rbinom(n, size=1, prob=0.5)
+w2 <- rbinom(n, size=1, prob=0.5)
+w3 <- round(runif(n, min=0, max=4), digits=3)
+w4 <- round(runif(n, min=0, max=5), digits=3)
+A  <- rbinom(n, size=1, prob= plogis(-0.4 + 0.2*w2 + 0.15*w3 + 0.2*w4 + 0.15*w2*w4))
+Y.1 <- rbinom(n, size=1, prob= plogis(-1 + 1 -0.1*w1 + 0.3*w2 + 0.25*w3 + 0.2*w4 + 0.15*w2*w4))
+Y.0 <- rbinom(n, size=1, prob= plogis(-1 + 0 -0.1*w1 + 0.3*w2 + 0.25*w3 + 0.2*w4 + 0.15*w2*w4))
+Y <- Y.1*A + Y.0*(1 - A)
+W<-data.frame(cbind(w1,w2,w3,w4))
+data <-  data.frame(w1, w2, w3, w4, A, Y, Y.1, Y.0)
+True_Psi <- mean(data$Y.1-data$Y.0);
+cat(" True_Psi:", True_Psi)
+```
+
+```{r npcausal3, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+SL.library <- c("SL.earth","SL.gam","SL.glmnet","SL.glm.interaction", "SL.mean","SL.ranger", "SL.xgboost")
+```
+
+### Plug-in Estimator from Outcome Regression
+
+```{r npcausal4, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+set.seed(1)
+mufit <- SuperLearner(Y=data$Y, X=data %>% dplyr::select(w1,w2,w3,w4,A),
+                                     SL.library=SL.library, family="binomial")
+muhat <- predict(mufit, X=data %>% dplyr::select(w1,w2,w3,w4,A))$pred
+# predict the PO Y^1
+mu1hat<- predict(mufit, newdata=data %>% dplyr::select(w1,w2,w3,w4,A) %>% mutate(A=1))$pred
+mu0hat<- predict(mufit, newdata=data %>% dplyr::select(w1,w2,w3,w4,A) %>% mutate(A=0))$pred
+mean(mu1hat-mu0hat)
+```
+
+### AIPW ATE
+
+```{r npcausal6, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+set.seed(123)
+pifit <- SuperLearner(Y=data$A, X=data %>% dplyr::select(w1,w2,w3,w4),
+                    SL.library=SL.library, family="binomial")
+pi1hat <- pifit$SL.predict
+pi0hat <- 1- pi1hat
+IF.1<-((data$A/pi1hat)*(data$Y-mu1hat)+mu1hat)
+IF.0<-(((1-data$A)/pi0hat)*(data$Y-mu0hat)+mu0hat)
+IF<-IF.1-IF.0
+aipw.1<-mean(IF.1);aipw.0<-mean(IF.0)
+aipw.manual<-aipw.1-aipw.0
+ci.lb<-mean(IF)-qnorm(.975)*sd(IF)/sqrt(length(IF))
+ci.ub<-mean(IF)+qnorm(.975)*sd(IF)/sqrt(length(IF))
+res.manual.aipw<-c(aipw.manual,ci.lb, ci.ub)
+res.manual.aipw
+```
+
+### AIPW ATE Using npcausal
+
+```{r npcausal7, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+library(npcausal)
+aipw<- ate(y=Y, a=A, x=W, nsplits=1, sl.lib=SL.library)
+```
+
+### AIPW ATT
+
+```{r npcausal8, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+data2 <- data %>%
+  dplyr::mutate(pi0hat=as.numeric(pi0hat), pi1hat=as.numeric(pi1hat))
+set.seed(1)
+data0 <- data2 %>% dplyr::filter(A==0)
+data1 <- data2 %>% dplyr::filter(A==1)
+mufit <- SuperLearner(Y=data0$Y, X=data0 %>% dplyr::select(w1,w2,w3,w4),
+                                     SL.library=SL.library, family="binomial")
+
+mu0hat<- as.numeric(predict(mufit, newdata=data1 %>% dplyr::select(w1,w2,w3,w4))$pred)
+IF.0<-(((1-data1$A)/data1$pi0hat)*(data1$Y-mu0hat)+mu0hat)
+IF<-data1$Y-IF.0
+aipw.manual.att <- mean(IF)
+ci.lb<-mean(IF)-qnorm(.975)*sd(IF)/sqrt(length(IF))
+ci.ub<-mean(IF)+qnorm(.975)*sd(IF)/sqrt(length(IF))
+res.manual.aipw.att<-c(aipw.manual.att,ci.lb, ci.ub)
+res.manual.aipw.att
+```
+
+### AIPW ATT Using npcausal
+
+```{r npcausal10, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+library(npcausal)
+aipw<- att(y=Y, a=A, x=W, nsplits=1, sl.lib=SL.library)
+```
+
+## TMLE
+
+TMLE is a variant of IF based estimator. It is also a doubly robust estimator. See Mark van der Laan and his coauthors for the recent development of TMLE.
+
+We should expect npcausal and tmle give similar answers.
+
+```{r tmle1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+library(tmle)
+TMLE<- tmle(Y=data$Y,A=data$A,W=W, family="binomial", Q.SL.library=SL.library, g.SL.library=SL.library)
+
+TMLE$estimates$ATE
+```
+
+## DoubleML
+
+The R package DoubleML implements the double/debiased machine learning framework of Chernozhukov et al. (2018). It provides functionalities to estimate parameters in causal models based on machine learning methods. The double machine learning framework consists of three key ingredients: Neyman orthogonality, High-quality machine learning estimation and Sample splitting.
+
+They consider a partially linear model:
+
+$$ y_i = \theta d_i + g_0(x_i) + \eta_i $$
+
+$$ d_i = m_0(x_i) + v_i $$
+
+This model is quite general, except it does not allow interaction of $d$ and $x$; therefore no heterogeneous treatment effect across $x$. But "DoubleML" implements more than partially linear model, it actually allows for heterogeneous treatment effects, in models such as interactive regression model.
+
+The basic idea of doubleML is to use any machine learning algorithm to estimate outcome equation ($l_0(X) = E(Y | X)$) and treatment equation ($m_0(X) = E(D | X)$). Then get the residuals, namely $\hat W=Y-\hat l_0(X)$ and $\hat V = D - \hat m_0(X)$.
+
+Then regress $\hat W$ on $\hat V$. Based on FWL theorem, you get $\hat \theta$.
+
+An important component here is to specify a Neyman-orthogonal score function. In the case of PLR, it can be the product of the two residuals:
+
+$$\psi (W; \theta, \eta) = (Y-D\theta -g(X))(D-m(X)) $$
+
+The estimator $\hat \theta$ is to solve the equation that the sample mean of this score function being 0.
+
+And the variance of this score function is used as the variance of the doubleML estimator's variance.
+
+```{r doubleml1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+library(DoubleML)
+dml_data = DoubleMLData$new(data,
+                             y_col = "Y",
+                             d_cols = "A",
+                             x_cols = c("w1","w2","w3","w4"))
+print(dml_data)
+```
+
+```{r doubleml2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+library(mlr3)
+library(mlr3learners)
+# surpress messages from mlr3 package during fitting
+lgr::get_logger("mlr3")$set_threshold("warn")
+learner = lrn("regr.ranger", num.trees=500,  max.depth=5, min.node.size=2)
+ml_l = learner$clone()
+ml_m = learner$clone()
+learner = lrn("regr.glmnet")
+ml_g_sim = learner$clone()
+ml_m_sim = learner$clone()
+set.seed(123)
+obj_dml_plr = DoubleMLPLR$new(dml_data, ml_l=ml_l, ml_m=ml_m)
+obj_dml_plr$fit()
+obj_dml_plr$summary()
+```

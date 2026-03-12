@@ -1,0 +1,151 @@
+# Identification & Potential Outcomes
+
+```{r}
+#| include: false
+library(ggplot2)
+library(ggdag)
+```
+
+## Why Do We Need Tools for Causal Inference?
+
+The main reason we need tools for causal inference is that "association is not causation". We have known how to do association for a long time. In econometrics, people have studied various models for different situations, but mostly associational. But why is association not causation?
+
+The reason is that we may have confounding variables.
+
+## Confounders
+
+```{r dag1, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}
+g <- dagify(
+  y ~ w,
+  w ~ c1,
+  y ~ c1,
+  w ~ c2,
+  y ~ c2,
+  exposure = "w",
+  outcome = "y",
+  coords = list(x = c(w = 1, c1 = 2, c2 = 2, y = 3),
+                y = c(w = 2, c1 = 1, c2 = 3, y = 2))
+)
+ggdag(g)
+```
+
+Here is a concrete example with 401(k) participation and assets:
+
+```{r dag1.2, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}
+g <- dagify(
+  assets ~ p401k,
+  p401k ~ income,
+  assets ~ income,
+  p401k ~ age,
+  assets ~ age,
+  exposure = "p401k",
+  outcome = "assets",
+  coords = list(x = c(p401k = 1, income = 2, age = 2, assets = 3),
+                y = c(p401k = 2, income = 1, age = 3, assets = 2))
+)
+ggdag(g)
+```
+
+And another example with birth weight and maternal smoking:
+
+```{r dag1.3, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}
+g <- dagify(
+  bweight ~ mbsmoke,
+  mbsmoke ~ prenatal,
+  bweight ~ prenatal,
+  mbsmoke ~ age,
+  bweight ~ age,
+  exposure = "mbsmoke",
+  outcome = "bweight",
+  coords = list(x = c(mbsmoke = 1, prenatal = 2, age = 2, bweight = 3),
+                y = c(mbsmoke = 2, prenatal = 1, age = 3, bweight = 2))
+)
+ggdag(g)
+```
+
+## Controlled and Uncontrolled Confounders
+
+If we can control for all confounders then we still have causation from correlation. However, first, do we have all confounders in our data? Secondly, how do we control for them. In a randomised experiment, we don't have these problems. In an observational study, we have these two problems. In the graph, we may have "c2" unobserved, "c1" observed, for example. Then any estimation of the effect from $w$ to $y$ is biased.
+
+## Potential Outcome Setup
+
+We use the Potential Outcomes framework, also called counterfactual framework to study causal effect. What is a potential outcome? Suppose we have the simplest situation. A treatment has two states, treated and control (untreated). And we have a person (subject) who then has two potential outcomes $Y(1)$ and $Y(0)$. Consider these two fixed.
+
+That is, every one subject has two potential outcomes. That can be seen as pre-determined. That is, even before the experiment, or program, they are already there. The experiment is to try to recover them. However, recovering each individual treatment effect $\tau_i = Y_i(1) - Y_i(0)$ is not possible, because it's impossible to observe both $Y_i(1)$ and $Y_i(0)$. Only some average treatment effects can be estimated.
+
+We label treatment assignment status $W$, covariates $X$.
+
+## ATE, ATT and ATU
+
+$$ \tau_{ATE} = E[Y(1) - Y(0)] $$
+
+$$ \tau_{ATT} =  E[Y(1) - Y(0) | W=1] $$
+
+$$ \tau_{ATU} =  E[Y(1) - Y(0)| W=0] $$
+
+$$ \tau_{ATE} = \rho \tau_{ATT} + (1-\rho) \tau_{ATU}$$
+
+where $\rho= P(W=1)$.
+
+## Identification: From Potential Outcome to Observed
+
+We focus on $\tau_{ATT}$. To identify it, we need: $$ E[Y(1) | W=1)]$$ which is easy, because we observe it.
+
+And we need $$ E[Y(0) | W=1]$$
+
+To identify this, we'll need unconfoundedness: $$ E[Y(0) | W, X] = E[Y(0)| X] $$ and overlap: $$ \pi(X)= P(W=1 | X=x) < 1 $$
+
+Under unconfoundedness:
+
+$$ E[Y(0)| W=1] = E[Y(0) | W=0] $$
+
+$$ \small \begin{align}
+\tau_{ATT} &=  E[Y(1) - Y(0) | W=1] \\
+&= E[Y(1)|W=1] - E[Y(0)|W=0] \\
+&= E[Y|W=1] - E[Y|W=0]
+\end{align}
+$$
+
+Therefore ATT is identified. In randomised experiments, we can assume unconfoundedness. A difference-in-means estimator is consistent.
+
+$$ \hat{\tau_{ATT}} = \bar Y_1 - \bar Y_0 $$
+
+But in observational studies, most cases we cannot assume unconfoundedness. What can we do to justify unconfoundedness better?
+
+## Unconfoundedness and Overlap
+
+Weaker Assumptions: Unconfoundedness (conditional independence, or ignorability): $$ E[Y(0) | W, X] = E[Y(0)| X] $$ Overlap: $$ \pi(X)= P(W=1 | X=x) < 1 $$ SUTVA (stable unit treatment value assumption): 1. No interference between units. No spillovers. 2. Consistency. No hidden versions of treatment or control. Treatment is clearly defined.
+
+Within each subgroup of $X=x$, W is independent of $Y(0)$. With the overlap assumption, we ensure there is a comparable control unit for each treated unit.
+
+However, these two criteria are often contradictory: we may need more covariates to satisfy conditional independence; meanwhile, if the dimension of covariates goes high, then it's likely in some partition we don't have control units.
+
+Four assumptions for identification:
+
+-   Unconfoundedness (conditional independence, or ignorability)
+-   Overlap (positivity, common support)
+-   No interference
+-   Consistency
+
+## Observational Data Flowchart
+
+```{mermaid}
+flowchart LR
+  A[Observational data Y,W,X] --> B{Unconfoundedness?}
+  B --> | Yes | C{Parametric?}
+  C --> | Yes | D(RA)
+  C --> | Yes | E(IPW)
+  C --> | Yes | F(AIPW)
+  C --> | Yes | G(IPWRA)
+  C --> | No | H(IF based estimators)
+  C --> | No | I(TMLE)
+  C --> | No | J(DoubleML)
+  B --> | No | K{Panel data?}
+  K --> | Yes | L{Parallel Trend?}
+  L --> | Yes | M(DID)
+  L --> | No | N(Synthetic Control)
+  L --> | No | O(Synthetic DID)
+  K --> | No | P{Instrument?}
+  P --> | Yes | Q(IV or RDD)
+  P --> | No | R(You are stuck!)
+```

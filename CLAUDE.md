@@ -14,6 +14,7 @@ Converted from RevealJS slides to a multi-chapter Quarto book in March 2026.
 - `nonparametric.qmd` — Nonparametric Causal Methods (IF, TMLE, DoubleML)
 - `did.qmd` — Difference-in-Differences (ETWFE, Synthetic Control, Synthetic DiD)
 - `iv-rdd.qmd` — IV & Regression Discontinuity
+- `poisson-iv.qmd` — IV in Poisson with Fixed Effects (CF, GMM)
 - `mediation.qmd` — Causal Mediation Analysis
 - `data/` — datasets (CSV, DTA)
 - `images/` — PNG images
@@ -26,7 +27,7 @@ quarto preview       # live preview in browser
 ```
 
 ## R Dependencies
-ggplot2, ggdag, npcausal, boot, SuperLearner, tmle, tidyverse, ranger, hdm, lmtest, sandwich, haven, grf, rpart, glmnet, splines, reshape2, stringr, causaldata, fixest, did, broom, skimr, bslib, etwfe, synthdid, sem, MASS, rdrobust, lavaan, data.table, medoutcon, DoubleML, mlr3, mlr3learners
+ggplot2, ggdag, npcausal, boot, SuperLearner, tmle, tidyverse, ranger, hdm, lmtest, sandwich, haven, grf, rpart, glmnet, splines, reshape2, stringr, causaldata, fixest, did, broom, skimr, bslib, etwfe, synthdid, sem, MASS, rdrobust, lavaan, data.table, medoutcon, DoubleML, mlr3, mlr3learners, gmm, parallel
 
 ## Notes
 - Each chapter has a hidden setup chunk (`#| include: false`) loading required libraries

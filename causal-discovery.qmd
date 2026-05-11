@@ -42,7 +42,7 @@ plot_ig <- function(g, main = "", layout = NULL, curved = FALSE) {
   plot(g,
        layout             = layout,
        main               = main,
-       vertex.size        = 22,
+       vertex.size        = 26,
        vertex.color       = "white",
        vertex.frame.color = "black",
        vertex.label.cex   = 0.9,
@@ -104,9 +104,10 @@ set.seed(2025)
 n_vars    <- 8
 n_samples <- 2000
 edge_prob <- 0.35
-labels    <- as.character(1:n_vars)   # short labels so they fit inside pcalg's default node circles
+labels    <- paste0("X", 1:n_vars)
 
 true_dag  <- randomDAG(n_vars, prob = edge_prob, lB = 0.25, uB = 1)
+graph::nodes(true_dag) <- labels          # rename from "1".."8" to "X1".."X8"
 data_mat  <- rmvDAG(n_samples, true_dag, errDist = "normal")
 colnames(data_mat) <- labels
 
@@ -352,8 +353,9 @@ evaluate_once <- function(seed, n_vars = 8, n_samples = 2000,
                           edge_prob = 0.35, sig = 0.01) {
   set.seed(seed)
   dag      <- randomDAG(n_vars, prob = edge_prob, lB = 0.25, uB = 1)
+  labs     <- paste0("X", 1:n_vars)
+  graph::nodes(dag) <- labs
   d        <- rmvDAG(n_samples, dag, errDist = "normal")
-  labs     <- as.character(1:n_vars)
   colnames(d) <- labs
   adj      <- t(as(dag, "matrix") != 0) * 1L
   ss       <- list(C = cor(d), n = n_samples)

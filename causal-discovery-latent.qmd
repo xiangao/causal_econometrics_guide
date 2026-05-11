@@ -10,12 +10,8 @@ suppressPackageStartupMessages({
   library(knitr)
 })
 
-# Compact node labels for all DAG/MAG/PAG plots in this chapter.
-plot_attrs <- list(
-  node  = list(fontsize = 10, shape = "plaintext", height = 0.3, width = 0.3),
-  edge  = list(arrowsize = 0.6),
-  graph = list(rankdir = "TB")
-)
+# Smaller node-label font for all DAG/MAG/PAG plots in this chapter.
+plot_attrs <- list(node = list(fontsize = 10))
 
 # Wrap an arbitrary PAG adjacency matrix (pcalg convention) in a minimal
 # fciAlgo S4 object so pcalg's plot() draws proper arrow/circle/bidirected
@@ -181,16 +177,12 @@ mag_to_graphNEL <- function(amat) {
   g
 }
 
-# Box-shaped nodes for the latent variables on the full DAG.
-attrs_full <- modifyList(plot_attrs,
-                         list(node = list(shape = "plaintext", fontsize = 10)))
-node_attrs <- list(shape    = setNames(rep("box", length(latent_idx)),
-                                       all_labels[latent_idx]),
-                   fontsize = setNames(rep(10,   length(latent_idx)),
-                                       all_labels[latent_idx]))
+# Latent nodes shown with a box shape to flag them as unobserved.
+node_attrs <- list(shape = setNames(rep("box", length(latent_idx)),
+                                    all_labels[latent_idx]))
 
 op <- par(mfrow = c(1, 2), mar = c(1, 1, 3, 1))
-plot(true_dag, attrs = attrs_full, nodeAttrs = node_attrs,
+plot(true_dag, attrs = plot_attrs, nodeAttrs = node_attrs,
      main = "Full DAG (boxed nodes hidden)")
 plot(amat_to_fciAlgo(amat_true_pag, n_obs), main = "True MAG (observed)",
      attrs = plot_attrs)

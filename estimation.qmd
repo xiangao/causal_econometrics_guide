@@ -2,26 +2,18 @@
 
 ```{r}
 #| include: false
-library(npcausal)
-library(boot)
-library(SuperLearner)
-library(tmle)
-library(tidyverse)
-library(ranger)
-library(hdm)
-library(lmtest)
-library(sandwich)
-library(haven)
-library(grf)
-library(rpart)
-library(glmnet)
-library(splines)
-library(ggplot2)
-library(reshape2)
-library(stringr)
-library(causaldata)
-library(fixest)
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(haven)
+  library(hdm)
+  library(lmtest)
+  library(sandwich)
+  library(broom)
+  library(knitr)
+})
 ```
+
+Once we have identification, which means we can identify the causal effect from the observed data, we can move to estimation. Estimation is to estimate the identified causal effect from the observed data. We have several methods for estimation, including regression adjustment (RA), inverse probability weighting (IPW), augmented inverse probability weighting (AIPW) and inverse probability weighted regression adjustment (IPWRA).
 
 ## Experimental Data
 
@@ -52,7 +44,15 @@ $$  \begin{align}
 
 The RA estimators are:
 
-$$ \hat \tau_{ATT} = \sum_{i=1}^n (W_i(Y_i-\hat \mu_0(X_i)) /n_1$$ $$ \hat \tau_{ATE} = \sum_{i=1}^n (W_i(Y_i-\hat \mu_0(X_i)) + (1-W_i)(\hat \mu_1(X_i) - Y_i)) /n$$
+$$
+\hat \tau_{ATT}
+= \frac{1}{n_1}\sum_{i:W_i=1}\{Y_i-\hat\mu_0(X_i)\}
+$$
+
+$$
+\hat \tau_{ATE}
+= \frac{1}{n}\sum_{i=1}^n\{\hat\mu_1(X_i)-\hat\mu_0(X_i)\}
+$$
 
 where $\hat \mu_0(X_i)$ is the predicted value of $Y_i$ from a regression of $Y$ on $X$ for the control group.
 
@@ -84,6 +84,8 @@ lm_ra <- lm(net_tfa ~ p401*(inc_dm + age_dm),data=data)
 summary(lm_ra)
 #coeftest(lm_ra, vcov=vcovHC(lm_ra, type='HC2'))[2,]
 ```
+
+After demeaning the covariates, we include all interactions of demeaned covariates with treatment. The coefficient on $W$ is the average treatment effect.
 
 ### Questions on RA
 

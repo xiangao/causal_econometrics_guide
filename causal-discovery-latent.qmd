@@ -1,0 +1,406 @@
+# Causal Discovery: Latent Variables
+
+```{r}
+#| include: false
+suppressPackageStartupMessages({
+  library(pcalg)
+  library(Rgraphviz)
+  library(graph)
+  library(ggplot2)
+  library(knitr)
+})
+```
+
+In the previous chapter we assumed all causally relevant variables were observed. This assumption — called **causal sufficiency** — rarely holds in economics: unobserved ability confounds wage regressions, unobserved demand shocks confound price–quantity relationships, unobserved peer effects confound social network studies.
+
+When latent confounders exist, constraint-based discovery algorithms that assume causal sufficiency (PC, GES) return incorrect results. This chapter introduces two algorithms in `pcalg` that handle the latent variable case.
+
+### Why PC fails with latent variables
+
+Suppose the true graph is $X \leftarrow U \rightarrow Y$ where $U$ is unobserved. In the observed data, $X$ and $Y$ are marginally correlated (through $U$) and no observed conditioning set separates them. PC will incorrectly draw an edge $X - Y$ and may orient it as $X \to Y$ or $X \leftarrow Y$, neither of which exists in the truth.
+
+More subtly, conditioning on a collider that is a descendant of $U$ can *open* a path between $X$ and $Y$, further distorting the CI structure that PC observes. With even a single hidden common cause, the d-separation statements in the observed data no longer correspond to those of any DAG over just the observed variables — they require the richer MAG representation.
+
+## Maximal Ancestral Graphs and PAGs
+
+With latent variables, the appropriate representation is a **Maximal Ancestral Graph (MAG)**. Over a set of *observed* variables $\mathbf{O}$, a MAG encodes:
+
+- $X \to Y$: $X$ is an ancestor of $Y$ in the full DAG
+- $X \leftrightarrow Y$: $X$ and $Y$ have a common hidden ancestor (hidden confounder)
+- No edge: $X \perp\!\!\!\perp Y \mid Z$ for some $Z \subseteq \mathbf{O} \setminus \{X, Y\}$
+
+The MAG over observed variables is the "shadow" of the full DAG: it summarizes all causal and confounding relationships that are visible in the observed data, without requiring us to know or name the latent variables.
+
+Just as DAGs have Markov equivalence classes represented by CPDAGs, MAGs have equivalence classes represented by **Partial Ancestral Graphs (PAGs)**. In a PAG, the mark $\circ$ on an edge endpoint means "could be arrowhead or tail in some member of the equivalence class."
+
+| PAG mark | Meaning | Economic interpretation |
+|---|---|---|
+| $X \to Y$ | $X$ causes $Y$ in every equivalent MAG | Robust causal direction |
+| $X \circ\!\!\to Y$ | Some MAGs have $X \to Y$, others $X \leftrightarrow Y$ | Direction uncertain |
+| $X \leftrightarrow Y$ | Hidden common cause in every equivalent MAG | Definite unmeasured confounder |
+| $X \;\circ\!\!-\!\!\circ\; Y$ | Could be $\to$, $\leftarrow$, or $\leftrightarrow$ | Maximally uncertain |
+
+**Reading a PAG for policy purposes:**
+
+- A definite $X \to Y$ edge is the most useful finding: any intervention on $X$ propagates to $Y$ regardless of which specific MAG the data came from.
+- A definite $X \leftrightarrow Y$ edge is a warning: before using regression of $Y$ on $X$ to estimate a causal effect, you must address the hidden confounder — through an instrument, a proxy, or a natural experiment.
+- $\circ$ marks indicate what you *don't* know. Additional data, temporal ordering, or experimental variation can resolve them.
+
+## FCI and RFCI: The R Toolkit
+
+R's `pcalg` package provides two algorithms for the latent-variable case:
+
+| Algorithm | Output | Cost |
+|---|---|---|
+| **FCI** (Spirtes, Meek & Richardson, 1995) | Full PAG (skeleton + all orientation marks) | Expensive: 10 orientation rules, many CI tests |
+| **RFCI** (Colombo, Maathuis, Kalisch & Richardson, 2012) | Skeleton + partial orientations | Cheap: skips the most expensive CI tests |
+
+RFCI's key property: its **skeleton is asymptotically correct** under the same assumptions FCI requires, and its directed edges are a subset of FCI's directed edges. So RFCI gives you fewer orientations but never *wrong* ones — a controlled efficiency–information tradeoff.
+
+## Simulation with Hidden Variables
+
+We reuse the same 8-node Gaussian linear DAG from the previous chapter and hide 2 nodes, treating them as unobserved confounders.
+
+```{r}
+set.seed(2025)
+
+n_vars     <- 8
+n_samples  <- 2000
+edge_prob  <- 0.35
+latent_idx <- c(3, 6)
+obs_idx    <- setdiff(1:n_vars, latent_idx)
+all_labels <- paste0("X", 1:n_vars)
+obs_labels <- all_labels[obs_idx]
+
+true_dag   <- randomDAG(n_vars, prob = edge_prob, lB = 0.25, uB = 1)
+nodes(true_dag) <- all_labels
+data_full  <- rmvDAG(n_samples, true_dag, errDist = "normal")
+colnames(data_full) <- all_labels
+data_obs   <- data_full[, obs_idx]
+n_obs      <- length(obs_idx)
+
+sprintf("Total variables: %d   Hidden: %s   Observed: %d",
+        n_vars, paste(all_labels[latent_idx], collapse = ", "), n_obs)
+```
+
+### True structure over observed variables
+
+Two observed variables are adjacent in the MAG iff no subset of the *observed* variables d-separates them in the full DAG. We compute this with `pcalg::dsep`.
+
+```{r}
+true_mag_skel <- function(dag, observed_names) {
+  p <- length(observed_names)
+  amat <- matrix(0L, p, p, dimnames = list(observed_names, observed_names))
+  all_subsets <- function(xs) {
+    out <- list(character(0))
+    for (k in seq_along(xs)) out <- c(out, combn(xs, k, simplify = FALSE))
+    out
+  }
+  for (i in seq_len(p - 1)) for (j in seq.int(i + 1, p)) {
+    u <- observed_names[i]; v <- observed_names[j]
+    others <- setdiff(observed_names, c(u, v))
+    sep <- any(vapply(all_subsets(others),
+                      function(S) dsep(u, v, S, dag),
+                      logical(1)))
+    if (!sep) { amat[i, j] <- 1L; amat[j, i] <- 1L }
+  }
+  amat
+}
+
+amat_true_mag <- true_mag_skel(true_dag, obs_labels)
+sprintf("True MAG skeleton edges (over %d observed nodes): %d",
+        n_obs, sum(amat_true_mag) / 2)
+```
+
+```{r}
+#| label: fig-latent-dag
+#| fig-cap: "Full DAG (all 8 nodes) and the true MAG skeleton over observed variables. The MAG skeleton includes both direct paths and paths through hidden nodes."
+#| fig-width: 11
+#| fig-height: 4.5
+mag_to_graphNEL <- function(amat) {
+  g <- new("graphNEL", nodes = rownames(amat), edgemode = "undirected")
+  for (i in seq_len(nrow(amat) - 1))
+    for (j in seq.int(i + 1, ncol(amat)))
+      if (amat[i, j]) g <- addEdge(rownames(amat)[i], colnames(amat)[j], g, 1)
+  g
+}
+
+# Highlight latent nodes with a different shape on the full DAG.
+attrs_full <- list(node = list(shape = "plaintext", fontsize = 14))
+node_attrs <- list(shape = setNames(rep("box", length(latent_idx)),
+                                    all_labels[latent_idx]))
+
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 3, 1))
+plot(true_dag, attrs = attrs_full, nodeAttrs = node_attrs,
+     main = "Full DAG (boxed nodes hidden)")
+plot(mag_to_graphNEL(amat_true_mag), main = "True MAG skeleton (observed)")
+par(op)
+```
+
+## FCI Algorithm
+
+The **FCI algorithm** is the standard extension of PC to the latent-variable case. Like PC, it starts from a complete graph and removes edges via CI tests. After skeleton discovery, it applies a richer set of orientation rules that can produce bidirected edges $X \leftrightarrow Y$ indicating hidden common causes.
+
+**How FCI extends PC:**
+
+1. **Phase 1 (skeleton):** Same as PC — remove edges via CI tests with growing conditioning sets.
+2. **Phase 2 (initial orientation):** Mark all edge endpoints as $\circ$ (uncertain).
+3. **Phase 3 (collider detection):** For each unshielded triple $X \;\circ\!-\!\circ\; Z \;\circ\!-\!\circ\; Y$ with $X, Y$ non-adjacent: orient as $X \;\circ\!\!\!\to Z \leftarrow\!\!\!\circ\; Y$ if $Z$ is not in the separating set of $X$ and $Y$.
+4. **Phase 4 (rule propagation):** Apply 10 orientation rules that propagate known marks without creating contradictions, including rules that can produce definite $\to$ and $\leftrightarrow$ edges.
+
+The richer mark set ($\to$, $\leftarrow$, $\circ$, $\leftrightarrow$) allows FCI to express what is known vs. unknown — at the cost of more complex output to interpret.
+
+```{r}
+make_counted_ci <- function(suff_stat) {
+  count <- 0L
+  ci <- function(x, y, S, suffStat) {
+    count <<- count + 1L
+    gaussCItest(x, y, S, suffStat)
+  }
+  list(ci = ci, count = function() count)
+}
+
+sig_level <- 0.01
+suff_obs  <- list(C = cor(data_obs), n = n_samples)
+
+ci_fci   <- make_counted_ci(suff_obs)
+fci_fit  <- fci(suff_obs, ci_fci$ci, labels = obs_labels,
+                alpha = sig_level, verbose = FALSE)
+ci_tests_fci <- ci_fci$count()
+```
+
+```{r}
+# pcalg PAG amat encoding: 0 = no edge, 1 = circle, 2 = arrowhead, 3 = tail.
+# An edge between i and j is described by amat[i,j] (mark at i)
+# and amat[j,i] (mark at j).
+pag_skeleton_amat <- function(amat) {
+  out <- (amat != 0 | t(amat) != 0) * 1L
+  diag(out) <- 0L
+  out
+}
+
+f1_skel <- function(amat_true, amat_est) {
+  diag(amat_true) <- diag(amat_est) <- 0
+  tp <- sum(amat_true & amat_est) / 2
+  fp <- sum(!amat_true & amat_est) / 2
+  fn <- sum(amat_true & !amat_est) / 2
+  if (tp == 0) 0 else 2 * tp / (2 * tp + fp + fn)
+}
+
+skel_fci <- pag_skeleton_amat(fci_fit@amat)
+f1_fci_v <- f1_skel(amat_true_mag, skel_fci)
+sprintf("FCI:    skeleton F1 = %.3f   CI tests = %d", f1_fci_v, ci_tests_fci)
+```
+
+```{r}
+#| label: fig-fci-pag
+#| fig-cap: "PAG estimated by FCI. Circle marks (○) indicate uncertainty about orientation; a bidirected ↔ edge identifies a definite hidden common cause."
+#| fig-width: 5.5
+#| fig-height: 4.5
+plot(fci_fit, main = "")
+```
+
+::: {.callout-note}
+**Reading the PAG plot**
+
+In `pcalg`'s plot output:
+
+- A **plain arrow** $X \to Y$ is a definite direct cause (in every equivalent MAG).
+- A **double-headed arrow** $X \leftrightarrow Y$ is a definite hidden common cause.
+- A **circle endpoint** is the $\circ$ mark — uncertain at that endpoint.
+
+In practice for economic research: focus first on $\leftrightarrow$ edges — these flag definite confounding and tell you where IV or proxy strategies are needed. Then examine $\to$ edges — these are causal claims that survive across all statistically equivalent structures.
+:::
+
+**When FCI gives wrong answers:** FCI assumes the CI tests are perfectly accurate (no finite-sample error). In practice, with small $n$ or many variables, some false CI decisions propagate through the 10 orientation rules. The skeleton quality (F1) is generally more reliable than the orientation quality.
+
+## RFCI Algorithm
+
+**RFCI** (Really Fast Causal Inference; Colombo et al., 2012) replaces FCI's expensive Phase 4 with a leaner orientation phase that uses only a subset of the orientation rules — the ones whose validity does not require expensive *additional* CI tests on triples or quadruples.
+
+**Key differences from FCI:**
+
+1. **Skeleton phase:** identical to FCI.
+2. **Collider check:** before orienting an unshielded triple as a collider, RFCI runs *additional* CI tests to verify the orientation. This costs more in Phase 3 but means RFCI can safely *skip* the expensive Phase 4 rules.
+3. **Orientation output:** RFCI produces a *partial* PAG. Some edges that FCI orients are left as $\circ\!-\!\circ$ in RFCI; conversely, every edge RFCI does orient is guaranteed correct under the same asymptotic conditions.
+
+**Why this matters in practice:** the skeleton is what most applied users actually need (to flag where confounding may be present); the full PAG orientation adds analytical complexity that often does not survive translation into a policy-relevant claim. RFCI is the workhorse for screening.
+
+```{r}
+ci_rfci    <- make_counted_ci(suff_obs)
+rfci_fit   <- rfci(suff_obs, ci_rfci$ci, labels = obs_labels,
+                   alpha = sig_level, verbose = FALSE)
+ci_tests_rfci <- ci_rfci$count()
+
+skel_rfci  <- pag_skeleton_amat(rfci_fit@amat)
+f1_rfci_v  <- f1_skel(amat_true_mag, skel_rfci)
+sprintf("RFCI:   skeleton F1 = %.3f   CI tests = %d", f1_rfci_v, ci_tests_rfci)
+```
+
+::: {.callout-note}
+**FCI vs. RFCI output: same plot type, fewer marks**
+
+Both `fci()` and `rfci()` return `fciAlgo` objects and plot with the same `plot()` method. The visual difference is that RFCI's PAG typically has **more circle marks** — it has been more conservative about orientation. Edges that *do* receive an arrowhead or tail mark in RFCI are reliable.
+
+If you only need the skeleton (the most common use case in large-$p$ screening problems), RFCI is the right default. If you need orientations to plan an IV strategy, run FCI on top.
+:::
+
+## Comparison
+
+```{r}
+#| label: tbl-latent-comparison
+#| tbl-cap: "Algorithm comparison on the latent-variable scenario (2 hidden nodes, n = 2000)"
+kable(data.frame(
+  Algorithm   = c("FCI", "RFCI"),
+  Output      = c("Full PAG", "Skeleton + partial PAG"),
+  Skeleton_F1 = round(c(f1_fci_v, f1_rfci_v), 3),
+  CI_Tests    = c(ci_tests_fci, ci_tests_rfci)
+), row.names = FALSE)
+```
+
+```{r}
+#| label: fig-latent-skeletons
+#| fig-cap: "True MAG skeleton vs. skeletons recovered by FCI and RFCI over the observed nodes."
+#| fig-width: 12
+#| fig-height: 4.5
+op <- par(mfrow = c(1, 3), mar = c(1, 1, 3, 1))
+plot(mag_to_graphNEL(amat_true_mag), main = "True MAG skeleton")
+plot(mag_to_graphNEL(skel_fci),      main = "FCI — estimated skeleton")
+plot(mag_to_graphNEL(skel_rfci),     main = "RFCI — estimated skeleton")
+par(op)
+```
+
+## Monte Carlo Evaluation
+
+```{r}
+#| cache: true
+evaluate_latent <- function(seed, n_vars = 8, n_samples = 2000,
+                            edge_prob = 0.35, n_latent = 2, sig = 0.01) {
+  set.seed(seed)
+  labs <- paste0("X", 1:n_vars)
+  dag  <- randomDAG(n_vars, prob = edge_prob, lB = 0.25, uB = 1)
+  nodes(dag) <- labs
+  d    <- rmvDAG(n_samples, dag, errDist = "normal")
+  colnames(d) <- labs
+
+  lat  <- sort(sample.int(n_vars, n_latent))
+  obs  <- setdiff(seq_len(n_vars), lat)
+  obs_labs <- labs[obs]
+  d_obs <- d[, obs]
+  ss    <- list(C = cor(d_obs), n = n_samples)
+
+  true_skel <- true_mag_skel(dag, obs_labs)
+
+  ci_f <- make_counted_ci(ss)
+  fci_r <- fci(ss, ci_f$ci, labels = obs_labs, alpha = sig, verbose = FALSE)
+
+  ci_r <- make_counted_ci(ss)
+  rfci_r <- rfci(ss, ci_r$ci, labels = obs_labs, alpha = sig, verbose = FALSE)
+
+  c(f1_fci  = f1_skel(true_skel, pag_skeleton_amat(fci_r@amat)),
+    f1_rfci = f1_skel(true_skel, pag_skeleton_amat(rfci_r@amat)),
+    ci_fci  = ci_f$count(),
+    ci_rfci = ci_r$count())
+}
+
+mc <- as.data.frame(t(sapply(1:100, evaluate_latent)))
+
+mc_summary <- data.frame(
+  Method      = c("FCI", "RFCI"),
+  Skeleton_F1 = round(c(mean(mc$f1_fci),  mean(mc$f1_rfci)),  3),
+  CI_Tests    = round(c(mean(mc$ci_fci),  mean(mc$ci_rfci)),  1)
+)
+kable(mc_summary,
+      caption = "Monte Carlo averages (100 replications, n = 2000, p = 8, 2 latent)",
+      row.names = FALSE)
+```
+
+```{r}
+#| label: fig-latent-mc
+#| fig-cap: "CI-test count distributions across 100 replications. RFCI's lighter Phase 4 typically — though not always — runs fewer tests than FCI."
+#| fig-width: 7
+#| fig-height: 4
+mc_long <- data.frame(
+  method = rep(c("FCI", "RFCI"), each = nrow(mc)),
+  ci     = c(mc$ci_fci, mc$ci_rfci)
+)
+ggplot(mc_long, aes(x = ci, fill = method)) +
+  geom_histogram(bins = 20, position = "identity", alpha = 0.55, color = "white") +
+  scale_fill_manual(values = c(FCI = "steelblue", RFCI = "tomato")) +
+  labs(x = "CI tests", y = "Frequency",
+       title = "CI Test Counts: FCI vs RFCI (100 replications)") +
+  theme_minimal()
+```
+
+## Summary
+
+| Property | PC / GES | FCI | RFCI |
+|---|---|---|---|
+| Latent confounders | ✗ assumes none | ✓ handles | ✓ handles |
+| Output | CPDAG | Full PAG | Skeleton + partial PAG |
+| Skeleton consistency | ✓ | ✓ | ✓ |
+| Orientation coverage | full | full (under faithfulness) | partial (conservative) |
+| CI cost | PC: PC's cost; GES: none | FCI's full Phase 4 | reduced Phase 4 |
+
+FCI and RFCI address complementary needs. If you need to orient edges, use FCI. If you only need the skeleton and efficiency matters, RFCI is the standard R choice.
+
+### Practical decision guide
+
+**Use PC or GES when:**
+
+- You are confident in causal sufficiency (all relevant variables are measured)
+- You want a CPDAG that you can orient further with background knowledge
+
+**Use FCI when:**
+
+- You suspect hidden confounders but don't know where
+- You need edge orientations and $\leftrightarrow$ marks to guide IV or proxy strategies
+- Sample size is large enough that CI-test errors don't cascade badly through orientation rules
+
+**Use RFCI when:**
+
+- You suspect latent confounders and have many variables ($p > 20$)
+- The goal is to prune the adjacency graph before applying domain knowledge or estimation
+- You want a fast first pass — promote candidates to FCI later
+
+### From discovery to estimation
+
+Causal discovery is a first step, not a final answer. The typical research workflow is:
+
+1. **Discover** — run FCI or RFCI to get candidate adjacencies and, if using FCI, some edge marks
+2. **Refine** — apply temporal ordering, institutional knowledge, and exclusion restrictions to orient remaining edges
+3. **Identify** — check whether the effect of interest is identified given the refined graph (backdoor, front-door, ID algorithm)
+4. **Estimate** — use TMLE, AIPW, or the estimators in earlier chapters
+
+Causal discovery narrows the space of possible structures; domain knowledge finishes the job.
+
+::: {.callout-note}
+**Going further: orientation in the latent case**
+
+FCI's PAG output distinguishes definite causes ($\to$), definite hidden common causes ($\leftrightarrow$), and uncertain cases ($\circ$). The PAG can be combined with background knowledge such as temporal ordering to further orient edges before estimation.
+:::
+
+## How Much Does Causal Discovery Help in Economics?
+
+An honest assessment: recovering even the true MAG skeleton is far from recovering the full DAG. Several layers of information remain missing:
+
+| What is recovered | What is still missing |
+|---|---|
+| RFCI skeleton | Edge directions; direct cause vs. hidden common cause; latent nodes |
+| FCI PAG | Unique MAG; latent nodes; most edges still carry $\circ$ marks |
+| True MAG | Latent nodes and their connections |
+| Full DAG | Nothing — this is the goal |
+
+The core econometric question is almost always "what is the causal effect of $X$ on $Y$?" Causal discovery with latent variables does not answer this directly. A definite $X \leftrightarrow Y$ in a PAG tells you confounding exists — but not how to remove it. Without oriented edges you cannot even check whether the effect is identified, let alone estimate it.
+
+**Where these methods do add value in economics:**
+
+1. **Falsifying structural models.** If your model implies $X \perp\!\!\!\perp Z \mid W$, test it. A rejection means the model's independence assumptions are inconsistent with the data — discovery tells you *which* assumptions fail before you commit to a full structural estimation.
+
+2. **Flagging where instruments are needed.** A definite $X \leftrightarrow Y$ in the PAG is a data-driven diagnostic: OLS of $Y$ on $X$ is biased, and you need an instrument, proxy, or natural experiment. Discovery does not supply the instrument but tells you where to look for one.
+
+3. **High-dimensional variable selection.** With many candidate controls, knowing which pairs are conditionally independent prunes the problem before applying identification strategies. This is most useful in settings with $p > 20$ variables where theory does not specify the full graph.
+
+4. **Hypothesis generation when theory is silent.** For new economic phenomena — platform markets, fintech, peer effects in novel settings — where theory does not give a strong causal ordering, discovery algorithms generate hypotheses worth investigating with better-powered research designs.
+
+**The bottom line:** causal discovery is a complement to the standard econometric toolkit — IV, RD, DiD, synthetic control — not a substitute. It is most useful as a diagnostic and hypothesis-generating tool early in a research project, before the hard work of finding credible identifying variation begins.

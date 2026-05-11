@@ -16,6 +16,8 @@ Converted from RevealJS slides to a multi-chapter Quarto book in March 2026.
 - `iv-rdd.qmd` — IV & Regression Discontinuity
 - `poisson-iv.qmd` — IV in Poisson with Fixed Effects (CF, GMM)
 - `mediation.qmd` — Causal Mediation Analysis
+- `causal-discovery.qmd` — Causal Discovery: Observed Variables (PC + GES via pcalg)
+- `causal-discovery-latent.qmd` — Causal Discovery: Latent Variables (FCI + RFCI via pcalg)
 - `data/` — datasets (CSV, DTA)
 - `images/` — PNG images
 - `_book/` — rendered HTML output
@@ -27,7 +29,7 @@ quarto preview       # live preview in browser
 ```
 
 ## R Dependencies
-ggplot2, ggdag, npcausal, boot, SuperLearner, tmle, tidyverse, ranger, hdm, lmtest, sandwich, haven, grf, rpart, glmnet, splines, reshape2, stringr, causaldata, fixest, did, broom, skimr, bslib, etwfe, synthdid, sem, MASS, rdrobust, lavaan, data.table, medoutcon, DoubleML, mlr3, mlr3learners, gmm, parallel
+ggplot2, ggdag, npcausal, boot, SuperLearner, tmle, tidyverse, ranger, hdm, lmtest, sandwich, haven, grf, rpart, glmnet, splines, reshape2, stringr, causaldata, fixest, did, broom, skimr, bslib, etwfe, synthdid, sem, MASS, rdrobust, lavaan, data.table, medoutcon, DoubleML, mlr3, mlr3learners, gmm, parallel, pcalg, Rgraphviz, graph (Rgraphviz and graph are Bioconductor packages required by pcalg)
 
 ## Notes
 - Each chapter has a hidden setup chunk (`#| include: false`) loading required libraries

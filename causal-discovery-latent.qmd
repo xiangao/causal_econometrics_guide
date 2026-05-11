@@ -4,28 +4,72 @@
 #| include: false
 suppressPackageStartupMessages({
   library(pcalg)
-  library(Rgraphviz)
   library(graph)
+  library(igraph)
   library(ggplot2)
   library(knitr)
 })
 
-# Wrap an arbitrary PAG adjacency matrix (pcalg convention) in a minimal
-# fciAlgo S4 object so pcalg's plot() draws proper arrow/circle/bidirected
-# marks. Used for the "true MAG" panel where we have no algorithm fit.
-amat_to_fciAlgo <- function(amat, n_obs = 0L) {
+# ─── igraph helpers ──────────────────────────────────────────────────────────
+
+graphnel_to_ig <- function(g_nel) {
+  ig <- igraph::graph_from_graphnel(g_nel)
+  el <- igraph::as_edgelist(ig)
+  fwd <- paste(el[,1], el[,2]); rev_ <- paste(el[,2], el[,1])
+  is_undir <- fwd %in% rev_
+  seen <- character(0); keep <- logical(nrow(el))
+  for (k in seq_len(nrow(el))) {
+    if (!is_undir[k]) { keep[k] <- TRUE; next }
+    key <- paste(sort(c(el[k,1], el[k,2])), collapse="|")
+    if (key %in% seen) { keep[k] <- FALSE } else { seen <- c(seen, key); keep[k] <- TRUE }
+  }
+  ig2 <- igraph::delete_edges(ig, which(!keep))
+  igraph::E(ig2)$undirected <- is_undir[keep]
+  igraph::V(ig2)$label.color <- "black"
+  ig2
+}
+
+# Build an igraph from a pcalg PAG amat (0=none,1=circle,2=arrowhead,3=tail).
+# Dashed edges = at least one circle endpoint; double arrows = both arrowheads.
+pag_to_ig <- function(amat, labels = rownames(amat)) {
   p <- nrow(amat)
-  new("fciAlgo",
-      amat             = amat,
-      allPdsep         = vector("list", p),
-      n.edgetestsPDSEP = numeric(0),
-      max.ordPDSEP     = -1L,
-      call             = quote(amat_to_fciAlgo()),
-      n                = as.integer(n_obs),
-      max.ord          = -1L,
-      n.edgetests      = numeric(0),
-      sepset           = vector("list", p),
-      pMax             = matrix(NA_real_, p, p))
+  frm <- integer(0); too <- integer(0); amode <- integer(0); lty <- integer(0)
+  for (i in seq_len(p-1)) for (j in seq.int(i+1, p)) {
+    if (amat[i,j]==0 && amat[j,i]==0) next
+    mi <- amat[i,j]; mj <- amat[j,i]
+    frm <- c(frm,i); too <- c(too,j)
+    am <- if (mi==2 && mj==2) 3L else if (mj==2) 1L else if (mi==2) 2L else 0L
+    amode <- c(amode, am)
+    lty   <- c(lty, if (mi==1 || mj==1) 2L else 1L)
+  }
+  g <- igraph::make_empty_graph(n=p, directed=TRUE)
+  igraph::V(g)$name <- labels
+  igraph::V(g)$label.color <- "black"
+  if (length(frm)) {
+    g <- igraph::add_edges(g, c(rbind(frm, too)))
+    igraph::E(g)$amode <- amode; igraph::E(g)$lty <- lty
+  }
+  g
+}
+
+plot_ig <- function(g, main="", layout=NULL) {
+  if (is.null(layout)) {
+    dir_idx <- if (!is.null(igraph::E(g)$amode))
+                 which(igraph::E(g)$amode %in% c(1L,2L))
+               else seq_len(igraph::ecount(g))
+    g_dir <- if (length(dir_idx)>0) igraph::subgraph_from_edges(g,dir_idx) else g
+    layout <- igraph::layout_with_sugiyama(g_dir)$layout
+  }
+  n_e <- igraph::ecount(g)
+  am <- if (!is.null(igraph::E(g)$amode)) igraph::E(g)$amode else
+        if (!is.null(igraph::E(g)$undirected)) ifelse(igraph::E(g)$undirected,0L,1L) else
+        rep(1L,n_e)
+  lt <- if (!is.null(igraph::E(g)$lty)) igraph::E(g)$lty else rep(1L,n_e)
+  plot(g, layout=layout, main=main,
+       vertex.size=22, vertex.color="white", vertex.frame.color="black",
+       vertex.label.cex=0.9, vertex.label.color="black", vertex.label.font=2,
+       edge.arrow.size=0.45, edge.arrow.mode=am, edge.color="black",
+       edge.lty=lt, edge.curved=0)
 }
 ```
 
@@ -157,6 +201,16 @@ true_mag_skel <- function(dag, observed_names) {
 
 amat_true_pag  <- true_mag_amat(true_dag, obs_labels)
 amat_true_mag  <- (amat_true_pag != 0L) * 1L  # skeleton for F1 comparisons
+
+# igraph representations used for plotting
+ig_true_full <- graphnel_to_ig(true_dag)   # full 8-node DAG
+ig_true_pag  <- pag_to_ig(amat_true_pag, obs_labels)   # true MAG over obs nodes
+
+# Shared layout: compute from full DAG, subset coords for observed-node plots
+full_layout  <- igraph::layout_with_sugiyama(ig_true_full)$layout
+obs_layout   <- full_layout[obs_idx, ]     # positions of the observed nodes
+rownames(obs_layout) <- obs_labels
+
 sprintf("True MAG skeleton edges (over %d observed nodes): %d",
         n_obs, sum(amat_true_mag) / 2)
 ```
@@ -166,22 +220,9 @@ sprintf("True MAG skeleton edges (over %d observed nodes): %d",
 #| fig-cap: "Full DAG (all 8 nodes) and the true MAG skeleton over observed variables. The MAG skeleton includes both direct paths and paths through hidden nodes."
 #| fig-width: 11
 #| fig-height: 4.5
-mag_to_graphNEL <- function(amat) {
-  g <- new("graphNEL", nodes = rownames(amat), edgemode = "undirected")
-  for (i in seq_len(nrow(amat) - 1))
-    for (j in seq.int(i + 1, ncol(amat)))
-      if (amat[i, j]) g <- addEdge(rownames(amat)[i], colnames(amat)[j], g, 1)
-  g
-}
-
-# Latent nodes shown with a box shape to flag them as unobserved.
-node_attrs <- list(shape = setNames(rep("box", length(latent_idx)),
-                                    all_labels[latent_idx]))
-
 op <- par(mfrow = c(1, 2), mar = c(1, 1, 3, 1))
-plot(true_dag, nodeAttrs = node_attrs,
-     main = "Full DAG (boxed nodes hidden)")
-plot(amat_to_fciAlgo(amat_true_pag, n_obs), main = "True MAG (observed)")
+plot_ig(ig_true_full, layout = full_layout, main = "Full DAG (all 8 nodes)")
+plot_ig(ig_true_pag,  layout = obs_layout,  main = "True MAG (observed nodes)")
 par(op)
 ```
 
@@ -235,17 +276,18 @@ f1_skel <- function(amat_true, amat_est) {
   if (tp == 0) 0 else 2 * tp / (2 * tp + fp + fn)
 }
 
-skel_fci <- pag_skeleton_amat(fci_fit@amat)
-f1_fci_v <- f1_skel(amat_true_mag, skel_fci)
+skel_fci  <- pag_skeleton_amat(fci_fit@amat)
+f1_fci_v  <- f1_skel(amat_true_mag, skel_fci)
+ig_fci    <- pag_to_ig(fci_fit@amat, obs_labels)
 sprintf("FCI:    skeleton F1 = %.3f   CI tests = %d", f1_fci_v, ci_tests_fci)
 ```
 
 ```{r}
 #| label: fig-fci-pag
-#| fig-cap: "PAG estimated by FCI. Circle marks (○) indicate uncertainty about orientation; a bidirected ↔ edge identifies a definite hidden common cause."
+#| fig-cap: "PAG estimated by FCI. Dashed edges indicate endpoints with circle (○) marks — orientations the algorithm could not determine. Solid double-headed arrows (↔) flag definite hidden common causes."
 #| fig-width: 5.5
 #| fig-height: 4.5
-plot(fci_fit, main = "")
+plot_ig(ig_fci, layout = obs_layout)
 ```
 
 ::: {.callout-note}
@@ -282,6 +324,7 @@ ci_tests_rfci <- ci_rfci$count()
 
 skel_rfci  <- pag_skeleton_amat(rfci_fit@amat)
 f1_rfci_v  <- f1_skel(amat_true_mag, skel_rfci)
+ig_rfci    <- pag_to_ig(rfci_fit@amat, obs_labels)
 sprintf("RFCI:   skeleton F1 = %.3f   CI tests = %d", f1_rfci_v, ci_tests_rfci)
 ```
 
@@ -312,9 +355,9 @@ kable(data.frame(
 #| fig-width: 12
 #| fig-height: 4.5
 op <- par(mfrow = c(1, 3), mar = c(1, 1, 3, 1))
-plot(amat_to_fciAlgo(amat_true_pag, n_obs), main = "True MAG")
-plot(fci_fit,  main = "FCI — estimated PAG")
-plot(rfci_fit, main = "RFCI — estimated PAG")
+plot_ig(ig_true_pag, layout = obs_layout, main = "True MAG")
+plot_ig(ig_fci,      layout = obs_layout, main = "FCI — estimated PAG")
+plot_ig(ig_rfci,     layout = obs_layout, main = "RFCI — estimated PAG")
 par(op)
 ```
 

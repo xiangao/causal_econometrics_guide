@@ -1,0 +1,314 @@
+# DAGs, ADMGs, Identification, and Estimation
+
+```{r}
+#| include: false
+suppressPackageStartupMessages({
+  library(dagitty)
+  library(ggdag)
+  library(ggplot2)
+  library(igraph)
+  library(causaleffect)
+  library(dplyr)
+  library(knitr)
+})
+```
+
+The potential-outcomes chapter introduced the question: when can an observed data set tell us about $E[Y(1)-Y(0)]$? Graphs are one way to make the answer explicit. A graph records which variables are assumed to cause other variables, and whether some observed variables may share unobserved common causes. Once the graph is stated, identification becomes a graph problem. Estimation is the next step: estimate the functional that the graph identified.
+
+In this chapter we use `dagitty` for the graph and backdoor identification steps, `causaleffect` for the general (Pearl–Shpitser) ID algorithm that handles ADMGs, and we implement the named-route estimators (AIPW for backdoor, front-door formula, ID plug-in) directly in base R + `dplyr`.
+
+## DAGs and ADMGs
+
+A directed acyclic graph, or DAG, has directed arrows such as `X -> A`. In causal work, an arrow means a direct causal relation is allowed by the model. Absence of an arrow is also a substantive assumption.
+
+An acyclic directed mixed graph, or ADMG, adds bidirected arrows such as `A <-> Y`. A bidirected edge represents an unobserved common cause. This is useful because many econometric applications have variables we cannot measure: ability, preferences, latent health, firm quality, and so on.
+
+The graph is not an estimator. It is a compact statement of assumptions. The workflow is:
+
+1. write down a DAG or ADMG;
+2. ask whether the target effect is identified;
+3. estimate the identified functional from data.
+
+## A DAG: Backdoor Adjustment
+
+Start with a simple observational study. `A` is treatment, `Y` is the outcome, and `X` is an observed confounder:
+
+```{r}
+g_dag <- dagitty("dag {
+  X -> A
+  X -> Y
+  A -> Y
+}")
+coordinates(g_dag) <- list(
+  x = c(X = 1, A = 0, Y = 2),
+  y = c(X = 1, A = 0, Y = 0)
+)
+```
+
+```{r}
+#| label: fig-dag-backdoor
+#| fig-cap: "Backdoor DAG: X is an observed confounder of A → Y."
+#| fig-width: 5
+#| fig-height: 3
+ggdag(g_dag) + theme_dag_blank()
+```
+
+The graph says `X` affects both treatment and outcome. It also says there is no unobserved common cause between `A` and `Y` after we condition on `X`. In this case the treatment effect is identifiable by **backdoor adjustment**.
+
+```{r}
+adj_sets <- adjustmentSets(g_dag, exposure = "A", outcome = "Y")
+adj_sets
+```
+
+The adjustment set is $\{X\}$. Under this graph,
+
+$$
+E[Y(a)] = E_X\{E(Y \mid A=a, X)\}.
+$$
+
+So the graph has translated a causal query into a regression-style observed data functional.
+
+## Estimating the DAG Effect with AIPW
+
+Here is a small simulated data set where `X` confounds the treatment–outcome association.
+
+```{r}
+#| warning: false
+#| message: false
+#| cache: true
+set.seed(2026)
+
+logistic <- function(x) 1 / (1 + exp(-x))
+
+n  <- 400
+X  <- rnorm(n)
+pA <- logistic(-0.2 + 0.8 * X)
+A  <- as.numeric(runif(n) < pA)
+Y  <- 1 + 1.5 * A + 0.7 * X + 0.3 * rnorm(n)
+
+df_dag <- data.frame(X = X, A = A, Y = Y)
+head(df_dag)
+```
+
+Because the graph is backdoor-identified, we use AIPW with the adjustment set the graph chose. The function below implements the AIPW point estimate and an EIF-based standard error.
+
+```{r}
+aipw_backdoor <- function(data, treatment, outcome, adjust) {
+  fmla_y <- as.formula(paste0(outcome, " ~ ", treatment, " * (",
+                              paste(adjust, collapse = " + "), ")"))
+  fmla_a <- as.formula(paste0(treatment, " ~ ",
+                              paste(adjust, collapse = " + ")))
+
+  mu_fit <- lm(fmla_y, data = data)
+  pi_fit <- glm(fmla_a, data = data, family = binomial())
+
+  d1 <- data; d1[[treatment]] <- 1
+  d0 <- data; d0[[treatment]] <- 0
+  mu1 <- predict(mu_fit, newdata = d1)
+  mu0 <- predict(mu_fit, newdata = d0)
+  pi1 <- predict(pi_fit, newdata = data, type = "response")
+
+  w  <- data[[treatment]]; y <- data[[outcome]]
+  if1 <- w     * (y - mu1) / pi1       + mu1
+  if0 <- (1-w) * (y - mu0) / (1 - pi1) + mu0
+  psi  <- if1 - if0
+
+  est  <- mean(psi)
+  se   <- sd(psi) / sqrt(length(psi))
+  ci   <- est + c(-1, 1) * qnorm(0.975) * se
+  data.frame(estimand = "Backdoor ACE",
+             estimate = round(est, 4),
+             lower_95 = round(ci[1], 4),
+             upper_95 = round(ci[2], 4),
+             se       = round(se, 4))
+}
+
+aipw_backdoor(df_dag, "A", "Y", adjust = "X") |> kable()
+```
+
+The graph chose the adjustment set; the estimator used that set. The point estimate recovers the true ACE of 1.5 within sampling noise.
+
+## An ADMG: Front-Door Identification
+
+Now suppose treatment and outcome share an unobserved common cause. A simple DAG adjustment argument no longer works. The **front-door ADMG** has a mediator `M` that transmits the effect of `A` to `Y`, while `A` and `Y` are hidden-confounded:
+
+```{r}
+g_fd <- dagitty("dag {
+  A -> M
+  M -> Y
+  A <-> Y
+}")
+coordinates(g_fd) <- list(
+  x = c(A = 0, M = 1, Y = 2),
+  y = c(A = 0, M = 0, Y = 0)
+)
+```
+
+```{r}
+#| label: fig-front-door
+#| fig-cap: "Front-door ADMG: A and Y share an unobserved common cause (dashed bidirected edge), but the effect propagates through the mediator M."
+#| fig-width: 5
+#| fig-height: 3
+ggdag(g_fd) + theme_dag_blank()
+```
+
+The bidirected edge `A <-> Y` means that ordinary backdoor adjustment is not available. Indeed `dagitty` reports no adjustment set:
+
+```{r}
+adjustmentSets(g_fd, exposure = "A", outcome = "Y")
+```
+
+But the effect is still identified, via the **front-door criterion** (Pearl, 1995). We call the Pearl–Shpitser ID algorithm in `causaleffect` to obtain the symbolic identification expression. The function requires the graph as an `igraph` object with bidirected edges encoded as two directed edges marked `description = "U"`:
+
+```{r}
+g_fd_ig <- graph_from_literal(A -+ M, M -+ Y, A -+ Y, Y -+ A)
+g_fd_ig <- set_edge_attr(g_fd_ig, "description",
+                         index = c(2, 4),  # A->Y and Y->A
+                         value = "U")
+expr_fd <- causal.effect(y = "Y", x = "A", G = g_fd_ig, simp = TRUE)
+cat(expr_fd, "\n")
+```
+
+The expression $\sum_M P(M\mid A)\sum_{A'} P(Y\mid A', M) P(A')$ is precisely the front-door formula.
+
+## Estimating the ADMG Effect with the Front-Door Formula
+
+Simulate a front-door setting. The latent `U` is not included in the observed data; it is represented in the graph by `A <-> Y`.
+
+```{r}
+#| warning: false
+#| message: false
+#| cache: true
+set.seed(2027)
+
+n     <- 400
+U     <- rnorm(n)
+A_fd  <- as.numeric(runif(n) < logistic(-0.1 + 0.8 * U))
+M     <- as.numeric(runif(n) < logistic(-0.4 + 1.2 * A_fd))
+Y_fd  <- as.numeric(runif(n) < logistic(-1.0 + 0.9 * M + 0.7 * U))
+
+df_fd <- data.frame(A = A_fd, M = M, Y = Y_fd)
+head(df_fd)
+```
+
+The front-door point estimator is a direct evaluation of the identification expression:
+
+$$
+E[Y(a)] = \sum_m P(M=m\mid A=a)\sum_{a'} P(Y=1\mid A=a', M=m) P(A=a').
+$$
+
+For binary $A$, $M$, $Y$ we plug in sample proportions:
+
+```{r}
+front_door_ace <- function(data) {
+  pA <- mean(data$A)
+  p_marginal_A <- c("0" = 1 - pA, "1" = pA)
+
+  # P(M | A): rows indexed by A, columns by M
+  pM_given_A <- prop.table(table(data$A, data$M), margin = 1)
+  # P(Y=1 | A, M)
+  pY_given_AM <- with(data, tapply(Y, list(A, M), mean))
+
+  # E[Y(a)] for a in {0, 1}
+  ey_do <- function(a) {
+    m_levels <- as.numeric(colnames(pM_given_A))
+    sum(sapply(m_levels, function(m) {
+      mar <- pM_given_A[as.character(a), as.character(m)]
+      inner <- sum(sapply(c(0, 1), function(ap)
+        pY_given_AM[as.character(ap), as.character(m)] *
+          p_marginal_A[as.character(ap)]))
+      mar * inner
+    }))
+  }
+  ey_do(1) - ey_do(0)
+}
+
+# Bootstrap for SE
+set.seed(99)
+B   <- 500
+boot_ace <- replicate(B, {
+  idx <- sample.int(nrow(df_fd), replace = TRUE)
+  front_door_ace(df_fd[idx, ])
+})
+
+est_fd <- front_door_ace(df_fd)
+se_fd  <- sd(boot_ace)
+ci_fd  <- est_fd + c(-1, 1) * qnorm(0.975) * se_fd
+
+data.frame(estimand = "Front-door ACE",
+           estimate = round(est_fd, 4),
+           lower_95 = round(ci_fd[1], 4),
+           upper_95 = round(ci_fd[2], 4),
+           se       = round(se_fd, 4)) |> kable()
+```
+
+This is the main practical advantage of separating identification from estimation. The user states the graph once. The software checks the graph and tells us which estimator matches the identified functional.
+
+## General ID Algorithm
+
+The specialized routes above are useful because they have named estimators: backdoor adjustment and the front-door formula. ADMGs can be more general. The Pearl–Shpitser ID algorithm asks the broader question:
+
+```text
+Can P(Y | do(A)) be written using only the observed joint law P(V)?
+```
+
+The algorithm works recursively:
+
+1. remove variables that are not ancestors of the outcome;
+2. add interventions that are irrelevant after graph surgery;
+3. split the remaining graph into bidirected districts;
+4. identify each district as a factor of the observed law, if possible;
+5. return a hedge witness when no such reduction is possible.
+
+For the front-door graph, the general ID algorithm succeeds and returns the same front-door formula we obtained above. For more complex ADMGs it may yield novel functionals that no named estimator covers — this is where the plug-in approach is essential.
+
+## When the Graph Says No
+
+The **bow graph** has both a direct causal edge and unobserved confounding between the same two variables:
+
+```{r}
+g_bow <- dagitty("dag {
+  A -> Y
+  A <-> Y
+}")
+coordinates(g_bow) <- list(
+  x = c(A = 0, Y = 1),
+  y = c(A = 0, Y = 0)
+)
+```
+
+```{r}
+#| label: fig-bow
+#| fig-cap: "Bow ADMG: a direct edge A → Y plus a bidirected A ↔ Y. The effect is not identified."
+#| fig-width: 4
+#| fig-height: 2.5
+ggdag(g_bow) + theme_dag_blank()
+```
+
+The effect of `A` on `Y` is not identified in this ADMG. The observed association mixes the direct causal effect with the latent common cause.
+
+```{r}
+g_bow_ig <- graph_from_literal(A -+ Y, Y -+ A)
+g_bow_ig <- set_edge_attr(g_bow_ig, "description",
+                          index = c(1, 2), value = "U")
+g_bow_ig <- add_edges(g_bow_ig, c("A", "Y"))   # add the direct A -> Y
+
+result <- tryCatch(
+  causal.effect(y = "Y", x = "A", G = g_bow_ig, simp = TRUE),
+  error = function(e) paste("Not identifiable:", conditionMessage(e))
+)
+result
+```
+
+`causaleffect` raises an error message indicating the effect is not identifiable. This is a feature, not a failure. If the graph does not justify the causal effect, the estimator should not manufacture one.
+
+## Practical Workflow
+
+For applied work, a useful workflow is:
+
+1. write the graph before looking at estimates;
+2. use bidirected edges for latent common causes;
+3. ask `dagitty::adjustmentSets(graph, exposure, outcome)` — if non-empty, you have a backdoor route;
+4. if no adjustment set exists, call `causaleffect::causal.effect(y, x, G)` — if it returns an expression, the effect is identified by a more general route; if it errors, the effect is not identified in this ADMG;
+5. estimate using AIPW for backdoor effects, the front-door formula when the algorithm returns that pattern, or a plug-in evaluation of the symbolic expression for general ID functionals;
+6. report the graph and the identification route along with the estimate.

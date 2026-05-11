@@ -1,0 +1,166 @@
+# R Packages Used in This Book
+
+This book relies on the broader R causal-inference ecosystem rather than a single bespoke stack. The goal of this appendix is to map each chapter's methods onto the actual R packages that implement them, so a reader can move from "what is this method?" to "which R function should I call?" without searching the book code by hand.
+
+Most packages live on CRAN. A few (`pcalg`'s `graph`, `RBGL`, `Rgraphviz` dependencies) come from Bioconductor and require a one-line install via `BiocManager`. None of the packages were written for this book — they are the same tools researchers use in published papers.
+
+## Working With The Environment
+
+A minimal reproducible workflow is:
+
+```bash
+cd ~/projects/books/causal_econometrics_guide
+# Install Bioconductor dependencies once (needed by pcalg)
+Rscript -e 'install.packages("BiocManager"); BiocManager::install(c("graph","RBGL","Rgraphviz"))'
+quarto render
+```
+
+The book uses Quarto's `execute: freeze: auto` setting (configured in `_quarto.yml`), so each chapter's computed output is cached under `_freeze/`. Re-rendering only re-executes chunks whose source has changed. When upgrading a package whose API may have moved, delete the relevant `_freeze/<chapter>/` directory to force a re-run.
+
+## Package Map
+
+| Package | Used For | Main Book Chapters |
+|---|---|---|
+| `dagitty` | DAG and ADMG construction, adjustment-set search, d-separation | Identification, DAG workflow, Smoking cessation |
+| `ggdag` | Visual rendering of DAGs/ADMGs built with `dagitty` | Identification, DAG workflow, IV/RDD |
+| `causaleffect` | Pearl–Shpitser ID algorithm for general ADMGs | DAG workflow |
+| `tidyverse` (`dplyr`, `tidyr`, `purrr`, `ggplot2`) | Data wrangling and plotting throughout | Every chapter |
+| `haven` | Reading Stata `.dta` files used as examples | Estimation, DiD, IV/RDD |
+| `causaldata` | Built-in NHEFS, mortgages, and other causal-inference example datasets | Estimation, DiD, IV/RDD, Smoking cessation |
+| `hdm` | Pension (`p401k`) dataset and high-dimensional inference | Estimation |
+| `SuperLearner` | Stacked machine-learning nuisance estimation | Nonparametric |
+| `npcausal` | Influence-function-based ATE/ATT estimators (Edward Kennedy) | Nonparametric |
+| `tmle` | Targeted maximum likelihood estimation | Nonparametric |
+| `DoubleML`, `mlr3`, `mlr3learners` | Double/debiased ML for partially linear and interactive models | Nonparametric |
+| `did` | Callaway & Sant'Anna estimators; `mpdta` example dataset | DiD |
+| `etwfe` | Wooldridge's extended TWFE for staggered DiD | DiD |
+| `fixest` | High-dimensional fixed-effects OLS, Poisson, IV; clustered SEs | DiD, IV/RDD, Poisson-IV |
+| `synthdid` | Standard DiD, synthetic control, synthetic DiD; Prop 99 example | DiD |
+| `sem` | Classical two-stage least squares via `tsls()` | IV/RDD |
+| `MASS` | Multivariate normal sampling for IV simulations | IV/RDD |
+| `rdrobust` | Local-polynomial RDD, sharp and fuzzy designs | IV/RDD |
+| `gmm` | Generalized method of moments for nonlinear IV | Poisson-IV |
+| `lavaan` | SEM and CFA syntax for classical mediation | Mediation |
+| `medoutcon` | Causal mediation: controlled, natural, interventional effects | Mediation |
+| `pcalg` | PC, GES, FCI, RFCI causal-discovery algorithms | Causal Discovery (both chapters) |
+| `Rgraphviz`, `graph` | Rendering CPDAG/PAG output from `pcalg` | Causal Discovery |
+
+## `dagitty` and `ggdag`
+
+The `dagitty` package provides a small DSL for graphs and the standard graph-theoretic identification queries:
+
+```r
+library(dagitty)
+
+g <- dagitty("dag {
+  X -> A
+  X -> Y
+  A -> Y
+}")
+
+adjustmentSets(g, exposure = "A", outcome = "Y")
+```
+
+`adjustmentSets` returns *all* minimal sufficient sets for the backdoor criterion. Bidirected edges encoded as `A <-> Y` represent unobserved common causes (an ADMG), and `dagitty` correctly returns no adjustment set in that case.
+
+`ggdag` consumes `dagitty` objects and renders them through `ggplot2`:
+
+```r
+library(ggdag)
+ggdag(g) + theme_dag_blank()
+```
+
+## `causaleffect`
+
+When `dagitty::adjustmentSets` returns an empty list, the effect may still be identified through a non-backdoor route (front-door, more general ID-algorithm patterns). `causaleffect` implements Tikka & Karvanen's R port of the Pearl–Shpitser ID algorithm:
+
+```r
+library(igraph)
+library(causaleffect)
+
+g <- graph_from_literal(A -+ M, M -+ Y, A -+ Y, Y -+ A)
+g <- set_edge_attr(g, "description", index = c(2, 4), value = "U")
+causal.effect(y = "Y", x = "A", G = g, simp = TRUE)
+# → \sum_{M} P(M|A)\left(\sum_{A} P(Y|A,M) P(A)\right)
+```
+
+The bidirected edge convention is two reciprocal directed edges with `description = "U"`. The function either returns a symbolic identification expression or raises an error indicating the effect is not identifiable.
+
+## `etwfe` and `fixest`
+
+`fixest` is the workhorse for regression models with high-dimensional fixed effects. Its `feols`, `fepois`, and `feglm` use a formula DSL that keeps DiD and IV specifications readable:
+
+```r
+library(fixest)
+
+feols(y ~ x | id + year, data = df, vcov = ~id)        # TWFE, clustered SE
+fepois(y ~ x + offset(log(pop)) | id + year, data = df)  # Poisson with FE
+feols(y ~ x | id + year | x_endo ~ z, data = df)         # IV/2SLS
+```
+
+`etwfe` wraps `fixest` for Wooldridge's extended two-way fixed-effects DiD:
+
+```r
+library(etwfe)
+
+mod <- etwfe(fml = lemp ~ lpop, tvar = year, gvar = first.treat,
+             data = mpdta, vcov = ~countyreal)
+emfx(mod, type = "event")
+```
+
+`emfx()` aggregates the cohort × time interaction coefficients into an overall ATT, event-time effects, or calendar-time effects.
+
+## `pcalg`
+
+`pcalg` provides PC, GES, FCI, RFCI, GIES, and LINGAM under one consistent S4 interface. It uses the `graph` package for graph objects and `Rgraphviz` for plotting. The Bioconductor dependencies must be installed via `BiocManager` before `pcalg` can be installed from CRAN.
+
+```r
+library(pcalg)
+
+# Constraint-based: PC algorithm
+pc_fit <- pc(suffStat = list(C = cor(data), n = nrow(data)),
+             indepTest = gaussCItest, labels = colnames(data),
+             alpha = 0.01)
+
+# Score-based: Greedy Equivalence Search
+ges_fit <- ges(new("GaussL0penObsScore", data))
+
+# Latent-variable case: FCI / RFCI
+fci_fit  <- fci(suffStat = list(C = cor(data), n = nrow(data)),
+                indepTest = gaussCItest, labels = colnames(data), alpha = 0.01)
+rfci_fit <- rfci(suffStat = list(C = cor(data), n = nrow(data)),
+                 indepTest = gaussCItest, labels = colnames(data), alpha = 0.01)
+```
+
+Both observed (PC, GES) and latent (FCI, RFCI) chapters use these as the primary algorithms.
+
+## `lavaan` and `medoutcon`
+
+`lavaan` ports the SEM model-string syntax familiar from EQS, Mplus, and LISREL into R. It is used in the mediation chapter for classical SEM mediation:
+
+```r
+library(lavaan)
+
+model <- "
+  m ~ a * x
+  y ~ b * m + c * x
+  indirect := a * b
+  total    := c + indirect
+"
+fit <- sem(model, data = df)
+parameterEstimates(fit)
+```
+
+For causal mediation under the potential-outcomes framework, the book uses `medoutcon` (Hejazi & van der Laan), which estimates controlled, natural, and interventional direct/indirect effects with cross-fitted nuisance estimators.
+
+## Practical Advice
+
+The packages above form the practical toolkit for the methods in this book, but the broader R causal ecosystem is much larger. A few good entry points outside what's used directly here:
+
+- `MatchIt` and `WeightIt` for matching and weighting estimators of the ATE/ATT
+- `grf` (Generalized Random Forests) for heterogeneous treatment effects and instrumental-forest IV
+- `bnlearn` for an alternative causal-discovery toolkit focused on Bayesian networks
+- `lavaan.survey` and `blavaan` for survey-weighted and Bayesian SEM
+- `mediation` for the classical Imai/Keele/Tingley mediation framework
+
+When upgrading any of these packages, re-render affected chapters after deleting the relevant `_freeze/<chapter>/` directory so that Quarto does not reuse stale cached results.

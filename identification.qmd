@@ -14,6 +14,8 @@ The reason is that we may have confounding variables.
 
 ## Confounders
 
+In this graph, we have $w$ (treatment), $y$ (outcome), and two confounders $c1$ and $c2$. Both $c1$ and $c2$ affect both $w$ and $y$. Therefore, if we just look at the association between $w$ and $y$, it may be due to the confounding effect of $c1$ and $c2$. We cannot say that the association is causal.
+
 ```{r dag1, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}
 g <- dagify(
   y ~ w,
@@ -29,7 +31,7 @@ g <- dagify(
 ggdag(g)
 ```
 
-Here is a concrete example with 401(k) participation and assets:
+Here is a concrete example with 401(k) participation and assets. It could be the case that income and age are causing both 401(k) participation and assets. Therefore, the association between 401(k) participation and assets may not be causal. We need to control for income and age to identify the causal effect of 401(k) participation on assets.
 
 ```{r dag1.2, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}
 g <- dagify(
@@ -46,7 +48,7 @@ g <- dagify(
 ggdag(g)
 ```
 
-And another example with birth weight and maternal smoking:
+And another example with birth weight and maternal smoking. It could be the case that prenatal care and maternal age are causing both maternal smoking and birth weight. It could be that maternal smoking has nothing to do with birth weight. But age and prenatal care are causing both maternal smoking and birth weight, therefore maternal smoking appears to cause birth weight.
 
 ```{r dag1.3, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}
 g <- dagify(
@@ -65,7 +67,7 @@ ggdag(g)
 
 ## Controlled and Uncontrolled Confounders
 
-If we can control for all confounders then we still have causation from correlation. However, first, do we have all confounders in our data? Secondly, how do we control for them. In a randomised experiment, we don't have these problems. In an observational study, we have these two problems. In the graph, we may have "c2" unobserved, "c1" observed, for example. Then any estimation of the effect from $w$ to $y$ is biased.
+If we can control for all confounders then we do have causation from correlation. However, first, do we have all confounders in our data? Secondly, how do we control for them. In a randomised experiment, we don't have these problems. In an observational study, we have these two problems. In the graph, we may have "c2" unobserved, "c1" observed, for example. Then any estimation of the effect from $w$ to $y$ is biased.
 
 ## Potential Outcome Setup
 
@@ -76,6 +78,8 @@ That is, every one subject has two potential outcomes. That can be seen as pre-d
 We label treatment assignment status $W$, covariates $X$.
 
 ## ATE, ATT and ATU
+
+Let's define some treatment effects:
 
 $$ \tau_{ATE} = E[Y(1) - Y(0)] $$
 
@@ -120,7 +124,7 @@ Within each subgroup of $X=x$, W is independent of $Y(0)$. With the overlap assu
 
 However, these two criteria are often contradictory: we may need more covariates to satisfy conditional independence; meanwhile, if the dimension of covariates goes high, then it's likely in some partition we don't have control units.
 
-Four assumptions for identification:
+We need four assumptions for identification:
 
 -   Unconfoundedness (conditional independence, or ignorability)
 -   Overlap (positivity, common support)
@@ -128,6 +132,8 @@ Four assumptions for identification:
 -   Consistency
 
 ## Observational Data Flowchart
+
+In observational studies, I summarise the decision what method to use for identification of causal effect:
 
 ```{mermaid}
 flowchart LR

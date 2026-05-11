@@ -9,6 +9,31 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(knitr)
 })
+
+# Compact node labels for all DAG/MAG/PAG plots in this chapter.
+plot_attrs <- list(
+  node  = list(fontsize = 10, shape = "plaintext", height = 0.3, width = 0.3),
+  edge  = list(arrowsize = 0.6),
+  graph = list(rankdir = "TB")
+)
+
+# Wrap an arbitrary PAG adjacency matrix (pcalg convention) in a minimal
+# fciAlgo S4 object so pcalg's plot() draws proper arrow/circle/bidirected
+# marks. Used for the "true MAG" panel where we have no algorithm fit.
+amat_to_fciAlgo <- function(amat, n_obs = 0L) {
+  p <- nrow(amat)
+  new("fciAlgo",
+      amat             = amat,
+      allPdsep         = vector("list", p),
+      n.edgetestsPDSEP = numeric(0),
+      max.ordPDSEP     = -1L,
+      call             = quote(amat_to_fciAlgo()),
+      n                = as.integer(n_obs),
+      max.ord          = -1L,
+      n.edgetests      = numeric(0),
+      sepset           = vector("list", p),
+      pMax             = matrix(NA_real_, p, p))
+}
 ```
 
 In the previous chapter we assumed all causally relevant variables were observed. This assumption — called **causal sufficiency** — rarely holds in economics: unobserved ability confounds wage regressions, unobserved demand shocks confound price–quantity relationships, unobserved peer effects confound social network studies.
@@ -88,26 +113,57 @@ sprintf("Total variables: %d   Hidden: %s   Observed: %d",
 Two observed variables are adjacent in the MAG iff no subset of the *observed* variables d-separates them in the full DAG. We compute this with `pcalg::dsep`.
 
 ```{r}
-true_mag_skel <- function(dag, observed_names) {
+all_subsets <- function(xs) {
+  out <- list(character(0))
+  for (k in seq_along(xs)) out <- c(out, combn(xs, k, simplify = FALSE))
+  out
+}
+
+# Ancestors of a node in a graphNEL DAG (excluding the node itself).
+ancestors_of <- function(dag, target) {
+  ie <- inEdges(dag)
+  visited <- character(0)
+  queue   <- target
+  while (length(queue)) {
+    cur <- queue[1]; queue <- queue[-1]
+    if (cur %in% visited) next
+    visited <- c(visited, cur)
+    queue   <- c(queue, ie[[cur]])
+  }
+  setdiff(visited, target)
+}
+
+# True MAG over observed nodes as a pcalg-encoded PAG amat:
+# directed edges where one observed node is an ancestor of the other in the
+# full DAG, bidirected edges where neither is an ancestor of the other.
+true_mag_amat <- function(dag, observed_names) {
   p <- length(observed_names)
   amat <- matrix(0L, p, p, dimnames = list(observed_names, observed_names))
-  all_subsets <- function(xs) {
-    out <- list(character(0))
-    for (k in seq_along(xs)) out <- c(out, combn(xs, k, simplify = FALSE))
-    out
-  }
   for (i in seq_len(p - 1)) for (j in seq.int(i + 1, p)) {
     u <- observed_names[i]; v <- observed_names[j]
     others <- setdiff(observed_names, c(u, v))
     sep <- any(vapply(all_subsets(others),
                       function(S) dsep(u, v, S, dag),
                       logical(1)))
-    if (!sep) { amat[i, j] <- 1L; amat[j, i] <- 1L }
+    if (sep) next
+    anc_u <- ancestors_of(dag, u)
+    anc_v <- ancestors_of(dag, v)
+    if      (u %in% anc_v) { amat[i, j] <- 3L; amat[j, i] <- 2L }   # u -> v
+    else if (v %in% anc_u) { amat[i, j] <- 2L; amat[j, i] <- 3L }   # v -> u
+    else                   { amat[i, j] <- 2L; amat[j, i] <- 2L }   # u <-> v
   }
   amat
 }
 
-amat_true_mag <- true_mag_skel(true_dag, obs_labels)
+# Skeleton version (1 wherever an edge exists, ignoring direction) — used in
+# the Monte Carlo F1 comparison below.
+true_mag_skel <- function(dag, observed_names) {
+  a <- true_mag_amat(dag, observed_names)
+  (a != 0L) * 1L
+}
+
+amat_true_pag  <- true_mag_amat(true_dag, obs_labels)
+amat_true_mag  <- (amat_true_pag != 0L) * 1L  # skeleton for F1 comparisons
 sprintf("True MAG skeleton edges (over %d observed nodes): %d",
         n_obs, sum(amat_true_mag) / 2)
 ```
@@ -125,15 +181,19 @@ mag_to_graphNEL <- function(amat) {
   g
 }
 
-# Highlight latent nodes with a different shape on the full DAG.
-attrs_full <- list(node = list(shape = "plaintext", fontsize = 14))
-node_attrs <- list(shape = setNames(rep("box", length(latent_idx)),
-                                    all_labels[latent_idx]))
+# Box-shaped nodes for the latent variables on the full DAG.
+attrs_full <- modifyList(plot_attrs,
+                         list(node = list(shape = "plaintext", fontsize = 10)))
+node_attrs <- list(shape    = setNames(rep("box", length(latent_idx)),
+                                       all_labels[latent_idx]),
+                   fontsize = setNames(rep(10,   length(latent_idx)),
+                                       all_labels[latent_idx]))
 
 op <- par(mfrow = c(1, 2), mar = c(1, 1, 3, 1))
 plot(true_dag, attrs = attrs_full, nodeAttrs = node_attrs,
      main = "Full DAG (boxed nodes hidden)")
-plot(mag_to_graphNEL(amat_true_mag), main = "True MAG skeleton (observed)")
+plot(amat_to_fciAlgo(amat_true_pag, n_obs), main = "True MAG (observed)",
+     attrs = plot_attrs)
 par(op)
 ```
 
@@ -197,7 +257,7 @@ sprintf("FCI:    skeleton F1 = %.3f   CI tests = %d", f1_fci_v, ci_tests_fci)
 #| fig-cap: "PAG estimated by FCI. Circle marks (○) indicate uncertainty about orientation; a bidirected ↔ edge identifies a definite hidden common cause."
 #| fig-width: 5.5
 #| fig-height: 4.5
-plot(fci_fit, main = "")
+plot(fci_fit, main = "", attrs = plot_attrs)
 ```
 
 ::: {.callout-note}
@@ -260,13 +320,14 @@ kable(data.frame(
 
 ```{r}
 #| label: fig-latent-skeletons
-#| fig-cap: "True MAG skeleton vs. skeletons recovered by FCI and RFCI over the observed nodes."
+#| fig-cap: "True MAG vs. PAGs recovered by FCI and RFCI. Directed arrows are definite cause-to-effect; bidirected (↔) edges flag hidden common causes; circle (○) marks indicate orientations the algorithm could not resolve. RFCI typically leaves more circles than FCI because its orientation phase is deliberately more conservative."
 #| fig-width: 12
 #| fig-height: 4.5
 op <- par(mfrow = c(1, 3), mar = c(1, 1, 3, 1))
-plot(mag_to_graphNEL(amat_true_mag), main = "True MAG skeleton")
-plot(mag_to_graphNEL(skel_fci),      main = "FCI — estimated skeleton")
-plot(mag_to_graphNEL(skel_rfci),     main = "RFCI — estimated skeleton")
+plot(amat_to_fciAlgo(amat_true_pag, n_obs),
+     main = "True MAG",          attrs = plot_attrs)
+plot(fci_fit,  main = "FCI — estimated PAG",  attrs = plot_attrs)
+plot(rfci_fit, main = "RFCI — estimated PAG", attrs = plot_attrs)
 par(op)
 ```
 

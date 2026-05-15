@@ -1,0 +1,335 @@
+# Shift-Share Instrumental Variables
+
+```{r}
+#| include: false
+library(tidyverse)
+library(fixest)
+library(ggplot2)
+library(knitr)
+```
+
+Shift-share (or "Bartik") instruments combine local industry shares with national
+industry growth rates to construct an instrument for local employment shocks.
+They are workhorses in labour economics, trade, and urban economics — but the
+identifying assumptions and inference procedures have been reworked over the
+last five years. This chapter covers the modern view.
+
+## The construction
+
+For each location $\ell$ and industry $k$, let $s_{\ell k}$ be the share of
+local employment in industry $k$ at baseline, and let $g_k$ be a national
+growth rate (or trade shock) for that industry. The shift-share instrument is
+
+$$
+B_\ell \;=\; \sum_{k=1}^{K} s_{\ell k}\, g_k.
+$$
+
+This is "shift-share" because it combines a local *share* with an industry-level
+*shift*. The classic application is Bartik (1991), who used local industry mix
+to predict employment growth. Autor, Dorn, and Hanson (2013) — "the China
+shock" — used local industry shares interacted with industry-level Chinese
+import growth in other rich countries.
+
+The first-stage regression is then
+
+$$
+\Delta L_\ell \;=\; \pi_0 + \pi_1 B_\ell + X_\ell'\gamma + \epsilon_\ell,
+$$
+
+with $B_\ell$ instrumenting for the observed local shock in a 2SLS for the
+outcome of interest.
+
+## Two identification views
+
+A 2020 paper by Goldsmith-Pinkham, Sorkin, and Swift (GPSS) and a 2022 paper
+by Borusyak, Hull, and Jaravel (BHJ) showed that shift-share IV has two
+distinct identification stories, with different validity conditions.
+
+### Share view (GPSS 2020)
+
+Treat the shares $s_{\ell k}$ as the source of identifying variation, with the
+shocks $g_k$ acting as weights. The instrument is valid if shares are
+exogenous to the outcome (conditional on controls). GPSS prove that the
+shift-share IV is numerically equivalent to a GMM combination of $K$
+just-identified IVs, one per industry share:
+
+$$
+\hat\beta^{SS} \;=\; \sum_{k=1}^{K} \hat\alpha_k\, \hat\beta_k,
+$$
+
+where $\hat\beta_k$ is the just-identified IV using share $s_{\cdot k}$ alone
+and $\hat\alpha_k$ is the **Rotemberg weight**. This is the key diagnostic:
+which shares are driving the estimate?
+
+### Shock view (BHJ 2022)
+
+Treat the shocks $g_k$ as the source of identifying variation — they should
+behave as-if randomly assigned across industries. Shares are exposure weights.
+Under this view, validity requires that shocks are uncorrelated with
+unobservables in the second stage, conditional on industry-level controls.
+BHJ derive an equivalent IV regression at the shock level (one observation
+per industry rather than per region), which is easier to validate.
+
+The two views are not mutually exclusive but place the burden of
+exogeneity on different objects. In an application, you should defend at
+least one of them and report diagnostics for both.
+
+## Inference
+
+Standard OLS or cluster-robust standard errors on the regional regression
+**underestimate uncertainty** because the same industry shocks appear in many
+regions, inducing cross-region correlation that region-level clustering does
+not capture. Two corrections are now standard:
+
+- **Cluster on shocks (BHJ)**: equivalent to running the regression at the
+  industry-shock level. Implemented via shock-level reweighting.
+- **AKM SE (Adão, Kolesár, Morales 2019)**: explicit formula for SE accounting
+  for shock-level correlation. Available in the `ShiftShareSE` R package.
+
+## Simulation: build intuition
+
+Set up a small DGP with regions, industries, and a known causal effect.
+
+```{r}
+#| label: sim-data
+#| cache: true
+
+set.seed(2026)
+n_region   <- 500
+n_industry <- 20
+beta_true  <- 0.5       # true effect of regional shock on outcome
+
+# Shares: each region's industry mix. Use Dirichlet(0.3) so that regions
+# concentrate in a few industries (more realistic than uniform mixing).
+shares <- t(replicate(n_region, {
+  raw <- rgamma(n_industry, shape = 0.3)
+  raw / sum(raw)
+}))
+colnames(shares) <- paste0("s", 1:n_industry)
+
+# Industry-level shocks (the "shifts").
+shocks <- rnorm(n_industry, mean = 0, sd = 1.0)
+
+# Construct the shift-share instrument B_l = sum_k s_lk * g_k
+B <- as.numeric(shares %*% shocks)
+
+# Endogenous local shock: depends on B plus a confounder
+u <- rnorm(n_region)
+X <- B + 0.3 * u + rnorm(n_region, sd = 0.3)
+
+# Outcome: true effect beta_true * X, plus confounder, plus noise
+Y <- beta_true * X + u + rnorm(n_region, sd = 0.5)
+
+df <- tibble(region = 1:n_region, X = X, Y = Y, B = B)
+head(df)
+```
+
+A naive OLS suffers from the confounder `u`:
+
+```{r}
+#| label: naive-ols
+#| cache: true
+
+ols  <- feols(Y ~ X, data = df)
+ivss <- feols(Y ~ 1 | X ~ B, data = df)
+etable(ols, ivss, headers = c("OLS", "Shift-share IV"),
+       digits = 3, digits.stats = 3)
+```
+
+OLS is biased upward by the confounder; the shift-share IV recovers a
+value close to the true effect of `r beta_true`. With concentrated industry
+shares and 20 industries, the first-stage F is well above 100.
+
+### Rotemberg weights
+
+The GPSS decomposition says the shift-share IV is a weighted average of
+$K$ just-identified IVs (one per industry share). Compute the weights:
+
+```{r}
+#| label: rotemberg
+#| cache: true
+
+# Rotemberg weight for industry k (using centered moments to match the
+# demeaned 2SLS regression):
+#   alpha_k = g_k * Cov(s_{.k}, X) / sum_j g_j * Cov(s_{.j}, X)
+# Each industry's just-identified IV estimate uses s_{.k} as instrument:
+#   beta_k = Cov(s_{.k}, Y) / Cov(s_{.k}, X)
+# GPSS prove the shift-share IV estimate equals sum_k alpha_k * beta_k.
+
+cov_sk_X <- sapply(1:n_industry, function(k) cov(shares[, k], df$X))
+cov_sk_Y <- sapply(1:n_industry, function(k) cov(shares[, k], df$Y))
+denom    <- sum(shocks * cov_sk_X)
+
+alpha  <- shocks * cov_sk_X / denom
+beta_k <- cov_sk_Y / cov_sk_X
+
+rotemberg <- tibble(industry = 1:n_industry,
+                    shock    = shocks,
+                    weight   = alpha,
+                    beta_k   = beta_k)
+
+kable(rotemberg, digits = 3,
+      caption = paste0("Rotemberg decomposition. Sum of alpha*beta_k = ",
+                       round(sum(alpha * beta_k), 3),
+                       " (= shift-share IV estimate of ",
+                       round(coef(ivss)["fit_X"], 3), ")."))
+```
+
+Two diagnostics jump out:
+
+1. **Weight concentration**: if one or two industries carry most of the
+   weight, the identifying variation is essentially coming from those
+   industries' shares. Their exogeneity is the assumption you're really
+   leaning on.
+2. **Heterogeneous $\hat\beta_k$**: in this benign simulation, the
+   industry-specific IVs are all near the true effect (with sampling noise).
+   In real data, if a few industries give wildly different estimates, the
+   "average" shift-share IV is averaging over heterogeneous treatment effects
+   you should report explicitly.
+
+```{r}
+#| label: rotemberg-plot
+#| cache: true
+#| fig-height: 4
+#| fig-width: 7
+
+ggplot(rotemberg, aes(x = factor(industry), y = beta_k, size = abs(weight))) +
+  geom_hline(yintercept = beta_true, linetype = "dashed", color = "red") +
+  geom_point(alpha = 0.7) +
+  scale_size_continuous(name = "|Rotemberg weight|") +
+  labs(x = "Industry", y = "Just-identified IV estimate",
+       title = "Industry-level IV estimates and weights",
+       subtitle = paste("Red line = true effect =", beta_true)) +
+  theme_minimal()
+```
+
+### What goes wrong when shares are endogenous
+
+Now break the share-exogeneity assumption: make industry 1's share correlated
+with the second-stage error.
+
+```{r}
+#| label: bad-shares
+#| cache: true
+
+set.seed(11)
+# Re-do shares so industry 1's share covaries with a new confounder v
+v <- rnorm(n_region)
+shares_bad <- shares
+shares_bad[, 1] <- pmax(0.01, shares[, 1] + 0.15 * v)
+shares_bad <- shares_bad / rowSums(shares_bad)   # renormalise to sum to 1
+
+B_bad <- as.numeric(shares_bad %*% shocks)
+X_bad <- B_bad + 0.3 * u + rnorm(n_region, sd = 0.3)
+Y_bad <- beta_true * X_bad + u + 0.6 * v + rnorm(n_region, sd = 0.5)
+
+df_bad <- tibble(X = X_bad, Y = Y_bad, B = B_bad)
+ivss_bad <- feols(Y ~ 1 | X ~ B, data = df_bad)
+cat("True beta:", beta_true, "\n")
+cat("Shift-share IV with bad share 1:", round(coef(ivss_bad)["fit_X"], 3), "\n")
+```
+
+The estimate is biased — but the bias comes from a *single industry's share*
+covarying with unobservables. Rotemberg weights would have flagged industry 1
+as carrying disproportionate identifying weight; a robustness check that
+drops industry 1 (or applies BHJ's shock-level inference) would have
+detected the problem.
+
+## Empirical: the China shock (Autor, Dorn, Hanson 2013)
+
+The canonical shift-share application is ADH (2013). Local labour markets
+(commuting zones) are differently exposed to rising Chinese import competition
+because they had different baseline industry mixes. The instrument is
+
+$$
+\text{IV}_\ell \;=\; \sum_k \frac{L_{\ell k,\,1990}}{L_{\ell,\,1990}}\,
+                   \frac{\Delta M^{other}_{k}}{L_{k,\,1990}},
+$$
+
+where the shocks $\Delta M^{other}_k$ are growth in Chinese imports into
+*other rich countries* (a "leave-one-out" construction that strips US-specific
+demand from the shocks).
+
+```{r}
+#| label: adh-skeleton
+#| eval: false
+#| echo: true
+
+# David Dorn distributes the replication data at
+# https://www.ddorn.net/data.htm — files needed:
+#   workfile_china.dta  (commuting zone data, 1990-2007)
+#   industry_shares.csv (czone-industry shares)
+#   industry_imports.csv (industry-level imports)
+
+library(haven)
+library(fixest)
+
+cz   <- read_dta("workfile_china.dta")
+fit  <- feols(d_sh_empl_mfg ~ 1 | d_tradeusch_pw ~ d_tradeotch_pw_lag,
+              data = cz,
+              cluster = ~ statefip)
+summary(fit)
+```
+
+Modern best-practice extensions of the basic ADH regression:
+
+```{r}
+#| label: adh-modern
+#| eval: false
+#| echo: true
+
+# 1. Rotemberg weights via the bartik.weight package (Goldsmith-Pinkham)
+# devtools::install_github("paulgp/bartik-weight")
+library(bartik.weight)
+rw <- bw(cz, master = master_spec, y = "d_sh_empl_mfg",
+         x = "d_tradeusch_pw", weight = "timepwt48",
+         G = G_growth, Z = Z_shares)
+
+# Plot the Rotemberg weights to see which industries drive the estimate
+plot(rw)
+
+# 2. Adão-Kolesár-Morales standard errors
+# devtools::install_github("kolesarm/ShiftShareSE")
+library(ShiftShareSE)
+ivreg_ss(d_sh_empl_mfg ~ d_tradeusch_pw + controls,
+         X = "d_tradeotch_pw_lag",
+         data = cz, W = shock_weights, region_cvar = "czone",
+         method = "akm0")
+
+# 3. BHJ shock-level inference: collapse to shock (industry-period) level
+# devtools::install_github("borusyak/shift-share")
+library(ssaggregate)
+shocks_data <- ssaggregate(data = cz, vars = c("d_sh_empl_mfg",
+                                                "d_tradeusch_pw"),
+                            shock = "d_tradeotch_pw_lag", weights = "timepwt48",
+                            l = "czone", n = "industry", t = "year",
+                            s = "share")
+# Now regress at shock level — interpretation: shock-level IV
+feols(d_sh_empl_mfg ~ 1 | d_tradeusch_pw ~ shock, data = shocks_data)
+```
+
+These three diagnostics — Rotemberg weights, AKM standard errors, and BHJ
+shock-level regressions — should appear in any new shift-share paper.
+
+## Summary
+
+- **Shift-share IV** = local shares × national shocks. Identifies effects of
+  local economic shocks by leveraging differences in industry mix.
+- **Two identification views**: shares exogenous (GPSS) or shocks as-if-random
+  (BHJ). Defend at least one; report diagnostics for both.
+- **Rotemberg weights** decompose the OLS-IV estimate into industry-specific
+  just-identified IVs. Concentration warnings + heterogeneity warnings come
+  for free.
+- **Inference**: cluster-on-region underestimates uncertainty. Use AKM SE
+  (Adão, Kolesár, Morales 2019) or BHJ shock-level regressions.
+- **R packages**: `fixest` for the regression, `bartik.weight` for Rotemberg
+  decomposition, `ShiftShareSE` for AKM standard errors, `ssaggregate` for BHJ
+  shock-level regressions.
+
+## References
+
+- Bartik, T. J. (1991). *Who Benefits from State and Local Economic Development Policies?* Upjohn Institute.
+- Autor, D., Dorn, D., & Hanson, G. (2013). The China syndrome: local labor market effects of import competition in the United States. *American Economic Review*, 103(6), 2121–68.
+- Adão, R., Kolesár, M., & Morales, E. (2019). Shift-share designs: theory and inference. *Quarterly Journal of Economics*, 134(4), 1949–2010.
+- Goldsmith-Pinkham, P., Sorkin, I., & Swift, H. (2020). Bartik instruments: what, when, why, and how. *American Economic Review*, 110(8), 2586–2624.
+- Borusyak, K., Hull, P., & Jaravel, X. (2022). Quasi-experimental shift-share research designs. *Review of Economic Studies*, 89(1), 181–213.

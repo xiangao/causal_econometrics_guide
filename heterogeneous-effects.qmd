@@ -1,0 +1,472 @@
+# Heterogeneous Treatment Effects with Machine Learning
+
+```{r}
+#| include: false
+library(tidyverse)
+library(grf)
+library(policytree)
+library(ggplot2)
+```
+
+```{r}
+#| eval: false
+library(tidyverse)
+library(grf)
+library(policytree)
+library(ggplot2)
+```
+
+The [estimands chapter](causal-estimands.qmd) defined the conditional average
+treatment effect
+
+$$
+\text{CATE}(x) = \mathbb{E}[Y(1) - Y(0) \mid X = x]
+$$
+
+as the effect of treatment for individuals with covariates $X = x$. There,
+we computed CATE from known potential outcomes — a luxury only simulation
+affords. In real data, $Y(0)$ and $Y(1)$ are never both observed, and CATE
+must be *estimated* from $(X, D, Y)$ without strong functional-form
+assumptions.
+
+This chapter covers the modern toolkit for that problem:
+
+- **Meta-learners** — recipes that turn any ML regressor into a CATE
+  estimator: S-, T-, X-, R-, and DR-learners.
+- **Causal forests** — Wager-Athey (2018) trees designed specifically for
+  CATE estimation, with honest sample-splitting and valid pointwise
+  confidence intervals.
+- **Best linear projection (BLP) and CLAN** — Chernozhukov-Demirer-Duflo-
+  Fernandez-Val (2018) tools for summarising and testing heterogeneity.
+- **Policy trees** — Athey-Wager (2021) trees that recommend who to treat,
+  given a CATE estimate.
+
+## The data-generating process
+
+Reuse the DGP from the estimands chapter, where the true CATE is
+$\tau(x) = 1 + 2x$:
+
+```{r}
+#| label: dgp
+#| cache: true
+
+set.seed(42)
+n <- 5000
+p <- 5      # 5 covariates: only X1 is the effect modifier; X2..X5 are noise
+
+X <- matrix(runif(n * p), n, p)
+colnames(X) <- paste0("X", 1:p)
+U <- rnorm(n)
+# Treatment depends on a noise covariate (X2) and U — backdoor confounding
+ps  <- plogis(-0.3 + 1.5 * X[, 2] + 0.5 * U)
+D   <- rbinom(n, 1, ps)
+tau <- 1 + 2 * X[, 1]          # CATE varies along X1 only
+Y0  <- 0.5 * X[, 2] + 0.3 * U + rnorm(n)
+Y1  <- Y0 + tau
+Y   <- ifelse(D == 1, Y1, Y0)
+
+cat(sprintf("n = %d, true ATE = %.3f\n", n, mean(tau)))
+cat(sprintf("True CATE at X1 = 0.2: %.2f\n", 1 + 2 * 0.2))
+cat(sprintf("True CATE at X1 = 0.8: %.2f\n", 1 + 2 * 0.8))
+```
+
+The treatment is confounded through $X_2$ and the unobserved $U$. Including
+$X_2$ in the conditioning set restores identification; we will not condition
+on $U$ (it is unobserved).
+
+## Meta-learners
+
+A meta-learner is a recipe that turns a *generic* regression estimator (any
+black-box ML method) into a CATE estimator. The simplest meta-learners are:
+
+### S-learner ("single")
+
+Fit one regression of $Y$ on $(D, X)$, then predict the difference between
+$D=1$ and $D=0$ at each $x$:
+
+$$
+\hat\tau^S(x) = \hat\mu(1, x) - \hat\mu(0, x).
+$$
+
+```{r}
+#| label: s-learner
+#| cache: true
+
+# Use a flexible learner — random forest from grf::regression_forest
+XD_train <- cbind(D = D, X)
+fit_S <- regression_forest(XD_train, Y, num.trees = 500)
+
+# Counterfactual predictions at D = 1 and D = 0 for every X
+mu1 <- predict(fit_S, cbind(D = rep(1, n), X))$predictions
+mu0 <- predict(fit_S, cbind(D = rep(0, n), X))$predictions
+tau_S <- mu1 - mu0
+
+cor_S <- cor(tau_S, tau)
+cat(sprintf("S-learner CATE correlation with truth: %.3f\n", cor_S))
+```
+
+The S-learner is simple but biased toward zero when the treatment effect is
+small relative to outcome variation, because the regression "ignores" the
+$D$ variable if it has little predictive value.
+
+### T-learner ("two")
+
+Fit two separate regressions: $\hat\mu_1$ on treated units, $\hat\mu_0$ on
+controls. Then $\hat\tau^T(x) = \hat\mu_1(x) - \hat\mu_0(x)$.
+
+```{r}
+#| label: t-learner
+#| cache: true
+
+fit_T1 <- regression_forest(X[D == 1, ], Y[D == 1], num.trees = 500)
+fit_T0 <- regression_forest(X[D == 0, ], Y[D == 0], num.trees = 500)
+
+mu1_T <- predict(fit_T1, X)$predictions
+mu0_T <- predict(fit_T0, X)$predictions
+tau_T <- mu1_T - mu0_T
+
+cor_T <- cor(tau_T, tau)
+cat(sprintf("T-learner CATE correlation with truth: %.3f\n", cor_T))
+```
+
+The T-learner avoids the bias-toward-zero of the S-learner but suffers
+when the treated and control groups have very different propensity
+distributions: extrapolation errors compound when subtracting the two
+fitted functions.
+
+### X-learner (Künzel et al. 2019)
+
+The X-learner imputes the missing potential outcomes using the T-learner
+fits, then regresses these "pseudo-outcomes" on $X$ separately within each
+arm. Finally, the two CATE estimates are combined with weights from the
+propensity score.
+
+```{r}
+#| label: x-learner
+#| cache: true
+
+# Step 1: T-learner fits (already done above)
+# Step 2: Pseudo-outcomes
+D1_pseudo <- Y[D == 1] - predict(fit_T0, X[D == 1, ])$predictions   # observed - imputed Y(0)
+D0_pseudo <- predict(fit_T1, X[D == 0, ])$predictions - Y[D == 0]   # imputed Y(1) - observed
+
+# Step 3: Regress pseudo-outcomes on X in each arm
+fit_X1 <- regression_forest(X[D == 1, ], D1_pseudo, num.trees = 500)
+fit_X0 <- regression_forest(X[D == 0, ], D0_pseudo, num.trees = 500)
+
+tau_X1 <- predict(fit_X1, X)$predictions
+tau_X0 <- predict(fit_X0, X)$predictions
+
+# Step 4: Weighted combination — use propensity score as the weight
+ps_fit <- regression_forest(X, D, num.trees = 500)
+ps_hat <- predict(ps_fit, X)$predictions
+ps_hat <- pmin(pmax(ps_hat, 0.02), 0.98)   # trim
+
+tau_X <- ps_hat * tau_X0 + (1 - ps_hat) * tau_X1
+
+cor_X <- cor(tau_X, tau)
+cat(sprintf("X-learner CATE correlation with truth: %.3f\n", cor_X))
+```
+
+The X-learner is particularly effective when the propensity score is far
+from 0.5 and one treatment arm is much smaller than the other — common in
+observational studies.
+
+### R-learner (Nie & Wager 2021)
+
+The R-learner uses Robinson's (1988) partialled-out residual approach.
+Define pseudo-outcomes that, in expectation, equal $\tau(X)$:
+
+$$
+\tilde Y_i = \frac{Y_i - \hat m(X_i)}{D_i - \hat e(X_i)}, \quad
+\text{weights} = (D_i - \hat e(X_i))^2,
+$$
+
+where $\hat m(x) = \mathbb{E}[Y \mid X = x]$ and $\hat e(x) = \mathbb{E}[D \mid X = x]$
+are cross-fitted nuisance estimates. Regressing $\tilde Y$ on $X$ with the
+indicated weights yields the CATE.
+
+```{r}
+#| label: r-learner
+#| cache: true
+
+# Cross-fitting: split sample into 2 folds, fit nuisances on one, predict on the other
+set.seed(7)
+folds <- sample(rep(1:2, length.out = n))
+
+m_hat <- numeric(n)
+e_hat <- numeric(n)
+for (k in 1:2) {
+  train <- folds != k
+  test  <- folds == k
+  m_fit <- regression_forest(X[train, ], Y[train], num.trees = 500)
+  e_fit <- regression_forest(X[train, ], D[train], num.trees = 500)
+  m_hat[test] <- predict(m_fit, X[test, ])$predictions
+  e_hat[test] <- predict(e_fit, X[test, ])$predictions
+}
+e_hat <- pmin(pmax(e_hat, 0.02), 0.98)
+
+# R-learner pseudo-outcome and weights
+pseudo_R <- (Y - m_hat) / (D - e_hat)
+weights_R <- (D - e_hat)^2
+
+# Regress pseudo-outcomes on X with weights — use a regression forest
+fit_R <- regression_forest(X, pseudo_R, sample.weights = weights_R, num.trees = 500)
+tau_R <- predict(fit_R, X)$predictions
+
+cor_R <- cor(tau_R, tau)
+cat(sprintf("R-learner CATE correlation with truth: %.3f\n", cor_R))
+```
+
+The R-learner is doubly robust in a Neyman-orthogonality sense and tends to
+be the most efficient meta-learner in moderately well-overlapping data.
+
+### DR-learner (Kennedy 2020)
+
+The DR-learner constructs pseudo-outcomes via the AIPW formula and regresses
+them on $X$:
+
+$$
+\tilde Y_i^{DR} = \hat\mu_1(X_i) - \hat\mu_0(X_i) +
+\frac{D_i (Y_i - \hat\mu_1(X_i))}{\hat e(X_i)} -
+\frac{(1 - D_i) (Y_i - \hat\mu_0(X_i))}{1 - \hat e(X_i)}.
+$$
+
+```{r}
+#| label: dr-learner
+#| cache: true
+
+mu1_cf <- numeric(n); mu0_cf <- numeric(n); e_cf <- numeric(n)
+for (k in 1:2) {
+  train <- folds != k
+  test  <- folds == k
+  mu1_fit <- regression_forest(X[train & D == 1, , drop = FALSE], Y[train & D == 1],
+                               num.trees = 500)
+  mu0_fit <- regression_forest(X[train & D == 0, , drop = FALSE], Y[train & D == 0],
+                               num.trees = 500)
+  e_fit   <- regression_forest(X[train, ], D[train], num.trees = 500)
+  mu1_cf[test] <- predict(mu1_fit, X[test, ])$predictions
+  mu0_cf[test] <- predict(mu0_fit, X[test, ])$predictions
+  e_cf[test]   <- predict(e_fit,   X[test, ])$predictions
+}
+e_cf <- pmin(pmax(e_cf, 0.02), 0.98)
+
+pseudo_DR <- (mu1_cf - mu0_cf) +
+             D * (Y - mu1_cf) / e_cf -
+             (1 - D) * (Y - mu0_cf) / (1 - e_cf)
+
+fit_DR <- regression_forest(X, pseudo_DR, num.trees = 500)
+tau_DR <- predict(fit_DR, X)$predictions
+
+cor_DR <- cor(tau_DR, tau)
+cat(sprintf("DR-learner CATE correlation with truth: %.3f\n", cor_DR))
+```
+
+## Causal forests
+
+Wager-Athey (2018) causal forests are tailored for CATE estimation. They
+use a splitting criterion that maximises heterogeneity in treatment effects
+(rather than outcome variance), and they use *honest* sample-splitting so
+that each tree's leaf estimates are valid for inference at any test point.
+
+```{r}
+#| label: causal-forest
+#| cache: true
+
+cf <- causal_forest(X = X, Y = Y, W = D, num.trees = 2000)
+
+tau_cf <- predict(cf)$predictions
+cor_cf <- cor(tau_cf, tau)
+cat(sprintf("Causal forest CATE correlation with truth: %.3f\n", cor_cf))
+
+# Doubly robust ATE estimate
+ate_cf <- average_treatment_effect(cf)
+cat(sprintf("\nCausal forest AIPW ATE: %.3f  (SE = %.3f, true = %.3f)\n",
+            ate_cf["estimate"], ate_cf["std.err"], mean(tau)))
+```
+
+The pointwise variance estimates `predict(cf, estimate.variance = TRUE)`
+give asymptotically valid confidence intervals for each CATE prediction.
+
+### Comparing all estimators
+
+```{r}
+#| label: compare-plot
+#| cache: true
+#| fig-cap: "Estimated CATE vs true τ(x) = 1 + 2*X1 for each estimator. Closer to the dashed line = better."
+#| fig-width: 10
+#| fig-height: 6
+
+comparison <- tibble(
+  X1     = X[, 1],
+  true   = tau,
+  S      = tau_S,
+  Tlearn = tau_T,
+  X      = tau_X,
+  R      = tau_R,
+  DR     = tau_DR,
+  CF     = tau_cf
+) |>
+  pivot_longer(cols = c(S, Tlearn, X, R, DR, CF),
+               names_to = "Estimator", values_to = "Predicted")
+
+ggplot(comparison, aes(x = X1, y = Predicted)) +
+  geom_point(alpha = 0.1, size = 0.4) +
+  geom_smooth(method = "loess", se = FALSE, colour = "steelblue", linewidth = 1) +
+  geom_abline(aes(intercept = 1, slope = 2), linetype = "dashed",
+              colour = "firebrick") +
+  facet_wrap(~ Estimator, ncol = 3) +
+  labs(x = expression(X[1]),
+       y = "Estimated CATE",
+       caption = "Red dashed line = true τ(x) = 1 + 2*X1") +
+  theme_minimal()
+```
+
+## Best linear projection (BLP)
+
+Even when CATE is high-dimensional, we often want a simple summary: how
+much does the treatment effect change with each covariate? The
+**best linear projection** of CATE onto $X$ is the OLS projection
+
+$$
+\text{BLP}(X) = \arg\min_{\beta} \mathbb{E}\left[ (\tau(X) - X'\beta)^2 \right],
+$$
+
+which `grf` estimates with valid standard errors:
+
+```{r}
+#| label: blp
+#| cache: true
+
+blp <- best_linear_projection(cf, A = X)
+print(blp)
+```
+
+The BLP coefficients on $X_1$ should be close to 2 (the true slope of the
+CATE) and significant; coefficients on $X_2$ through $X_5$ should be close
+to 0 and insignificant. This is a clean test for heterogeneity along
+specific covariates.
+
+## Variable importance
+
+`grf` provides a variable-importance measure based on how often each
+covariate is used for splits in the causal-effect splits (vs the
+outcome-prediction splits):
+
+```{r}
+#| label: var-imp
+#| cache: true
+
+vi <- variable_importance(cf)
+vi_df <- tibble(variable = paste0("X", 1:p), importance = as.numeric(vi)) |>
+  arrange(desc(importance))
+print(vi_df)
+```
+
+$X_1$ should top the list. In real applications, this is a useful guide
+to which covariates carry heterogeneity.
+
+## Policy trees: who should we treat?
+
+A CATE estimate tells us the effect of treating each individual. But the
+**policy question** is often different: given a budget or a cost-benefit
+trade-off, *which* individuals should we treat? Athey-Wager (2021) propose
+**policy trees** — shallow decision trees that maximise welfare given a
+CATE estimate and a treatment cost.
+
+```{r}
+#| label: policy-tree
+#| cache: true
+
+# Compute doubly-robust scores (used for policy learning)
+dr_scores <- double_robust_scores(cf)
+cost <- 0.5     # cost of treating one unit, in outcome units
+
+# Net benefit of treatment vs control
+gain <- cbind(0, dr_scores - cost)   # column 1 = no treat (gain 0), col 2 = treat (gain τ - cost)
+
+# Fit a depth-2 policy tree (shallow for interpretability)
+tree <- policy_tree(X, gain, depth = 2)
+print(tree)
+
+# Recommended action for each unit
+actions <- predict(tree, X)
+cat(sprintf("\nTreatment rate under policy tree: %.1f%%\n",
+            mean(actions == 2) * 100))
+cat(sprintf("Estimated welfare gain over treat-everyone: %.3f units per person\n",
+            mean((actions == 2) * (dr_scores - cost) - (dr_scores - cost))))
+```
+
+The policy tree provides an interpretable assignment rule. Real-world
+policies are often required to be interpretable (e.g. fair-housing laws,
+medical decision rules), and shallow trees are the natural compromise
+between flexibility and explainability.
+
+## CLAN: testing for heterogeneity
+
+A formal test of heterogeneity is the **CLAN** (Classification Analysis)
+proposed by Chernozhukov-Demirer-Duflo-Fernandez-Val (2018). The idea: bin
+the population by predicted CATE, then estimate the average treatment
+effect in each bin. If the bin-specific ATEs are statistically different,
+there is heterogeneity.
+
+```{r}
+#| label: clan
+#| cache: true
+
+# Sort by predicted CATE, split into 5 quintiles
+nq <- 5
+quintile <- cut(tau_cf, breaks = quantile(tau_cf, probs = seq(0, 1, 1/nq)),
+                include.lowest = TRUE, labels = FALSE)
+
+# Compute AIPW ATE within each quintile
+get_ate <- function(idx) {
+  ate <- average_treatment_effect(cf, subset = idx)
+  c(est = ate["estimate"], se = ate["std.err"])
+}
+
+clan <- t(sapply(1:nq, function(q) get_ate(quintile == q)))
+clan_df <- as_tibble(clan) |>
+  mutate(quintile = 1:nq,
+         lo = est.estimate - 1.96 * se.std.err,
+         hi = est.estimate + 1.96 * se.std.err)
+
+knitr::kable(clan_df[, c("quintile", "est.estimate", "se.std.err", "lo", "hi")],
+             col.names = c("Quintile", "ATE", "SE", "95% LB", "95% UB"),
+             digits = 3,
+             caption = "Quintile-specific ATEs from CLAN: heterogeneity is evident if quintile estimates differ.")
+```
+
+The bottom and top quintiles of predicted CATE should give significantly
+different ATEs — a clean test for whether the heterogeneity is real
+(rather than estimation noise).
+
+## Summary
+
+- **Meta-learners** (S, T, X, R, DR) turn any regression algorithm into a
+  CATE estimator. R-learner and DR-learner exploit Neyman orthogonality and
+  cross-fitting for valid inference; X-learner helps with imbalanced
+  treatment arms.
+- **Causal forests** (`grf`) provide a purpose-built CATE estimator with
+  honest sample splitting, pointwise confidence intervals, and convenient
+  diagnostics (BLP, variable importance, CLAN).
+- **Best Linear Projection (BLP)** gives a simple regression-style summary
+  of CATE — coefficients with valid standard errors on how the effect
+  varies with each covariate.
+- **CLAN** (quintile-binned ATEs) provides a formal test for heterogeneity
+  and a clean way to communicate it.
+- **Policy trees** (`policytree`) translate a CATE into an interpretable
+  treatment-assignment rule, balancing welfare against cost.
+- For applied work: estimate CATE with at least *two* methods (e.g.
+  causal forest + R-learner), report BLP coefficients and quintile-binned
+  ATEs, and use a shallow policy tree when treatment-assignment
+  recommendations are needed.
+
+## References
+
+- Wager, S., & Athey, S. (2018). Estimation and inference of heterogeneous treatment effects using random forests. *JASA*, 113(523), 1228–1242.
+- Künzel, S. R., Sekhon, J. S., Bickel, P. J., & Yu, B. (2019). Metalearners for estimating heterogeneous treatment effects using machine learning. *PNAS*, 116(10), 4156–4165.
+- Nie, X., & Wager, S. (2021). Quasi-oracle estimation of heterogeneous treatment effects. *Biometrika*, 108(2), 299–319.
+- Kennedy, E. H. (2020). Towards optimal doubly robust estimation of heterogeneous causal effects. *arXiv:2004.14497*.
+- Athey, S., & Wager, S. (2021). Policy learning with observational data. *Econometrica*, 89(1), 133–161.
+- Chernozhukov, V., Demirer, M., Duflo, E., & Fernandez-Val, I. (2018). Generic machine learning inference on heterogeneous treatment effects in randomized experiments. *NBER Working Paper 24678*.

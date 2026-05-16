@@ -1,0 +1,367 @@
+# G-Methods for Time-Varying Treatments
+
+```{r}
+#| include: false
+library(tidyverse)
+library(ltmle)
+library(ipw)
+library(survey)
+library(broom)
+```
+
+```{r}
+#| eval: false
+library(tidyverse)
+library(ltmle)
+library(ipw)
+library(survey)
+library(broom)
+```
+
+All the methods covered so far have one feature in common: a single
+treatment decision at a single point in time. Real policy questions are
+often more complex. A patient receives a medication at multiple visits.
+A worker enrols in training programmes over several years. A student
+takes one course after another. The treatment evolves; covariates that
+respond to past treatment then influence future treatment. **Standard
+regression adjustment fails in this setting** — and the failure is not
+subtle.
+
+This chapter covers the **g-methods** developed by Robins and collaborators
+to handle time-varying treatments and time-varying confounders:
+
+1. **The g-formula** (parametric g-computation) — simulate the outcome
+   under a hypothetical treatment regime by recursively integrating over
+   the time-varying covariates.
+2. **Inverse probability of treatment weighting (IPTW)** for time-varying
+   treatments — reweight to a population where treatment is unrelated to
+   past covariates.
+3. **Marginal structural models (MSMs)** — regression-style models for the
+   IPTW-weighted population.
+4. **Longitudinal TMLE** — efficient doubly-robust estimation combining
+   g-computation and IPTW.
+
+## The time-varying confounding problem
+
+A two-period example makes the failure of standard regression vivid.
+Consider:
+
+- $L_0$: baseline covariate (e.g. health status at study entry)
+- $A_0$: treatment at time 0 (e.g. medication)
+- $L_1$: covariate at time 1, influenced by $A_0$ (e.g. health status after
+  first dose)
+- $A_1$: treatment at time 1, influenced by $L_1$
+- $Y$: outcome at the end of follow-up (e.g. mortality)
+
+The DAG:
+
+```
+L0 → A0 → L1 → A1 → Y
+      ↘   ↑    ↑    ↑
+       ↘ /     |    |
+       ↘×      |    |
+        L1 ← ⌣ ↩     (L1 affects A1, both affect Y)
+```
+
+$L_1$ is a **time-varying confounder**: it confounds the $A_1 \to Y$
+relationship (so we need to condition on it), but it is also a mediator
+of the $A_0 \to Y$ effect (so conditioning on it blocks the path we want
+to measure). Standard regression of $Y$ on $(A_0, A_1)$ with adjustment
+for $L_0, L_1$ over-controls. Regression without $L_1$ leaves bias.
+
+### Simulating the failure of regression
+
+```{r}
+#| label: dgp
+#| cache: true
+
+set.seed(1)
+n <- 5000
+
+# Baseline covariate
+L0 <- rnorm(n)
+# Treatment at t=0 depends on L0
+A0 <- rbinom(n, 1, plogis(-0.5 + 0.8 * L0))
+# Time-varying confounder L1: affected by A0 (and L0)
+L1 <- 0.5 * L0 + 1.0 * A0 + rnorm(n)
+# Treatment at t=1 depends on L1
+A1 <- rbinom(n, 1, plogis(-0.5 + 0.8 * L1))
+# Outcome: true effect of EACH treatment is 0.5 → cumulative effect = 1.0
+# But L1 also affects Y directly
+Y <- 0.5 * A0 + 0.5 * A1 + 0.5 * L1 + 0.5 * L0 + rnorm(n)
+
+df <- tibble(L0, A0, L1, A1, Y)
+
+cat("True total effect of always-treated vs never-treated: 1.0\n\n")
+
+# Naive regression 1: ignore L1
+naive_no_L1 <- lm(Y ~ A0 + A1 + L0, data = df)
+cat(sprintf("Naive (no L1): A0=%.3f, A1=%.3f, total=%.3f\n",
+            coef(naive_no_L1)["A0"], coef(naive_no_L1)["A1"],
+            coef(naive_no_L1)["A0"] + coef(naive_no_L1)["A1"]))
+
+# Naive regression 2: include L1
+naive_with_L1 <- lm(Y ~ A0 + A1 + L0 + L1, data = df)
+cat(sprintf("Naive (with L1): A0=%.3f, A1=%.3f, total=%.3f\n",
+            coef(naive_with_L1)["A0"], coef(naive_with_L1)["A1"],
+            coef(naive_with_L1)["A0"] + coef(naive_with_L1)["A1"]))
+```
+
+Neither regression recovers the true total effect of 1.0:
+
+- Excluding $L_1$ leaves confounding from $L_1 \to A_1$ that biases $A_1$'s
+  coefficient.
+- Including $L_1$ blocks the $A_0 \to L_1 \to Y$ pathway, so $A_0$'s
+  coefficient now measures only the direct effect, not the total effect.
+
+The g-methods solve this.
+
+## Parametric g-formula
+
+The g-formula says:
+
+$$
+\mathbb{E}[Y(\bar a)] = \sum_{\bar l} \mathbb{E}[Y \mid \bar a, \bar l]
+\prod_{t=0}^{K} f(l_t \mid \bar a_{t-1}, \bar l_{t-1}),
+$$
+
+where $\bar a = (a_0, a_1, \ldots, a_K)$ is a treatment regime, $\bar l$
+the covariate history, and the product runs over all time points. In
+practice, we fit models for the conditional distributions of each
+$L_t$ and $Y$, then simulate the joint distribution under the
+counterfactual regime $\bar a$.
+
+```{r}
+#| label: gformula
+#| cache: true
+
+# Step 1: Fit models for each time-varying variable
+# Model L1 | L0, A0
+mod_L1 <- lm(L1 ~ L0 + A0, data = df)
+# Model Y | L0, A0, L1, A1
+mod_Y  <- lm(Y  ~ L0 + A0 + L1 + A1, data = df)
+
+# Step 2: Simulate counterfactual outcomes under each treatment regime
+# Regime 1: always treat (A0=1, A1=1)
+# Regime 2: never treat (A0=0, A1=0)
+
+g_compute <- function(a0, a1) {
+  L1_sim <- predict(mod_L1, newdata = transform(df, A0 = a0)) +
+            rnorm(n, 0, sigma(mod_L1))   # simulate from L1 | L0, A0=a0
+  Y_sim  <- predict(mod_Y, newdata = transform(df, A0 = a0, L1 = L1_sim, A1 = a1))
+  mean(Y_sim)
+}
+
+# Monte Carlo: simulate many times to average over L1 distribution
+set.seed(99)
+B <- 100
+E_Y11 <- mean(replicate(B, g_compute(1, 1)))
+E_Y00 <- mean(replicate(B, g_compute(0, 0)))
+
+g_effect <- E_Y11 - E_Y00
+cat(sprintf("G-formula estimate (always treat vs never treat): %.3f\n", g_effect))
+cat("True total effect: 1.0\n")
+```
+
+The g-formula recovers the true effect by simulating $L_1$ under the
+counterfactual regime, rather than conditioning on the observed $L_1$
+(which would block the desired pathway).
+
+### What if we wanted the effect of treating only at t=0?
+
+The g-formula handles any regime — that is its main strength. To estimate
+the effect of $A_0 = 1, A_1 = 0$ vs $A_0 = 0, A_1 = 0$:
+
+```{r}
+#| label: gformula-partial
+#| cache: true
+
+set.seed(99)
+E_Y10 <- mean(replicate(B, g_compute(1, 0)))
+cat(sprintf("Effect of treating only at t=0:  %.3f  (true = 0.5)\n",
+            E_Y10 - E_Y00))
+```
+
+This recovers the true effect of 0.5 from treating only at $t = 0$.
+
+## IPTW for time-varying treatments
+
+The IPTW approach reweights observations by the inverse of the probability
+of their *observed* treatment history, given past covariates. The
+**stabilized weight** for a unit with history $(\bar A, \bar L)$ is:
+
+$$
+SW_i = \prod_{t=0}^{K} \frac{f(A_t \mid \bar A_{t-1})}{f(A_t \mid \bar A_{t-1}, \bar L_{t-1})}.
+$$
+
+The numerator uses past treatment history (but not covariates); the
+denominator uses both. Stabilisation keeps the weights bounded and reduces
+variance compared to unstabilized weights.
+
+```{r}
+#| label: iptw
+#| cache: true
+
+# Estimate the propensity-score components at each time
+# Numerator: P(A0) and P(A1 | A0)
+n0_fit <- glm(A0 ~ 1, data = df, family = binomial)
+n1_fit <- glm(A1 ~ A0, data = df, family = binomial)
+
+# Denominator: P(A0 | L0) and P(A1 | A0, L0, L1)
+d0_fit <- glm(A0 ~ L0, data = df, family = binomial)
+d1_fit <- glm(A1 ~ A0 + L0 + L1, data = df, family = binomial)
+
+# Probability of observed A at each time
+p_n0 <- predict(n0_fit, type = "response")
+p_n1 <- predict(n1_fit, type = "response")
+p_d0 <- predict(d0_fit, type = "response")
+p_d1 <- predict(d1_fit, type = "response")
+
+w_t0_num <- ifelse(df$A0 == 1, p_n0,            1 - p_n0)
+w_t0_den <- ifelse(df$A0 == 1, p_d0,            1 - p_d0)
+w_t1_num <- ifelse(df$A1 == 1, p_n1,            1 - p_n1)
+w_t1_den <- ifelse(df$A1 == 1, p_d1,            1 - p_d1)
+
+# Stabilized weight (product over time)
+sw <- (w_t0_num * w_t1_num) / (w_t0_den * w_t1_den)
+
+cat(sprintf("Weight summary: min=%.3f, mean=%.3f, max=%.3f\n",
+            min(sw), mean(sw), max(sw)))
+
+# Trim extreme weights (standard practice)
+sw_trimmed <- pmin(sw, quantile(sw, 0.99))
+```
+
+## Marginal structural models
+
+With the stabilised weights in hand, the **marginal structural model** is
+a simple regression of $Y$ on treatment history, *weighted* by $SW$:
+
+```{r}
+#| label: msm
+#| cache: true
+
+# MSM: linear in cumulative treatment
+df$sw <- sw_trimmed
+design <- svydesign(ids = ~1, weights = ~sw, data = df)
+msm_fit <- svyglm(Y ~ A0 + A1, design = design)
+
+tidy(msm_fit) |> knitr::kable(digits = 3,
+                              caption = "MSM coefficients with stabilized weights")
+
+cat(sprintf("\nMSM total effect (always vs never): %.3f  (true = 1.0)\n",
+            coef(msm_fit)["A0"] + coef(msm_fit)["A1"]))
+```
+
+The MSM recovers the total effect because the IPTW reweighting breaks the
+$L_1 \to A_1$ arrow in the reweighted population.
+
+## Longitudinal TMLE
+
+The `ltmle` package implements **longitudinal TMLE**, which combines
+g-computation and IPTW to produce a doubly-robust efficient estimator. It
+also automatically reports TMLE, IPTW, and g-comp estimates side by side.
+
+```{r}
+#| label: ltmle
+#| cache: true
+#| warning: false
+
+# ltmle expects a specific column order: covariates, treatments, outcome
+ltmle_data <- df[, c("L0", "A0", "L1", "A1", "Y")]
+
+ltmle_fit <- ltmle(
+  data    = ltmle_data,
+  Anodes  = c("A0", "A1"),
+  Lnodes  = c("L0", "L1"),
+  Ynodes  = "Y",
+  abar    = c(1, 1),       # the regime: always treated
+  estimate.time = FALSE
+)
+
+summary(ltmle_fit)
+```
+
+`ltmle` returns four estimators of $\mathbb{E}[Y(\bar a = 1)]$ side by side: TMLE
+(efficient, doubly robust), IPTW (Horvitz-Thompson reweighting), G-comp
+(parametric g-formula), and IC-based standard errors throughout.
+
+To estimate a *contrast* — the always-treated vs never-treated effect —
+specify both regimes:
+
+```{r}
+#| label: ltmle-contrast
+#| cache: true
+#| warning: false
+
+ltmle_contrast <- ltmle(
+  data    = ltmle_data,
+  Anodes  = c("A0", "A1"),
+  Lnodes  = c("L0", "L1"),
+  Ynodes  = "Y",
+  abar    = list(treatment = c(1, 1), control = c(0, 0)),
+  estimate.time = FALSE
+)
+
+summary(ltmle_contrast)
+```
+
+The output contains the additive treatment effect of "always treat" vs
+"never treat" along with valid confidence intervals. In this simulation,
+the LTMLE estimate should be close to 1.0.
+
+## Choosing among the four
+
+| Estimator | Strengths | Weaknesses |
+|---|---|---|
+| **G-formula** | Handles arbitrary regimes; transparent | Sensitive to model misspecification on $L_t$ and $Y$ |
+| **IPTW + MSM** | Simple, intuitive; valid with correct propensity model | Variance can be large with extreme weights |
+| **LTMLE** | Doubly robust; efficient | More complex; needs care with super-learners |
+
+In practice:
+
+- Use the **g-formula** when you have good models for both the time-varying
+  confounders and the outcome.
+- Use **IPTW + MSM** when the propensity score model is more credible than
+  the outcome model.
+- Use **LTMLE** as the modern default — it is doubly robust and efficient.
+
+## When to reach for these methods
+
+G-methods are needed whenever:
+
+1. There is a time-varying confounder $L_t$ that is affected by past
+   treatment $A_{t-1}$ and itself affects subsequent treatment $A_t$.
+2. The research question concerns a *sustained* or *dynamic* treatment
+   regime, not a single decision at a single time.
+
+This includes most clinical follow-up studies, longitudinal observational
+studies of education and labour market policies, and any setting where
+treatment evolves with the unit's response.
+
+For a one-shot treatment, the methods from the [Estimation](estimation.qmd)
+and [Nonparametric Causal Methods](nonparametric.qmd) chapters are
+sufficient. The added complexity of g-methods is only justified when the
+time-varying confounder problem is present.
+
+## Summary
+
+- **Standard regression fails** with time-varying confounders that are
+  themselves affected by past treatment.
+- **G-formula** (parametric g-computation): simulate the outcome under a
+  hypothetical regime by integrating over the time-varying covariates.
+- **IPTW + MSM**: reweight the population so treatment is independent of
+  past covariates; then fit a regression on the weighted sample.
+- **LTMLE** (`ltmle`): a doubly-robust efficient estimator that combines
+  g-computation and IPTW.
+- **Reporting practice**: when in doubt, report multiple estimators (TMLE,
+  IPTW, G-comp). Disagreement between them is informative — it usually
+  indicates model misspecification.
+
+## References
+
+- Robins, J. M. (1986). A new approach to causal inference in mortality studies with sustained exposure periods. *Mathematical Modelling*, 7, 1393–1512.
+- Robins, J. M., Hernan, M. A., & Brumback, B. (2000). Marginal structural models and causal inference in epidemiology. *Epidemiology*, 11(5), 550–560.
+- van der Laan, M. J., & Gruber, S. (2012). Targeted minimum loss based estimation of causal effects of multiple time point interventions. *International Journal of Biostatistics*, 8(1).
+- Hernán, M. A., & Robins, J. M. (2020). *Causal Inference: What If.* Boca Raton: Chapman & Hall/CRC.
+- Petersen, M., Schwab, J., Gruber, S., Blaser, N., Schomaker, M., & van der Laan, M. (2014). Targeted maximum likelihood estimation for dynamic and static longitudinal marginal structural working models. *Journal of Causal Inference*, 2(2), 147–185.

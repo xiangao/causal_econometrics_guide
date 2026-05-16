@@ -18,6 +18,9 @@ Converted from RevealJS slides to a multi-chapter Quarto book in March 2026. Syn
 - `iv-rdd.qmd` — IV & Regression Discontinuity (with Control Function exposition)
 - `poisson-iv.qmd` — IV in Poisson with Fixed Effects (CF, GMM)
 - `mediation.qmd` — Causal Mediation Analysis
+- `sensitivity-analysis.qmd` — Sensitivity analysis (Cinelli-Hazlett OVB via sensemakr, E-values via EValue, Rosenbaum bounds)
+- `heterogeneous-effects.qmd` — Heterogeneous treatment effects with ML (meta-learners + causal forests via grf, BLP, CLAN, policy trees)
+- `g-methods.qmd` — G-methods for time-varying treatments (parametric g-formula, IPTW + MSM via survey, LTMLE via ltmle)
 - `causal-discovery.qmd` — Causal Discovery: Observed Variables (PC + GES via pcalg)
 - `causal-discovery-latent.qmd` — Causal Discovery: Latent Variables (FCI + RFCI via pcalg)
 - `graph-to-estimate.qmd` — From Graph to Estimate: backdoor/front-door/non-identified workflows (dagitty, causaleffect, AIPW)
@@ -33,7 +36,7 @@ quarto preview       # live preview in browser
 ```
 
 ## R Dependencies
-ggplot2, ggdag, dagitty, causaleffect, igraph, npcausal, boot, SuperLearner, tmle, tidyverse, ranger, hdm, lmtest, sandwich, haven, grf, rpart, glmnet, splines, reshape2, stringr, causaldata, fixest, did, broom, skimr, bslib, etwfe, synthdid, sem, MASS, rdrobust, lavaan, data.table, medoutcon, DoubleML, mlr3, mlr3learners, gmm, parallel, pcalg, Rgraphviz, graph, gridExtra (Rgraphviz and graph are Bioconductor packages required by pcalg)
+ggplot2, ggdag, dagitty, causaleffect, igraph, npcausal, boot, SuperLearner, tmle, tidyverse, ranger, hdm, lmtest, sandwich, haven, grf, policytree, sensemakr, EValue, ltmle, ipw, gfoRmula, survey, rpart, glmnet, splines, reshape2, stringr, causaldata, fixest, did, broom, skimr, bslib, etwfe, synthdid, sem, MASS, rdrobust, lavaan, data.table, medoutcon, DoubleML, mlr3, mlr3learners, gmm, parallel, pcalg, Rgraphviz, graph, gridExtra (Rgraphviz and graph are Bioconductor packages required by pcalg)
 
 ## Notes
 - Each chapter has a hidden setup chunk (`#| include: false`) loading required libraries

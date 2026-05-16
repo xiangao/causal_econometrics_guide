@@ -1,0 +1,345 @@
+# Sensitivity Analysis
+
+```{r}
+#| include: false
+library(tidyverse)
+library(sensemakr)
+library(EValue)
+library(causaldata)
+library(broom)
+```
+
+```{r}
+#| eval: false
+library(tidyverse)
+library(sensemakr)
+library(EValue)
+library(causaldata)
+library(broom)
+```
+
+The previous chapters proceeded as if identification is binary: either a graph
+supports the effect (backdoor or front-door routes), or it doesn't (the effect
+is not identified). In practice, applied researchers face a more nuanced
+situation. They believe their identification strategy is *approximately*
+correct — there might be some residual confounding, but probably not much.
+The honest question is: **how much unmeasured confounding would be needed to
+overturn the conclusion?**
+
+This is the question sensitivity analysis answers. Rather than claiming
+unconfoundedness as a binary assumption, it asks how strong the unmeasured
+confounding would have to be — relative to observed covariates — to change
+the sign or significance of the estimate.
+
+We cover three complementary methods:
+
+1. **Cinelli-Hazlett (2020) omitted-variable bias bounds** — for any
+   regression-based estimator, quantifies how strong an omitted variable
+   would need to be (in terms of partial $R^2$ with treatment and outcome)
+   to bring the estimate to zero.
+2. **E-values (VanderWeele-Ding 2017)** — for risk ratios, the minimum
+   strength of association (on the risk-ratio scale) that an unmeasured
+   confounder would need with both treatment and outcome to fully explain
+   the observed association.
+3. **Rosenbaum bounds** — for matched estimators, the magnitude of
+   non-random treatment assignment within matched pairs that would render
+   the test result insignificant.
+
+## The NHEFS smoking-cessation example
+
+We use the National Health and Nutrition Examination Survey I Epidemiologic
+Follow-up Study (NHEFS) data — the same dataset used in the
+[applied DAG-workflow chapter](smoking-cessation-graphs.qmd). The question:
+what is the effect of quitting smoking (`qsmk`) on weight gain over
+10 years (`wt82_71`)?
+
+```{r}
+#| label: data
+#| cache: true
+
+nhefs <- causaldata::nhefs_complete |>
+  filter(!is.na(wt82_71))
+
+cat(sprintf("n = %d\n", nrow(nhefs)))
+cat(sprintf("Treated (quit smoking) = %d\n", sum(nhefs$qsmk)))
+cat(sprintf("Mean weight gain (treated):   %.2f kg\n",
+            mean(nhefs$wt82_71[nhefs$qsmk == 1])))
+cat(sprintf("Mean weight gain (untreated): %.2f kg\n",
+            mean(nhefs$wt82_71[nhefs$qsmk == 0])))
+```
+
+A naive comparison says quitters gained $\approx$ 2.5 kg more than non-quitters,
+but smokers and quitters differ on many baseline characteristics. Adjust for
+the standard set of confounders (age, sex, race, education, baseline weight,
+smoking intensity, exercise, activity):
+
+```{r}
+#| label: ols
+#| cache: true
+
+ols <- lm(wt82_71 ~ qsmk + sex + age + race + education + smokeintensity +
+                    smokeyrs + exercise + active + wt71,
+          data = nhefs)
+
+tidy(ols)[1:3, ] |> knitr::kable(digits = 3)
+cat(sprintf("\nAdjusted ACE estimate: %.3f kg  (SE = %.3f)\n",
+            coef(ols)["qsmk"], summary(ols)$coefficients["qsmk", 2]))
+```
+
+The adjusted estimate is around 3.5 kg, larger than the unadjusted difference.
+But the identification assumption requires that we have controlled for *all*
+relevant confounders. What if we missed one — say, a propensity to gain
+weight that also correlates with quitting decisions? Sensitivity analysis
+addresses this directly.
+
+## Cinelli-Hazlett OVB bounds
+
+`sensemakr` implements the Cinelli-Hazlett (2020) approach. The key inputs
+are:
+
+- a fitted regression
+- the treatment variable name
+- one or more *benchmark covariates* whose strength serves as a reference
+  for how strong a hypothetical unobserved confounder might be
+
+```{r}
+#| label: sensemakr
+#| cache: true
+
+sens <- sensemakr(
+  model = ols,
+  treatment = "qsmk",
+  benchmark_covariates = c("smokeintensity", "smokeyrs"),
+  kd = 1:3,                 # benchmark: 1×, 2×, 3× as strong as the benchmark
+  ky = 1:3,
+  q  = 1,                   # the "bias proportion" at which to flag a problem
+  alpha = 0.05,
+  reduce = TRUE
+)
+
+summary(sens)
+```
+
+The summary tells us:
+
+- **Robustness value (RV)**: the minimum strength of association (in terms of
+  partial $R^2$) that an unmeasured confounder would need with both the
+  treatment and the outcome to reduce the estimate to zero. Higher = more
+  robust.
+- **RV_q**: the strength needed to "explain away" a fraction $q$ of the
+  estimate (here $q = 1$ means complete explanation).
+- **Benchmark comparisons**: how the RV compares to multiples of the
+  observed covariates.
+
+```{r}
+#| label: sens-plot
+#| cache: true
+#| fig-cap: "Cinelli-Hazlett sensitivity contour. The dashed lines show benchmarks based on smokeintensity and smokeyrs at 1x, 2x, and 3x strength. Confounders falling in the shaded region would reduce the estimate to zero."
+#| fig-width: 7
+#| fig-height: 5
+
+plot(sens)
+```
+
+The contour plot shows pairs of (partial $R^2$ with treatment, partial $R^2$
+with outcome) that an unobserved confounder would need to have to render the
+estimate zero. Points farther from the origin represent stronger confounders.
+The benchmark dots show what strength corresponds to 1×, 2×, 3× the
+observed strength of `smokeintensity` and `smokeyrs`.
+
+For the NHEFS case, the robustness value is large — even a confounder several
+times stronger than smoking intensity would not eliminate the estimated
+effect. The conclusion is robust.
+
+## E-values for risk ratios
+
+For binary outcomes and risk-ratio-type estimands, VanderWeele and Ding
+(2017) propose the **E-value**: the minimum strength of association on the
+risk-ratio scale that an unmeasured confounder would need to have with both
+the treatment and the outcome to fully explain the observed risk ratio.
+
+To illustrate, dichotomize weight gain ("any" gain vs no gain) and fit a
+risk-ratio model:
+
+```{r}
+#| label: evalue
+#| cache: true
+
+nhefs$gain <- as.numeric(nhefs$wt82_71 > 0)
+
+rr_fit <- glm(gain ~ qsmk + sex + age + race + education + smokeintensity +
+                     smokeyrs + exercise + active + wt71,
+              data = nhefs, family = poisson(link = "log"))
+rr_summary <- tidy(rr_fit, exp = TRUE, conf.int = TRUE)
+
+rr_est <- exp(coef(rr_fit)["qsmk"])
+rr_lo  <- exp(confint.default(rr_fit)["qsmk", 1])
+rr_hi  <- exp(confint.default(rr_fit)["qsmk", 2])
+
+cat(sprintf("Adjusted RR (quit vs not): %.3f  [%.3f, %.3f]\n",
+            rr_est, rr_lo, rr_hi))
+
+ev <- evalues.RR(est = rr_est, lo = rr_lo, hi = rr_hi)
+print(ev)
+```
+
+The E-value reports two numbers:
+
+- **E-value (point estimate)**: an unmeasured confounder would need to be
+  associated with both treatment and outcome by risk ratios of at least
+  this value, above and beyond the measured confounders, to fully explain
+  away the observed effect.
+- **E-value (confidence interval)**: the minimum strength needed to shift
+  the lower confidence bound to 1.
+
+An E-value much greater than 1 suggests the result is hard to explain by
+unmeasured confounding. An E-value close to 1 means a modest unmeasured
+confounder could overturn the conclusion.
+
+A common rule of thumb: an E-value of 2 or more is considered moderate
+robustness; values of 4 or more indicate strong robustness. The biggest
+strength of the E-value is its model-free interpretation — it applies to
+any binary-outcome risk-ratio estimate, regardless of the specific
+estimator used.
+
+## Rosenbaum bounds (matched estimators)
+
+For matching estimators, **Rosenbaum bounds** (Rosenbaum 2002) provide a
+sensitivity analysis based on the maximum deviation from random assignment
+within matched pairs.
+
+Suppose units in a matched pair are observationally identical, but one
+might still be more likely than the other to receive treatment due to
+unobserved factors. Let $\Gamma$ be the odds ratio of treatment within a
+matched pair due to hidden bias: $\Gamma = 1$ means matched pairs are
+perfectly randomised; $\Gamma = 2$ means within a pair, the treated unit
+was twice as likely to get treatment due to unobservables.
+
+Rosenbaum bounds compute the range of $p$-values for the matched test
+under each value of $\Gamma$. The **critical $\Gamma$** is the smallest
+value at which the test becomes insignificant.
+
+Here is a worked example using simple pair matching on propensity score and
+a Wilcoxon signed-rank test (the original Rosenbaum bound calculation):
+
+```{r}
+#| label: rosenbaum
+#| cache: true
+
+# Estimate propensity score
+ps_fit <- glm(qsmk ~ sex + age + race + education + smokeintensity +
+                     smokeyrs + exercise + active + wt71,
+              data = nhefs, family = binomial)
+nhefs$ps <- predict(ps_fit, type = "response")
+
+# Simple 1:1 nearest-neighbour matching on propensity score
+treated_idx <- which(nhefs$qsmk == 1)
+control_idx <- which(nhefs$qsmk == 0)
+
+set.seed(1)
+matched_pairs <- data.frame(t_idx = integer(), c_idx = integer())
+available_controls <- control_idx
+for (ti in treated_idx) {
+  if (length(available_controls) == 0) break
+  dists <- abs(nhefs$ps[ti] - nhefs$ps[available_controls])
+  best  <- which.min(dists)
+  matched_pairs <- rbind(matched_pairs,
+                         data.frame(t_idx = ti,
+                                    c_idx = available_controls[best]))
+  available_controls <- available_controls[-best]
+}
+
+# Compute paired differences in outcome
+paired_diff <- nhefs$wt82_71[matched_pairs$t_idx] -
+               nhefs$wt82_71[matched_pairs$c_idx]
+cat(sprintf("N matched pairs: %d\n", nrow(matched_pairs)))
+cat(sprintf("Mean paired difference (matched ATT): %.3f kg\n",
+            mean(paired_diff)))
+
+# Rosenbaum bound calculation: range of p-values for Wilcoxon signed-rank
+# under each Gamma. We compute this directly rather than using a package
+# to keep the dependency footprint small.
+rosenbaum_pvalue <- function(diffs, gamma) {
+  abs_d <- abs(diffs)
+  signs <- sign(diffs)
+  ranks <- rank(abs_d)
+  # Under Gamma, P(positive sign) is bounded between Γ/(1+Γ) and 1/(1+Γ).
+  # Upper-bound p-value: assume P(positive) = Γ/(1+Γ) (against null of zero)
+  p_pos_upper <- gamma / (1 + gamma)
+  # Test statistic: sum of positive ranks
+  T_obs <- sum(ranks[signs > 0])
+  n <- length(diffs)
+  mu_upper  <- p_pos_upper * sum(ranks)
+  var_upper <- p_pos_upper * (1 - p_pos_upper) * sum(ranks^2)
+  z <- (T_obs - mu_upper) / sqrt(var_upper)
+  1 - pnorm(z)
+}
+
+gammas <- seq(1, 4, by = 0.25)
+pvals  <- sapply(gammas, function(g) rosenbaum_pvalue(paired_diff, g))
+
+result <- tibble(Gamma = gammas, p_value_upper = pvals)
+knitr::kable(result, digits = 4,
+             caption = "Upper-bound p-values from Rosenbaum sensitivity analysis")
+```
+
+The **critical $\Gamma$** is the value at which the upper-bound $p$-value
+crosses 0.05. In the table above, locate where this happens — if the
+critical $\Gamma$ is around 2 or higher, the result is robust to moderate
+hidden bias. If it is close to 1, even small unmeasured confounding could
+overturn the conclusion.
+
+```{r}
+#| label: critical-gamma
+#| cache: true
+
+critical_gamma <- result$Gamma[min(which(result$p_value_upper > 0.05))]
+cat(sprintf("Critical Gamma (p > 0.05): %.2f\n",
+            critical_gamma))
+```
+
+## What about partial identification?
+
+When sensitivity analysis shows the effect is fragile, the next step is
+often **partial identification** — instead of point-estimating, derive
+bounds on the effect under weaker assumptions.
+
+The Manski (1990) "no-assumption" bounds say:
+
+$$
+\text{ATE} \in [\mathbb{E}[Y | D=1] - \max Y(1)] \cup [\mathbb{E}[Y | D=0] - \min Y(0)],
+$$
+
+i.e., when outcomes are bounded $Y \in [0, K]$, the ATE is bounded but the
+width is often large. Lee (2009) bounds exploit selection on observables
+plus monotonicity to get tighter bounds. Mourifié-Wan provide LATE bounds
+when monotonicity may fail.
+
+These are typically applied as a *complement* to a point estimate, not a
+replacement. They are most useful when sensitivity analysis suggests the
+point estimate is fragile and you want to characterise the full range of
+effects consistent with the data and minimal assumptions.
+
+## Summary
+
+- **Sensitivity analysis** quantifies how strong unobserved confounding
+  would need to be to overturn a conclusion.
+- **Cinelli-Hazlett OVB bounds** (`sensemakr`): regression-based, gives
+  robustness values and benchmark comparisons. The most flexible and
+  widely applicable.
+- **E-values** (`EValue`): risk-ratio-based, model-free interpretation,
+  particularly useful for epidemiology and medicine.
+- **Rosenbaum bounds**: for matched estimators; the critical $\Gamma$ is
+  the threshold odds ratio of hidden bias that would render the result
+  insignificant.
+- **Reporting practice**: every observational causal estimate should be
+  accompanied by *some* sensitivity analysis. A point estimate without
+  one is a claim of certainty that the data cannot support.
+
+## References
+
+- Cinelli, C., & Hazlett, C. (2020). Making sense of sensitivity: extending omitted variable bias. *JRSS-B*, 82(1), 39–67.
+- VanderWeele, T. J., & Ding, P. (2017). Sensitivity analysis in observational research: introducing the E-value. *Annals of Internal Medicine*, 167(4), 268–274.
+- Rosenbaum, P. R. (2002). *Observational Studies* (2nd ed.). Springer.
+- Manski, C. F. (1990). Nonparametric bounds on treatment effects. *AER P&P*, 80(2), 319–323.
+- Lee, D. S. (2009). Training, wages, and sample selection: estimating sharp bounds on treatment effects. *ReStud*, 76(3), 1071–1102.

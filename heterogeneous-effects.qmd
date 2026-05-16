@@ -402,6 +402,12 @@ policies are often required to be interpretable (e.g. fair-housing laws,
 medical decision rules), and shallow trees are the natural compromise
 between flexibility and explainability.
 
+For an extended walkthrough of policy trees with IPW and AIPW losses,
+see the [companion blog chapter on `policytree`](https://xiangao.github.io/blog_book/policytree.html).
+For a comparison of CATE estimators across software ecosystems
+(including Stata 19's new `cate` command), see the
+[Stata CATE blog chapter](https://xiangao.github.io/blog_book/stata-cate.html).
+
 ## CLAN: testing for heterogeneity
 
 A formal test of heterogeneity is the **CLAN** (Classification Analysis)
@@ -440,6 +446,105 @@ knitr::kable(clan_df[, c("quintile", "est.estimate", "se.std.err", "lo", "hi")],
 The bottom and top quintiles of predicted CATE should give significantly
 different ATEs — a clean test for whether the heterogeneity is real
 (rather than estimation noise).
+
+## Causal forests with panel data
+
+When the data are a panel — repeated observations on the same units —
+and the unobserved unit effects are correlated with treatment or
+covariates, the cross-sectional CATE methods above can be biased. Two
+practical solutions:
+
+1. **Demean by fixed effects** before running the causal forest.
+2. **Pass a `cluster` argument** to `causal_forest` so that observations
+   from the same unit are kept in the same training fold during honest
+   sample-splitting.
+
+```{r}
+#| label: panel-dgp
+#| cache: true
+
+set.seed(2024)
+n_firms <- 200
+n_t     <- 5
+n_total <- n_firms * n_t
+
+# Panel data with a unit-specific effect correlated with V1 (the modifier)
+firm_id  <- rep(1:n_firms, each = n_t)
+unit_fe  <- rnorm(n_firms, sd = 1.5)[firm_id]
+V1_firm  <- rnorm(n_firms, sd = 1.0)[firm_id]   # firm-level covariate
+V1       <- V1_firm + rnorm(n_total, sd = 0.3)  # within-firm variation
+W        <- rbinom(n_total, 1, plogis(0.5 + 0.3 * V1_firm))
+# True CATE varies linearly with V1
+tau_panel <- 0.5 + 1.0 * V1
+Y_panel  <- unit_fe + V1 + W + tau_panel * (W - mean(W)) + rnorm(n_total)
+
+df_panel <- tibble(firm = firm_id, V1 = V1, W = W, Y = Y_panel)
+glimpse(df_panel)
+```
+
+A naive causal forest on the panel data ignores the unit effects:
+
+```{r}
+#| label: cf-naive
+#| cache: true
+
+X_panel <- as.matrix(df_panel[, "V1", drop = FALSE])
+
+cf_naive <- causal_forest(X = X_panel, Y = df_panel$Y, W = df_panel$W,
+                          num.trees = 1000)
+ate_naive <- average_treatment_effect(cf_naive)
+
+cat(sprintf("Naive panel CF ATE: %.3f  (SE = %.3f)\n",
+            ate_naive["estimate"], ate_naive["std.err"]))
+cat(sprintf("True ATE: %.3f\n", mean(tau_panel)))
+```
+
+Adding `clusters = firm`: `grf` keeps each firm's observations in the
+same training/honest sample, eliminating the leakage that would
+otherwise bias CATE estimates:
+
+```{r}
+#| label: cf-clustered
+#| cache: true
+
+cf_clust <- causal_forest(X = X_panel, Y = df_panel$Y, W = df_panel$W,
+                          clusters = df_panel$firm,
+                          num.trees = 1000)
+ate_clust <- average_treatment_effect(cf_clust)
+
+cat(sprintf("Clustered panel CF ATE: %.3f  (SE = %.3f)\n",
+            ate_clust["estimate"], ate_clust["std.err"]))
+```
+
+For the strongest panel-data identification, demean both $Y$ and $W$ by
+firm before fitting (within transformation):
+
+```{r}
+#| label: cf-demean
+#| cache: true
+
+df_dm <- df_panel |>
+  group_by(firm) |>
+  mutate(Y_dm = Y - mean(Y),
+         W_dm = W - mean(W),
+         V1_dm = V1 - mean(V1)) |>
+  ungroup()
+
+cf_fe <- causal_forest(X = as.matrix(df_dm[, "V1_dm"]),
+                       Y = df_dm$Y_dm,
+                       W = df_dm$W_dm,
+                       clusters = df_dm$firm,
+                       num.trees = 1000)
+ate_fe <- average_treatment_effect(cf_fe)
+cat(sprintf("Within-transform CF ATE: %.3f  (SE = %.3f)\n",
+            ate_fe["estimate"], ate_fe["std.err"]))
+```
+
+The clustered + within-transform causal forest is the cleanest analog of
+a panel fixed-effects regression for heterogeneous treatment effects.
+See the [companion blog chapter on causal forests in panel data](https://xiangao.github.io/blog_book/causal-forest-panel.html)
+for an extended simulation study comparing the panel CF to fixed-effect
+regression and random-effect regression under linear and nonlinear DGPs.
 
 ## Summary
 

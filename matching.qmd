@@ -304,6 +304,132 @@ restrict the population (CEM-style) or to use a doubly-robust estimator
 weighting model with an outcome model and is robust to misspecification
 of either.
 
+## Modern weighting alternatives
+
+The `WeightIt` package implements modern weighting methods that often
+outperform plain IPW, particularly when overlap is marginal. The
+companion [blog chapter on weighting](https://xiangao.github.io/blog_book/weighting-part2.html)
+covers these in more detail; here we summarise the four most useful
+variants and apply them to the Lalonde data already in this chapter.
+
+### Inverse probability of treatment weighting (IPW)
+
+The baseline: estimate the propensity score by logistic regression,
+weight treated units by $1/\hat e(X)$ and controls by $1/(1 - \hat e(X))$:
+
+```{r}
+#| label: ipw-weighting
+#| cache: true
+
+w_ipw <- weightit(treat ~ age + educ + race + married + nodegree + re74 + re75,
+                  data = lalonde, estimand = "ATT", method = "glm")
+bal.tab(w_ipw, stats = c("m"), thresholds = c(m = 0.05))
+```
+
+### Covariate balancing propensity score (CBPS)
+
+CBPS (Imai-Ratkovic 2014) estimates the propensity score under
+*balance constraints*, ensuring that the weighted covariate means are
+balanced even when the logistic model is misspecified:
+
+```{r}
+#| label: cbps
+#| cache: true
+
+w_cbps <- weightit(treat ~ age + educ + race + married + nodegree + re74 + re75,
+                   data = lalonde, estimand = "ATT", method = "cbps")
+bal.tab(w_cbps, stats = c("m"), thresholds = c(m = 0.05))
+```
+
+### Entropy balancing
+
+Entropy balancing (Hainmueller 2012) solves a convex optimisation
+problem that yields weights with *exact* mean balance on the included
+covariates. It is doubly robust for the ATT and attains the
+semiparametric efficiency bound when both nuisance models are correct.
+
+```{r}
+#| label: ebal
+#| cache: true
+
+w_ebal <- weightit(treat ~ age + educ + race + married + nodegree + re74 + re75,
+                   data = lalonde, estimand = "ATT", method = "ebal")
+bal.tab(w_ebal, stats = c("m"), thresholds = c(m = 0.05))
+```
+
+Notice that every standardised mean difference is now essentially zero
+— entropy balancing *guarantees* this by construction.
+
+### Energy balancing
+
+Energy balancing (Huling & Mak 2024) optimises a weighted energy
+distance between treated and control covariate distributions. Unlike
+entropy balancing — which balances *means* — energy balancing balances
+the entire *distribution* of every covariate.
+
+```{r}
+#| label: energy
+#| cache: true
+
+w_energy <- weightit(treat ~ age + educ + race + married + nodegree + re74 + re75,
+                     data = lalonde, estimand = "ATT", method = "energy")
+bal.tab(w_energy, stats = c("m"), thresholds = c(m = 0.05))
+```
+
+### Estimation with weighted-aware regression
+
+Once weights are computed, use `lm_weightit()` (rather than plain `lm`
+with a `weights` argument) so that the weighting uncertainty is
+propagated into the treatment-effect standard error:
+
+```{r}
+#| label: lm-weightit
+#| cache: true
+
+fit_ebal <- lm_weightit(
+  re78 ~ treat * (age + educ + race + married + nodegree + re74 + re75),
+  data     = lalonde,
+  weightit = w_ebal
+)
+
+avg_comparisons(fit_ebal, variables = "treat",
+                newdata = subset(lalonde, treat == 1))   # ATT
+```
+
+The result is the entropy-balanced ATT with valid sandwich-style
+standard errors that account for the estimated weights.
+
+### When to use each weighting method
+
+| Method | Strengths | Weaknesses |
+|---|---|---|
+| **IPW** (glm) | Familiar; well-studied | Sensitive to PS misspecification; extreme weights |
+| **CBPS** | Balance-constrained PS; robust to model misspecification | Slower; can fail with many covariates |
+| **Entropy balancing** | Exact mean balance; doubly robust for ATT | Balances means only, not distributions |
+| **Energy balancing** | Balances entire distribution | Computationally heavier; less mature theory |
+
+For applied work, **entropy balancing** is the practical default — it
+typically achieves better balance than IPW with fewer extreme weights
+and faster runtime than CBPS. **Energy balancing** is the modern
+state-of-the-art when full distributional balance matters.
+
+### Comparing matching to weighting
+
+The matching examples earlier in this chapter and the weighting examples
+here both target the ATT on the Lalonde data. In practice, an applied
+researcher should try several methods, report all balance diagnostics
+and ATT estimates, and choose based on which method achieves the best
+covariate balance. When matching, weighting, and modern weighting
+methods all converge to similar estimates, the identification strategy
+is on firm ground. When they diverge sharply, the overlap is poor and
+the right response is to restrict the population or use a doubly-robust
+estimator.
+
+For an extended treatment of matching with `MatchIt` (including a
+comparison with Stata's `teffects` commands), see the
+[companion blog chapters on matching](https://xiangao.github.io/blog_book/matching-part1.html)
+and [treatment-effects in Stata](https://xiangao.github.io/blog_book/treatment-matching.html).
+
 ## Summary
 
 - **Matching** estimates causal effects by pairing treated units to

@@ -1,0 +1,330 @@
+# Matching Estimators
+
+```{r}
+#| include: false
+library(tidyverse)
+library(MatchIt)
+library(cobalt)
+library(WeightIt)
+library(marginaleffects)
+library(broom)
+```
+
+```{r}
+#| eval: false
+library(tidyverse)
+library(MatchIt)
+library(cobalt)
+library(WeightIt)
+library(marginaleffects)
+```
+
+Matching is the oldest and most-taught approach to observational causal
+inference. The idea is simple: for each treated unit, find a "twin"
+control unit with similar covariates, then compare outcomes within
+matched pairs. With enough good matches, the comparison approximates
+what we would have learned from a randomised experiment.
+
+The implementation has many variants — nearest-neighbour matching,
+optimal matching, full matching, coarsened exact matching (CEM) — and
+the choice has real consequences. This chapter walks through the modern
+matching workflow using R's `MatchIt` and companion `cobalt` packages,
+which together represent the de facto standard in applied econometrics
+and epidemiology.
+
+> **Related reading**: This chapter is based on the longer treatment in
+> [Matching and Weighting Part 1](https://xiangao.github.io/blog_book/matching-part1.html)
+> of *Topics on Econometrics and Causal Inference*, which credits Noah
+> Greifer and coauthors (the `MatchIt`/`WeightIt` package authors).
+
+## Assumptions
+
+Matching identifies a causal effect under three assumptions:
+
+1. **SUTVA** — no interference, no hidden treatment versions.
+2. **Ignorability** (unconfoundedness) — conditional on $X$, the
+   treatment $D$ is independent of the potential outcomes $(Y(0), Y(1))$.
+3. **Overlap** (positivity) — every value of $X$ has positive probability
+   of being both treated and untreated.
+
+The motivating problem: even under ignorability, the *observed* distribution
+of $X$ usually differs between treated and control. Regression adjustment
+implicitly extrapolates a parametric model across that imbalance; matching
+restricts the comparison to the region of overlap, which is more robust
+to model misspecification.
+
+## The Lalonde example
+
+The canonical test case is the Lalonde (1986) job-training experiment. We
+use the observational version included in `MatchIt`, where the goal is to
+recover the experimental estimate of the effect of a training programme
+on 1978 earnings:
+
+```{r}
+#| label: data
+#| cache: true
+
+data("lalonde", package = "MatchIt")
+glimpse(lalonde)
+```
+
+The treatment is `treat`; the outcome is `re78` (1978 earnings); the
+covariates are `age`, `educ`, `race`, `married`, `nodegree`, `re74`,
+`re75` (pre-treatment earnings).
+
+Before matching, treated and control groups are badly imbalanced:
+
+```{r}
+#| label: pre-balance
+#| cache: true
+
+# Construct a pre-match MatchIt object for balance reporting
+m.pre <- matchit(treat ~ age + educ + race + married + nodegree + re74 + re75,
+                 data = lalonde, method = NULL,
+                 distance = "glm")
+bal.tab(m.pre, thresholds = c(m = 0.1))
+```
+
+The standardised mean differences ("Diff.Adj") on several covariates
+exceed 0.1 — the conventional threshold for adequate balance.
+
+## Distance measures
+
+Matching needs a way to define "close." Three common choices:
+
+1. **Propensity score**: estimate $\hat e(x) = P(D = 1 \mid X = x)$ and
+   use $|\hat e(x_i) - \hat e(x_j)|$ as the distance. Reduces a
+   multidimensional matching problem to a one-dimensional one.
+2. **Mahalanobis distance**: $(x_i - x_j)' \Sigma^{-1} (x_i - x_j)$,
+   computed on the raw covariates. Sensitive to scale; works well in
+   low dimensions.
+3. **Hybrid**: use Mahalanobis distance *within* propensity score
+   calipers — the Rubin-Stuart "best of both" approach.
+
+## Matching methods
+
+### Nearest-neighbour matching on a propensity score
+
+```{r}
+#| label: nn-match
+#| cache: true
+
+m.nn <- matchit(treat ~ age + educ + race + married + nodegree + re74 + re75,
+                data = lalonde,
+                method = "nearest",
+                distance = "glm",
+                link = "linear.logit",
+                ratio = 1)
+
+m.nn
+```
+
+After matching, the treated and control groups should be balanced:
+
+```{r}
+#| label: nn-balance
+#| cache: true
+
+bal.tab(m.nn, thresholds = c(m = 0.1))
+```
+
+Several covariates still exceed the 0.1 threshold — nearest-neighbour
+matching on a logistic propensity score isn't always enough. Try a more
+flexible distance:
+
+### Full matching
+
+Full matching creates subclasses of one treated unit with multiple
+controls, or one control with multiple treated, weighted to minimise
+total within-pair distance. It uses *all* observations and typically
+achieves better balance:
+
+```{r}
+#| label: full-match
+#| cache: true
+
+m.full <- matchit(treat ~ age + educ + race + married + nodegree + re74 + re75,
+                  data = lalonde,
+                  method = "full",
+                  distance = "glm",
+                  link = "probit")
+
+bal.tab(m.full, thresholds = c(m = 0.1))
+```
+
+Full matching usually achieves much better balance than 1:1 nearest-neighbour.
+
+### Mahalanobis matching
+
+For low-dimensional matching problems, Mahalanobis distance on the raw
+covariates is a good alternative:
+
+```{r}
+#| label: maha-match
+#| cache: true
+
+m.maha <- matchit(treat ~ age + educ + race + married + nodegree + re74 + re75,
+                  data = lalonde,
+                  distance = "mahalanobis")
+bal.tab(m.maha, thresholds = c(m = 0.1))
+```
+
+### Coarsened Exact Matching (CEM)
+
+CEM (Iacus, King, Porro 2012) coarsens each covariate into bins, then
+matches *exactly* on the coarsened values. The bin widths are typically
+chosen automatically. CEM has the advantage that the resulting matched
+sample has *guaranteed* covariate balance up to the coarsening level.
+
+```{r}
+#| label: cem-match
+#| cache: true
+
+m.cem <- matchit(treat ~ age + educ + race + married + nodegree + re74 + re75,
+                 data = lalonde,
+                 method = "cem")
+bal.tab(m.cem, thresholds = c(m = 0.1))
+```
+
+CEM often drops treated units that have no exact match — a feature, not a
+bug. It is transparent about lack of overlap.
+
+## Estimation after matching
+
+Once a matched dataset is in hand, the treatment effect is estimated as
+a *weighted* regression on the matched data, using the weights from
+`MatchIt`. Standard errors should be clustered by the subclass:
+
+```{r}
+#| label: estimate
+#| cache: true
+
+m.data <- match_data(m.full)
+
+fit <- lm(re78 ~ treat * (age + educ + race + married + nodegree + re74 + re75),
+          data    = m.data,
+          weights = weights)
+
+# Use marginaleffects for the average treatment effect with cluster-by-subclass SEs
+avg_comparisons(fit,
+                variables = "treat",
+                vcov = ~subclass,
+                newdata = subset(m.data, treat == 1))   # ATT
+```
+
+The estimate from full matching should be much closer to the experimental
+benchmark of about \$1,800 (Dehejia & Wahba 1999) than a naive comparison
+of means.
+
+## Balance plots
+
+`cobalt::love.plot` produces the standard "love plot" diagnostic showing
+absolute standardised mean differences before and after matching:
+
+```{r}
+#| label: love-plot
+#| cache: true
+#| fig-cap: "Balance improvement from nearest-neighbour and full matching."
+#| fig-width: 8
+#| fig-height: 5
+
+love.plot(m.full,
+          stats = "mean.diffs",
+          thresholds = c(m = 0.1),
+          abs = TRUE,
+          var.order = "unadjusted",
+          title = "Balance plot — Full matching")
+```
+
+A successful matching produces balance below 0.1 (or, more conservatively,
+0.05) for every covariate. The love plot makes this immediate.
+
+## Matching with replacement vs without
+
+By default, `matchit(..., replace = FALSE)` uses each control unit at most
+once. When the treated group is much larger or the propensity distributions
+diverge sharply, matching *with* replacement (`replace = TRUE`) can
+improve balance at the cost of effective sample size:
+
+```{r}
+#| label: replace-match
+#| cache: true
+
+m.repl <- matchit(treat ~ age + educ + race + married + nodegree + re74 + re75,
+                  data = lalonde,
+                  method = "nearest",
+                  distance = "glm",
+                  replace = TRUE)
+bal.tab(m.repl, thresholds = c(m = 0.1))
+```
+
+Matching with replacement is recommended when overlap is poor and balance
+is otherwise unachievable.
+
+## ATE, ATT, ATC — choose carefully
+
+The default `MatchIt` estimand is ATT (effect on the treated). To target
+the ATE, use `estimand = "ATE"` and a matching method that doesn't drop
+units (full matching or weighting). To target ATC (effect on the controls),
+use `estimand = "ATC"`. The three estimands answer different policy
+questions — see the [Five Estimands chapter](causal-estimands.qmd) for
+the framing.
+
+## When matching fails
+
+Matching has known limitations:
+
+- **Curse of dimensionality**: high-dimensional matching is hard. Use
+  propensity scores or coarsened exact matching to reduce dimensions.
+- **No overlap**: if certain regions of $X$ have no treated (or no control)
+  units, no matching method can rescue them. CEM exposes this honestly by
+  dropping such units; nearest-neighbour matching hides the problem in
+  imbalanced pairs.
+- **Sensitivity to specification**: the propensity score model is itself
+  a regression that can be misspecified. The [Sensitivity Analysis chapter](sensitivity-analysis.qmd)
+  covers Rosenbaum bounds, which specifically address matched-sample
+  hidden bias.
+
+## Matching vs weighting
+
+Inverse propensity weighting (IPW) and matching are close cousins.
+Matching subsets to comparable units; weighting reweights to make the
+treated and control distributions match. Modern theory increasingly
+favours weighting for two reasons:
+
+1. **No information loss** — IPW uses every observation; matching may
+   drop unmatched units.
+2. **Smooth estimands** — IPW's reweighted distribution is exact, while
+   matching introduces noise from the matching algorithm.
+
+In practice, the difference is small when overlap is good. When overlap
+is poor, both methods break down, and the right response is either to
+restrict the population (CEM-style) or to use a doubly-robust estimator
+([AIPW](estimation.qmd), [TMLE](nonparametric.qmd)) that combines a
+weighting model with an outcome model and is robust to misspecification
+of either.
+
+## Summary
+
+- **Matching** estimates causal effects by pairing treated units to
+  similar controls, restricting the comparison to the region of overlap
+  in covariates.
+- **Choose a distance**: propensity score for high-dimensional problems;
+  Mahalanobis for low-dimensional; CEM when exact coarsened balance is
+  desired.
+- **Choose a method**: nearest-neighbour is simple but often imbalanced;
+  full matching uses all observations and usually balances best.
+- **Estimate with weighted regression** on the matched dataset, clustering
+  SEs by subclass.
+- **Diagnose with balance plots** (`love.plot`) before reporting the
+  effect.
+- For more advanced treatment of `MatchIt` and `WeightIt`, see the
+  [companion blog chapter](https://xiangao.github.io/blog_book/matching-part1.html).
+
+## References
+
+- Dehejia, R. H., & Wahba, S. (1999). Causal effects in nonexperimental studies: reevaluating the evaluation of training programs. *JASA*, 94(448), 1053–1062.
+- Stuart, E. A. (2010). Matching methods for causal inference: a review and a look forward. *Statistical Science*, 25(1), 1–21.
+- Iacus, S. M., King, G., & Porro, G. (2012). Causal inference without balance checking: coarsened exact matching. *Political Analysis*, 20(1), 1–24.
+- Greifer, N. (2024). *MatchIt: Getting Started.* CRAN vignette.
+- Ho, D. E., Imai, K., King, G., & Stuart, E. A. (2007). Matching as nonparametric preprocessing for reducing model dependence in parametric causal inference. *Political Analysis*, 15(3), 199–236.

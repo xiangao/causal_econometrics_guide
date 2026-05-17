@@ -245,6 +245,8 @@ ETWFE is not limited to linear (continuous) outcomes. When the dependent variabl
 
 The key identifying assumption shifts slightly. Instead of parallel trends on $E[Y_{it}(\infty)]$, we assume parallel trends on the **linear index** — that is, on $\log E[Y_{it}(\infty)]$ for Poisson, or on $\text{logit}\, E[Y_{it}(\infty)]$ for logit. This is Wooldridge's (2023) Conditional Parallel Trends assumption stated on $G^{-1}(E[Y])$. When the true treatment effect is multiplicative (e.g., a policy raises counts by 50% regardless of baseline), this assumption is more natural than additive PT on $Y$ itself.
 
+One implementation detail matters: the correct ETWFE specification uses **cohort fixed effects** (one intercept per treatment cohort) plus year fixed effects — not individual unit fixed effects. The `etwfe` package handles this automatically. Using unit FE instead creates contamination bias: the within-unit demeaning mixes pre- and post-treatment variation, which biases pre-trend estimates downward and compresses post-treatment ATTs.
+
 ### Simulated example: staggered count data
 
 We simulate panel data with three treatment cohorts (treated in periods 3, 4, and 5) and one never-treated group. The true treatment effect is multiplicative: treated units see a 50% increase in their expected count ($\exp(0.4) - 1 \approx 0.49$). Parallel trends holds on the log scale.

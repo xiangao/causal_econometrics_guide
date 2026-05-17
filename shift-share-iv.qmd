@@ -94,33 +94,14 @@ Set up a small DGP with regions, industries, and a known causal effect.
 #| label: sim-data
 #| cache: true
 
-set.seed(2026)
 n_region   <- 500
 n_industry <- 20
-beta_true  <- 0.5       # true effect of regional shock on outcome
+beta_true  <- 0.5
 
-# Shares: each region's industry mix. Use Dirichlet(0.3) so that regions
-# concentrate in a few industries (more realistic than uniform mixing).
-shares <- t(replicate(n_region, {
-  raw <- rgamma(n_industry, shape = 0.3)
-  raw / sum(raw)
-}))
-colnames(shares) <- paste0("s", 1:n_industry)
-
-# Industry-level shocks (the "shifts").
-shocks <- rnorm(n_industry, mean = 0, sd = 1.0)
-
-# Construct the shift-share instrument B_l = sum_k s_lk * g_k
-B <- as.numeric(shares %*% shocks)
-
-# Endogenous local shock: depends on B plus a confounder
-u <- rnorm(n_region)
-X <- B + 0.3 * u + rnorm(n_region, sd = 0.3)
-
-# Outcome: true effect beta_true * X, plus confounder, plus noise
-Y <- beta_true * X + u + rnorm(n_region, sd = 0.5)
-
-df <- tibble(region = 1:n_region, X = X, Y = Y, B = B)
+df     <- read_csv("data/shift_share_sim.csv", show_col_types = FALSE)
+shares <- as.matrix(read_csv("data/shift_share_shares.csv", show_col_types = FALSE))
+shocks <- read_csv("data/shift_share_shocks.csv", show_col_types = FALSE)$shock
+u      <- df$u
 head(df)
 ```
 
@@ -212,16 +193,16 @@ with the second-stage error.
 #| label: bad-shares
 #| cache: true
 
-set.seed(11)
 # Re-do shares so industry 1's share covaries with a new confounder v
-v <- rnorm(n_region)
+v <- read_csv("data/shift_share_bad_v.csv", show_col_types = FALSE)$v
 shares_bad <- shares
 shares_bad[, 1] <- pmax(0.01, shares[, 1] + 0.15 * v)
 shares_bad <- shares_bad / rowSums(shares_bad)   # renormalise to sum to 1
 
+bad_noise <- read_csv("data/shift_share_bad_noise.csv", show_col_types = FALSE)
 B_bad <- as.numeric(shares_bad %*% shocks)
-X_bad <- B_bad + 0.3 * u + rnorm(n_region, sd = 0.3)
-Y_bad <- beta_true * X_bad + u + 0.6 * v + rnorm(n_region, sd = 0.5)
+X_bad <- B_bad + 0.3 * u + bad_noise$noise_x
+Y_bad <- beta_true * X_bad + u + 0.6 * v + bad_noise$noise_y
 
 df_bad <- tibble(X = X_bad, Y = Y_bad, B = B_bad)
 ivss_bad <- feols(Y ~ 1 | X ~ B, data = df_bad)

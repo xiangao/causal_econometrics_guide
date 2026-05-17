@@ -64,37 +64,10 @@ survival analysis are typically expressed as:
 #| label: dgp
 #| cache: true
 
-set.seed(42)
-n <- 1500
-
-# Baseline covariates
-age <- rnorm(n, mean = 60, sd = 10)
-sex <- rbinom(n, 1, 0.5)
-
-# Treatment (e.g. new vs standard therapy) — depends on age (confounding)
-ps <- plogis(-2 + 0.05 * age + 0.4 * sex)
-trt <- rbinom(n, 1, ps)
-
-# True log-hazard: treatment reduces hazard by 30%
-# Baseline Weibull hazard depending on age and sex
-shape <- 1.5
-linpred <- 0.03 * age + 0.4 * sex - 0.4 * trt   # true HR = exp(-0.4) ≈ 0.67
-scale_param <- exp(linpred / shape)
-
-# Event times: Weibull with rate exp(linpred), shape = shape
-event_time <- rweibull(n, shape = shape, scale = exp(-linpred / shape))
-
-# Censoring times: independent uniform censoring up to 10 years
-censor_time <- runif(n, 1, 10)
-
-# Observed: min(T, C) and event indicator
-obs_time <- pmin(event_time, censor_time)
-event    <- as.numeric(event_time <= censor_time)
-
-df <- tibble(time = obs_time, event = event, trt = trt,
-             age = age, sex = sex)
+df <- read_csv("data/survival_sim.csv", show_col_types = FALSE)
+n <- nrow(df)
 cat(sprintf("n = %d, events = %d (%.1f%%), censored = %d\n",
-            n, sum(event), 100 * mean(event), sum(1 - event)))
+            n, sum(df$event), 100 * mean(df$event), sum(1 - df$event)))
 ```
 
 ## Kaplan-Meier survival curves

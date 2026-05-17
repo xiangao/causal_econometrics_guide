@@ -239,6 +239,101 @@ mod_es2 = emfx(mod, type = "calendar")
 mod_es2
 ```
 
+## Nonlinear ETWFE: Count and Binary Outcomes
+
+ETWFE is not limited to linear (continuous) outcomes. When the dependent variable is a count or a binary indicator, linear TWFE can give nonsensical results — negative predicted probabilities, additive effects that ignore the bounded or non-negative nature of $Y$. The `etwfe` package supports nonlinear families via the `family` argument, which passes to `fixest::feglm()`.
+
+The key identifying assumption shifts slightly. Instead of parallel trends on $E[Y_{it}(\infty)]$, we assume parallel trends on the **linear index** — that is, on $\log E[Y_{it}(\infty)]$ for Poisson, or on $\text{logit}\, E[Y_{it}(\infty)]$ for logit. This is Wooldridge's (2023) Conditional Parallel Trends assumption stated on $G^{-1}(E[Y])$. When the true treatment effect is multiplicative (e.g., a policy raises counts by 50% regardless of baseline), this assumption is more natural than additive PT on $Y$ itself.
+
+### Simulated example: staggered count data
+
+We simulate panel data with three treatment cohorts (treated in periods 3, 4, and 5) and one never-treated group. The true treatment effect is multiplicative: treated units see a 50% increase in their expected count ($\exp(0.4) - 1 \approx 0.49$). Parallel trends holds on the log scale.
+
+```{r did_pois0, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+library(tidyverse)
+library(etwfe)
+
+set.seed(42)
+N <- 400; Tmax <- 6
+
+unit_fe_vals <- rnorm(N) * 0.3
+
+df_count <- expand.grid(id = 1:N, year = 1:Tmax) %>%
+  as_tibble() %>%
+  arrange(id, year) %>%
+  mutate(
+    cohort_grp  = ((id - 1) %/% 100) + 1,
+    first_treat = c(3, 4, 5, 0)[cohort_grp],   # 0 = never treated
+    treated     = (first_treat > 0) & (year >= first_treat),
+    unit_fe     = unit_fe_vals[id],
+    log_mu      = 1 + 0.2 * year + unit_fe + 0.4 * treated,
+    count       = rpois(n(), exp(log_mu))
+  )
+
+df_count %>%
+  group_by(first_treat, treated) %>%
+  summarise(mean_count = mean(count), .groups = "drop")
+```
+
+### Poisson ETWFE
+
+Pass `family = "poisson"` to `etwfe()`. Everything else — cohort dummies, `emfx()`, event study — works identically to the linear case. We use `cgroup = "never"` so that pre-treatment estimates are not mechanistically forced to zero.
+
+```{r did_pois1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+mod_pois <- etwfe(
+  fml         = count ~ 1,
+  tvar        = year,
+  gvar        = first_treat,
+  data        = df_count,
+  family      = "poisson",
+  cgroup      = "never",
+  vcov        = ~id
+)
+```
+
+```{r did_pois2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+emfx(mod_pois)
+```
+
+`emfx()` returns average marginal effects — the average difference $E[Y(1)] - E[Y(0)]$ in **count units** across treated observations. This is the ATT on the count scale. The underlying model imposes PT on the log scale, so the treatment coefficient in the raw model can be exponentiated to get the implied incidence rate ratio.
+
+### Event study
+
+```{r did_pois4, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+mod_pois_es <- emfx(mod_pois, type = "event", post_only = FALSE)
+
+ggplot(mod_pois_es, aes(x = event, y = estimate, ymin = conf.low, ymax = conf.high)) +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = -1, lty = 2) +
+  geom_pointrange(col = "darkcyan") +
+  labs(
+    x = "Years post treatment",
+    y = "ATT (count units)",
+    title = "Nonlinear ETWFE event study (Poisson)"
+  )
+```
+
+Pre-treatment estimates are close to zero, confirming parallel trends on the log scale holds in the simulation.
+
+### Comparison: linear ETWFE on log(count + 1)
+
+A common alternative is to log-transform the count and run linear ETWFE. This is biased when zeros are present (the $+1$ shift distorts the linear index) and misinterprets the scale of the effect. For comparison:
+
+```{r did_pois5, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+df_count <- df_count %>% mutate(log_count = log(count + 1))
+
+mod_lin <- etwfe(
+  fml  = log_count ~ 1,
+  tvar = year,
+  gvar = first_treat,
+  data = df_count,
+  vcov = ~id
+)
+emfx(mod_lin)
+```
+
+The linear model estimates the ATT on the $\log(Y+1)$ scale — not the same quantity as the Poisson ATT and harder to interpret. When treatment effects are multiplicative, Poisson ETWFE is the more appropriate model.
+
 ## Synthetic Control
 
 The biggest problem with DiD is the PT assumption. There is not really a test for it, just like the unconfoundedness assumption. It is less demanding than unconfoundedness assumption, but nevertheless hard to justify sometimes.

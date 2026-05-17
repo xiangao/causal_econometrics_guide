@@ -42,8 +42,23 @@ quarto preview       # live preview in browser
 ## R Dependencies
 ggplot2, ggdag, dagitty, causaleffect, igraph, npcausal, boot, SuperLearner, tmle, tidyverse, ranger, hdm, lmtest, sandwich, haven, grf, policytree, sensemakr, EValue, ltmle, ipw, gfoRmula, survey, MatchIt, cobalt, WeightIt, optmatch, causaldrf, lmtp, BART, bcf, riskRegression, survminer, rpart, glmnet, splines, reshape2, stringr, causaldata, fixest, did, broom, skimr, bslib, etwfe, synthdid, sem, MASS, rdrobust, lavaan, data.table, medoutcon, DoubleML, mlr3, mlr3learners, gmm, parallel, pcalg, Rgraphviz, graph, gridExtra, marginaleffects (Rgraphviz and graph are Bioconductor packages required by pcalg)
 
+## Cross-book parity with Julia companion
+
+Results are validated to match `causal_econometrics_julia` within 1% (real data) or 5% (simulated).
+
+### Shared datasets (generated in R, loaded by both books)
+Chapters that load pre-generated CSVs from `data/` to ensure identical results:
+- `survival-causal.qmd` → `data/survival_sim.csv` (n=1500 Weibull; propensity intercept=-4 for ~30% treatment)
+- `shift-share-iv.qmd` → `data/shift_share_sim.csv`, `shift_share_shares.csv`, `shift_share_shocks.csv`, `shift_share_bad_v.csv`, `shift_share_bad_noise.csv`
+
+To regenerate these datasets: run `Rscript` with the DGP code at the top of each chapter (seed is set).
+
+### Notable chapter additions (May 2026)
+- `did.qmd`: Added **Nonlinear ETWFE** section demonstrating `etwfe(family = "poisson")` for count outcomes. Uses `cgroup = "never"` and simulated staggered count data.
+
 ## Notes
 - Each chapter has a hidden setup chunk (`#| include: false`) loading required libraries
 - `execute: freeze: auto` in `_quarto.yml` caches R output; delete `_freeze/` to force re-run
 - Data files are in `data/`, images in `images/`
+- CI renders the full book on push to master (no R installed on runner — relies entirely on `_freeze/` cache; new chunks must be rendered locally first)
 - Source slides: `~/projects/claude/causal_econometrics/code/causal_econometrics.qmd`

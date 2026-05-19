@@ -369,6 +369,76 @@ For staggered adoption (Xu 2026), `did_int_staggered()` loops over `(cohort, tim
 
 A Julia port with identical estimators is available as [`DidInterference.jl`](https://github.com/xiangao/DidInterference.jl).
 
+## Persistent Outcomes and Heterogeneous Dynamics
+
+Standard event-study TWFE regressions like
+
+$$ Y_{it} = \alpha_i + \gamma_t + \sum_{j} D_{it}^j \delta_j + X_{it}'\beta + U_{it} $$
+
+implicitly assume the residual has no serial dependence once unit and
+time fixed effects are absorbed. When outcomes are genuinely
+persistent — earnings, employment, consumption, anything with habits
+or adjustment costs — that assumption fails. The event-time dummies
+pick up the persistence on top of the true causal effect, producing
+spurious pre-trends and biased post-treatment estimates. With a true
+AR(1) DGP and persistence $\rho_Y$, the omitted-variable bias on the
+event-time coefficients grows geometrically with the event-time
+horizon (Botosaru and Liu, 2025, Figure 1).
+
+Botosaru and Liu [-@botosaru-liu-2025] introduce a **dynamic panel
+with correlated random coefficients** that handles both persistence
+and unit-level heterogeneity in dynamic responses:
+
+$$ Y_{it} = \rho_Y Y_{i,t-1} + \alpha_i + \sum_j D_{it}^j \delta_{ij} + X_{it}'\beta + U_{it}, $$
+
+with a parsimonious AR(1) structure on the event-time effects to keep
+dimensionality manageable:
+
+$$ \delta_{ij} = \rho_\delta \delta_{i,j-1} + \varepsilon_{ij}, \quad j \geq 1. $$
+
+The latent $\lambda_i = (\alpha_i, \delta_{i0})$ is a unit-specific
+correlated random coefficient. A two-step semiparametric estimator: step 1
+is **quasi-maximum likelihood** for the common parameters
+$(\rho_Y, \rho_\delta, \sigma_U^2, \sigma_\varepsilon^2, \beta)$ under
+a Gaussian working assumption on $\lambda_i$ (consistent under
+misspecification of that working assumption); step 2 is
+**Tweedie / Gaussian-conjugate empirical Bayes** for the unit-level
+posterior trajectories $\{\delta_{i,j}\}_{j=0}^J$, achieving asymptotic
+ratio optimality.
+
+A companion paper [@botosaru-liu-2026] adds a **homogeneous-feedback
+extension**: covariates $X_{it}$ are allowed to adjust endogenously to
+past $Y$ and treatment (the canonical example: minimum-wage policy
+affects wages directly and also indirectly through firms re-optimising
+input demand). Under the assumption that the covariate adjustment rule
+does not depend on $\lambda_i$ given the observable history, the
+likelihood factors into a structural piece (for $Y \mid X$, history)
+and a feedback piece (for $X$ given history), each separately
+identified. The factorisation yields a clean decomposition of dynamic
+treatment effects into **direct** (through $\delta_{i,j}$) and
+**indirect** (through covariate feedback) components.
+
+The package [`tvhte`](https://github.com/xiangao/tvhte) implements
+both papers:
+
+```{r tvhte_demo, eval = FALSE}
+library(tvhte)
+
+# Fit on a panel with staggered cohorts and a covariate
+fit <- tvhte(Y = panel_Y, Y0 = baseline_Y, t0 = cohort,
+             J = max_event_time, X = panel_X)
+print(fit)
+
+# Feedback model + direct/indirect counterfactual decomposition
+fb <- fit_feedback(panel_Y, baseline_Y, panel_X, baseline_X)
+cf <- simulate_counterfactual(fit, fb, t0_star = alt_cohort)
+```
+
+A Julia port with the same API is at
+[`TVHTE.jl`](https://github.com/xiangao/TVHTE.jl); both packages have
+deployed docs at <https://xiangao.github.io/tvhte/> and
+<https://xiangao.github.io/TVHTE.jl/>.
+
 ## Synthetic Control
 
 The biggest problem with DiD is the PT assumption. There is not really a test for it, just like the unconfoundedness assumption. It is less demanding than unconfoundedness assumption, but nevertheless hard to justify sometimes.

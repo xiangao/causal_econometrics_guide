@@ -17,17 +17,14 @@ library(causaleffect)
 library(ggplot2)
 ```
 
-The two previous chapters covered **discovery** — algorithms that learn a
-graph from data. Discovery returns a graph, but a graph is not yet an
-estimate. To go from the graph to an actionable number, we need two more
-steps:
+The previous chapters covered discovery: algorithms that learn a graph from
+data. But a graph is not an estimate. After we have a graph, we still need
+to ask two questions:
 
-1. **Identification** — given the graph and a target effect, is the effect a
-   function of the observed-data distribution? If yes, derive the
-   identifying functional. If no, declare non-identification (or place
-   bounds).
-2. **Estimation** — fit the identifying functional to data, ideally with a
-   doubly-robust or efficient estimator that yields a confidence interval.
+1. **Identification**: is the target effect a function of the observed-data
+   distribution?
+2. **Estimation**: once the identifying formula is known, estimate it from
+   the data.
 
 In R, `dagitty` handles identification via the backdoor and front-door
 criteria; `causaleffect` implements the full Pearl–Shpitser ID algorithm for
@@ -37,9 +34,8 @@ R, making the connection between the formula and the estimator transparent.
 
 ## Backdoor: standard adjustment
 
-The simplest case. Treatment $A$ has measured parents, and there is no
-unmeasured common cause between $A$ and $Y$ along any backdoor path.
-Standard backdoor adjustment applies.
+Start with the simple case. $X$ is a common cause of treatment $A$ and
+outcome $Y$, and $X$ is observed. Backdoor adjustment applies.
 
 ```{r}
 #| label: backdoor-graph
@@ -99,17 +95,15 @@ ci_bd <- quantile(boot_bd, c(0.025, 0.975))
 cat(sprintf("95%% CI: [%.3f, %.3f]\n", ci_bd[1], ci_bd[2]))
 ```
 
-The AIPW estimator is doubly robust: it is consistent if either the outcome
-model or the propensity score is correctly specified, and efficient when
-both are.
+The AIPW estimator is consistent if either the outcome model or the
+propensity score is correctly specified.
 
 ## Front-door: p-fixable effects
 
-Now suppose there is an *unmeasured* common cause $U$ of $A$ and $Y$, but a
-measured mediator $M$ lies on the causal path $A \rightarrow M \rightarrow Y$,
-with no arrow from $U$ to $M$ except through $A$. Standard backdoor
-adjustment fails because $U$ is unobserved, but the front-door criterion
-identifies the effect.
+Now suppose $A$ and $Y$ have an unmeasured common cause $U$, but there is a
+measured mediator $M$ on the path $A \rightarrow M \rightarrow Y$. Backdoor
+adjustment fails because $U$ is unobserved. The front-door formula can still
+identify the effect.
 
 In `dagitty`, the bidirected edge $A \leftrightarrow Y$ (representing the
 latent $U$) appears as `A <-> Y`. For `causaleffect`, the same edge is
@@ -204,15 +198,13 @@ cat(sprintf("Naïve mean difference (biased!): %.3f\n", naive_ace))
 cat(sprintf("True ACE:                        %.3f\n", true_ace_fd))
 ```
 
-Despite $U$ being unobserved, the front-door formula recovers the causal
-effect. The naïve difference is contaminated by the $U \rightarrow A$ and
-$U \rightarrow Y$ paths that the front-door route closes.
+The front-door formula recovers the effect even though $U$ is unobserved.
+The naive mean difference is biased by the path through $U$.
 
 ## When identification fails
 
-Not every ADMG yields an identified effect. Suppose $A$ and $Y$ have a
-hidden common cause **and** there is no front-door mediator. The effect is
-**not identified**.
+Not every graph identifies the effect. If $A$ and $Y$ have a hidden common
+cause and there is no front-door variable, the effect is not identified.
 
 ```{r}
 #| label: not-identified
@@ -238,15 +230,13 @@ non-identifiability, then either:
 2. Apply sensitivity analysis to bound the effect under maintained assumptions
 3. Find an instrumental variable for a LATE-style identification (IV chapter)
 
-A hidden assumption that everyone tacitly makes — "of course the
-confounding is small" — is *not* identification. Either the graph supports
-the effect or it does not.
+Saying that the hidden confounding is probably small is sensitivity analysis,
+not identification.
 
 ## End-to-end: discover, identify, estimate
 
-The previous chapters' discovery algorithms (PC, GES, FCI, RFCI) return
-graphs that can be passed directly to the identification step. The full
-workflow is:
+Discovery algorithms return graphs that can be passed to the identification
+step:
 
 ```{r}
 #| eval: false
@@ -270,8 +260,8 @@ sets  <- adjustmentSets(g_dag, exposure = "A", outcome = "Y")
 # Step 5: estimate the returned functional by plug-in or regression
 ```
 
-In practice, the discovered graph is almost never trusted blindly. The
-applied-research workflow is:
+In applied work, I would not trust the discovered graph blindly. A more
+reasonable workflow is:
 
 1. **Hypothesise** a graph based on subject-matter knowledge
 2. **Discover** a data-driven graph using PC/GES/FCI
@@ -279,14 +269,12 @@ applied-research workflow is:
 4. **Identify** under both graphs separately
 5. **Estimate** under both, and report the range as part of the result
 
-If the estimate is robust to the choice of graph, the conclusion is strong.
-If it flips sign depending on which graph you use, the data alone is not
-enough to answer the question.
+If the estimate changes a lot across plausible graphs, the data alone is not
+settling the question.
 
 ## Why this matters
 
-The "graph → identification → estimation" pipeline closes the loop between
-causal-discovery papers and applied empirical work. Practically:
+The graph-identification-estimation sequence matters because:
 
 - **Backdoor adjustment is not always available.** Many real DAGs have
   hidden confounders. Front-door, nested, and general ID algorithms are
@@ -303,16 +291,10 @@ causal-discovery papers and applied empirical work. Practically:
 
 ## Summary
 
-- **Discovery returns a graph; estimation returns a number.** The bridge is
-  the **identification** step.
-- `dagitty` implements backdoor and front-door criteria; `causaleffect`
-  implements the full Pearl–Shpitser ID algorithm for ADMGs with bidirected
-  edges (hidden confounders).
-- **Backdoor case**: `adjustmentSets()` + AIPW estimation.
-- **Front-door case**: `causal.effect()` returns the functional; estimate
-  it by direct plug-in or regression.
-- **Non-identified case**: `causal.effect()` errors — report
-  non-identifiability, not a biased point estimate.
-- **End-to-end workflow**: hypothesise a graph, run discovery as a check,
-  identify, estimate, and report the range across plausible graphs.
-
+- A graph is not an estimate. Identification is the bridge.
+- `dagitty` handles backdoor and front-door checks; `causaleffect` handles
+  general ADMG identification.
+- Backdoor effects can be estimated with AIPW.
+- Front-door effects require estimating the front-door functional.
+- If the effect is not identified, report that instead of forcing a biased
+  regression estimate.

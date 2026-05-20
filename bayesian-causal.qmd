@@ -15,24 +15,18 @@ library(BART)
 library(bcf)
 ```
 
-The frequentist methods in earlier chapters compute point estimates and
-asymptotic confidence intervals. Bayesian methods take a different route:
-they put priors on the unknown quantities and return a full posterior
-distribution. The advantages — credible intervals, principled propagation
-of uncertainty into derived quantities, and natural handling of
-hierarchical structure — make Bayesian methods particularly attractive
-for causal inference, where uncertainty is the central question.
+The earlier chapters mostly compute point estimates and standard errors.
+Bayesian methods instead put priors on unknown quantities and return a
+posterior distribution. For causal inference this is useful when we want
+uncertainty about a function of the model, such as an individual treatment
+effect or a policy value, not just one coefficient.
 
-This chapter covers two workhorses:
+I use two models:
 
-1. **BART for causal inference** (Hill 2011) — Bayesian Additive
-   Regression Trees as a flexible nonparametric outcome model, used to
-   estimate ATE, ATT, and individual-level treatment effects via the
-   posterior.
-2. **Bayesian Causal Forests (BCF)** (Hahn, Murray, & Carvalho 2020) —
-   an extension of BART that separates the prognostic and treatment
-   effect components, with a regularising prior on heterogeneity to
-   reduce overfitting.
+1. **BART for causal inference** (Hill 2011), where BART is used as a
+   flexible outcome model.
+2. **Bayesian Causal Forests** (BCF; Hahn, Murray, & Carvalho 2020), which
+   separates the baseline outcome model from the treatment-effect model.
 
 > **Related reading**: The chapter [Using Numpyro](https://xiangao.github.io/blog_book/numpyro.html)
 > in *Topics on Econometrics and Causal Inference* demonstrates a
@@ -42,9 +36,8 @@ This chapter covers two workhorses:
 
 ## Setup
 
-We use the same data-generating process as the [Heterogeneous Treatment
-Effects](heterogeneous-effects.qmd) chapter so that the Bayesian
-estimators can be compared directly to the frequentist meta-learners:
+I use the same simulation as in the [Heterogeneous Treatment Effects](heterogeneous-effects.qmd)
+chapter. The true treatment effect varies with `X1`.
 
 ```{r}
 #| label: dgp
@@ -70,18 +63,15 @@ cat(sprintf("True ATE = %.3f\n", mean(tau)))
 
 ## BART for causal inference (Hill 2011)
 
-BART (Chipman, George, & McCulloch 2010) is a sum-of-trees model with a
-strong regularising prior on tree depth. It is a flexible nonparametric
-regressor with native uncertainty quantification from MCMC.
+BART is a sum of many small regression trees. The prior keeps each tree
+weak, and the sum of trees gives flexibility.
 
-The Hill (2011) recipe for causal inference is:
+For causal inference, the recipe is:
 
-1. Fit BART to model $\mu(d, x) = \mathbb{E}[Y \mid D = d, X = x]$ using
-   the observed data.
+1. Fit BART for $\mu(d,x)=\mathbb{E}[Y \mid D=d,X=x]$.
 2. For each unit $i$, predict counterfactuals $\mu(1, x_i)$ and $\mu(0, x_i)$.
 3. The individual treatment effect (ITE) is $\hat\tau_i = \mu(1, x_i) - \mu(0, x_i)$.
-4. Average over the posterior MCMC draws for ATE, or over units for
-   conditional/individual effects.
+4. Average the posterior draws to get the posterior for ATE or ITEs.
 
 ```{r}
 #| label: bart-fit
@@ -121,15 +111,13 @@ cat(sprintf("  95%% CrI: [%.3f, %.3f]\n", ate_post_ci[1], ate_post_ci[2]))
 cat(sprintf("  True ATE: %.3f\n", mean(tau)))
 ```
 
-The posterior credible interval directly captures parameter uncertainty —
-no asymptotic approximations needed. This is the central appeal of the
-Bayesian approach for causal inference.
+The posterior draws give the uncertainty in the ATE directly.
 
 ### Individual-level credible intervals
 
-Unlike frequentist meta-learners, BART gives uncertainty at the
-*individual* level. Plot the posterior distribution of $\hat\tau_i$ vs
-the true $\tau_i$ for each unit:
+BART also gives a posterior for each unit's treatment effect. Here I plot
+the posterior mean and pointwise credible intervals against the true
+$\tau_i$.
 
 ```{r}
 #| label: bart-ite
@@ -161,29 +149,25 @@ ggplot(df_ite, aes(x = X1)) +
   theme_minimal()
 ```
 
-The blue ribbon shows pointwise 95% credible intervals; the red dashed
-line is the truth. Credible intervals cover the truth almost everywhere
-— a hallmark of well-calibrated Bayesian inference.
+The blue ribbon is the pointwise 95% credible interval. The red dashed line
+is the true treatment-effect function.
 
 ## Bayesian Causal Forests (BCF)
 
-BART for causal inference is conceptually clean but it does not separate
-the *prognostic* effect (how $X$ predicts $Y(0)$) from the *treatment*
-effect (how $X$ moderates $D$). This causes a known problem: when the
-prognostic effect varies along the same covariates as the treatment
-effect, BART tends to confound them.
+BART models $\mathbb{E}[Y \mid D,X]$ directly. That means the same trees
+have to learn the baseline outcome and the treatment-effect heterogeneity.
+When strong predictors of $Y(0)$ are also related to treatment, this can
+create noisy treatment-effect estimates.
 
-Hahn, Murray, & Carvalho (2020) propose **Bayesian Causal Forests
-(BCF)**, which decomposes:
+BCF writes the conditional mean as
 
 $$
 \mathbb{E}[Y \mid D, X] = \mu(X) + \tau(X)\, D,
 $$
 
-and puts BART priors on $\mu$ and $\tau$ *separately* — with a tighter
-prior on $\tau$ that regularises towards homogeneous effects. This
-"separation prior" reduces spurious heterogeneity from prognostic
-variation.
+and puts separate priors on $\mu(X)$ and $\tau(X)$. The treatment-effect
+part is regularized more strongly, which helps avoid overfitting
+heterogeneity.
 
 ```{r}
 #| label: bcf-fit
@@ -210,7 +194,7 @@ bcf_fit <- readRDS(tmp_rds)
 unlink(tmp_rds)
 ```
 
-Extract the posterior of individual treatment effects:
+Now extract the posterior treatment effects:
 
 ```{r}
 #| label: bcf-summary
@@ -232,7 +216,7 @@ cat(sprintf("  True ATE: %.3f\n", mean(tau)))
 
 ### BART vs BCF: individual treatment effects
 
-Compare the estimated CATEs across the two methods:
+Compare the estimated CATEs:
 
 ```{r}
 #| label: compare-ite
@@ -258,8 +242,8 @@ ggplot(df_compare, aes(X1, est)) +
   theme_minimal()
 ```
 
-BCF typically yields smoother and less noisy CATE estimates than vanilla
-BART because of the prognostic/treatment-effect separation.
+BCF is usually smoother because it separates the prognostic and treatment
+effect parts of the model.
 
 ## When to use Bayesian methods
 
@@ -269,27 +253,20 @@ BART because of the prognostic/treatment-effect separation.
 | Need full posterior (e.g. for downstream decisions) | Computational cost matters (BART is slow on large $n$) |
 | Hierarchical / multilevel data structure | Effects are simple averages |
 | Small sample, weak identification | Effects are well-identified |
-| Want native individual-level CrIs | Existing frequentist toolkit is sufficient |
+| Want individual-level CrIs | Existing frequentist toolkit is sufficient |
 
-The Bayesian approach is not just a different machinery for the same
-answer — it provides additional outputs (posterior over individual
-effects, principled propagation of uncertainty to derived quantities)
-that are unavailable in frequentist methods. For decision-theoretic
-applications (treatment recommendation under cost-benefit trade-offs),
-the Bayesian posterior is the natural input.
+Bayesian methods are most useful when the posterior itself will be used:
+for individual treatment decisions, policy values, or hierarchical models.
+If the target is just a well-identified ATE in a large sample, the
+frequentist methods in earlier chapters are often simpler.
 
 ## Practical guidance
 
-- **Start with BCF, not BART.** BCF's separation prior almost always
-  yields better-calibrated CATE estimates.
-- **Diagnose convergence.** Inspect trace plots and effective sample
-  sizes for the posterior. `BART` and `bcf` provide built-in diagnostics.
-- **Don't ignore the propensity score.** BCF requires `piHat` as an
-  input — a poor propensity score weakens the model. Use a flexible
-  classifier (e.g. random forests, BART's own classification mode).
-- **Posterior summaries.** Report posterior mean, SD, and 95% credible
-  intervals for both ATE and bin-level CATEs. The full posterior matters
-  more than the point estimate.
+- Start with BCF if the goal is heterogeneous effects.
+- Check MCMC diagnostics. A bad chain makes the posterior summaries useless.
+- For BCF, pay attention to `piHat`; it is part of the model input.
+- Report posterior mean, posterior SD, and credible intervals for ATE and
+  meaningful CATE summaries.
 
 ## Connections
 
@@ -307,14 +284,10 @@ the Bayesian posterior is the natural input.
 
 ## Summary
 
-- **BART for causal inference** (Hill 2011): fit BART to $E[Y \mid D, X]$,
-  predict counterfactuals, compute ITEs from posterior draws.
-- **Bayesian Causal Forests (BCF)** (Hahn-Murray-Carvalho 2020): separate
-  prognostic and treatment-effect components with distinct priors;
-  reduces spurious heterogeneity.
-- **Native credible intervals at the individual level** — the
-  Bayesian approach's main differentiator from frequentist HTE methods.
-- **Computational cost** is the main caveat: BART/BCF scale poorly to
-  $n > 10^5$. For large datasets, frequentist alternatives
-  ([HTE chapter](heterogeneous-effects.qmd)) are usually preferred.
-
+- BART estimates counterfactual outcomes by fitting a flexible outcome model.
+- BCF separates baseline outcome prediction from treatment-effect
+  heterogeneity.
+- The main output is the posterior, especially for individual effects or
+  policy decisions.
+- Computation is the main cost. For very large data, frequentist HTE methods
+  are usually easier.

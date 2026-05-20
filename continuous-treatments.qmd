@@ -19,26 +19,24 @@ library(lmtp)
 library(SuperLearner)
 ```
 
-The previous chapters treated $D$ as binary — a single yes/no decision.
-Real treatments are often *continuous* (dose of a medication, dollars
-spent, hours of exposure) or *multivalued* (one of several treatment
-arms). For these, we cannot speak of "the effect of treatment" as a
-single scalar; instead we estimate the entire **dose-response curve**
+So far most examples use a binary treatment. Many treatments are not binary:
+dose of a drug, hours in a program, dollars spent, or a treatment with
+several levels. In those cases "the treatment effect" is not one number. We
+usually want a dose-response curve,
 
 $$
 \mu(d) = \mathbb{E}[Y(d)], \quad d \in \mathcal{D}.
 $$
 
-This chapter covers three approaches:
+I use three approaches:
 
-1. **Generalized propensity score** (GPS; Hirano-Imbens 2004) — extends
-   propensity score methods to continuous treatments via the
-   density-of-treatment-given-covariates.
-2. **Doubly-robust dose-response estimation** (Kennedy 2017) — combines
-   GPS with an outcome model for efficiency and robustness.
-3. **Longitudinal modified treatment policies** (LMTP; Diaz-Hejazi 2020)
-   — a unified framework for continuous, multivalued, and time-varying
-   treatments, with native handling of positivity violations.
+1. **Generalized propensity score** (GPS; Hirano-Imbens 2004), which models
+   the conditional density of treatment given covariates.
+2. **Doubly-robust dose-response estimation** (Kennedy 2017), which combines
+   a GPS with an outcome model.
+3. **Longitudinal modified treatment policies** (LMTP; Diaz-Hejazi 2020),
+   which are useful when treatments are time-varying or when fixed treatment
+   levels create positivity problems.
 
 > **Related reading**: The LMTP material below is condensed from the
 > longer treatment in [Longitudinal modified treatment policy (LMTP)](https://xiangao.github.io/blog_book/lmtp.html)
@@ -48,9 +46,8 @@ This chapter covers three approaches:
 
 ## The continuous-treatment setup
 
-A simulation makes the conceptual issue clear. Suppose treatment is a
-dose $D \in [0, 10]$ assigned via a generalized propensity score that
-depends on covariates:
+Start with a simple simulation. Treatment is a dose, and the dose depends on
+covariates:
 
 ```{r}
 #| label: dgp
@@ -72,14 +69,14 @@ cat(sprintf("True μ(d=2) = %.2f, μ(d=4) = %.2f, μ(d=6) = %.2f\n",
             true_mu(2), true_mu(4), true_mu(6)))
 ```
 
-The dose-response curve $\mu(d) = 1 + 2d - 0.15 d^2$ is hump-shaped: it
-increases at low doses and decreases at high doses. The challenge is to
-recover this shape from confounded observational data.
+The true dose-response curve is hump-shaped. It increases at low doses and
+falls at high doses. The estimation problem is to recover this shape when
+the observed dose is confounded by $X$.
 
 ## Naive regression vs adjusted regression
 
-A linear regression of $Y$ on $D$ alone is doubly biased: confounding
-through $X$ plus misspecification of the nonlinearity:
+A linear regression of $Y$ on $D$ has two problems: it ignores confounding
+by $X$, and it imposes a straight line on a nonlinear dose-response curve.
 
 ```{r}
 #| label: naive
@@ -126,8 +123,9 @@ ggplot() +
   theme_minimal()
 ```
 
-Even the quadratic adjustment leaves bias if the true dose-response is
-not quadratic or if the covariate adjustment is misspecified.
+The quadratic adjusted model is better in this simulation because the true
+curve is quadratic. In real applications, the functional form is usually not
+known.
 
 ## Generalized propensity score (GPS)
 
@@ -138,10 +136,10 @@ $$
 r(d, x) = f_{D \mid X}(d \mid x).
 $$
 
-Under unconfoundedness, conditioning on $r(D, X)$ alone is sufficient to
-identify the dose-response curve (Hirano-Imbens 2004). In practice the
-GPS is estimated assuming, say, $D \mid X \sim \mathcal{N}(\beta_0 + \beta'X, \sigma^2)$
-or by quantile binning.
+Under unconfoundedness, the GPS plays the same role as the propensity score
+for binary treatment. In practice we often start with a normal model for
+$D \mid X$:
+$D \mid X \sim \mathcal{N}(\beta_0+\beta'X,\sigma^2)$.
 
 ```{r}
 #| label: gps
@@ -166,9 +164,9 @@ cat(sprintf("Weight summary: min=%.3f, mean=%.3f, max=%.3f\n",
             min(df$sw_cont), mean(df$sw_cont), max(df$sw_cont)))
 ```
 
-The Hirano-Imbens estimator regresses $Y$ on a flexible function of $(D,
-\hat r(D, X))$ and then averages across the GPS distribution at each
-fixed $D$:
+The Hirano-Imbens estimator has two steps. First regress $Y$ on flexible
+functions of $D$ and the estimated GPS. Then, for each dose $d$, average the
+predicted outcome over the sample.
 
 ```{r}
 #| label: hi-est
@@ -200,13 +198,12 @@ ggplot() +
   theme_minimal()
 ```
 
-The Hirano-Imbens estimator recovers the curvature missing from naive
-regression because it does not impose a parametric form on the
-dose-response curve.
+In this example the GPS estimator tracks the nonlinear curve much better
+than the naive linear regression.
 
 ## Doubly-robust dose-response (Kennedy 2017)
 
-Kennedy (2017) extended AIPW to continuous treatments. The estimator
+Kennedy's estimator is the continuous-treatment analogue of AIPW. It
 combines:
 
 - An outcome model $\hat\mu(d, x) = \mathbb{E}[Y \mid D = d, X = x]$
@@ -218,11 +215,10 @@ $$
 \hat\mu_{DR}(d) = \frac{1}{n} \sum_i \left[ \hat\mu(d, X_i) + K_h(D_i - d) \cdot \frac{Y_i - \hat\mu(D_i, X_i)}{\hat r(D_i \mid X_i)} \right],
 $$
 
-where $K_h$ is a kernel that smooths over a bandwidth $h$ near $d$. The
-result is doubly robust and asymptotically normal.
+where $K_h$ is a kernel around dose $d$. The bandwidth $h$ controls how much
+nearby observed doses contribute to the estimate.
 
-The implementation is a few lines using a kernel for smoothing near the
-target dose $d$ and the GPS already estimated above:
+Using the GPS already estimated above, the implementation is short:
 
 ```{r}
 #| label: drf
@@ -260,27 +256,20 @@ ggplot() +
   theme_minimal()
 ```
 
-The DR estimator is consistent if *either* the outcome model
-$\hat\mu(d, x)$ or the GPS $\hat r(d \mid x)$ is correctly specified, and
-efficient when both are. The kernel bandwidth $h$ controls the
-bias-variance trade-off near each evaluation dose.
+The DR estimator is consistent if either the outcome model or the GPS is
+correctly specified. As usual, the bandwidth trades bias against variance.
 
-The `causaldrf` package provides several related estimators (`hi_est`,
-`iptw_est`, `aipwee_est`, `gam_est`, `nw_est`, `bart_est`) with
-pre-packaged inference and standard errors — useful for production work
-once the manual version above clarifies the underlying logic.
+The `causaldrf` package provides ready-made versions of these estimators,
+including `hi_est`, `iptw_est`, `aipwee_est`, `gam_est`, `nw_est`, and
+`bart_est`.
 
 ## Longitudinal Modified Treatment Policies (LMTP)
 
-For continuous, multivalued, and time-varying treatments — and especially
-when **positivity** is a concern (e.g. the dose-response at $d = 10$
-might have zero observations to learn from) — the LMTP framework
-(Diaz-Hejazi 2020) is the modern workhorse.
-
-LMTP replaces hypothetical interventions like "everyone gets $D = 4$"
-with **modified treatment policies** like "shift everyone's $D$ down by
-1 unit." The shifted-treatment distribution stays close to the observed
-data, preserving positivity.
+Fixed-dose interventions can be unrealistic. For example, there may be
+almost no observations near $D=10$, so estimating $Y(10)$ requires
+extrapolation. LMTP avoids this by defining interventions as changes to the
+observed treatment, such as "shift everyone's dose down by one unit." This
+keeps the counterfactual treatment closer to the observed support.
 
 ### A two-period example
 
@@ -300,8 +289,7 @@ lmtp_data <- data.frame(L_1, A_1, L_2, A_2, Y)
 head(lmtp_data)
 ```
 
-A modified treatment policy might shift treatments downward. Define the
-shift function:
+Here is a simple policy that sets each treatment to zero:
 
 ```{r}
 #| label: shift-fn
@@ -338,13 +326,13 @@ lmtp_fit <- lmtp_tmle(
 lmtp_fit
 ```
 
-The `lmtp` package handles the bookkeeping for time-varying covariates
-and treatments transparently. Its output includes the TMLE point
-estimate, IPW estimate, and bootstrap-style confidence intervals.
+The useful part of `lmtp` is that it handles the time-ordering of
+covariates, treatments, and outcomes. The output gives the TMLE estimate,
+an IPW estimate, and confidence intervals.
 
 ### Contrasts between policies
 
-LMTP shines when comparing two policies (e.g. "set to 0" vs "set to 1"):
+We can also compare two policies, such as "set to 0" versus "set to 1":
 
 ```{r}
 #| label: lmtp-contrast
@@ -373,9 +361,8 @@ contrast <- lmtp_contrast(lmtp_one, ref = lmtp_fit)
 contrast
 ```
 
-The contrast estimate corresponds to the ATE under "always treat" vs
-"never treat" — but computed within the LMTP framework, with valid
-inference and explicit positivity handling.
+The contrast is the difference between the two policy-specific mean
+outcomes.
 
 ## Choosing among the three
 
@@ -387,22 +374,20 @@ inference and explicit positivity handling.
 
 In practice:
 
-- For **simple cross-sectional continuous treatment** with good overlap,
-  use Hirano-Imbens GPS or the Kennedy DR estimator.
-- For **time-varying or modified-policy** questions, use LMTP.
-- For **multivalued** treatments, generalize the propensity score to a
-  multinomial model and use the same DR machinery.
+- For a simple cross-sectional continuous treatment with good overlap, GPS
+  or the Kennedy DR estimator is a natural start.
+- For time-varying treatments or policy shifts, use LMTP.
+- For multivalued treatments, use a multinomial propensity model and the
+  same adjustment logic.
 
 ## When to use these methods
 
-These methods are needed whenever:
+These methods are useful when:
 
-1. The treatment variable takes on more than two values (continuous,
-   ordinal, or categorical with > 2 categories).
-2. The research question concerns the *shape* of the dose-response
-   curve, not just a single contrast.
-3. The hypothetical intervention is best expressed as a *shift* in the
-   distribution of treatment rather than fixed assignment.
+1. Treatment has more than two values.
+2. The research question is about the shape of the dose-response curve.
+3. The intervention is better described as shifting treatment than setting
+   treatment to a fixed value.
 
 For strictly binary, single-time-period problems, the standard
 [Estimation](estimation.qmd) and [Heterogeneous Effects](heterogeneous-effects.qmd)
@@ -410,16 +395,10 @@ methods are sufficient.
 
 ## Summary
 
-- **Continuous and multivalued treatments** require estimating an entire
-  dose-response curve $\mu(d) = \mathbb{E}[Y(d)]$, not a single scalar.
-- **Generalized propensity score (GPS)** extends propensity-score methods
-  to continuous $D$; Hirano-Imbens (2004) is the canonical reference.
-- **Doubly-robust dose-response** (Kennedy 2017) combines GPS with an
-  outcome model; `causaldrf::bart_est` provides a BART-based
-  implementation with native uncertainty quantification.
-- **LMTP** (Diaz-Hejazi 2020, `lmtp` package) is the modern framework for
-  continuous, multivalued, and time-varying treatments under modified
-  policy interventions; respects positivity by construction.
-- See the [companion blog chapter on LMTP](https://xiangao.github.io/blog_book/lmtp.html)
-  for an extended treatment with worked time-varying examples.
-
+- Continuous and multivalued treatments usually require a dose-response
+  curve, not a single coefficient.
+- GPS extends propensity-score logic to continuous treatments by modeling
+  the density of treatment given covariates.
+- Kennedy's DR estimator adds an outcome model to the GPS.
+- LMTP is useful when the intervention is a policy shift or when treatment is
+  time-varying.

@@ -18,25 +18,18 @@ library(causaldata)
 library(broom)
 ```
 
-The previous chapters proceeded as if identification is binary: either a graph
-supports the effect (backdoor or front-door routes), or it doesn't (the effect
-is not identified). In practice, applied researchers face a more nuanced
-situation. They believe their identification strategy is *approximately*
-correct — there might be some residual confounding, but probably not much.
-The honest question is: **how much unmeasured confounding would be needed to
-overturn the conclusion?**
+The previous chapters often treat identification as yes or no. Applied work
+is usually less clean. We may believe the adjustment set is good, but still
+worry about some remaining confounding. Sensitivity analysis asks a practical
+question: how strong would unmeasured confounding have to be to change the
+conclusion?
 
 > **Related reading**: An extended treatment of the Cinelli-Hazlett
 > robustness value and benchmark interpretations appears in the
 > [companion blog chapter on sensitivity analysis](https://xiangao.github.io/blog_book/sensitivity-analysis.html)
 > of *Topics on Econometrics and Causal Inference*.
 
-This is the question sensitivity analysis answers. Rather than claiming
-unconfoundedness as a binary assumption, it asks how strong the unmeasured
-confounding would have to be — relative to observed covariates — to change
-the sign or significance of the estimate.
-
-We cover three complementary methods:
+Here I use three methods:
 
 1. **Cinelli-Hazlett (2020) omitted-variable bias bounds** — for any
    regression-based estimator, quantifies how strong an omitted variable
@@ -146,15 +139,9 @@ The summary tells us:
 plot(sens)
 ```
 
-The contour plot shows pairs of (partial $R^2$ with treatment, partial $R^2$
-with outcome) that an unobserved confounder would need to have to render the
-estimate zero. Points farther from the origin represent stronger confounders.
-The benchmark dots show what strength corresponds to 1×, 2×, 3× the
-observed strength of `smokeintensity` and `smokeyrs`.
-
-For the NHEFS case, the robustness value is large — even a confounder several
-times stronger than smoking intensity would not eliminate the estimated
-effect. The conclusion is robust.
+The contour plot shows how strong an unobserved confounder would have to be
+with the treatment and outcome to reduce the estimate to zero. The benchmark
+dots compare that hypothetical confounder to observed covariates.
 
 ## E-values for risk ratios
 
@@ -201,11 +188,8 @@ An E-value much greater than 1 suggests the result is hard to explain by
 unmeasured confounding. An E-value close to 1 means a modest unmeasured
 confounder could overturn the conclusion.
 
-A common rule of thumb: an E-value of 2 or more is considered moderate
-robustness; values of 4 or more indicate strong robustness. The biggest
-strength of the E-value is its model-free interpretation — it applies to
-any binary-outcome risk-ratio estimate, regardless of the specific
-estimator used.
+The useful part of the E-value is that it is on the risk-ratio scale. It can
+be explained without specifying a model for the unobserved confounder.
 
 ## Rosenbaum bounds (matched estimators)
 
@@ -305,9 +289,9 @@ cat(sprintf("Critical Gamma (p > 0.05): %.2f\n",
 
 ## What about partial identification?
 
-When sensitivity analysis shows the effect is fragile, the next step is
-often **partial identification** — instead of point-estimating, derive
-bounds on the effect under weaker assumptions.
+When sensitivity analysis shows the point estimate is fragile, partial
+identification is often the next step. Instead of one estimate, report bounds
+under weaker assumptions.
 
 The Manski (1990) "no-assumption" bounds say:
 
@@ -320,24 +304,15 @@ width is often large. Lee (2009) bounds exploit selection on observables
 plus monotonicity to get tighter bounds. Mourifié-Wan provide LATE bounds
 when monotonicity may fail.
 
-These are typically applied as a *complement* to a point estimate, not a
-replacement. They are most useful when sensitivity analysis suggests the
-point estimate is fragile and you want to characterise the full range of
-effects consistent with the data and minimal assumptions.
+These bounds usually complement a point estimate. They are useful when the
+point estimate depends too much on an untestable assumption.
 
 ## Summary
 
-- **Sensitivity analysis** quantifies how strong unobserved confounding
-  would need to be to overturn a conclusion.
-- **Cinelli-Hazlett OVB bounds** (`sensemakr`): regression-based, gives
-  robustness values and benchmark comparisons. The most flexible and
-  widely applicable.
-- **E-values** (`EValue`): risk-ratio-based, model-free interpretation,
-  particularly useful for epidemiology and medicine.
-- **Rosenbaum bounds**: for matched estimators; the critical $\Gamma$ is
-  the threshold odds ratio of hidden bias that would render the result
-  insignificant.
-- **Reporting practice**: every observational causal estimate should be
-  accompanied by *some* sensitivity analysis. A point estimate without
-  one is a claim of certainty that the data cannot support.
-
+- Sensitivity analysis asks how strong hidden confounding must be to change
+  the result.
+- Cinelli-Hazlett bounds are useful for regression estimates.
+- E-values are useful for risk ratios.
+- Rosenbaum bounds are useful for matched pairs.
+- Observational causal estimates should usually include at least one
+  sensitivity analysis.

@@ -12,7 +12,7 @@ suppressPackageStartupMessages({
 })
 ```
 
-The previous chapter introduced the graph-identification-estimation workflow with small examples. This chapter applies the same workflow to a real data set: the complete-case National Health and Nutrition Examination Survey I Epidemiologic Follow-up Study (NHEFS) data distributed through the `causaldata` package.
+The previous chapter used small graph examples. Here I apply the same graph-identification-estimation workflow to a real data set: the complete-case National Health and Nutrition Examination Survey I Epidemiologic Follow-up Study (NHEFS) data distributed through the `causaldata` package.
 
 The question is:
 
@@ -20,11 +20,11 @@ The question is:
 What is the effect of quitting smoking on weight change from 1971 to 1982?
 ```
 
-The treatment is `qsmk`, an indicator for quitting smoking between baseline and follow-up. The outcome is `wt82_71`, weight change over the follow-up period. This is observational data, so identification depends on the adjustment assumptions encoded in the graph.
+The treatment is `qsmk`, an indicator for quitting smoking between baseline and follow-up. The outcome is `wt82_71`, weight change over the follow-up period. This is observational data. The effect is not identified by the data alone. It is identified only after we state the adjustment assumptions in the graph.
 
 ## Data
 
-For a focused example, keep the treatment, outcome, and baseline covariates commonly used in the NHEFS smoking-cessation examples.
+For this example, keep the treatment, outcome, and baseline covariates that are commonly used in NHEFS smoking-cessation examples.
 
 ```{r}
 #| warning: false
@@ -108,7 +108,7 @@ adj_sets <- adjustmentSets(nhefs_graph, exposure = "qsmk",
 adj_sets
 ```
 
-The graph has therefore identified the causal mean by the adjustment formula
+The graph therefore identifies the causal mean by the adjustment formula
 
 $$
 E[Y(a)] = E_X\{E(Y \mid A=a, X)\}.
@@ -155,7 +155,7 @@ set.seed(2026)
 aipw_backdoor(nhefs, "qsmk", "wt82_71", adjust = baseline_vars) |> kable()
 ```
 
-Interpreted under the DAG, the estimate is the average effect of quitting smoking versus continuing smoking on weight change in the complete-case NHEFS population. The positive estimate is consistent with weight gain after quitting. The causal interpretation depends on the graph, especially the no-unmeasured-confounding assumption after adjustment for the baseline variables.
+Under the DAG, the estimate is the average effect of quitting smoking versus continuing smoking on weight change in the complete-case NHEFS population. The positive estimate is consistent with weight gain after quitting. The causal interpretation depends on the graph, especially the assumption that the measured baseline variables block the relevant backdoor paths.
 
 ## Sensitivity Graph
 
@@ -177,11 +177,11 @@ sens_adj <- adjustmentSets(sensitivity_graph, exposure = "qsmk",
 sens_adj
 ```
 
-The identifying conclusion changes. Under this graph, the observed NHEFS variables are not enough to identify the effect — `adjustmentSets` returns an empty list. This is the practical value of drawing the graph before estimating: the same data can support different causal answers under different assumptions.
+The identifying conclusion changes. Under this graph, the observed NHEFS variables are not enough to identify the effect: `adjustmentSets` returns an empty list. This is why the graph has to come before the estimator. The same data can imply different causal answers under different assumptions.
 
 ## Structured Baseline Graph
 
-The simple adjustment graph is often the clearest starting point. A richer DAG can record more assumptions about baseline temporal ordering and relationships: demographics may precede education, smoking history, activity, and baseline weight; those variables may then affect quitting and later weight change.
+The simple adjustment graph is often the clearest starting point. A more detailed DAG can record baseline ordering: demographics may precede education, smoking history, activity, and baseline weight; those variables may then affect quitting and later weight change.
 
 ```{r}
 structured_graph <- dagitty("dag {
@@ -237,4 +237,4 @@ data.frame(
 ) |> kable()
 ```
 
-For this treatment effect, the richer baseline DAG is adjustment-equivalent to the simpler expanded DAG: it implies the same minimal sufficient adjustment set, and therefore the same identifying functional. The extra arrows among baseline variables may be useful for documentation, but they are additional causal assumptions. If those extra assumptions are not needed for the estimand, the grouped adjustment graph is usually easier to defend.
+For this treatment effect, the detailed baseline DAG is adjustment-equivalent to the simpler expanded DAG. It implies the same sufficient adjustment set and the same identifying functional. The extra arrows among baseline variables may be useful for documentation, but they are also extra causal assumptions. If those assumptions are not needed for the estimand, the grouped adjustment graph is usually easier to defend.

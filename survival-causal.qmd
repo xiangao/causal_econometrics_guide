@@ -17,37 +17,31 @@ library(survminer)
 library(riskRegression)
 ```
 
-When the outcome is **time-to-event** — death, hospital re-admission,
-employment termination, machine failure — standard causal inference
-methods need to be adapted. Some observations are *censored*: we know
-the event has not yet occurred at the end of follow-up, but we do not
-know when it will. Standard regression on the event time would discard
-or mishandle these observations and produce biased estimates.
+When the outcome is time-to-event, such as death, readmission, job exit, or
+machine failure, ordinary regression is not enough. Some observations are
+censored. We know the event had not happened by the end of follow-up, but we
+do not know the event time. Dropping those observations or treating the
+observed follow-up time as the event time creates bias.
 
-This chapter covers the workhorses of survival-causal inference:
+I cover:
 
-1. **The Cox proportional hazards model** with treatment adjustment —
-   the classical regression approach to causal effects on time-to-event
-   outcomes.
-2. **Inverse probability of censoring weighting (IPCW)** — extends IPTW
-   to handle informative dropout.
-3. **Restricted mean survival time (RMST) differences** — a more
-   interpretable, assumption-light alternative to hazard ratios.
-4. **Doubly-robust survival estimators** — combine the outcome model
-   and the censoring weights for efficiency.
+1. Cox proportional hazards models with covariate adjustment.
+2. Inverse probability of censoring weighting (IPCW).
+3. Restricted mean survival time (RMST) differences.
+4. Doubly robust survival estimators in `riskRegression`.
 
 ## The challenge of censored outcomes
 
 Censoring means we observe $\min(T_i, C_i)$ and $\delta_i = \mathbb{1}\{T_i \le C_i\}$,
 where $T_i$ is the event time and $C_i$ is the censoring time. The
-fundamental quantity of interest is the **survival function**
+main quantity of interest is the survival function
 
 $$
 S(t) = P(T > t)
 $$
 
-— the probability of surviving past time $t$. Treatment effects in
-survival analysis are typically expressed as:
+the probability of surviving past time $t$. Treatment effects are usually
+reported as:
 
 - **Hazard ratio (HR)**: $HR = h_1(t) / h_0(t)$ (the ratio of hazards
   under treatment vs control). Easy to estimate but hard to interpret
@@ -72,8 +66,7 @@ cat(sprintf("n = %d, events = %d (%.1f%%), censored = %d\n",
 
 ## Kaplan-Meier survival curves
 
-The starting point of any survival analysis is the **Kaplan-Meier (KM)
-estimator** — a nonparametric estimate of $S(t)$:
+The Kaplan-Meier estimator is the basic nonparametric estimate of $S(t)$:
 
 ```{r}
 #| label: km
@@ -90,13 +83,12 @@ ggsurvplot(km_fit, data = df,
            legend.labs = c("Control", "Treatment"))
 ```
 
-The KM curve shows the *unadjusted* survival difference — useful for
-description but not for causal inference, because the treatment was
-assigned based on age.
+The KM curve is descriptive. It is not enough for causal inference here
+because treatment is related to baseline covariates.
 
 ## Cox proportional hazards with adjustment
 
-The standard approach is the Cox proportional hazards regression with
+The familiar regression approach is a Cox proportional hazards model with
 covariate adjustment:
 
 ```{r}
@@ -114,11 +106,10 @@ $\exp(-0.4) \approx 0.67$.
 
 ### The interpretation problem with hazard ratios
 
-The Cox HR is *not* a causal contrast in the usual potential-outcomes
-sense — it averages over the distribution of survivors at each time,
-which itself depends on the treatment effect (Hernán 2010). HR estimates
-are useful for ranking effects but should be reported alongside more
-interpretable quantities such as RMST differences.
+The Cox hazard ratio is not a simple mean treatment effect. It compares
+hazards among those still at risk at time $t$, and that risk set is itself
+affected by treatment. I would report it, but not rely on it as the only
+causal summary.
 
 ## Restricted Mean Survival Time (RMST)
 
@@ -129,15 +120,14 @@ $$
 \text{RMST}(\tau) = E[\min(T, \tau)] = \int_0^\tau S(t)\, dt.
 $$
 
-The RMST difference between treatment arms is a clean causal contrast
-when treatment is randomised (or when the conditioning set is right):
+The RMST difference is easier to interpret:
 
 $$
 \Delta_{\text{RMST}}(\tau) = \text{RMST}_1(\tau) - \text{RMST}_0(\tau)
 = \int_0^\tau [S_1(t) - S_0(t)]\, dt.
 $$
 
-Crucially, it does not require the proportional hazards assumption.
+It also does not require proportional hazards.
 
 ```{r}
 #| label: rmst
@@ -168,14 +158,13 @@ cat(sprintf("RMST(τ=5) under control:   %.3f years\n", rmst_ctrl))
 cat(sprintf("Difference:                %.3f years\n", rmst_trt - rmst_ctrl))
 ```
 
-The RMST difference says "treated patients gain on average X.X years of
-survival up to 5 years" — a directly interpretable quantity for policy
-or clinical reporting.
+The RMST difference says how many survival years are gained up to the cutoff
+$\tau$.
 
 ### Adjusted RMST via IPW
 
-For an *adjusted* RMST that handles confounding, weight the KM curve by
-the inverse propensity score:
+To adjust for confounding, weight the KM curve by the inverse propensity
+score:
 
 ```{r}
 #| label: rmst-ipw
@@ -195,10 +184,9 @@ The IPW-adjusted RMST removes the baseline imbalance.
 
 ## Inverse Probability of Censoring Weighting (IPCW)
 
-When censoring is *informative* — e.g. sicker patients drop out earlier
-— treating censoring as random produces bias. The fix is to weight each
-unit by the inverse of their probability of remaining uncensored,
-conditional on covariates.
+If censoring is informative, for example if sicker patients drop out earlier,
+treating censoring as random is biased. IPCW weights observations by the
+inverse probability of remaining uncensored, conditional on covariates.
 
 ```{r}
 #| label: ipcw
@@ -222,14 +210,13 @@ df_sub$ipcw <- ifelse(df_sub$event == 1, 1 / pmax(sc_at_t, 0.01), 0)
 summary(df_sub$ipcw[df_sub$event == 1])
 ```
 
-The IPCW weights upweight observations that survived "improbably long
-without being censored" — replacing the dropouts they implicitly represent.
+IPCW upweights observations that remain uncensored despite having a high
+predicted chance of censoring.
 
 ## Doubly-robust survival estimation
 
-The `riskRegression` package implements doubly-robust estimators that
-combine the outcome model (Cox) with the propensity score and the
-censoring model. The result is robust to misspecification of either:
+The `riskRegression` package combines the outcome model, propensity score,
+and censoring model:
 
 ```{r}
 #| label: dr-survival
@@ -264,12 +251,12 @@ The output reports three estimators side-by-side:
 - **IPTW** — inverse probability of treatment weighting.
 - **AIPTW** — augmented IPTW (doubly robust); the recommended default.
 
-Their agreement is reassuring; disagreement suggests model misspecification.
+Agreement across these estimates is reassuring. Disagreement is a warning
+about model specification.
 
 ## Hazard ratio vs RMST: which to report?
 
-Modern survival-causal reporting guidance (Royston-Parmar 2013,
-Hernán 2010) increasingly favours RMST over HR for several reasons:
+For causal reporting, RMST is often easier to defend than the hazard ratio:
 
 | Quantity | Pro | Con |
 |---|---|---|
@@ -283,8 +270,7 @@ In practice, report at least:
 2. The Cox HR with adjustment (familiar comparison to literature).
 3. The RMST difference at a clinically meaningful $\tau$ (interpretable
    causal contrast).
-4. The DR ATE on survival probability at one or two follow-up times
-   (the doubly-robust modern default).
+4. The DR ATE on survival probability at one or two follow-up times.
 
 ## Connections
 
@@ -301,17 +287,9 @@ In practice, report at least:
 
 ## Summary
 
-- **Survival outcomes** require methods that handle censoring (some
-  units' event times are unobserved).
-- **Cox proportional hazards** is the workhorse but the HR is not a
-  causal contrast in the usual sense.
-- **RMST differences** are interpretable and avoid the PH assumption —
-  prefer for causal reporting.
-- **IPCW** extends IPTW to handle informative dropout.
-- **Doubly-robust survival** (`riskRegression::ate`) combines outcome
-  models, treatment weights, and censoring weights for efficient and
-  robust estimation.
-- **Reporting**: combine KM curves (description), adjusted Cox (familiar),
-  RMST difference (interpretable), and DR ATE on survival probability
-  (modern default).
-
+- Survival outcomes require methods that handle censoring.
+- Cox models are familiar, but hazard ratios are hard to interpret causally.
+- RMST differences are often the clearest causal summary.
+- IPCW handles informative censoring.
+- `riskRegression::ate` reports g-formula, IPTW, and AIPTW estimates for
+  survival probabilities.

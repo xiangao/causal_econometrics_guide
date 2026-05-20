@@ -73,15 +73,20 @@ plot_ig <- function(g, main="", layout=NULL) {
 }
 ```
 
-In the previous chapter we assumed all causally relevant variables were observed. This assumption — called **causal sufficiency** — rarely holds in economics: unobserved ability confounds wage regressions, unobserved demand shocks confound price–quantity relationships, unobserved peer effects confound social network studies.
+The previous chapter assumed all causally relevant variables were observed.
+That is a strong assumption. In economics, ability, demand shocks, and peer
+effects are often unobserved.
 
-When latent confounders exist, constraint-based discovery algorithms that assume causal sufficiency (PC, GES) return incorrect results. This chapter introduces two algorithms in `pcalg` that handle the latent variable case.
+When latent confounders exist, PC and GES can give the wrong graph. Here I
+use `pcalg` algorithms designed for latent variables.
 
 ### Why PC fails with latent variables
 
 Suppose the true graph is $X \leftarrow U \rightarrow Y$ where $U$ is unobserved. In the observed data, $X$ and $Y$ are marginally correlated (through $U$) and no observed conditioning set separates them. PC will incorrectly draw an edge $X - Y$ and may orient it as $X \to Y$ or $X \leftarrow Y$, neither of which exists in the truth.
 
-More subtly, conditioning on a collider that is a descendant of $U$ can *open* a path between $X$ and $Y$, further distorting the CI structure that PC observes. With even a single hidden common cause, the d-separation statements in the observed data no longer correspond to those of any DAG over just the observed variables — they require the richer MAG representation.
+With even one hidden common cause, the conditional independences among
+observed variables may not correspond to any DAG on the observed variables
+alone. We need a MAG/PAG representation.
 
 ## Maximal Ancestral Graphs and PAGs
 
@@ -91,7 +96,9 @@ With latent variables, the appropriate representation is a **Maximal Ancestral G
 - $X \leftrightarrow Y$: $X$ and $Y$ have a common hidden ancestor (hidden confounder)
 - No edge: $X \perp\!\!\!\perp Y \mid Z$ for some $Z \subseteq \mathbf{O} \setminus \{X, Y\}$
 
-The MAG over observed variables is the "shadow" of the full DAG: it summarizes all causal and confounding relationships that are visible in the observed data, without requiring us to know or name the latent variables.
+The MAG over observed variables summarizes the causal and confounding
+relationships visible in the observed data without naming the latent
+variables.
 
 Just as DAGs have Markov equivalence classes represented by CPDAGs, MAGs have equivalence classes represented by **Partial Ancestral Graphs (PAGs)**. In a PAG, the mark $\circ$ on an edge endpoint means "could be arrowhead or tail in some member of the equivalence class."
 
@@ -117,7 +124,8 @@ R's `pcalg` package provides two algorithms for the latent-variable case:
 | **FCI** (Spirtes, Meek & Richardson, 1995) | Full PAG (skeleton + all orientation marks) | Expensive: 10 orientation rules, many CI tests |
 | **RFCI** (Colombo, Maathuis, Kalisch & Richardson, 2012) | Skeleton + partial orientations | Cheap: skips the most expensive CI tests |
 
-RFCI's key property: its **skeleton is asymptotically correct** under the same assumptions FCI requires, and its directed edges are a subset of FCI's directed edges. So RFCI gives you fewer orientations but never *wrong* ones — a controlled efficiency–information tradeoff.
+RFCI gives fewer orientations than FCI, but its skeleton targets the same
+object. It is a faster screening tool.
 
 ## Simulation with Hidden Variables
 
@@ -228,7 +236,9 @@ par(op)
 
 ## FCI Algorithm
 
-The **FCI algorithm** is the standard extension of PC to the latent-variable case. Like PC, it starts from a complete graph and removes edges via CI tests. After skeleton discovery, it applies a richer set of orientation rules that can produce bidirected edges $X \leftrightarrow Y$ indicating hidden common causes.
+FCI is the extension of PC for latent variables. It starts from a complete
+graph, removes edges with CI tests, and then uses orientation rules that can
+produce bidirected edges for hidden common causes.
 
 **How FCI extends PC:**
 
@@ -237,7 +247,8 @@ The **FCI algorithm** is the standard extension of PC to the latent-variable cas
 3. **Phase 3 (collider detection):** For each unshielded triple $X \;\circ\!-\!\circ\; Z \;\circ\!-\!\circ\; Y$ with $X, Y$ non-adjacent: orient as $X \;\circ\!\!\!\to Z \leftarrow\!\!\!\circ\; Y$ if $Z$ is not in the separating set of $X$ and $Y$.
 4. **Phase 4 (rule propagation):** Apply 10 orientation rules that propagate known marks without creating contradictions, including rules that can produce definite $\to$ and $\leftrightarrow$ edges.
 
-The richer mark set ($\to$, $\leftarrow$, $\circ$, $\leftrightarrow$) allows FCI to express what is known vs. unknown — at the cost of more complex output to interpret.
+The extra marks let FCI say what is known and what remains uncertain, but the
+output is harder to read than a DAG.
 
 ```{r}
 make_counted_ci <- function(suff_stat) {
@@ -314,7 +325,9 @@ In practice for economic research: focus first on $\leftrightarrow$ edges — th
 2. **Collider check:** before orienting an unshielded triple as a collider, RFCI runs *additional* CI tests to verify the orientation. This costs more in Phase 3 but means RFCI can safely *skip* the expensive Phase 4 rules.
 3. **Orientation output:** RFCI produces a *partial* PAG. Some edges that FCI orients are left as $\circ\!-\!\circ$ in RFCI; conversely, every edge RFCI does orient is guaranteed correct under the same asymptotic conditions.
 
-**Why this matters in practice:** the skeleton is what most applied users actually need (to flag where confounding may be present); the full PAG orientation adds analytical complexity that often does not survive translation into a policy-relevant claim. RFCI is the workhorse for screening.
+In practice, the skeleton is often the main output: it tells us which pairs
+need substantive attention. Full PAG orientations are useful, but they are
+harder to defend.
 
 ```{r}
 ci_rfci    <- make_counted_ci(suff_obs)
@@ -437,7 +450,8 @@ ggplot(mc_long, aes(x = ci, fill = method)) +
 | Orientation coverage | full | full (under faithfulness) | partial (conservative) |
 | CI cost | PC: PC's cost; GES: none | FCI's full Phase 4 | reduced Phase 4 |
 
-FCI and RFCI address complementary needs. If you need to orient edges, use FCI. If you only need the skeleton and efficiency matters, RFCI is the standard R choice.
+FCI and RFCI serve different purposes. Use FCI when orientations matter. Use
+RFCI when the goal is a faster skeleton screen.
 
 ### Practical decision guide
 
@@ -460,14 +474,16 @@ FCI and RFCI address complementary needs. If you need to orient edges, use FCI. 
 
 ### From discovery to estimation
 
-Causal discovery is a first step, not a final answer. The typical research workflow is:
+Causal discovery is a first step, not a final answer. A reasonable workflow
+is:
 
 1. **Discover** — run FCI or RFCI to get candidate adjacencies and, if using FCI, some edge marks
 2. **Refine** — apply temporal ordering, institutional knowledge, and exclusion restrictions to orient remaining edges
 3. **Identify** — check whether the effect of interest is identified given the refined graph (backdoor, front-door, ID algorithm)
 4. **Estimate** — use TMLE, AIPW, or the estimators in earlier chapters
 
-Causal discovery narrows the space of possible structures; domain knowledge finishes the job.
+Causal discovery narrows the space of possible structures. Domain knowledge
+still does the hard work.
 
 ::: {.callout-note}
 **Going further: orientation in the latent case**
@@ -477,7 +493,8 @@ FCI's PAG output distinguishes definite causes ($\to$), definite hidden common c
 
 ## How Much Does Causal Discovery Help in Economics?
 
-An honest assessment: recovering even the true MAG skeleton is far from recovering the full DAG. Several layers of information remain missing:
+Recovering the MAG skeleton is still far from recovering the full DAG. Much
+is still missing:
 
 | What is recovered | What is still missing |
 |---|---|
@@ -498,4 +515,6 @@ The core econometric question is almost always "what is the causal effect of $X$
 
 4. **Hypothesis generation when theory is silent.** For new economic phenomena — platform markets, fintech, peer effects in novel settings — where theory does not give a strong causal ordering, discovery algorithms generate hypotheses worth investigating with better-powered research designs.
 
-**The bottom line:** causal discovery is a complement to the standard econometric toolkit — IV, RD, DiD, synthetic control — not a substitute. It is most useful as a diagnostic and hypothesis-generating tool early in a research project, before the hard work of finding credible identifying variation begins.
+Causal discovery is a complement to IV, RD, DiD, and synthetic control, not a
+substitute. It is most useful early in a project, as a diagnostic and
+hypothesis-generating tool.

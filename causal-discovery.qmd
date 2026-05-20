@@ -55,13 +55,19 @@ plot_ig <- function(g, main = "", layout = NULL, curved = FALSE) {
 }
 ```
 
-In earlier chapters we assumed the causal graph was known, or at least that a defensible DAG could be drawn from domain knowledge. But what if we want to *learn* the causal structure from observational data? This is the **causal discovery** problem.
+Earlier chapters assumed the graph was known, or at least that we could draw
+a defensible DAG from subject knowledge. Causal discovery asks what can be
+learned about the graph from observational data.
 
 ## The Problem
 
 Given $n$ i.i.d. observations of $p$ variables $(X_1, \ldots, X_p)$, we want to recover the directed acyclic graph (DAG) $G$ that generated the data.
 
-There is a fundamental limit: observational data alone cannot distinguish between DAGs that encode the same conditional independence (CI) structure. The set of DAGs that are observationally equivalent is called a **Markov equivalence class** (MEC). The best we can do from data is to identify the MEC, represented as a **Completed Partially Directed Acyclic Graph (CPDAG)**.
+There is an important limit: observational data alone cannot distinguish
+between DAGs with the same conditional independence structure. The set of
+observationally equivalent DAGs is a **Markov equivalence class**. The data
+can identify this class, represented by a CPDAG, not necessarily the one true
+DAG.
 
 A CPDAG has the same skeleton (undirected edges) as all DAGs in its MEC. Some edges can be oriented (they have the same direction in every member of the MEC); others remain undirected because both directions are consistent with the CI structure.
 
@@ -83,14 +89,16 @@ For causal estimation: once you have a CPDAG, you can use background knowledge (
 
 ## Two Discovery Paradigms in R
 
-R's canonical causal-discovery toolkit is `pcalg`. It implements two complementary algorithm families:
+In R, `pcalg` implements two useful algorithm families:
 
 | Paradigm | Algorithm | Decision rule |
 |---|---|---|
 | **Constraint-based** | PC (Spirtes & Glymour, 1991) | Remove an edge when a CI test reports independence |
 | **Score-based** | GES (Chickering, 2002) | Add/remove/reverse the edge that most improves a model score (BIC) |
 
-Both target the same CPDAG, but they err in different ways. PC inherits the variance of finite-sample CI tests; GES inherits the bias of a parametric score. Comparing them on the same dataset is the standard way to gauge robustness.
+Both target the same CPDAG, but they make different mistakes. PC depends on
+finite-sample conditional independence tests. GES depends on the score. I
+would usually compare both.
 
 ## Simulation
 
@@ -265,7 +273,7 @@ sprintf("PC:    skeleton F1 = %.3f   CPDAG F1 = %.3f   CI tests = %d",
 
 ## GES Algorithm
 
-**GES** (Greedy Equivalence Search; Chickering, 2002) takes a fundamentally different approach. Instead of testing independences and removing edges, it *searches* the space of CPDAGs by greedily adding, then removing edges that improve a model score. Under faithfulness and a consistent score (BIC qualifies), GES is **asymptotically consistent** — it recovers the true CPDAG as $n \to \infty$.
+**GES** (Greedy Equivalence Search; Chickering, 2002) uses a different strategy. Instead of testing independences and removing edges, it searches the space of CPDAGs by adding and then removing edges that improve a model score. Under faithfulness and a consistent score such as BIC, GES recovers the true CPDAG as $n \to \infty$.
 
 **How it works, step by step:**
 
@@ -287,7 +295,8 @@ sprintf("GES:   skeleton F1 = %.3f   CPDAG F1 = %.3f   (score-based, no CI tests
         f1_ges["skeleton"], f1_ges["cpdag"])
 ```
 
-**Why GES vs. PC matters in practice:** PC errors propagate — a single false-positive CI test can cascade through the orientation phase. GES errors are local — a wrong edge addition or removal costs at most one edge. With moderate $n$ and well-behaved noise, GES is often more stable; with very large $n$ and possible non-Gaussian errors, PC's nonparametric flavor of independence can be more robust.
+PC and GES fail differently. In PC, one wrong CI decision can affect later
+orientation decisions. In GES, a wrong score move is usually more local.
 
 ## Comparison
 
@@ -401,7 +410,10 @@ ggplot(mc, aes(x = ci_pc)) +
 
 ## Summary
 
-PC and GES recover the same target — the Markov equivalence class of the data-generating DAG — but they reach it from opposite directions. PC reasons about *conditional independences*; GES reasons about *model fit*. Reporting both is the standard sanity check in R-based applied work: if they agree on the skeleton, the recovered structure is robust to the choice of paradigm; if they disagree, that is a signal to dig in (sample size, faithfulness violations, non-Gaussian errors).
+PC and GES target the same Markov equivalence class. PC uses conditional
+independence tests; GES uses model fit. If they agree on the skeleton, that
+is reassuring. If they disagree, check sample size, model assumptions, and
+possible faithfulness problems.
 
 **From CPDAG to causal estimation:** Once a CPDAG is in hand, the workflow continues as follows:
 
@@ -414,7 +426,9 @@ If some edges remain undirected after exhausting background knowledge, you can e
 ::: {.callout-note}
 **What cannot be recovered from observational data alone**
 
-Both algorithms identify the CPDAG — the equivalence class — not the true DAG. Certain edge orientations are fundamentally unidentifiable without additional assumptions such as non-Gaussian errors, temporal ordering, or interventional data.
+Both algorithms identify the CPDAG, not necessarily the true DAG. Some edge
+directions require extra assumptions, temporal ordering, or interventional
+data.
 
 The next chapter addresses a harder problem: recovering the causal skeleton when some variables are *unobserved*.
 :::

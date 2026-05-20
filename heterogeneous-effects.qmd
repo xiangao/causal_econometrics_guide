@@ -23,28 +23,22 @@ $$
 \text{CATE}(x) = \mathbb{E}[Y(1) - Y(0) \mid X = x]
 $$
 
-as the effect of treatment for individuals with covariates $X = x$. There,
-we computed CATE from known potential outcomes — a luxury only simulation
-affords. In real data, $Y(0)$ and $Y(1)$ are never both observed, and CATE
-must be *estimated* from $(X, D, Y)$ without strong functional-form
-assumptions.
+as the effect of treatment for units with covariates $X=x$. In the
+simulation we could compute it from known potential outcomes. In real data
+we do not observe both $Y(0)$ and $Y(1)$, so CATE has to be estimated from
+$(X,D,Y)$.
 
-This chapter covers the modern toolkit for that problem:
+I use four kinds of tools:
 
-- **Meta-learners** — recipes that turn any ML regressor into a CATE
-  estimator: S-, T-, X-, R-, and DR-learners.
-- **Causal forests** — Wager-Athey (2018) trees designed specifically for
-  CATE estimation, with honest sample-splitting and valid pointwise
-  confidence intervals.
-- **Best linear projection (BLP) and CLAN** — Chernozhukov-Demirer-Duflo-
-  Fernandez-Val (2018) tools for summarising and testing heterogeneity.
-- **Policy trees** — Athey-Wager (2021) trees that recommend who to treat,
-  given a CATE estimate.
+- **Meta-learners**: S-, T-, X-, R-, and DR-learners.
+- **Causal forests**: random forests designed for CATE estimation.
+- **BLP and CLAN**: simple summaries and tests of heterogeneity.
+- **Policy trees**: rules for deciding who should be treated.
 
 ## The data-generating process
 
-Reuse the DGP from the estimands chapter, where the true CATE is
-$\tau(x) = 1 + 2x$:
+I reuse the DGP from the estimands chapter. The true CATE is
+$\tau(x)=1+2x_1$.
 
 ```{r}
 #| label: dgp
@@ -70,14 +64,14 @@ cat(sprintf("True CATE at X1 = 0.2: %.2f\n", 1 + 2 * 0.2))
 cat(sprintf("True CATE at X1 = 0.8: %.2f\n", 1 + 2 * 0.8))
 ```
 
-The treatment is confounded through $X_2$ and the unobserved $U$. Including
-$X_2$ in the conditioning set restores identification; we will not condition
-on $U$ (it is unobserved).
+Treatment is related to $X_2$ and the unobserved $U$. We include $X_2$ in
+the conditioning set but not $U$, because $U$ is unobserved.
 
 ## Meta-learners
 
-A meta-learner is a recipe that turns a *generic* regression estimator (any
-black-box ML method) into a CATE estimator. The simplest meta-learners are:
+A meta-learner is a recipe that turns a regression method into a CATE
+estimator. The regression method can be a random forest, boosting, neural
+network, or a simple linear model.
 
 ### S-learner ("single")
 
@@ -105,9 +99,8 @@ cor_S <- cor(tau_S, tau)
 cat(sprintf("S-learner CATE correlation with truth: %.3f\n", cor_S))
 ```
 
-The S-learner is simple but biased toward zero when the treatment effect is
-small relative to outcome variation, because the regression "ignores" the
-$D$ variable if it has little predictive value.
+The S-learner is simple. Its weakness is that the model may treat $D$ as a
+minor predictor of $Y$ and shrink the treatment effect toward zero.
 
 ### T-learner ("two")
 
@@ -129,17 +122,15 @@ cor_T <- cor(tau_T, tau)
 cat(sprintf("T-learner CATE correlation with truth: %.3f\n", cor_T))
 ```
 
-The T-learner avoids the bias-toward-zero of the S-learner but suffers
-when the treated and control groups have very different propensity
-distributions: extrapolation errors compound when subtracting the two
-fitted functions.
+The T-learner gives treatment and control separate outcome models. That can
+help with heterogeneity, but it can also extrapolate badly when the treated
+and control covariate distributions do not overlap.
 
 ### X-learner (Künzel et al. 2019)
 
-The X-learner imputes the missing potential outcomes using the T-learner
-fits, then regresses these "pseudo-outcomes" on $X$ separately within each
-arm. Finally, the two CATE estimates are combined with weights from the
-propensity score.
+The X-learner starts from the T-learner. It imputes missing potential
+outcomes, creates pseudo-treatment effects, and then smooths those
+pseudo-effects as functions of $X$.
 
 ```{r}
 #| label: x-learner
@@ -168,14 +159,14 @@ cor_X <- cor(tau_X, tau)
 cat(sprintf("X-learner CATE correlation with truth: %.3f\n", cor_X))
 ```
 
-The X-learner is particularly effective when the propensity score is far
-from 0.5 and one treatment arm is much smaller than the other — common in
-observational studies.
+The X-learner is useful when one treatment arm is much smaller than the
+other.
 
 ### R-learner (Nie & Wager 2021)
 
-The R-learner uses Robinson's (1988) partialled-out residual approach.
-Define pseudo-outcomes that, in expectation, equal $\tau(X)$:
+The R-learner partials out the main effects of $X$ from both $Y$ and $D$.
+It then estimates how the residualized treatment predicts the residualized
+outcome:
 
 $$
 \tilde Y_i = \frac{Y_i - \hat m(X_i)}{D_i - \hat e(X_i)}, \quad
@@ -183,8 +174,8 @@ $$
 $$
 
 where $\hat m(x) = \mathbb{E}[Y \mid X = x]$ and $\hat e(x) = \mathbb{E}[D \mid X = x]$
-are cross-fitted nuisance estimates. Regressing $\tilde Y$ on $X$ with the
-indicated weights yields the CATE.
+are cross-fitted nuisance estimates. Regressing $\tilde Y$ on $X$ with these
+weights gives the CATE estimate.
 
 ```{r}
 #| label: r-learner
@@ -218,13 +209,13 @@ cor_R <- cor(tau_R, tau)
 cat(sprintf("R-learner CATE correlation with truth: %.3f\n", cor_R))
 ```
 
-The R-learner is doubly robust in a Neyman-orthogonality sense and tends to
-be the most efficient meta-learner in moderately well-overlapping data.
+The R-learner is often stable when overlap is reasonable because errors in
+the nuisance models have only second-order effects on the target.
 
 ### DR-learner (Kennedy 2020)
 
-The DR-learner constructs pseudo-outcomes via the AIPW formula and regresses
-them on $X$:
+The DR-learner uses an AIPW-style pseudo-outcome and then regresses it on
+$X$:
 
 $$
 \tilde Y_i^{DR} = \hat\mu_1(X_i) - \hat\mu_0(X_i) +
@@ -264,10 +255,10 @@ cat(sprintf("DR-learner CATE correlation with truth: %.3f\n", cor_DR))
 
 ## Causal forests
 
-Wager-Athey (2018) causal forests are tailored for CATE estimation. They
-use a splitting criterion that maximises heterogeneity in treatment effects
-(rather than outcome variance), and they use *honest* sample-splitting so
-that each tree's leaf estimates are valid for inference at any test point.
+Causal forests are random forests built for treatment-effect heterogeneity.
+They split the data to find treatment-effect differences, not just outcome
+differences. The `grf` implementation also uses honest sample splitting for
+inference.
 
 ```{r}
 #| label: causal-forest
@@ -285,8 +276,8 @@ cat(sprintf("\nCausal forest AIPW ATE: %.3f  (SE = %.3f, true = %.3f)\n",
             ate_cf["estimate"], ate_cf["std.err"], mean(tau)))
 ```
 
-The pointwise variance estimates `predict(cf, estimate.variance = TRUE)`
-give asymptotically valid confidence intervals for each CATE prediction.
+Use `predict(cf, estimate.variance = TRUE)` when pointwise confidence
+intervals are needed.
 
 ### Comparing all estimators
 
@@ -324,9 +315,9 @@ ggplot(comparison, aes(x = X1, y = Predicted)) +
 
 ## Best linear projection (BLP)
 
-Even when CATE is high-dimensional, we often want a simple summary: how
-much does the treatment effect change with each covariate? The
-**best linear projection** of CATE onto $X$ is the OLS projection
+Even if CATE is nonlinear, we often want a regression-style summary: which
+covariates are associated with larger effects? The best linear projection
+of CATE onto $X$ is
 
 $$
 \text{BLP}(X) = \arg\min_{\beta} \mathbb{E}\left[ (\tau(X) - X'\beta)^2 \right],
@@ -342,16 +333,13 @@ blp <- best_linear_projection(cf, A = X)
 print(blp)
 ```
 
-The BLP coefficients on $X_1$ should be close to 2 (the true slope of the
-CATE) and significant; coefficients on $X_2$ through $X_5$ should be close
-to 0 and insignificant. This is a clean test for heterogeneity along
-specific covariates.
+Here the coefficient on $X_1$ should be close to 2, and the coefficients on
+the other variables should be close to 0.
 
 ## Variable importance
 
-`grf` provides a variable-importance measure based on how often each
-covariate is used for splits in the causal-effect splits (vs the
-outcome-prediction splits):
+`grf` also reports variable importance. It is a rough diagnostic for which
+variables the forest uses to find heterogeneity.
 
 ```{r}
 #| label: var-imp
@@ -363,16 +351,13 @@ vi_df <- tibble(variable = paste0("X", 1:p), importance = as.numeric(vi)) |>
 print(vi_df)
 ```
 
-$X_1$ should top the list. In real applications, this is a useful guide
-to which covariates carry heterogeneity.
+$X_1$ should be the most important variable in this simulation.
 
 ## Policy trees: who should we treat?
 
-A CATE estimate tells us the effect of treating each individual. But the
-**policy question** is often different: given a budget or a cost-benefit
-trade-off, *which* individuals should we treat? Athey-Wager (2021) propose
-**policy trees** — shallow decision trees that maximise welfare given a
-CATE estimate and a treatment cost.
+A CATE estimate is not yet a policy. If treatment has a cost, the policy
+question is who should be treated. A policy tree turns estimated treatment
+effects into a simple treatment rule.
 
 ```{r}
 #| label: policy-tree
@@ -397,10 +382,8 @@ cat(sprintf("Estimated welfare gain over treat-everyone: %.3f units per person\n
             mean((actions == 2) * (dr_scores - cost) - (dr_scores - cost))))
 ```
 
-The policy tree provides an interpretable assignment rule. Real-world
-policies are often required to be interpretable (e.g. fair-housing laws,
-medical decision rules), and shallow trees are the natural compromise
-between flexibility and explainability.
+The point of the shallow tree is interpretability. It gives up some
+flexibility in exchange for a rule that can be inspected.
 
 For an extended walkthrough of policy trees with IPW and AIPW losses,
 see the [companion blog chapter on `policytree`](https://xiangao.github.io/blog_book/policytree.html).
@@ -410,11 +393,9 @@ For a comparison of CATE estimators across software ecosystems
 
 ## CLAN: testing for heterogeneity
 
-A formal test of heterogeneity is the **CLAN** (Classification Analysis)
-proposed by Chernozhukov-Demirer-Duflo-Fernandez-Val (2018). The idea: bin
-the population by predicted CATE, then estimate the average treatment
-effect in each bin. If the bin-specific ATEs are statistically different,
-there is heterogeneity.
+CLAN is a simple way to report heterogeneity. Sort observations by predicted
+CATE, split them into bins, and estimate the ATE in each bin. If the bin
+ATEs differ, the heterogeneity is not just a graph.
 
 ```{r}
 #| label: clan
@@ -443,16 +424,14 @@ knitr::kable(clan_df[, c("quintile", "est.estimate", "se.std.err", "lo", "hi")],
              caption = "Quintile-specific ATEs from CLAN: heterogeneity is evident if quintile estimates differ.")
 ```
 
-The bottom and top quintiles of predicted CATE should give significantly
-different ATEs — a clean test for whether the heterogeneity is real
-(rather than estimation noise).
+The bottom and top quintiles should have different estimated ATEs in this
+simulation.
 
 ## Causal forests with panel data
 
-When the data are a panel — repeated observations on the same units —
-and the unobserved unit effects are correlated with treatment or
-covariates, the cross-sectional CATE methods above can be biased. Two
-practical solutions:
+With panel data, unit effects can be correlated with treatment and
+covariates. A cross-sectional causal forest can then be biased. Two
+practical fixes are:
 
 1. **Demean by fixed effects** before running the causal forest.
 2. **Pass a `cluster` argument** to `causal_forest` so that observations
@@ -482,7 +461,7 @@ df_panel <- tibble(firm = firm_id, V1 = V1, W = W, Y = Y_panel)
 glimpse(df_panel)
 ```
 
-A naive causal forest on the panel data ignores the unit effects:
+A naive causal forest ignores the firm effects:
 
 ```{r}
 #| label: cf-naive
@@ -499,9 +478,8 @@ cat(sprintf("Naive panel CF ATE: %.3f  (SE = %.3f)\n",
 cat(sprintf("True ATE: %.3f\n", mean(tau_panel)))
 ```
 
-Adding `clusters = firm`: `grf` keeps each firm's observations in the
-same training/honest sample, eliminating the leakage that would
-otherwise bias CATE estimates:
+Adding `clusters = firm` keeps a firm's observations together when `grf`
+does the honest sample split:
 
 ```{r}
 #| label: cf-clustered
@@ -516,8 +494,7 @@ cat(sprintf("Clustered panel CF ATE: %.3f  (SE = %.3f)\n",
             ate_clust["estimate"], ate_clust["std.err"]))
 ```
 
-For the strongest panel-data identification, demean both $Y$ and $W$ by
-firm before fitting (within transformation):
+For a fixed-effect style adjustment, demean by firm before fitting:
 
 ```{r}
 #| label: cf-demean
@@ -540,30 +517,18 @@ cat(sprintf("Within-transform CF ATE: %.3f  (SE = %.3f)\n",
             ate_fe["estimate"], ate_fe["std.err"]))
 ```
 
-The clustered + within-transform causal forest is the cleanest analog of
-a panel fixed-effects regression for heterogeneous treatment effects.
+The clustered, within-transformed causal forest is the closest analogue to a
+fixed-effect regression with heterogeneous effects.
 See the [companion blog chapter on causal forests in panel data](https://xiangao.github.io/blog_book/causal-forest-panel.html)
 for an extended simulation study comparing the panel CF to fixed-effect
 regression and random-effect regression under linear and nonlinear DGPs.
 
 ## Summary
 
-- **Meta-learners** (S, T, X, R, DR) turn any regression algorithm into a
-  CATE estimator. R-learner and DR-learner exploit Neyman orthogonality and
-  cross-fitting for valid inference; X-learner helps with imbalanced
-  treatment arms.
-- **Causal forests** (`grf`) provide a purpose-built CATE estimator with
-  honest sample splitting, pointwise confidence intervals, and convenient
-  diagnostics (BLP, variable importance, CLAN).
-- **Best Linear Projection (BLP)** gives a simple regression-style summary
-  of CATE — coefficients with valid standard errors on how the effect
-  varies with each covariate.
-- **CLAN** (quintile-binned ATEs) provides a formal test for heterogeneity
-  and a clean way to communicate it.
-- **Policy trees** (`policytree`) translate a CATE into an interpretable
-  treatment-assignment rule, balancing welfare against cost.
-- For applied work: estimate CATE with at least *two* methods (e.g.
-  causal forest + R-learner), report BLP coefficients and quintile-binned
-  ATEs, and use a shallow policy tree when treatment-assignment
-  recommendations are needed.
-
+- Meta-learners turn outcome-regression tools into CATE estimators.
+- Causal forests are the main `grf` estimator for heterogeneous effects.
+- BLP and CLAN are useful because they summarize heterogeneity in a way that
+  looks like familiar regression output.
+- Policy trees translate CATE estimates into treatment rules.
+- In applied work, compare at least two CATE estimators and always report
+  simple heterogeneity summaries, not only a CATE scatterplot.

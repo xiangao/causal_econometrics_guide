@@ -408,6 +408,230 @@ ggplot(mc, aes(x = ci_pc)) +
   theme_minimal()
 ```
 
+## Real Data: Student Performance in PISA
+
+The simulation had a luxury real research never does: a known true DAG, so we
+could score recovery with F1. On real data there is **no ground truth**, so the
+questions change. Instead of "how close is the estimate to the truth?" we ask:
+do PC and GES *agree*; what can *background knowledge* orient; and is the
+structure *stable* under resampling?
+
+We illustrate on the OECD's **PISA 2022** assessment, restricted to **United
+States** students and six variables with a clear substantive ordering.
+
+| Node | Meaning | Role |
+|---|---|---|
+| `HISEI` | Highest parental occupational status (ISEI) | Family background |
+| `HOMEPOS` | Home possessions index | Family background |
+| `IMMIG` | Immigration status (1 native … 3 first-gen) | Demographic |
+| `GRADE` | Grade relative to modal grade for age | Schooling |
+| `GENDER` | 1 = female, 0 = male | Demographic |
+| `MATH` | Mean of the 10 mathematics plausible values | Outcome |
+
+```{r}
+pisa <- read.csv("data/pisa_usa2022.csv")
+Xp   <- as.matrix(pisa[, c("HISEI","HOMEPOS","IMMIG","GRADE","GENDER","MATH")])
+wp   <- pisa$W
+plabs <- colnames(Xp)
+sprintf("Students (complete cases): %d", nrow(Xp))
+```
+
+::: {.callout-note}
+**Three honesty caveats**, kept explicit:
+
+- **Plausible values.** Each student's ability is reported as 10 plausible
+  values (posterior draws), not one score. We use their mean, understating the
+  measurement variance; a full treatment runs discovery on each PV and pools.
+- **Categorical-as-Gaussian.** `IMMIG`, `GRADE`, `GENDER` are discrete; Fisher-Z
+  assumes joint Gaussianity — a standard but imperfect approximation.
+- **One country, one wave.** Pooling would inject country/time structure that
+  appears as spurious edges unless modelled as extra nodes.
+:::
+
+### Respecting the survey design
+
+PISA is not a simple random sample — students carry final weights `W_FSTUWT`.
+The CI tests and the score are functions of the **covariance matrix** and a
+**sample size**, so we supply design-consistent inputs: a **weighted
+covariance/correlation** matrix, and **Kish's effective sample size**
+$n_{\text{eff}} = (\sum_i w_i)^2 / \sum_i w_i^2$.
+
+```{r}
+cwp   <- cov.wt(Xp, wt = wp, cor = TRUE)   # design-weighted moments
+Cwp   <- cwp$cor
+Sigp  <- cwp$cov
+neff  <- sum(wp)^2 / sum(wp^2)
+sprintf("Raw n = %d   Kish effective n = %.0f", nrow(Xp), neff)
+```
+
+```{r}
+#| label: tbl-pisa-cor
+#| tbl-cap: "Design-weighted correlation matrix (PISA 2022, USA)."
+kable(round(Cwp, 2))
+```
+
+### Two algorithms on the weighted data
+
+PC consumes the weighted correlation and effective $n$ directly. GES is
+score-based and needs a data matrix, so we build a synthetic sample of
+$n_{\text{eff}}$ rows whose empirical covariance equals the design-weighted
+$\Sigma_w$ exactly (a Cholesky recolour) — a device to feed the *same* second
+moments into a score that expects raw data, adding no information beyond
+$\Sigma_w$.
+
+```{r}
+# Synthetic matrix with covariance == Sigp exactly, neff rows
+m_eff <- round(neff)
+set.seed(1)
+Zp <- scale(matrix(rnorm(m_eff * ncol(Xp)), m_eff), center = TRUE, scale = FALSE)
+Zp <- Zp %*% solve(chol(cov(Zp)))     # whiten
+Xw <- Zp %*% chol(Sigp)               # recolour to weighted covariance
+Xw <- sweep(Xw, 2, cwp$center, "+")
+colnames(Xw) <- plabs
+
+pc_pisa   <- pc(list(C = Cwp, n = neff), indepTest = gaussCItest,
+                labels = plabs, alpha = 0.01)
+amat_pcp  <- amat_from_graph(pc_pisa@graph)
+
+ges_pisa  <- ges(new("GaussL0penObsScore", Xw))
+cpdag_gesp<- as(ges_pisa$essgraph, "graphNEL")
+amat_gesp <- amat_from_graph(cpdag_gesp)
+
+skp <- amat_to_skel(amat_pcp); skg <- amat_to_skel(amat_gesp)
+diag(skp) <- diag(skg) <- 0
+sprintf("Skeleton edges — PC: %d   GES: %d   in both: %d",
+        sum(skp)/2, sum(skg)/2, sum(skp & skg)/2)
+```
+
+```{r}
+#| label: fig-pisa-cpdags
+#| fig-cap: "Estimated CPDAGs from PC and GES on PISA 2022 (USA). Arrows are oriented edges; plain lines are unoriented. There is no true-DAG panel — on real data we have no ground truth."
+#| fig-width: 11
+#| fig-height: 4.5
+ig_pcp  <- graphnel_to_ig(pc_pisa@graph)
+ig_gesp <- graphnel_to_ig(cpdag_gesp)
+lay_p   <- igraph::layout_with_sugiyama(ig_pcp)$layout
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 3, 1))
+plot_ig(ig_pcp,  layout = lay_p, main = "PC — estimated CPDAG")
+plot_ig(ig_gesp, layout = lay_p, main = "GES — estimated CPDAG")
+par(op)
+```
+
+::: {.callout-important}
+**Read the disagreement, not just the agreement.** A purely data-driven score
+may orient an edge as `MATH → HISEI` — a child's test score causing their
+parent's occupational status. That is causally backwards, and no CI test can
+rule it out, because `HISEI → MATH` and `MATH → HISEI` are Markov-equivalent.
+This is exactly why background knowledge is not optional.
+:::
+
+### Orienting with background knowledge
+
+Sex and immigration background are fixed at birth; family socioeconomic status
+is established long before the test; grade precedes the assessment; the score is
+the outcome. That gives a **tier ordering**
+
+$$
+\{\text{GENDER}, \text{IMMIG}\} \prec \{\text{HISEI}, \text{HOMEPOS}\}
+\prec \text{GRADE} \prec \text{MATH}.
+$$
+
+A cross-tier edge must point earlier→later; a within-tier edge the ordering
+cannot decide. We impose this on the discovered **skeleton**, because the
+ordering is knowledge we hold independently of how the data oriented things.
+
+```{r}
+tier_p <- c(HISEI = 1, HOMEPOS = 1, IMMIG = 0, GRADE = 2, GENDER = 0, MATH = 3)[plabs]
+skel_p <- amat_to_skel(amat_pcp)
+
+edges_df <- data.frame(); undir_flag <- logical(0)
+pp <- length(plabs)
+for (i in seq_len(pp-1)) for (j in seq.int(i+1, pp)) {
+  if (skel_p[i, j] == 0) next
+  a <- plabs[i]; b <- plabs[j]
+  if (tier_p[a] == tier_p[b]) {
+    edges_df <- rbind(edges_df, data.frame(from = a, to = b)); undir_flag <- c(undir_flag, TRUE)
+  } else {
+    lo <- if (tier_p[a] < tier_p[b]) a else b
+    hi <- if (tier_p[a] < tier_p[b]) b else a
+    edges_df <- rbind(edges_df, data.frame(from = lo, to = hi)); undir_flag <- c(undir_flag, FALSE)
+  }
+}
+ig_orient <- igraph::graph_from_data_frame(edges_df, vertices = plabs)
+igraph::E(ig_orient)$undirected <- undir_flag
+```
+
+::: {.callout-warning}
+**Where data-driven orientation disagreed with us.** Left to itself, PC oriented
+`IMMIG–GRADE` as `GRADE → IMMIG` — schooling causing immigration status, which
+is impossible. No CI test could have prevented it: the two orientations are
+Markov-equivalent. Imposing the tier order overrides it. The lesson: **never
+ship a discovered orientation you have prior reason to disbelieve**.
+:::
+
+```{r}
+#| label: fig-pisa-oriented
+#| fig-cap: "PC skeleton oriented by the temporal/logical tiers. Cross-tier edges point earlier-to-later; HISEI–HOMEPOS stays undirected (same tier)."
+#| fig-width: 6
+#| fig-height: 4.5
+lay_or <- igraph::layout_with_sugiyama(ig_orient)$layout
+plot_ig(ig_orient, layout = lay_or, main = "PC skeleton + tier ordering")
+```
+
+Every edge into `MATH` is now a candidate causal parent of achievement — the
+bridge from discovery to estimation (back-door adjustment on the parents of the
+outcome). The only edge the ordering leaves undirected, `HISEI – HOMEPOS`, is
+two same-tier measures of family background that temporal logic cannot separate.
+
+### Stability: does the skeleton survive resampling?
+
+A single fit can be lucky. We resample students with replacement, re-estimate
+the **weighted** PC skeleton, and record how often each edge appears.
+
+```{r}
+#| cache: true
+B_pisa <- 200
+boot_once <- function(b) {
+  set.seed(1000 + b)
+  idx <- sample.int(nrow(Xp), replace = TRUE)
+  Xb  <- Xp[idx, ]; wb <- wp[idx]
+  cwb <- cov.wt(Xb, wt = wb, cor = TRUE)
+  neff_b <- sum(wb)^2 / sum(wb^2)
+  fit <- tryCatch(pc(list(C = cwb$cor, n = neff_b), indepTest = gaussCItest,
+                     labels = plabs, alpha = 0.01), error = function(e) NULL)
+  if (is.null(fit)) return(NULL)
+  amat_to_skel(amat_from_graph(fit@graph))
+}
+ncores <- max(1, parallel::detectCores() - 1)
+skels  <- parallel::mclapply(seq_len(B_pisa), boot_once, mc.cores = ncores)
+skels  <- skels[!vapply(skels, is.null, logical(1))]
+edge_freq <- Reduce(`+`, skels) / length(skels)
+```
+
+```{r}
+#| label: fig-pisa-stability
+#| fig-cap: "Bootstrap edge-selection frequency (weighted PC, 200 resamples). Edges near 1.0 are robust; near 0.5 are sample-dependent."
+#| fig-width: 7
+#| fig-height: 4
+pairs_df <- do.call(rbind, lapply(seq_len(pp-1), function(i)
+  do.call(rbind, lapply(seq.int(i+1, pp), function(j)
+    data.frame(Edge = paste(plabs[i], "—", plabs[j]),
+               Frequency = round(edge_freq[i, j], 2))))))
+pairs_df <- pairs_df[pairs_df$Frequency > 0, ]
+ggplot(pairs_df, aes(x = reorder(Edge, Frequency), y = Frequency)) +
+  geom_col(fill = "steelblue", alpha = 0.8) +
+  geom_hline(yintercept = 0.5, linetype = "dashed", colour = "grey50") +
+  coord_flip() + ylim(0, 1) +
+  labs(x = NULL, y = "Selection frequency across bootstrap resamples") +
+  theme_minimal()
+```
+
+The family-background→math edges (`HISEI`, `HOMEPOS`) are the most stable
+features: the SES gradient in achievement is not an artefact. On real data,
+causal discovery is best read as **hypothesis generation** — it proposes a
+skeleton and the orientations the data support, which you then reconcile with
+subject-matter knowledge before estimating effects.
+
 ## Summary
 
 PC and GES target the same Markov equivalence class. PC uses conditional

@@ -50,11 +50,13 @@ Results are validated to match `causal_econometrics_julia` within 1% (real data)
 Chapters that load pre-generated CSVs from `data/` to ensure identical results:
 - `survival-causal.qmd` → `data/survival_sim.csv` (n=1500 Weibull; propensity intercept=-4 for ~30% treatment)
 - `shift-share-iv.qmd` → `data/shift_share_sim.csv`, `shift_share_shares.csv`, `shift_share_shocks.csv`, `shift_share_bad_v.csv`, `shift_share_bad_noise.csv`
+- `causal-discovery.qmd` → `data/pisa_usa2022.csv` — **real** PISA data (USA 2022, 3,890 students; 6 nodes: HISEI, HOMEPOS, IMMIG, GRADE, GENDER, MATH = mean of 10 PVs; survey weight `W`). Generated from `~/projects/pisa-covid-did/output/pisa_pooled.rds` (draft at `~/projects/pisa_discovery_demo/`). **`PARED` is absent in PISA 2022 — do not add it as a node.** The section runs weighted PC + GES, tier-based orientation, and bootstrap stability; deliberately no F1 (real data has no ground truth).
 
-To regenerate these datasets: run `Rscript` with the DGP code at the top of each chapter (seed is set).
+To regenerate the simulated datasets: run `Rscript` with the DGP code at the top of each chapter (seed is set).
 
 ### Notable chapter additions (May 2026)
 - `did.qmd`: Added **Nonlinear ETWFE** section demonstrating `etwfe(family = "poisson")` for count outcomes. Uses `cgroup = "never"` and simulated staggered count data.
+- `causal-discovery.qmd`: Added **Real Data: Student Performance in PISA** section (PC + GES on design-weighted PISA 2022). Mirrored in the Julia book with PC + RSL-D.
 
 ## Notes
 - Each chapter has a hidden setup chunk (`#| include: false`) loading required libraries

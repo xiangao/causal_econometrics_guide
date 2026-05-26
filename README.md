@@ -8,7 +8,7 @@ A Quarto book covering causal inference methods for observational data, by Xiang
 2. **Estimation** — regression adjustment, IPW, AIPW, IPWRA; influence-function-based methods, SuperLearner, TMLE, DoubleML
 3. **Designs** — Difference-in-Differences (TWFE, staggered/ETWFE, Goodman–Bacon, synthetic control, synthetic DiD); IV and regression discontinuity (LATE, control function, sharp/fuzzy RDD); IV in Poisson with fixed effects (continuous and binary endogenous variables)
 4. **Mediation** — classical mediation, CDE, natural effects (NIE/NDE), interventional effects (IIE/IDE)
-5. **Causal Discovery** — PC and GES for observed-only systems; FCI and RFCI when latent confounders are present
+5. **Causal Discovery** — PC and GES for observed-only systems; FCI and RFCI when latent confounders are present; a survey-weighted real-data example on PISA 2022 (background-knowledge tier orientation, bootstrap edge stability)
 6. **Appendix** — R package ecosystem map
 
 ## Build

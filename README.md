@@ -31,3 +31,5 @@ install.packages("BiocManager")
 BiocManager::install(c("graph", "RBGL", "Rgraphviz"))
 install.packages("pcalg")
 ```
+
+> **2026-06-07:** Math/code review pass — see `CLAUDE.md` (Review pass section) for the list of corrections. Audit trail in `../_review/`.

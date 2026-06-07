@@ -485,12 +485,13 @@ window.Quarto = {
 <span></span>
 <span><span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html">runif</a></span><span class="op">(</span><span class="va">n</span> <span class="op">*</span> <span class="va">p</span><span class="op">)</span>, <span class="va">n</span>, <span class="va">p</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span><span class="op">(</span><span class="st">"X"</span>, <span class="fl">1</span><span class="op">:</span><span class="va">p</span><span class="op">)</span></span>
-<span><span class="va">U</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
-<span><span class="co"># Treatment depends on a noise covariate (X2) and U — backdoor confounding</span></span>
-<span><span class="va">ps</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html">plogis</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.3</span> <span class="op">+</span> <span class="fl">1.5</span> <span class="op">*</span> <span class="va">X</span><span class="op">[</span>, <span class="fl">2</span><span class="op">]</span> <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="va">U</span><span class="op">)</span></span>
+<span><span class="co"># Treatment depends on the OBSERVED covariate X2 (a backdoor confounder we</span></span>
+<span><span class="co"># adjust for), so unconfoundedness given X holds and the estimators are</span></span>
+<span><span class="co"># consistent for the true ATE/CATE.</span></span>
+<span><span class="va">ps</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html">plogis</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.3</span> <span class="op">+</span> <span class="fl">1.5</span> <span class="op">*</span> <span class="va">X</span><span class="op">[</span>, <span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="va">D</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span><span class="op">(</span><span class="va">n</span>, <span class="fl">1</span>, <span class="va">ps</span><span class="op">)</span></span>
 <span><span class="va">tau</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">+</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">X</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span>          <span class="co"># CATE varies along X1 only</span></span>
-<span><span class="va">Y0</span>  <span class="op">&lt;-</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="va">X</span><span class="op">[</span>, <span class="fl">2</span><span class="op">]</span> <span class="op">+</span> <span class="fl">0.3</span> <span class="op">*</span> <span class="va">U</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
+<span><span class="va">Y0</span>  <span class="op">&lt;-</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="va">X</span><span class="op">[</span>, <span class="fl">2</span><span class="op">]</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
 <span><span class="va">Y1</span>  <span class="op">&lt;-</span> <span class="va">Y0</span> <span class="op">+</span> <span class="va">tau</span></span>
 <span><span class="va">Y</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html">ifelse</a></span><span class="op">(</span><span class="va">D</span> <span class="op">==</span> <span class="fl">1</span>, <span class="va">Y1</span>, <span class="va">Y0</span><span class="op">)</span></span>
 <span></span>
@@ -507,7 +508,7 @@ window.Quarto = {
 <pre><code>True CATE at X1 = 0.8: 2.60</code></pre>
 </div>
 </div>
-<p>Treatment is related to <span class="math inline">\(X_2\)</span> and the unobserved <span class="math inline">\(U\)</span>. We include <span class="math inline">\(X_2\)</span> in the conditioning set but not <span class="math inline">\(U\)</span>, because <span class="math inline">\(U\)</span> is unobserved.</p>
+<p>Treatment is related to the observed covariate <span class="math inline">\(X_2\)</span>, which also affects the outcome — a backdoor confounder. Because <span class="math inline">\(X_2\)</span> is observed and included in the conditioning set, unconfoundedness holds and the meta-learners and causal forest below are consistent for the true CATE/ATE.</p>
 </section><section id="meta-learners" class="level2" data-number="9.2"><h2 data-number="9.2" class="anchored" data-anchor-id="meta-learners">
 <span class="header-section-number">9.2</span> Meta-learners</h2>
 <p>A meta-learner is a recipe that turns a regression method into a CATE estimator. The regression method can be a random forest, boosting, neural network, or a simple linear model.</p>
@@ -530,7 +531,7 @@ window.Quarto = {
 <span><span class="va">cor_S</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/cor.html">cor</a></span><span class="op">(</span><span class="va">tau_S</span>, <span class="va">tau</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"S-learner CATE correlation with truth: %.3f\n"</span>, <span class="va">cor_S</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>S-learner CATE correlation with truth: 0.976</code></pre>
+<pre><code>S-learner CATE correlation with truth: 0.970</code></pre>
 </div>
 </div>
 <p>The S-learner is simple. Its weakness is that the model may treat <span class="math inline">\(D\)</span> as a minor predictor of <span class="math inline">\(Y\)</span> and shrink the treatment effect toward zero.</p>
@@ -548,7 +549,7 @@ window.Quarto = {
 <span><span class="va">cor_T</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/cor.html">cor</a></span><span class="op">(</span><span class="va">tau_T</span>, <span class="va">tau</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"T-learner CATE correlation with truth: %.3f\n"</span>, <span class="va">cor_T</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>T-learner CATE correlation with truth: 0.977</code></pre>
+<pre><code>T-learner CATE correlation with truth: 0.968</code></pre>
 </div>
 </div>
 <p>The T-learner gives treatment and control separate outcome models. That can help with heterogeneity, but it can also extrapolate badly when the treated and control covariate distributions do not overlap.</p>
@@ -578,7 +579,7 @@ window.Quarto = {
 <span><span class="va">cor_X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/cor.html">cor</a></span><span class="op">(</span><span class="va">tau_X</span>, <span class="va">tau</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"X-learner CATE correlation with truth: %.3f\n"</span>, <span class="va">cor_X</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>X-learner CATE correlation with truth: 0.988</code></pre>
+<pre><code>X-learner CATE correlation with truth: 0.984</code></pre>
 </div>
 </div>
 <p>The X-learner is useful when one treatment arm is much smaller than the other.</p>
@@ -618,7 +619,7 @@ window.Quarto = {
 <span><span class="va">cor_R</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/cor.html">cor</a></span><span class="op">(</span><span class="va">tau_R</span>, <span class="va">tau</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"R-learner CATE correlation with truth: %.3f\n"</span>, <span class="va">cor_R</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>R-learner CATE correlation with truth: 0.943</code></pre>
+<pre><code>R-learner CATE correlation with truth: 0.930</code></pre>
 </div>
 </div>
 <p>The R-learner is often stable when overlap is reasonable because errors in the nuisance models have only second-order effects on the target.</p>
@@ -656,7 +657,7 @@ window.Quarto = {
 <span><span class="va">cor_DR</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/cor.html">cor</a></span><span class="op">(</span><span class="va">tau_DR</span>, <span class="va">tau</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"DR-learner CATE correlation with truth: %.3f\n"</span>, <span class="va">cor_DR</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>DR-learner CATE correlation with truth: 0.941</code></pre>
+<pre><code>DR-learner CATE correlation with truth: 0.931</code></pre>
 </div>
 </div>
 </section></section><section id="causal-forests" class="level2" data-number="9.3"><h2 data-number="9.3" class="anchored" data-anchor-id="causal-forests">
@@ -669,7 +670,7 @@ window.Quarto = {
 <span><span class="va">cor_cf</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/cor.html">cor</a></span><span class="op">(</span><span class="va">tau_cf</span>, <span class="va">tau</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"Causal forest CATE correlation with truth: %.3f\n"</span>, <span class="va">cor_cf</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Causal forest CATE correlation with truth: 0.987</code></pre>
+<pre><code>Causal forest CATE correlation with truth: 0.983</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># Doubly robust ATE estimate</span></span>
 <span><span class="va">ate_cf</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/grf/man/average_treatment_effect.html">average_treatment_effect</a></span><span class="op">(</span><span class="va">cf</span><span class="op">)</span></span>
@@ -677,7 +678,7 @@ window.Quarto = {
 <span>            <span class="va">ate_cf</span><span class="op">[</span><span class="st">"estimate"</span><span class="op">]</span>, <span class="va">ate_cf</span><span class="op">[</span><span class="st">"std.err"</span><span class="op">]</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">tau</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
-Causal forest AIPW ATE: 2.158  (SE = 0.033, true = 2.006)</code></pre>
+Causal forest AIPW ATE: 1.994  (SE = 0.031, true = 2.006)</code></pre>
 </div>
 </div>
 <p>Use <code>predict(cf, estimate.variance = TRUE)</code> when pointwise confidence intervals are needed.</p>
@@ -730,12 +731,12 @@ Best linear projection of the conditional average treatment effect.
 Confidence intervals are cluster- and heteroskedasticity-robust (HC3):
 
              Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept)  1.159737   0.126526  9.1660   &lt;2e-16 ***
-X1           2.171075   0.111928 19.3971   &lt;2e-16 ***
-X2           0.029308   0.112772  0.2599   0.7950    
-X3           0.079042   0.110110  0.7178   0.4729    
-X4          -0.151089   0.109918 -1.3746   0.1693    
-X5          -0.147769   0.111352 -1.3270   0.1846    
+(Intercept)  1.077587   0.119928  8.9853   &lt;2e-16 ***
+X1           2.008322   0.104710 19.1798   &lt;2e-16 ***
+X2          -0.051931   0.106412 -0.4880   0.6256    
+X3          -0.064522   0.102963 -0.6266   0.5309    
+X4           0.044172   0.105384  0.4192   0.6751    
+X5          -0.115495   0.104588 -1.1043   0.2695    
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 </div>
@@ -753,11 +754,11 @@ Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 <pre><code># A tibble: 5 × 2
   variable importance
   &lt;chr&gt;         &lt;dbl&gt;
-1 X1           0.728 
-2 X5           0.0753
-3 X4           0.0716
-4 X2           0.0657
-5 X3           0.0598</code></pre>
+1 X1           0.725 
+2 X4           0.0953
+3 X5           0.0703
+4 X3           0.0565
+5 X2           0.0533</code></pre>
 </div>
 </div>
 <p><span class="math inline">\(X_1\)</span> should be the most important variable in this simulation.</p>
@@ -780,13 +781,13 @@ Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 Tree depth:  2 
 Actions:  1:  2: control 3: treated 
 Variable splits: 
-(1) split_variable: X1  split_value: 0.163281 
-  (2) split_variable: X2  split_value: 0.984766 
+(1) split_variable: X5  split_value: 0.937634 
+  (2) split_variable: X5  split_value: 0.936447 
     (4) * action: 3 
     (5) * action: 2 
-  (3) split_variable: X1  split_value: 0.164223 
-    (6) * action: 2 
-    (7) * action: 3 </code></pre>
+  (3) split_variable: X2  split_value: 0.998366 
+    (6) * action: 3 
+    (7) * action: 2 </code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb29"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># Recommended action for each unit</span></span>
 <span><span class="va">actions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span><span class="op">(</span><span class="va">tree</span>, <span class="va">X</span><span class="op">)</span></span>
@@ -794,12 +795,12 @@ Variable splits:
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">actions</span> <span class="op">==</span> <span class="fl">2</span><span class="op">)</span> <span class="op">*</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
-Treatment rate under policy tree: 0.3%</code></pre>
+Treatment rate under policy tree: 0.2%</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb31"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"Estimated welfare gain over treat-everyone: %.3f units per person\n"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="op">(</span><span class="va">actions</span> <span class="op">==</span> <span class="fl">2</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="va">dr_scores</span> <span class="op">-</span> <span class="va">cost</span><span class="op">)</span> <span class="op">-</span> <span class="op">(</span><span class="va">dr_scores</span> <span class="op">-</span> <span class="va">cost</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Estimated welfare gain over treat-everyone: -0.743 units per person</code></pre>
+<pre><code>Estimated welfare gain over treat-everyone: -0.760 units per person</code></pre>
 </div>
 </div>
 <p>The point of the shallow tree is interpretability. It gives up some flexibility in exchange for a rule that can be inspected.</p>
@@ -842,38 +843,38 @@ Treatment rate under policy tree: 0.3%</code></pre>
 <tbody>
 <tr class="odd">
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">1.310</td>
-<td style="text-align: right;">0.071</td>
-<td style="text-align: right;">1.170</td>
-<td style="text-align: right;">1.450</td>
+<td style="text-align: right;">1.263</td>
+<td style="text-align: right;">0.070</td>
+<td style="text-align: right;">1.126</td>
+<td style="text-align: right;">1.400</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">2</td>
-<td style="text-align: right;">1.710</td>
-<td style="text-align: right;">0.071</td>
-<td style="text-align: right;">1.570</td>
-<td style="text-align: right;">1.849</td>
+<td style="text-align: right;">1.517</td>
+<td style="text-align: right;">0.067</td>
+<td style="text-align: right;">1.386</td>
+<td style="text-align: right;">1.649</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">3</td>
-<td style="text-align: right;">2.244</td>
-<td style="text-align: right;">0.069</td>
-<td style="text-align: right;">2.109</td>
-<td style="text-align: right;">2.380</td>
+<td style="text-align: right;">2.106</td>
+<td style="text-align: right;">0.065</td>
+<td style="text-align: right;">1.979</td>
+<td style="text-align: right;">2.234</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">4</td>
-<td style="text-align: right;">2.607</td>
-<td style="text-align: right;">0.071</td>
-<td style="text-align: right;">2.467</td>
-<td style="text-align: right;">2.747</td>
+<td style="text-align: right;">2.274</td>
+<td style="text-align: right;">0.068</td>
+<td style="text-align: right;">2.141</td>
+<td style="text-align: right;">2.408</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">5</td>
-<td style="text-align: right;">2.918</td>
-<td style="text-align: right;">0.074</td>
-<td style="text-align: right;">2.773</td>
-<td style="text-align: right;">3.063</td>
+<td style="text-align: right;">2.810</td>
+<td style="text-align: right;">0.068</td>
+<td style="text-align: right;">2.677</td>
+<td style="text-align: right;">2.943</td>
 </tr>
 </tbody>
 </table>
@@ -1495,488 +1496,491 @@ $ Y    &lt;dbl&gt; 4.32198952, 4.54919561, 1.16597186, 3.35752234, 2.89403659, 0
 <span id="cb44-56"><a href="#cb44-56" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb44-57"><a href="#cb44-57" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">runif</span>(n <span class="sc">*</span> p), n, p)</span>
 <span id="cb44-58"><a href="#cb44-58" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(X) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"X"</span>, <span class="dv">1</span><span class="sc">:</span>p)</span>
-<span id="cb44-59"><a href="#cb44-59" aria-hidden="true" tabindex="-1"></a>U <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n)</span>
-<span id="cb44-60"><a href="#cb44-60" aria-hidden="true" tabindex="-1"></a><span class="co"># Treatment depends on a noise covariate (X2) and U — backdoor confounding</span></span>
-<span id="cb44-61"><a href="#cb44-61" aria-hidden="true" tabindex="-1"></a>ps  <span class="ot">&lt;-</span> <span class="fu">plogis</span>(<span class="sc">-</span><span class="fl">0.3</span> <span class="sc">+</span> <span class="fl">1.5</span> <span class="sc">*</span> X[, <span class="dv">2</span>] <span class="sc">+</span> <span class="fl">0.5</span> <span class="sc">*</span> U)</span>
-<span id="cb44-62"><a href="#cb44-62" aria-hidden="true" tabindex="-1"></a>D   <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="dv">1</span>, ps)</span>
-<span id="cb44-63"><a href="#cb44-63" aria-hidden="true" tabindex="-1"></a>tau <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> X[, <span class="dv">1</span>]          <span class="co"># CATE varies along X1 only</span></span>
-<span id="cb44-64"><a href="#cb44-64" aria-hidden="true" tabindex="-1"></a>Y0  <span class="ot">&lt;-</span> <span class="fl">0.5</span> <span class="sc">*</span> X[, <span class="dv">2</span>] <span class="sc">+</span> <span class="fl">0.3</span> <span class="sc">*</span> U <span class="sc">+</span> <span class="fu">rnorm</span>(n)</span>
-<span id="cb44-65"><a href="#cb44-65" aria-hidden="true" tabindex="-1"></a>Y1  <span class="ot">&lt;-</span> Y0 <span class="sc">+</span> tau</span>
-<span id="cb44-66"><a href="#cb44-66" aria-hidden="true" tabindex="-1"></a>Y   <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(D <span class="sc">==</span> <span class="dv">1</span>, Y1, Y0)</span>
-<span id="cb44-67"><a href="#cb44-67" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-68"><a href="#cb44-68" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"n = %d, true ATE = %.3f</span><span class="sc">\n</span><span class="st">"</span>, n, <span class="fu">mean</span>(tau)))</span>
-<span id="cb44-69"><a href="#cb44-69" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"True CATE at X1 = 0.2: %.2f</span><span class="sc">\n</span><span class="st">"</span>, <span class="dv">1</span> <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> <span class="fl">0.2</span>))</span>
-<span id="cb44-70"><a href="#cb44-70" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"True CATE at X1 = 0.8: %.2f</span><span class="sc">\n</span><span class="st">"</span>, <span class="dv">1</span> <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> <span class="fl">0.8</span>))</span>
-<span id="cb44-71"><a href="#cb44-71" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb44-72"><a href="#cb44-72" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-73"><a href="#cb44-73" aria-hidden="true" tabindex="-1"></a>Treatment is related to $X_2$ and the unobserved $U$. We include $X_2$ in</span>
-<span id="cb44-74"><a href="#cb44-74" aria-hidden="true" tabindex="-1"></a>the conditioning set but not $U$, because $U$ is unobserved.</span>
-<span id="cb44-75"><a href="#cb44-75" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-76"><a href="#cb44-76" aria-hidden="true" tabindex="-1"></a><span class="fu">## Meta-learners</span></span>
-<span id="cb44-77"><a href="#cb44-77" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-78"><a href="#cb44-78" aria-hidden="true" tabindex="-1"></a>A meta-learner is a recipe that turns a regression method into a CATE</span>
-<span id="cb44-79"><a href="#cb44-79" aria-hidden="true" tabindex="-1"></a>estimator. The regression method can be a random forest, boosting, neural</span>
-<span id="cb44-80"><a href="#cb44-80" aria-hidden="true" tabindex="-1"></a>network, or a simple linear model.</span>
-<span id="cb44-81"><a href="#cb44-81" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-82"><a href="#cb44-82" aria-hidden="true" tabindex="-1"></a><span class="fu">### S-learner ("single")</span></span>
-<span id="cb44-83"><a href="#cb44-83" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-84"><a href="#cb44-84" aria-hidden="true" tabindex="-1"></a>Fit one regression of $Y$ on $(D, X)$, then predict the difference between</span>
-<span id="cb44-85"><a href="#cb44-85" aria-hidden="true" tabindex="-1"></a>$D=1$ and $D=0$ at each $x$:</span>
+<span id="cb44-59"><a href="#cb44-59" aria-hidden="true" tabindex="-1"></a><span class="co"># Treatment depends on the OBSERVED covariate X2 (a backdoor confounder we</span></span>
+<span id="cb44-60"><a href="#cb44-60" aria-hidden="true" tabindex="-1"></a><span class="co"># adjust for), so unconfoundedness given X holds and the estimators are</span></span>
+<span id="cb44-61"><a href="#cb44-61" aria-hidden="true" tabindex="-1"></a><span class="co"># consistent for the true ATE/CATE.</span></span>
+<span id="cb44-62"><a href="#cb44-62" aria-hidden="true" tabindex="-1"></a>ps  <span class="ot">&lt;-</span> <span class="fu">plogis</span>(<span class="sc">-</span><span class="fl">0.3</span> <span class="sc">+</span> <span class="fl">1.5</span> <span class="sc">*</span> X[, <span class="dv">2</span>])</span>
+<span id="cb44-63"><a href="#cb44-63" aria-hidden="true" tabindex="-1"></a>D   <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="dv">1</span>, ps)</span>
+<span id="cb44-64"><a href="#cb44-64" aria-hidden="true" tabindex="-1"></a>tau <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> X[, <span class="dv">1</span>]          <span class="co"># CATE varies along X1 only</span></span>
+<span id="cb44-65"><a href="#cb44-65" aria-hidden="true" tabindex="-1"></a>Y0  <span class="ot">&lt;-</span> <span class="fl">0.5</span> <span class="sc">*</span> X[, <span class="dv">2</span>] <span class="sc">+</span> <span class="fu">rnorm</span>(n)</span>
+<span id="cb44-66"><a href="#cb44-66" aria-hidden="true" tabindex="-1"></a>Y1  <span class="ot">&lt;-</span> Y0 <span class="sc">+</span> tau</span>
+<span id="cb44-67"><a href="#cb44-67" aria-hidden="true" tabindex="-1"></a>Y   <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(D <span class="sc">==</span> <span class="dv">1</span>, Y1, Y0)</span>
+<span id="cb44-68"><a href="#cb44-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-69"><a href="#cb44-69" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"n = %d, true ATE = %.3f</span><span class="sc">\n</span><span class="st">"</span>, n, <span class="fu">mean</span>(tau)))</span>
+<span id="cb44-70"><a href="#cb44-70" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"True CATE at X1 = 0.2: %.2f</span><span class="sc">\n</span><span class="st">"</span>, <span class="dv">1</span> <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> <span class="fl">0.2</span>))</span>
+<span id="cb44-71"><a href="#cb44-71" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"True CATE at X1 = 0.8: %.2f</span><span class="sc">\n</span><span class="st">"</span>, <span class="dv">1</span> <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> <span class="fl">0.8</span>))</span>
+<span id="cb44-72"><a href="#cb44-72" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb44-73"><a href="#cb44-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-74"><a href="#cb44-74" aria-hidden="true" tabindex="-1"></a>Treatment is related to the observed covariate $X_2$, which also affects the</span>
+<span id="cb44-75"><a href="#cb44-75" aria-hidden="true" tabindex="-1"></a>outcome — a backdoor confounder. Because $X_2$ is observed and included in the</span>
+<span id="cb44-76"><a href="#cb44-76" aria-hidden="true" tabindex="-1"></a>conditioning set, unconfoundedness holds and the meta-learners and causal</span>
+<span id="cb44-77"><a href="#cb44-77" aria-hidden="true" tabindex="-1"></a>forest below are consistent for the true CATE/ATE.</span>
+<span id="cb44-78"><a href="#cb44-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-79"><a href="#cb44-79" aria-hidden="true" tabindex="-1"></a><span class="fu">## Meta-learners</span></span>
+<span id="cb44-80"><a href="#cb44-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-81"><a href="#cb44-81" aria-hidden="true" tabindex="-1"></a>A meta-learner is a recipe that turns a regression method into a CATE</span>
+<span id="cb44-82"><a href="#cb44-82" aria-hidden="true" tabindex="-1"></a>estimator. The regression method can be a random forest, boosting, neural</span>
+<span id="cb44-83"><a href="#cb44-83" aria-hidden="true" tabindex="-1"></a>network, or a simple linear model.</span>
+<span id="cb44-84"><a href="#cb44-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-85"><a href="#cb44-85" aria-hidden="true" tabindex="-1"></a><span class="fu">### S-learner ("single")</span></span>
 <span id="cb44-86"><a href="#cb44-86" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-87"><a href="#cb44-87" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb44-88"><a href="#cb44-88" aria-hidden="true" tabindex="-1"></a>\hat\tau^S(x) = \hat\mu(1, x) - \hat\mu(0, x).</span>
-<span id="cb44-89"><a href="#cb44-89" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb44-90"><a href="#cb44-90" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-93"><a href="#cb44-93" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb44-94"><a href="#cb44-94" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: s-learner</span></span>
-<span id="cb44-95"><a href="#cb44-95" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb44-96"><a href="#cb44-96" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-97"><a href="#cb44-97" aria-hidden="true" tabindex="-1"></a><span class="co"># Use a flexible learner — random forest from grf::regression_forest</span></span>
-<span id="cb44-98"><a href="#cb44-98" aria-hidden="true" tabindex="-1"></a>XD_train <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="at">D =</span> D, X)</span>
-<span id="cb44-99"><a href="#cb44-99" aria-hidden="true" tabindex="-1"></a>fit_S <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(XD_train, Y, <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
-<span id="cb44-100"><a href="#cb44-100" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-101"><a href="#cb44-101" aria-hidden="true" tabindex="-1"></a><span class="co"># Counterfactual predictions at D = 1 and D = 0 for every X</span></span>
-<span id="cb44-102"><a href="#cb44-102" aria-hidden="true" tabindex="-1"></a>mu1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_S, <span class="fu">cbind</span>(<span class="at">D =</span> <span class="fu">rep</span>(<span class="dv">1</span>, n), X))<span class="sc">$</span>predictions</span>
-<span id="cb44-103"><a href="#cb44-103" aria-hidden="true" tabindex="-1"></a>mu0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_S, <span class="fu">cbind</span>(<span class="at">D =</span> <span class="fu">rep</span>(<span class="dv">0</span>, n), X))<span class="sc">$</span>predictions</span>
-<span id="cb44-104"><a href="#cb44-104" aria-hidden="true" tabindex="-1"></a>tau_S <span class="ot">&lt;-</span> mu1 <span class="sc">-</span> mu0</span>
-<span id="cb44-105"><a href="#cb44-105" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-106"><a href="#cb44-106" aria-hidden="true" tabindex="-1"></a>cor_S <span class="ot">&lt;-</span> <span class="fu">cor</span>(tau_S, tau)</span>
-<span id="cb44-107"><a href="#cb44-107" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"S-learner CATE correlation with truth: %.3f</span><span class="sc">\n</span><span class="st">"</span>, cor_S))</span>
-<span id="cb44-108"><a href="#cb44-108" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb44-109"><a href="#cb44-109" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-110"><a href="#cb44-110" aria-hidden="true" tabindex="-1"></a>The S-learner is simple. Its weakness is that the model may treat $D$ as a</span>
-<span id="cb44-111"><a href="#cb44-111" aria-hidden="true" tabindex="-1"></a>minor predictor of $Y$ and shrink the treatment effect toward zero.</span>
+<span id="cb44-87"><a href="#cb44-87" aria-hidden="true" tabindex="-1"></a>Fit one regression of $Y$ on $(D, X)$, then predict the difference between</span>
+<span id="cb44-88"><a href="#cb44-88" aria-hidden="true" tabindex="-1"></a>$D=1$ and $D=0$ at each $x$:</span>
+<span id="cb44-89"><a href="#cb44-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-90"><a href="#cb44-90" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb44-91"><a href="#cb44-91" aria-hidden="true" tabindex="-1"></a>\hat\tau^S(x) = \hat\mu(1, x) - \hat\mu(0, x).</span>
+<span id="cb44-92"><a href="#cb44-92" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb44-93"><a href="#cb44-93" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-96"><a href="#cb44-96" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb44-97"><a href="#cb44-97" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: s-learner</span></span>
+<span id="cb44-98"><a href="#cb44-98" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb44-99"><a href="#cb44-99" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-100"><a href="#cb44-100" aria-hidden="true" tabindex="-1"></a><span class="co"># Use a flexible learner — random forest from grf::regression_forest</span></span>
+<span id="cb44-101"><a href="#cb44-101" aria-hidden="true" tabindex="-1"></a>XD_train <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="at">D =</span> D, X)</span>
+<span id="cb44-102"><a href="#cb44-102" aria-hidden="true" tabindex="-1"></a>fit_S <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(XD_train, Y, <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
+<span id="cb44-103"><a href="#cb44-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-104"><a href="#cb44-104" aria-hidden="true" tabindex="-1"></a><span class="co"># Counterfactual predictions at D = 1 and D = 0 for every X</span></span>
+<span id="cb44-105"><a href="#cb44-105" aria-hidden="true" tabindex="-1"></a>mu1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_S, <span class="fu">cbind</span>(<span class="at">D =</span> <span class="fu">rep</span>(<span class="dv">1</span>, n), X))<span class="sc">$</span>predictions</span>
+<span id="cb44-106"><a href="#cb44-106" aria-hidden="true" tabindex="-1"></a>mu0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_S, <span class="fu">cbind</span>(<span class="at">D =</span> <span class="fu">rep</span>(<span class="dv">0</span>, n), X))<span class="sc">$</span>predictions</span>
+<span id="cb44-107"><a href="#cb44-107" aria-hidden="true" tabindex="-1"></a>tau_S <span class="ot">&lt;-</span> mu1 <span class="sc">-</span> mu0</span>
+<span id="cb44-108"><a href="#cb44-108" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-109"><a href="#cb44-109" aria-hidden="true" tabindex="-1"></a>cor_S <span class="ot">&lt;-</span> <span class="fu">cor</span>(tau_S, tau)</span>
+<span id="cb44-110"><a href="#cb44-110" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"S-learner CATE correlation with truth: %.3f</span><span class="sc">\n</span><span class="st">"</span>, cor_S))</span>
+<span id="cb44-111"><a href="#cb44-111" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb44-112"><a href="#cb44-112" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-113"><a href="#cb44-113" aria-hidden="true" tabindex="-1"></a><span class="fu">### T-learner ("two")</span></span>
-<span id="cb44-114"><a href="#cb44-114" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-115"><a href="#cb44-115" aria-hidden="true" tabindex="-1"></a>Fit two separate regressions: $\hat\mu_1$ on treated units, $\hat\mu_0$ on</span>
-<span id="cb44-116"><a href="#cb44-116" aria-hidden="true" tabindex="-1"></a>controls. Then $\hat\tau^T(x) = \hat\mu_1(x) - \hat\mu_0(x)$.</span>
+<span id="cb44-113"><a href="#cb44-113" aria-hidden="true" tabindex="-1"></a>The S-learner is simple. Its weakness is that the model may treat $D$ as a</span>
+<span id="cb44-114"><a href="#cb44-114" aria-hidden="true" tabindex="-1"></a>minor predictor of $Y$ and shrink the treatment effect toward zero.</span>
+<span id="cb44-115"><a href="#cb44-115" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-116"><a href="#cb44-116" aria-hidden="true" tabindex="-1"></a><span class="fu">### T-learner ("two")</span></span>
 <span id="cb44-117"><a href="#cb44-117" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-120"><a href="#cb44-120" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb44-121"><a href="#cb44-121" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: t-learner</span></span>
-<span id="cb44-122"><a href="#cb44-122" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb44-123"><a href="#cb44-123" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-124"><a href="#cb44-124" aria-hidden="true" tabindex="-1"></a>fit_T1 <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[D <span class="sc">==</span> <span class="dv">1</span>, ], Y[D <span class="sc">==</span> <span class="dv">1</span>], <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
-<span id="cb44-125"><a href="#cb44-125" aria-hidden="true" tabindex="-1"></a>fit_T0 <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[D <span class="sc">==</span> <span class="dv">0</span>, ], Y[D <span class="sc">==</span> <span class="dv">0</span>], <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
+<span id="cb44-118"><a href="#cb44-118" aria-hidden="true" tabindex="-1"></a>Fit two separate regressions: $\hat\mu_1$ on treated units, $\hat\mu_0$ on</span>
+<span id="cb44-119"><a href="#cb44-119" aria-hidden="true" tabindex="-1"></a>controls. Then $\hat\tau^T(x) = \hat\mu_1(x) - \hat\mu_0(x)$.</span>
+<span id="cb44-120"><a href="#cb44-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-123"><a href="#cb44-123" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb44-124"><a href="#cb44-124" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: t-learner</span></span>
+<span id="cb44-125"><a href="#cb44-125" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
 <span id="cb44-126"><a href="#cb44-126" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-127"><a href="#cb44-127" aria-hidden="true" tabindex="-1"></a>mu1_T <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_T1, X)<span class="sc">$</span>predictions</span>
-<span id="cb44-128"><a href="#cb44-128" aria-hidden="true" tabindex="-1"></a>mu0_T <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_T0, X)<span class="sc">$</span>predictions</span>
-<span id="cb44-129"><a href="#cb44-129" aria-hidden="true" tabindex="-1"></a>tau_T <span class="ot">&lt;-</span> mu1_T <span class="sc">-</span> mu0_T</span>
-<span id="cb44-130"><a href="#cb44-130" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-131"><a href="#cb44-131" aria-hidden="true" tabindex="-1"></a>cor_T <span class="ot">&lt;-</span> <span class="fu">cor</span>(tau_T, tau)</span>
-<span id="cb44-132"><a href="#cb44-132" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"T-learner CATE correlation with truth: %.3f</span><span class="sc">\n</span><span class="st">"</span>, cor_T))</span>
-<span id="cb44-133"><a href="#cb44-133" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb44-134"><a href="#cb44-134" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-135"><a href="#cb44-135" aria-hidden="true" tabindex="-1"></a>The T-learner gives treatment and control separate outcome models. That can</span>
-<span id="cb44-136"><a href="#cb44-136" aria-hidden="true" tabindex="-1"></a>help with heterogeneity, but it can also extrapolate badly when the treated</span>
-<span id="cb44-137"><a href="#cb44-137" aria-hidden="true" tabindex="-1"></a>and control covariate distributions do not overlap.</span>
-<span id="cb44-138"><a href="#cb44-138" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-139"><a href="#cb44-139" aria-hidden="true" tabindex="-1"></a><span class="fu">### X-learner (Künzel et al. 2019)</span></span>
-<span id="cb44-140"><a href="#cb44-140" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-141"><a href="#cb44-141" aria-hidden="true" tabindex="-1"></a>The X-learner starts from the T-learner. It imputes missing potential</span>
-<span id="cb44-142"><a href="#cb44-142" aria-hidden="true" tabindex="-1"></a>outcomes, creates pseudo-treatment effects, and then smooths those</span>
-<span id="cb44-143"><a href="#cb44-143" aria-hidden="true" tabindex="-1"></a>pseudo-effects as functions of $X$.</span>
-<span id="cb44-144"><a href="#cb44-144" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-147"><a href="#cb44-147" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb44-148"><a href="#cb44-148" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: x-learner</span></span>
-<span id="cb44-149"><a href="#cb44-149" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb44-150"><a href="#cb44-150" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-151"><a href="#cb44-151" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1: T-learner fits (already done above)</span></span>
-<span id="cb44-152"><a href="#cb44-152" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 2: Pseudo-outcomes</span></span>
-<span id="cb44-153"><a href="#cb44-153" aria-hidden="true" tabindex="-1"></a>D1_pseudo <span class="ot">&lt;-</span> Y[D <span class="sc">==</span> <span class="dv">1</span>] <span class="sc">-</span> <span class="fu">predict</span>(fit_T0, X[D <span class="sc">==</span> <span class="dv">1</span>, ])<span class="sc">$</span>predictions   <span class="co"># observed - imputed Y(0)</span></span>
-<span id="cb44-154"><a href="#cb44-154" aria-hidden="true" tabindex="-1"></a>D0_pseudo <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_T1, X[D <span class="sc">==</span> <span class="dv">0</span>, ])<span class="sc">$</span>predictions <span class="sc">-</span> Y[D <span class="sc">==</span> <span class="dv">0</span>]   <span class="co"># imputed Y(1) - observed</span></span>
-<span id="cb44-155"><a href="#cb44-155" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-156"><a href="#cb44-156" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 3: Regress pseudo-outcomes on X in each arm</span></span>
-<span id="cb44-157"><a href="#cb44-157" aria-hidden="true" tabindex="-1"></a>fit_X1 <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[D <span class="sc">==</span> <span class="dv">1</span>, ], D1_pseudo, <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
-<span id="cb44-158"><a href="#cb44-158" aria-hidden="true" tabindex="-1"></a>fit_X0 <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[D <span class="sc">==</span> <span class="dv">0</span>, ], D0_pseudo, <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
-<span id="cb44-159"><a href="#cb44-159" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-160"><a href="#cb44-160" aria-hidden="true" tabindex="-1"></a>tau_X1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_X1, X)<span class="sc">$</span>predictions</span>
-<span id="cb44-161"><a href="#cb44-161" aria-hidden="true" tabindex="-1"></a>tau_X0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_X0, X)<span class="sc">$</span>predictions</span>
+<span id="cb44-127"><a href="#cb44-127" aria-hidden="true" tabindex="-1"></a>fit_T1 <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[D <span class="sc">==</span> <span class="dv">1</span>, ], Y[D <span class="sc">==</span> <span class="dv">1</span>], <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
+<span id="cb44-128"><a href="#cb44-128" aria-hidden="true" tabindex="-1"></a>fit_T0 <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[D <span class="sc">==</span> <span class="dv">0</span>, ], Y[D <span class="sc">==</span> <span class="dv">0</span>], <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
+<span id="cb44-129"><a href="#cb44-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-130"><a href="#cb44-130" aria-hidden="true" tabindex="-1"></a>mu1_T <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_T1, X)<span class="sc">$</span>predictions</span>
+<span id="cb44-131"><a href="#cb44-131" aria-hidden="true" tabindex="-1"></a>mu0_T <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_T0, X)<span class="sc">$</span>predictions</span>
+<span id="cb44-132"><a href="#cb44-132" aria-hidden="true" tabindex="-1"></a>tau_T <span class="ot">&lt;-</span> mu1_T <span class="sc">-</span> mu0_T</span>
+<span id="cb44-133"><a href="#cb44-133" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-134"><a href="#cb44-134" aria-hidden="true" tabindex="-1"></a>cor_T <span class="ot">&lt;-</span> <span class="fu">cor</span>(tau_T, tau)</span>
+<span id="cb44-135"><a href="#cb44-135" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"T-learner CATE correlation with truth: %.3f</span><span class="sc">\n</span><span class="st">"</span>, cor_T))</span>
+<span id="cb44-136"><a href="#cb44-136" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb44-137"><a href="#cb44-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-138"><a href="#cb44-138" aria-hidden="true" tabindex="-1"></a>The T-learner gives treatment and control separate outcome models. That can</span>
+<span id="cb44-139"><a href="#cb44-139" aria-hidden="true" tabindex="-1"></a>help with heterogeneity, but it can also extrapolate badly when the treated</span>
+<span id="cb44-140"><a href="#cb44-140" aria-hidden="true" tabindex="-1"></a>and control covariate distributions do not overlap.</span>
+<span id="cb44-141"><a href="#cb44-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-142"><a href="#cb44-142" aria-hidden="true" tabindex="-1"></a><span class="fu">### X-learner (Künzel et al. 2019)</span></span>
+<span id="cb44-143"><a href="#cb44-143" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-144"><a href="#cb44-144" aria-hidden="true" tabindex="-1"></a>The X-learner starts from the T-learner. It imputes missing potential</span>
+<span id="cb44-145"><a href="#cb44-145" aria-hidden="true" tabindex="-1"></a>outcomes, creates pseudo-treatment effects, and then smooths those</span>
+<span id="cb44-146"><a href="#cb44-146" aria-hidden="true" tabindex="-1"></a>pseudo-effects as functions of $X$.</span>
+<span id="cb44-147"><a href="#cb44-147" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-150"><a href="#cb44-150" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb44-151"><a href="#cb44-151" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: x-learner</span></span>
+<span id="cb44-152"><a href="#cb44-152" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb44-153"><a href="#cb44-153" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-154"><a href="#cb44-154" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1: T-learner fits (already done above)</span></span>
+<span id="cb44-155"><a href="#cb44-155" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 2: Pseudo-outcomes</span></span>
+<span id="cb44-156"><a href="#cb44-156" aria-hidden="true" tabindex="-1"></a>D1_pseudo <span class="ot">&lt;-</span> Y[D <span class="sc">==</span> <span class="dv">1</span>] <span class="sc">-</span> <span class="fu">predict</span>(fit_T0, X[D <span class="sc">==</span> <span class="dv">1</span>, ])<span class="sc">$</span>predictions   <span class="co"># observed - imputed Y(0)</span></span>
+<span id="cb44-157"><a href="#cb44-157" aria-hidden="true" tabindex="-1"></a>D0_pseudo <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_T1, X[D <span class="sc">==</span> <span class="dv">0</span>, ])<span class="sc">$</span>predictions <span class="sc">-</span> Y[D <span class="sc">==</span> <span class="dv">0</span>]   <span class="co"># imputed Y(1) - observed</span></span>
+<span id="cb44-158"><a href="#cb44-158" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-159"><a href="#cb44-159" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 3: Regress pseudo-outcomes on X in each arm</span></span>
+<span id="cb44-160"><a href="#cb44-160" aria-hidden="true" tabindex="-1"></a>fit_X1 <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[D <span class="sc">==</span> <span class="dv">1</span>, ], D1_pseudo, <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
+<span id="cb44-161"><a href="#cb44-161" aria-hidden="true" tabindex="-1"></a>fit_X0 <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[D <span class="sc">==</span> <span class="dv">0</span>, ], D0_pseudo, <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
 <span id="cb44-162"><a href="#cb44-162" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-163"><a href="#cb44-163" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 4: Weighted combination — use propensity score as the weight</span></span>
-<span id="cb44-164"><a href="#cb44-164" aria-hidden="true" tabindex="-1"></a>ps_fit <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X, D, <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
-<span id="cb44-165"><a href="#cb44-165" aria-hidden="true" tabindex="-1"></a>ps_hat <span class="ot">&lt;-</span> <span class="fu">predict</span>(ps_fit, X)<span class="sc">$</span>predictions</span>
-<span id="cb44-166"><a href="#cb44-166" aria-hidden="true" tabindex="-1"></a>ps_hat <span class="ot">&lt;-</span> <span class="fu">pmin</span>(<span class="fu">pmax</span>(ps_hat, <span class="fl">0.02</span>), <span class="fl">0.98</span>)   <span class="co"># trim</span></span>
-<span id="cb44-167"><a href="#cb44-167" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-168"><a href="#cb44-168" aria-hidden="true" tabindex="-1"></a>tau_X <span class="ot">&lt;-</span> ps_hat <span class="sc">*</span> tau_X0 <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">-</span> ps_hat) <span class="sc">*</span> tau_X1</span>
-<span id="cb44-169"><a href="#cb44-169" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-170"><a href="#cb44-170" aria-hidden="true" tabindex="-1"></a>cor_X <span class="ot">&lt;-</span> <span class="fu">cor</span>(tau_X, tau)</span>
-<span id="cb44-171"><a href="#cb44-171" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"X-learner CATE correlation with truth: %.3f</span><span class="sc">\n</span><span class="st">"</span>, cor_X))</span>
-<span id="cb44-172"><a href="#cb44-172" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb44-173"><a href="#cb44-173" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-174"><a href="#cb44-174" aria-hidden="true" tabindex="-1"></a>The X-learner is useful when one treatment arm is much smaller than the</span>
-<span id="cb44-175"><a href="#cb44-175" aria-hidden="true" tabindex="-1"></a>other.</span>
+<span id="cb44-163"><a href="#cb44-163" aria-hidden="true" tabindex="-1"></a>tau_X1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_X1, X)<span class="sc">$</span>predictions</span>
+<span id="cb44-164"><a href="#cb44-164" aria-hidden="true" tabindex="-1"></a>tau_X0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_X0, X)<span class="sc">$</span>predictions</span>
+<span id="cb44-165"><a href="#cb44-165" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-166"><a href="#cb44-166" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 4: Weighted combination — use propensity score as the weight</span></span>
+<span id="cb44-167"><a href="#cb44-167" aria-hidden="true" tabindex="-1"></a>ps_fit <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X, D, <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
+<span id="cb44-168"><a href="#cb44-168" aria-hidden="true" tabindex="-1"></a>ps_hat <span class="ot">&lt;-</span> <span class="fu">predict</span>(ps_fit, X)<span class="sc">$</span>predictions</span>
+<span id="cb44-169"><a href="#cb44-169" aria-hidden="true" tabindex="-1"></a>ps_hat <span class="ot">&lt;-</span> <span class="fu">pmin</span>(<span class="fu">pmax</span>(ps_hat, <span class="fl">0.02</span>), <span class="fl">0.98</span>)   <span class="co"># trim</span></span>
+<span id="cb44-170"><a href="#cb44-170" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-171"><a href="#cb44-171" aria-hidden="true" tabindex="-1"></a>tau_X <span class="ot">&lt;-</span> ps_hat <span class="sc">*</span> tau_X0 <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">-</span> ps_hat) <span class="sc">*</span> tau_X1</span>
+<span id="cb44-172"><a href="#cb44-172" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-173"><a href="#cb44-173" aria-hidden="true" tabindex="-1"></a>cor_X <span class="ot">&lt;-</span> <span class="fu">cor</span>(tau_X, tau)</span>
+<span id="cb44-174"><a href="#cb44-174" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"X-learner CATE correlation with truth: %.3f</span><span class="sc">\n</span><span class="st">"</span>, cor_X))</span>
+<span id="cb44-175"><a href="#cb44-175" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb44-176"><a href="#cb44-176" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-177"><a href="#cb44-177" aria-hidden="true" tabindex="-1"></a><span class="fu">### R-learner (Nie &amp; Wager 2021)</span></span>
-<span id="cb44-178"><a href="#cb44-178" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-179"><a href="#cb44-179" aria-hidden="true" tabindex="-1"></a>The R-learner partials out the main effects of $X$ from both $Y$ and $D$.</span>
-<span id="cb44-180"><a href="#cb44-180" aria-hidden="true" tabindex="-1"></a>It then estimates how the residualized treatment predicts the residualized</span>
-<span id="cb44-181"><a href="#cb44-181" aria-hidden="true" tabindex="-1"></a>outcome:</span>
-<span id="cb44-182"><a href="#cb44-182" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-183"><a href="#cb44-183" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb44-184"><a href="#cb44-184" aria-hidden="true" tabindex="-1"></a>\tilde Y_i = \frac{Y_i - \hat m(X_i)}{D_i - \hat e(X_i)}, \quad</span>
-<span id="cb44-185"><a href="#cb44-185" aria-hidden="true" tabindex="-1"></a>\text{weights} = (D_i - \hat e(X_i))^2,</span>
+<span id="cb44-177"><a href="#cb44-177" aria-hidden="true" tabindex="-1"></a>The X-learner is useful when one treatment arm is much smaller than the</span>
+<span id="cb44-178"><a href="#cb44-178" aria-hidden="true" tabindex="-1"></a>other.</span>
+<span id="cb44-179"><a href="#cb44-179" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-180"><a href="#cb44-180" aria-hidden="true" tabindex="-1"></a><span class="fu">### R-learner (Nie &amp; Wager 2021)</span></span>
+<span id="cb44-181"><a href="#cb44-181" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-182"><a href="#cb44-182" aria-hidden="true" tabindex="-1"></a>The R-learner partials out the main effects of $X$ from both $Y$ and $D$.</span>
+<span id="cb44-183"><a href="#cb44-183" aria-hidden="true" tabindex="-1"></a>It then estimates how the residualized treatment predicts the residualized</span>
+<span id="cb44-184"><a href="#cb44-184" aria-hidden="true" tabindex="-1"></a>outcome:</span>
+<span id="cb44-185"><a href="#cb44-185" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb44-186"><a href="#cb44-186" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb44-187"><a href="#cb44-187" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-188"><a href="#cb44-188" aria-hidden="true" tabindex="-1"></a>where $\hat m(x) = \mathbb{E}<span class="co">[</span><span class="ot">Y \mid X = x</span><span class="co">]</span>$ and $\hat e(x) = \mathbb{E}<span class="co">[</span><span class="ot">D \mid X = x</span><span class="co">]</span>$</span>
-<span id="cb44-189"><a href="#cb44-189" aria-hidden="true" tabindex="-1"></a>are cross-fitted nuisance estimates. Regressing $\tilde Y$ on $X$ with these</span>
-<span id="cb44-190"><a href="#cb44-190" aria-hidden="true" tabindex="-1"></a>weights gives the CATE estimate.</span>
-<span id="cb44-191"><a href="#cb44-191" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-194"><a href="#cb44-194" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb44-195"><a href="#cb44-195" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: r-learner</span></span>
-<span id="cb44-196"><a href="#cb44-196" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb44-197"><a href="#cb44-197" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-198"><a href="#cb44-198" aria-hidden="true" tabindex="-1"></a><span class="co"># Cross-fitting: split sample into 2 folds, fit nuisances on one, predict on the other</span></span>
-<span id="cb44-199"><a href="#cb44-199" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">7</span>)</span>
-<span id="cb44-200"><a href="#cb44-200" aria-hidden="true" tabindex="-1"></a>folds <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>, <span class="at">length.out =</span> n))</span>
-<span id="cb44-201"><a href="#cb44-201" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-202"><a href="#cb44-202" aria-hidden="true" tabindex="-1"></a>m_hat <span class="ot">&lt;-</span> <span class="fu">numeric</span>(n)</span>
-<span id="cb44-203"><a href="#cb44-203" aria-hidden="true" tabindex="-1"></a>e_hat <span class="ot">&lt;-</span> <span class="fu">numeric</span>(n)</span>
-<span id="cb44-204"><a href="#cb44-204" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (k <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>) {</span>
-<span id="cb44-205"><a href="#cb44-205" aria-hidden="true" tabindex="-1"></a>  train <span class="ot">&lt;-</span> folds <span class="sc">!=</span> k</span>
-<span id="cb44-206"><a href="#cb44-206" aria-hidden="true" tabindex="-1"></a>  test  <span class="ot">&lt;-</span> folds <span class="sc">==</span> k</span>
-<span id="cb44-207"><a href="#cb44-207" aria-hidden="true" tabindex="-1"></a>  m_fit <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[train, ], Y[train], <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
-<span id="cb44-208"><a href="#cb44-208" aria-hidden="true" tabindex="-1"></a>  e_fit <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[train, ], D[train], <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
-<span id="cb44-209"><a href="#cb44-209" aria-hidden="true" tabindex="-1"></a>  m_hat[test] <span class="ot">&lt;-</span> <span class="fu">predict</span>(m_fit, X[test, ])<span class="sc">$</span>predictions</span>
-<span id="cb44-210"><a href="#cb44-210" aria-hidden="true" tabindex="-1"></a>  e_hat[test] <span class="ot">&lt;-</span> <span class="fu">predict</span>(e_fit, X[test, ])<span class="sc">$</span>predictions</span>
-<span id="cb44-211"><a href="#cb44-211" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb44-212"><a href="#cb44-212" aria-hidden="true" tabindex="-1"></a>e_hat <span class="ot">&lt;-</span> <span class="fu">pmin</span>(<span class="fu">pmax</span>(e_hat, <span class="fl">0.02</span>), <span class="fl">0.98</span>)</span>
-<span id="cb44-213"><a href="#cb44-213" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-214"><a href="#cb44-214" aria-hidden="true" tabindex="-1"></a><span class="co"># R-learner pseudo-outcome and weights</span></span>
-<span id="cb44-215"><a href="#cb44-215" aria-hidden="true" tabindex="-1"></a>pseudo_R <span class="ot">&lt;-</span> (Y <span class="sc">-</span> m_hat) <span class="sc">/</span> (D <span class="sc">-</span> e_hat)</span>
-<span id="cb44-216"><a href="#cb44-216" aria-hidden="true" tabindex="-1"></a>weights_R <span class="ot">&lt;-</span> (D <span class="sc">-</span> e_hat)<span class="sc">^</span><span class="dv">2</span></span>
-<span id="cb44-217"><a href="#cb44-217" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-218"><a href="#cb44-218" aria-hidden="true" tabindex="-1"></a><span class="co"># Regress pseudo-outcomes on X with weights — use a regression forest</span></span>
-<span id="cb44-219"><a href="#cb44-219" aria-hidden="true" tabindex="-1"></a>fit_R <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X, pseudo_R, <span class="at">sample.weights =</span> weights_R, <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
-<span id="cb44-220"><a href="#cb44-220" aria-hidden="true" tabindex="-1"></a>tau_R <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_R, X)<span class="sc">$</span>predictions</span>
-<span id="cb44-221"><a href="#cb44-221" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-222"><a href="#cb44-222" aria-hidden="true" tabindex="-1"></a>cor_R <span class="ot">&lt;-</span> <span class="fu">cor</span>(tau_R, tau)</span>
-<span id="cb44-223"><a href="#cb44-223" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"R-learner CATE correlation with truth: %.3f</span><span class="sc">\n</span><span class="st">"</span>, cor_R))</span>
-<span id="cb44-224"><a href="#cb44-224" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb44-225"><a href="#cb44-225" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-226"><a href="#cb44-226" aria-hidden="true" tabindex="-1"></a>The R-learner is often stable when overlap is reasonable because errors in</span>
-<span id="cb44-227"><a href="#cb44-227" aria-hidden="true" tabindex="-1"></a>the nuisance models have only second-order effects on the target.</span>
+<span id="cb44-187"><a href="#cb44-187" aria-hidden="true" tabindex="-1"></a>\tilde Y_i = \frac{Y_i - \hat m(X_i)}{D_i - \hat e(X_i)}, \quad</span>
+<span id="cb44-188"><a href="#cb44-188" aria-hidden="true" tabindex="-1"></a>\text{weights} = (D_i - \hat e(X_i))^2,</span>
+<span id="cb44-189"><a href="#cb44-189" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb44-190"><a href="#cb44-190" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-191"><a href="#cb44-191" aria-hidden="true" tabindex="-1"></a>where $\hat m(x) = \mathbb{E}<span class="co">[</span><span class="ot">Y \mid X = x</span><span class="co">]</span>$ and $\hat e(x) = \mathbb{E}<span class="co">[</span><span class="ot">D \mid X = x</span><span class="co">]</span>$</span>
+<span id="cb44-192"><a href="#cb44-192" aria-hidden="true" tabindex="-1"></a>are cross-fitted nuisance estimates. Regressing $\tilde Y$ on $X$ with these</span>
+<span id="cb44-193"><a href="#cb44-193" aria-hidden="true" tabindex="-1"></a>weights gives the CATE estimate.</span>
+<span id="cb44-194"><a href="#cb44-194" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-197"><a href="#cb44-197" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb44-198"><a href="#cb44-198" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: r-learner</span></span>
+<span id="cb44-199"><a href="#cb44-199" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb44-200"><a href="#cb44-200" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-201"><a href="#cb44-201" aria-hidden="true" tabindex="-1"></a><span class="co"># Cross-fitting: split sample into 2 folds, fit nuisances on one, predict on the other</span></span>
+<span id="cb44-202"><a href="#cb44-202" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">7</span>)</span>
+<span id="cb44-203"><a href="#cb44-203" aria-hidden="true" tabindex="-1"></a>folds <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>, <span class="at">length.out =</span> n))</span>
+<span id="cb44-204"><a href="#cb44-204" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-205"><a href="#cb44-205" aria-hidden="true" tabindex="-1"></a>m_hat <span class="ot">&lt;-</span> <span class="fu">numeric</span>(n)</span>
+<span id="cb44-206"><a href="#cb44-206" aria-hidden="true" tabindex="-1"></a>e_hat <span class="ot">&lt;-</span> <span class="fu">numeric</span>(n)</span>
+<span id="cb44-207"><a href="#cb44-207" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (k <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>) {</span>
+<span id="cb44-208"><a href="#cb44-208" aria-hidden="true" tabindex="-1"></a>  train <span class="ot">&lt;-</span> folds <span class="sc">!=</span> k</span>
+<span id="cb44-209"><a href="#cb44-209" aria-hidden="true" tabindex="-1"></a>  test  <span class="ot">&lt;-</span> folds <span class="sc">==</span> k</span>
+<span id="cb44-210"><a href="#cb44-210" aria-hidden="true" tabindex="-1"></a>  m_fit <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[train, ], Y[train], <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
+<span id="cb44-211"><a href="#cb44-211" aria-hidden="true" tabindex="-1"></a>  e_fit <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[train, ], D[train], <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
+<span id="cb44-212"><a href="#cb44-212" aria-hidden="true" tabindex="-1"></a>  m_hat[test] <span class="ot">&lt;-</span> <span class="fu">predict</span>(m_fit, X[test, ])<span class="sc">$</span>predictions</span>
+<span id="cb44-213"><a href="#cb44-213" aria-hidden="true" tabindex="-1"></a>  e_hat[test] <span class="ot">&lt;-</span> <span class="fu">predict</span>(e_fit, X[test, ])<span class="sc">$</span>predictions</span>
+<span id="cb44-214"><a href="#cb44-214" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb44-215"><a href="#cb44-215" aria-hidden="true" tabindex="-1"></a>e_hat <span class="ot">&lt;-</span> <span class="fu">pmin</span>(<span class="fu">pmax</span>(e_hat, <span class="fl">0.02</span>), <span class="fl">0.98</span>)</span>
+<span id="cb44-216"><a href="#cb44-216" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-217"><a href="#cb44-217" aria-hidden="true" tabindex="-1"></a><span class="co"># R-learner pseudo-outcome and weights</span></span>
+<span id="cb44-218"><a href="#cb44-218" aria-hidden="true" tabindex="-1"></a>pseudo_R <span class="ot">&lt;-</span> (Y <span class="sc">-</span> m_hat) <span class="sc">/</span> (D <span class="sc">-</span> e_hat)</span>
+<span id="cb44-219"><a href="#cb44-219" aria-hidden="true" tabindex="-1"></a>weights_R <span class="ot">&lt;-</span> (D <span class="sc">-</span> e_hat)<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb44-220"><a href="#cb44-220" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-221"><a href="#cb44-221" aria-hidden="true" tabindex="-1"></a><span class="co"># Regress pseudo-outcomes on X with weights — use a regression forest</span></span>
+<span id="cb44-222"><a href="#cb44-222" aria-hidden="true" tabindex="-1"></a>fit_R <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X, pseudo_R, <span class="at">sample.weights =</span> weights_R, <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
+<span id="cb44-223"><a href="#cb44-223" aria-hidden="true" tabindex="-1"></a>tau_R <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_R, X)<span class="sc">$</span>predictions</span>
+<span id="cb44-224"><a href="#cb44-224" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-225"><a href="#cb44-225" aria-hidden="true" tabindex="-1"></a>cor_R <span class="ot">&lt;-</span> <span class="fu">cor</span>(tau_R, tau)</span>
+<span id="cb44-226"><a href="#cb44-226" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"R-learner CATE correlation with truth: %.3f</span><span class="sc">\n</span><span class="st">"</span>, cor_R))</span>
+<span id="cb44-227"><a href="#cb44-227" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb44-228"><a href="#cb44-228" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-229"><a href="#cb44-229" aria-hidden="true" tabindex="-1"></a><span class="fu">### DR-learner (Kennedy 2020)</span></span>
-<span id="cb44-230"><a href="#cb44-230" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-231"><a href="#cb44-231" aria-hidden="true" tabindex="-1"></a>The DR-learner uses an AIPW-style pseudo-outcome and then regresses it on</span>
-<span id="cb44-232"><a href="#cb44-232" aria-hidden="true" tabindex="-1"></a>$X$:</span>
+<span id="cb44-229"><a href="#cb44-229" aria-hidden="true" tabindex="-1"></a>The R-learner is often stable when overlap is reasonable because errors in</span>
+<span id="cb44-230"><a href="#cb44-230" aria-hidden="true" tabindex="-1"></a>the nuisance models have only second-order effects on the target.</span>
+<span id="cb44-231"><a href="#cb44-231" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-232"><a href="#cb44-232" aria-hidden="true" tabindex="-1"></a><span class="fu">### DR-learner (Kennedy 2020)</span></span>
 <span id="cb44-233"><a href="#cb44-233" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-234"><a href="#cb44-234" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb44-235"><a href="#cb44-235" aria-hidden="true" tabindex="-1"></a>\tilde Y_i^{DR} = \hat\mu_1(X_i) - \hat\mu_0(X_i) +</span>
-<span id="cb44-236"><a href="#cb44-236" aria-hidden="true" tabindex="-1"></a>\frac{D_i (Y_i - \hat\mu_1(X_i))}{\hat e(X_i)} -</span>
-<span id="cb44-237"><a href="#cb44-237" aria-hidden="true" tabindex="-1"></a>\frac{(1 - D_i) (Y_i - \hat\mu_0(X_i))}{1 - \hat e(X_i)}.</span>
-<span id="cb44-238"><a href="#cb44-238" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb44-239"><a href="#cb44-239" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-242"><a href="#cb44-242" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb44-243"><a href="#cb44-243" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: dr-learner</span></span>
-<span id="cb44-244"><a href="#cb44-244" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb44-245"><a href="#cb44-245" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-246"><a href="#cb44-246" aria-hidden="true" tabindex="-1"></a>mu1_cf <span class="ot">&lt;-</span> <span class="fu">numeric</span>(n); mu0_cf <span class="ot">&lt;-</span> <span class="fu">numeric</span>(n); e_cf <span class="ot">&lt;-</span> <span class="fu">numeric</span>(n)</span>
-<span id="cb44-247"><a href="#cb44-247" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (k <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>) {</span>
-<span id="cb44-248"><a href="#cb44-248" aria-hidden="true" tabindex="-1"></a>  train <span class="ot">&lt;-</span> folds <span class="sc">!=</span> k</span>
-<span id="cb44-249"><a href="#cb44-249" aria-hidden="true" tabindex="-1"></a>  test  <span class="ot">&lt;-</span> folds <span class="sc">==</span> k</span>
-<span id="cb44-250"><a href="#cb44-250" aria-hidden="true" tabindex="-1"></a>  mu1_fit <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[train <span class="sc">&amp;</span> D <span class="sc">==</span> <span class="dv">1</span>, , <span class="at">drop =</span> <span class="cn">FALSE</span>], Y[train <span class="sc">&amp;</span> D <span class="sc">==</span> <span class="dv">1</span>],</span>
-<span id="cb44-251"><a href="#cb44-251" aria-hidden="true" tabindex="-1"></a>                               <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
-<span id="cb44-252"><a href="#cb44-252" aria-hidden="true" tabindex="-1"></a>  mu0_fit <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[train <span class="sc">&amp;</span> D <span class="sc">==</span> <span class="dv">0</span>, , <span class="at">drop =</span> <span class="cn">FALSE</span>], Y[train <span class="sc">&amp;</span> D <span class="sc">==</span> <span class="dv">0</span>],</span>
-<span id="cb44-253"><a href="#cb44-253" aria-hidden="true" tabindex="-1"></a>                               <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
-<span id="cb44-254"><a href="#cb44-254" aria-hidden="true" tabindex="-1"></a>  e_fit   <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[train, ], D[train], <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
-<span id="cb44-255"><a href="#cb44-255" aria-hidden="true" tabindex="-1"></a>  mu1_cf[test] <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu1_fit, X[test, ])<span class="sc">$</span>predictions</span>
-<span id="cb44-256"><a href="#cb44-256" aria-hidden="true" tabindex="-1"></a>  mu0_cf[test] <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu0_fit, X[test, ])<span class="sc">$</span>predictions</span>
-<span id="cb44-257"><a href="#cb44-257" aria-hidden="true" tabindex="-1"></a>  e_cf[test]   <span class="ot">&lt;-</span> <span class="fu">predict</span>(e_fit,   X[test, ])<span class="sc">$</span>predictions</span>
-<span id="cb44-258"><a href="#cb44-258" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb44-259"><a href="#cb44-259" aria-hidden="true" tabindex="-1"></a>e_cf <span class="ot">&lt;-</span> <span class="fu">pmin</span>(<span class="fu">pmax</span>(e_cf, <span class="fl">0.02</span>), <span class="fl">0.98</span>)</span>
-<span id="cb44-260"><a href="#cb44-260" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-261"><a href="#cb44-261" aria-hidden="true" tabindex="-1"></a>pseudo_DR <span class="ot">&lt;-</span> (mu1_cf <span class="sc">-</span> mu0_cf) <span class="sc">+</span></span>
-<span id="cb44-262"><a href="#cb44-262" aria-hidden="true" tabindex="-1"></a>             D <span class="sc">*</span> (Y <span class="sc">-</span> mu1_cf) <span class="sc">/</span> e_cf <span class="sc">-</span></span>
-<span id="cb44-263"><a href="#cb44-263" aria-hidden="true" tabindex="-1"></a>             (<span class="dv">1</span> <span class="sc">-</span> D) <span class="sc">*</span> (Y <span class="sc">-</span> mu0_cf) <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">-</span> e_cf)</span>
-<span id="cb44-264"><a href="#cb44-264" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-265"><a href="#cb44-265" aria-hidden="true" tabindex="-1"></a>fit_DR <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X, pseudo_DR, <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
-<span id="cb44-266"><a href="#cb44-266" aria-hidden="true" tabindex="-1"></a>tau_DR <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_DR, X)<span class="sc">$</span>predictions</span>
+<span id="cb44-234"><a href="#cb44-234" aria-hidden="true" tabindex="-1"></a>The DR-learner uses an AIPW-style pseudo-outcome and then regresses it on</span>
+<span id="cb44-235"><a href="#cb44-235" aria-hidden="true" tabindex="-1"></a>$X$:</span>
+<span id="cb44-236"><a href="#cb44-236" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-237"><a href="#cb44-237" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb44-238"><a href="#cb44-238" aria-hidden="true" tabindex="-1"></a>\tilde Y_i^{DR} = \hat\mu_1(X_i) - \hat\mu_0(X_i) +</span>
+<span id="cb44-239"><a href="#cb44-239" aria-hidden="true" tabindex="-1"></a>\frac{D_i (Y_i - \hat\mu_1(X_i))}{\hat e(X_i)} -</span>
+<span id="cb44-240"><a href="#cb44-240" aria-hidden="true" tabindex="-1"></a>\frac{(1 - D_i) (Y_i - \hat\mu_0(X_i))}{1 - \hat e(X_i)}.</span>
+<span id="cb44-241"><a href="#cb44-241" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb44-242"><a href="#cb44-242" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-245"><a href="#cb44-245" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb44-246"><a href="#cb44-246" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: dr-learner</span></span>
+<span id="cb44-247"><a href="#cb44-247" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb44-248"><a href="#cb44-248" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-249"><a href="#cb44-249" aria-hidden="true" tabindex="-1"></a>mu1_cf <span class="ot">&lt;-</span> <span class="fu">numeric</span>(n); mu0_cf <span class="ot">&lt;-</span> <span class="fu">numeric</span>(n); e_cf <span class="ot">&lt;-</span> <span class="fu">numeric</span>(n)</span>
+<span id="cb44-250"><a href="#cb44-250" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (k <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>) {</span>
+<span id="cb44-251"><a href="#cb44-251" aria-hidden="true" tabindex="-1"></a>  train <span class="ot">&lt;-</span> folds <span class="sc">!=</span> k</span>
+<span id="cb44-252"><a href="#cb44-252" aria-hidden="true" tabindex="-1"></a>  test  <span class="ot">&lt;-</span> folds <span class="sc">==</span> k</span>
+<span id="cb44-253"><a href="#cb44-253" aria-hidden="true" tabindex="-1"></a>  mu1_fit <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[train <span class="sc">&amp;</span> D <span class="sc">==</span> <span class="dv">1</span>, , <span class="at">drop =</span> <span class="cn">FALSE</span>], Y[train <span class="sc">&amp;</span> D <span class="sc">==</span> <span class="dv">1</span>],</span>
+<span id="cb44-254"><a href="#cb44-254" aria-hidden="true" tabindex="-1"></a>                               <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
+<span id="cb44-255"><a href="#cb44-255" aria-hidden="true" tabindex="-1"></a>  mu0_fit <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[train <span class="sc">&amp;</span> D <span class="sc">==</span> <span class="dv">0</span>, , <span class="at">drop =</span> <span class="cn">FALSE</span>], Y[train <span class="sc">&amp;</span> D <span class="sc">==</span> <span class="dv">0</span>],</span>
+<span id="cb44-256"><a href="#cb44-256" aria-hidden="true" tabindex="-1"></a>                               <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
+<span id="cb44-257"><a href="#cb44-257" aria-hidden="true" tabindex="-1"></a>  e_fit   <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X[train, ], D[train], <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
+<span id="cb44-258"><a href="#cb44-258" aria-hidden="true" tabindex="-1"></a>  mu1_cf[test] <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu1_fit, X[test, ])<span class="sc">$</span>predictions</span>
+<span id="cb44-259"><a href="#cb44-259" aria-hidden="true" tabindex="-1"></a>  mu0_cf[test] <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu0_fit, X[test, ])<span class="sc">$</span>predictions</span>
+<span id="cb44-260"><a href="#cb44-260" aria-hidden="true" tabindex="-1"></a>  e_cf[test]   <span class="ot">&lt;-</span> <span class="fu">predict</span>(e_fit,   X[test, ])<span class="sc">$</span>predictions</span>
+<span id="cb44-261"><a href="#cb44-261" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb44-262"><a href="#cb44-262" aria-hidden="true" tabindex="-1"></a>e_cf <span class="ot">&lt;-</span> <span class="fu">pmin</span>(<span class="fu">pmax</span>(e_cf, <span class="fl">0.02</span>), <span class="fl">0.98</span>)</span>
+<span id="cb44-263"><a href="#cb44-263" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-264"><a href="#cb44-264" aria-hidden="true" tabindex="-1"></a>pseudo_DR <span class="ot">&lt;-</span> (mu1_cf <span class="sc">-</span> mu0_cf) <span class="sc">+</span></span>
+<span id="cb44-265"><a href="#cb44-265" aria-hidden="true" tabindex="-1"></a>             D <span class="sc">*</span> (Y <span class="sc">-</span> mu1_cf) <span class="sc">/</span> e_cf <span class="sc">-</span></span>
+<span id="cb44-266"><a href="#cb44-266" aria-hidden="true" tabindex="-1"></a>             (<span class="dv">1</span> <span class="sc">-</span> D) <span class="sc">*</span> (Y <span class="sc">-</span> mu0_cf) <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">-</span> e_cf)</span>
 <span id="cb44-267"><a href="#cb44-267" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-268"><a href="#cb44-268" aria-hidden="true" tabindex="-1"></a>cor_DR <span class="ot">&lt;-</span> <span class="fu">cor</span>(tau_DR, tau)</span>
-<span id="cb44-269"><a href="#cb44-269" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"DR-learner CATE correlation with truth: %.3f</span><span class="sc">\n</span><span class="st">"</span>, cor_DR))</span>
-<span id="cb44-270"><a href="#cb44-270" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb44-271"><a href="#cb44-271" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-272"><a href="#cb44-272" aria-hidden="true" tabindex="-1"></a><span class="fu">## Causal forests</span></span>
-<span id="cb44-273"><a href="#cb44-273" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-274"><a href="#cb44-274" aria-hidden="true" tabindex="-1"></a>Causal forests are random forests built for treatment-effect heterogeneity.</span>
-<span id="cb44-275"><a href="#cb44-275" aria-hidden="true" tabindex="-1"></a>They split the data to find treatment-effect differences, not just outcome</span>
-<span id="cb44-276"><a href="#cb44-276" aria-hidden="true" tabindex="-1"></a>differences. The <span class="in">`grf`</span> implementation also uses honest sample splitting for</span>
-<span id="cb44-277"><a href="#cb44-277" aria-hidden="true" tabindex="-1"></a>inference.</span>
-<span id="cb44-278"><a href="#cb44-278" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-281"><a href="#cb44-281" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb44-282"><a href="#cb44-282" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: causal-forest</span></span>
-<span id="cb44-283"><a href="#cb44-283" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb44-284"><a href="#cb44-284" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-285"><a href="#cb44-285" aria-hidden="true" tabindex="-1"></a>cf <span class="ot">&lt;-</span> <span class="fu">causal_forest</span>(<span class="at">X =</span> X, <span class="at">Y =</span> Y, <span class="at">W =</span> D, <span class="at">num.trees =</span> <span class="dv">2000</span>)</span>
-<span id="cb44-286"><a href="#cb44-286" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-287"><a href="#cb44-287" aria-hidden="true" tabindex="-1"></a>tau_cf <span class="ot">&lt;-</span> <span class="fu">predict</span>(cf)<span class="sc">$</span>predictions</span>
-<span id="cb44-288"><a href="#cb44-288" aria-hidden="true" tabindex="-1"></a>cor_cf <span class="ot">&lt;-</span> <span class="fu">cor</span>(tau_cf, tau)</span>
-<span id="cb44-289"><a href="#cb44-289" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Causal forest CATE correlation with truth: %.3f</span><span class="sc">\n</span><span class="st">"</span>, cor_cf))</span>
-<span id="cb44-290"><a href="#cb44-290" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-291"><a href="#cb44-291" aria-hidden="true" tabindex="-1"></a><span class="co"># Doubly robust ATE estimate</span></span>
-<span id="cb44-292"><a href="#cb44-292" aria-hidden="true" tabindex="-1"></a>ate_cf <span class="ot">&lt;-</span> <span class="fu">average_treatment_effect</span>(cf)</span>
-<span id="cb44-293"><a href="#cb44-293" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Causal forest AIPW ATE: %.3f  (SE = %.3f, true = %.3f)</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb44-294"><a href="#cb44-294" aria-hidden="true" tabindex="-1"></a>            ate_cf[<span class="st">"estimate"</span>], ate_cf[<span class="st">"std.err"</span>], <span class="fu">mean</span>(tau)))</span>
-<span id="cb44-295"><a href="#cb44-295" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb44-296"><a href="#cb44-296" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-297"><a href="#cb44-297" aria-hidden="true" tabindex="-1"></a>Use <span class="in">`predict(cf, estimate.variance = TRUE)`</span> when pointwise confidence</span>
-<span id="cb44-298"><a href="#cb44-298" aria-hidden="true" tabindex="-1"></a>intervals are needed.</span>
+<span id="cb44-268"><a href="#cb44-268" aria-hidden="true" tabindex="-1"></a>fit_DR <span class="ot">&lt;-</span> <span class="fu">regression_forest</span>(X, pseudo_DR, <span class="at">num.trees =</span> <span class="dv">500</span>)</span>
+<span id="cb44-269"><a href="#cb44-269" aria-hidden="true" tabindex="-1"></a>tau_DR <span class="ot">&lt;-</span> <span class="fu">predict</span>(fit_DR, X)<span class="sc">$</span>predictions</span>
+<span id="cb44-270"><a href="#cb44-270" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-271"><a href="#cb44-271" aria-hidden="true" tabindex="-1"></a>cor_DR <span class="ot">&lt;-</span> <span class="fu">cor</span>(tau_DR, tau)</span>
+<span id="cb44-272"><a href="#cb44-272" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"DR-learner CATE correlation with truth: %.3f</span><span class="sc">\n</span><span class="st">"</span>, cor_DR))</span>
+<span id="cb44-273"><a href="#cb44-273" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb44-274"><a href="#cb44-274" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-275"><a href="#cb44-275" aria-hidden="true" tabindex="-1"></a><span class="fu">## Causal forests</span></span>
+<span id="cb44-276"><a href="#cb44-276" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-277"><a href="#cb44-277" aria-hidden="true" tabindex="-1"></a>Causal forests are random forests built for treatment-effect heterogeneity.</span>
+<span id="cb44-278"><a href="#cb44-278" aria-hidden="true" tabindex="-1"></a>They split the data to find treatment-effect differences, not just outcome</span>
+<span id="cb44-279"><a href="#cb44-279" aria-hidden="true" tabindex="-1"></a>differences. The <span class="in">`grf`</span> implementation also uses honest sample splitting for</span>
+<span id="cb44-280"><a href="#cb44-280" aria-hidden="true" tabindex="-1"></a>inference.</span>
+<span id="cb44-281"><a href="#cb44-281" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-284"><a href="#cb44-284" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb44-285"><a href="#cb44-285" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: causal-forest</span></span>
+<span id="cb44-286"><a href="#cb44-286" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb44-287"><a href="#cb44-287" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-288"><a href="#cb44-288" aria-hidden="true" tabindex="-1"></a>cf <span class="ot">&lt;-</span> <span class="fu">causal_forest</span>(<span class="at">X =</span> X, <span class="at">Y =</span> Y, <span class="at">W =</span> D, <span class="at">num.trees =</span> <span class="dv">2000</span>)</span>
+<span id="cb44-289"><a href="#cb44-289" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-290"><a href="#cb44-290" aria-hidden="true" tabindex="-1"></a>tau_cf <span class="ot">&lt;-</span> <span class="fu">predict</span>(cf)<span class="sc">$</span>predictions</span>
+<span id="cb44-291"><a href="#cb44-291" aria-hidden="true" tabindex="-1"></a>cor_cf <span class="ot">&lt;-</span> <span class="fu">cor</span>(tau_cf, tau)</span>
+<span id="cb44-292"><a href="#cb44-292" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Causal forest CATE correlation with truth: %.3f</span><span class="sc">\n</span><span class="st">"</span>, cor_cf))</span>
+<span id="cb44-293"><a href="#cb44-293" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-294"><a href="#cb44-294" aria-hidden="true" tabindex="-1"></a><span class="co"># Doubly robust ATE estimate</span></span>
+<span id="cb44-295"><a href="#cb44-295" aria-hidden="true" tabindex="-1"></a>ate_cf <span class="ot">&lt;-</span> <span class="fu">average_treatment_effect</span>(cf)</span>
+<span id="cb44-296"><a href="#cb44-296" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Causal forest AIPW ATE: %.3f  (SE = %.3f, true = %.3f)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb44-297"><a href="#cb44-297" aria-hidden="true" tabindex="-1"></a>            ate_cf[<span class="st">"estimate"</span>], ate_cf[<span class="st">"std.err"</span>], <span class="fu">mean</span>(tau)))</span>
+<span id="cb44-298"><a href="#cb44-298" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb44-299"><a href="#cb44-299" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-300"><a href="#cb44-300" aria-hidden="true" tabindex="-1"></a><span class="fu">### Comparing all estimators</span></span>
-<span id="cb44-301"><a href="#cb44-301" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-304"><a href="#cb44-304" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb44-305"><a href="#cb44-305" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: compare-plot</span></span>
-<span id="cb44-306"><a href="#cb44-306" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb44-307"><a href="#cb44-307" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Estimated CATE vs true τ(x) = 1 + 2*X1 for each estimator. Closer to the dashed line = better."</span></span>
-<span id="cb44-308"><a href="#cb44-308" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 10</span></span>
-<span id="cb44-309"><a href="#cb44-309" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 6</span></span>
-<span id="cb44-310"><a href="#cb44-310" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-311"><a href="#cb44-311" aria-hidden="true" tabindex="-1"></a>comparison <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
-<span id="cb44-312"><a href="#cb44-312" aria-hidden="true" tabindex="-1"></a>  <span class="at">X1     =</span> X[, <span class="dv">1</span>],</span>
-<span id="cb44-313"><a href="#cb44-313" aria-hidden="true" tabindex="-1"></a>  <span class="at">true   =</span> tau,</span>
-<span id="cb44-314"><a href="#cb44-314" aria-hidden="true" tabindex="-1"></a>  <span class="at">S      =</span> tau_S,</span>
-<span id="cb44-315"><a href="#cb44-315" aria-hidden="true" tabindex="-1"></a>  <span class="at">Tlearn =</span> tau_T,</span>
-<span id="cb44-316"><a href="#cb44-316" aria-hidden="true" tabindex="-1"></a>  <span class="at">X      =</span> tau_X,</span>
-<span id="cb44-317"><a href="#cb44-317" aria-hidden="true" tabindex="-1"></a>  <span class="at">R      =</span> tau_R,</span>
-<span id="cb44-318"><a href="#cb44-318" aria-hidden="true" tabindex="-1"></a>  <span class="at">DR     =</span> tau_DR,</span>
-<span id="cb44-319"><a href="#cb44-319" aria-hidden="true" tabindex="-1"></a>  <span class="at">CF     =</span> tau_cf</span>
-<span id="cb44-320"><a href="#cb44-320" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
-<span id="cb44-321"><a href="#cb44-321" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(S, Tlearn, X, R, DR, CF),</span>
-<span id="cb44-322"><a href="#cb44-322" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="st">"Estimator"</span>, <span class="at">values_to =</span> <span class="st">"Predicted"</span>)</span>
-<span id="cb44-323"><a href="#cb44-323" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-324"><a href="#cb44-324" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(comparison, <span class="fu">aes</span>(<span class="at">x =</span> X1, <span class="at">y =</span> Predicted)) <span class="sc">+</span></span>
-<span id="cb44-325"><a href="#cb44-325" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.1</span>, <span class="at">size =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
-<span id="cb44-326"><a href="#cb44-326" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"loess"</span>, <span class="at">se =</span> <span class="cn">FALSE</span>, <span class="at">colour =</span> <span class="st">"steelblue"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
-<span id="cb44-327"><a href="#cb44-327" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="fu">aes</span>(<span class="at">intercept =</span> <span class="dv">1</span>, <span class="at">slope =</span> <span class="dv">2</span>), <span class="at">linetype =</span> <span class="st">"dashed"</span>,</span>
-<span id="cb44-328"><a href="#cb44-328" aria-hidden="true" tabindex="-1"></a>              <span class="at">colour =</span> <span class="st">"firebrick"</span>) <span class="sc">+</span></span>
-<span id="cb44-329"><a href="#cb44-329" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> Estimator, <span class="at">ncol =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
-<span id="cb44-330"><a href="#cb44-330" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="fu">expression</span>(X[<span class="dv">1</span>]),</span>
-<span id="cb44-331"><a href="#cb44-331" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Estimated CATE"</span>,</span>
-<span id="cb44-332"><a href="#cb44-332" aria-hidden="true" tabindex="-1"></a>       <span class="at">caption =</span> <span class="st">"Red dashed line = true τ(x) = 1 + 2*X1"</span>) <span class="sc">+</span></span>
-<span id="cb44-333"><a href="#cb44-333" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb44-334"><a href="#cb44-334" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb44-335"><a href="#cb44-335" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-336"><a href="#cb44-336" aria-hidden="true" tabindex="-1"></a><span class="fu">## Best linear projection (BLP)</span></span>
-<span id="cb44-337"><a href="#cb44-337" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-338"><a href="#cb44-338" aria-hidden="true" tabindex="-1"></a>Even if CATE is nonlinear, we often want a regression-style summary: which</span>
-<span id="cb44-339"><a href="#cb44-339" aria-hidden="true" tabindex="-1"></a>covariates are associated with larger effects? The best linear projection</span>
-<span id="cb44-340"><a href="#cb44-340" aria-hidden="true" tabindex="-1"></a>of CATE onto $X$ is</span>
-<span id="cb44-341"><a href="#cb44-341" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-342"><a href="#cb44-342" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb44-343"><a href="#cb44-343" aria-hidden="true" tabindex="-1"></a>\text{BLP}(X) = \arg\min_{\beta} \mathbb{E}\left<span class="co">[</span><span class="ot"> (\tau(X) - X'\beta)^2 \right</span><span class="co">]</span>,</span>
-<span id="cb44-344"><a href="#cb44-344" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb44-345"><a href="#cb44-345" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-346"><a href="#cb44-346" aria-hidden="true" tabindex="-1"></a>which <span class="in">`grf`</span> estimates with valid standard errors:</span>
-<span id="cb44-347"><a href="#cb44-347" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-350"><a href="#cb44-350" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb44-351"><a href="#cb44-351" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: blp</span></span>
-<span id="cb44-352"><a href="#cb44-352" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb44-353"><a href="#cb44-353" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-354"><a href="#cb44-354" aria-hidden="true" tabindex="-1"></a>blp <span class="ot">&lt;-</span> <span class="fu">best_linear_projection</span>(cf, <span class="at">A =</span> X)</span>
-<span id="cb44-355"><a href="#cb44-355" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(blp)</span>
-<span id="cb44-356"><a href="#cb44-356" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb44-357"><a href="#cb44-357" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-358"><a href="#cb44-358" aria-hidden="true" tabindex="-1"></a>Here the coefficient on $X_1$ should be close to 2, and the coefficients on</span>
-<span id="cb44-359"><a href="#cb44-359" aria-hidden="true" tabindex="-1"></a>the other variables should be close to 0.</span>
+<span id="cb44-300"><a href="#cb44-300" aria-hidden="true" tabindex="-1"></a>Use <span class="in">`predict(cf, estimate.variance = TRUE)`</span> when pointwise confidence</span>
+<span id="cb44-301"><a href="#cb44-301" aria-hidden="true" tabindex="-1"></a>intervals are needed.</span>
+<span id="cb44-302"><a href="#cb44-302" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-303"><a href="#cb44-303" aria-hidden="true" tabindex="-1"></a><span class="fu">### Comparing all estimators</span></span>
+<span id="cb44-304"><a href="#cb44-304" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-307"><a href="#cb44-307" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb44-308"><a href="#cb44-308" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: compare-plot</span></span>
+<span id="cb44-309"><a href="#cb44-309" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb44-310"><a href="#cb44-310" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Estimated CATE vs true τ(x) = 1 + 2*X1 for each estimator. Closer to the dashed line = better."</span></span>
+<span id="cb44-311"><a href="#cb44-311" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 10</span></span>
+<span id="cb44-312"><a href="#cb44-312" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 6</span></span>
+<span id="cb44-313"><a href="#cb44-313" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-314"><a href="#cb44-314" aria-hidden="true" tabindex="-1"></a>comparison <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb44-315"><a href="#cb44-315" aria-hidden="true" tabindex="-1"></a>  <span class="at">X1     =</span> X[, <span class="dv">1</span>],</span>
+<span id="cb44-316"><a href="#cb44-316" aria-hidden="true" tabindex="-1"></a>  <span class="at">true   =</span> tau,</span>
+<span id="cb44-317"><a href="#cb44-317" aria-hidden="true" tabindex="-1"></a>  <span class="at">S      =</span> tau_S,</span>
+<span id="cb44-318"><a href="#cb44-318" aria-hidden="true" tabindex="-1"></a>  <span class="at">Tlearn =</span> tau_T,</span>
+<span id="cb44-319"><a href="#cb44-319" aria-hidden="true" tabindex="-1"></a>  <span class="at">X      =</span> tau_X,</span>
+<span id="cb44-320"><a href="#cb44-320" aria-hidden="true" tabindex="-1"></a>  <span class="at">R      =</span> tau_R,</span>
+<span id="cb44-321"><a href="#cb44-321" aria-hidden="true" tabindex="-1"></a>  <span class="at">DR     =</span> tau_DR,</span>
+<span id="cb44-322"><a href="#cb44-322" aria-hidden="true" tabindex="-1"></a>  <span class="at">CF     =</span> tau_cf</span>
+<span id="cb44-323"><a href="#cb44-323" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb44-324"><a href="#cb44-324" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(S, Tlearn, X, R, DR, CF),</span>
+<span id="cb44-325"><a href="#cb44-325" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="st">"Estimator"</span>, <span class="at">values_to =</span> <span class="st">"Predicted"</span>)</span>
+<span id="cb44-326"><a href="#cb44-326" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-327"><a href="#cb44-327" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(comparison, <span class="fu">aes</span>(<span class="at">x =</span> X1, <span class="at">y =</span> Predicted)) <span class="sc">+</span></span>
+<span id="cb44-328"><a href="#cb44-328" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.1</span>, <span class="at">size =</span> <span class="fl">0.4</span>) <span class="sc">+</span></span>
+<span id="cb44-329"><a href="#cb44-329" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"loess"</span>, <span class="at">se =</span> <span class="cn">FALSE</span>, <span class="at">colour =</span> <span class="st">"steelblue"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb44-330"><a href="#cb44-330" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="fu">aes</span>(<span class="at">intercept =</span> <span class="dv">1</span>, <span class="at">slope =</span> <span class="dv">2</span>), <span class="at">linetype =</span> <span class="st">"dashed"</span>,</span>
+<span id="cb44-331"><a href="#cb44-331" aria-hidden="true" tabindex="-1"></a>              <span class="at">colour =</span> <span class="st">"firebrick"</span>) <span class="sc">+</span></span>
+<span id="cb44-332"><a href="#cb44-332" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> Estimator, <span class="at">ncol =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb44-333"><a href="#cb44-333" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="fu">expression</span>(X[<span class="dv">1</span>]),</span>
+<span id="cb44-334"><a href="#cb44-334" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Estimated CATE"</span>,</span>
+<span id="cb44-335"><a href="#cb44-335" aria-hidden="true" tabindex="-1"></a>       <span class="at">caption =</span> <span class="st">"Red dashed line = true τ(x) = 1 + 2*X1"</span>) <span class="sc">+</span></span>
+<span id="cb44-336"><a href="#cb44-336" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb44-337"><a href="#cb44-337" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb44-338"><a href="#cb44-338" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-339"><a href="#cb44-339" aria-hidden="true" tabindex="-1"></a><span class="fu">## Best linear projection (BLP)</span></span>
+<span id="cb44-340"><a href="#cb44-340" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-341"><a href="#cb44-341" aria-hidden="true" tabindex="-1"></a>Even if CATE is nonlinear, we often want a regression-style summary: which</span>
+<span id="cb44-342"><a href="#cb44-342" aria-hidden="true" tabindex="-1"></a>covariates are associated with larger effects? The best linear projection</span>
+<span id="cb44-343"><a href="#cb44-343" aria-hidden="true" tabindex="-1"></a>of CATE onto $X$ is</span>
+<span id="cb44-344"><a href="#cb44-344" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-345"><a href="#cb44-345" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb44-346"><a href="#cb44-346" aria-hidden="true" tabindex="-1"></a>\text{BLP}(X) = \arg\min_{\beta} \mathbb{E}\left<span class="co">[</span><span class="ot"> (\tau(X) - X'\beta)^2 \right</span><span class="co">]</span>,</span>
+<span id="cb44-347"><a href="#cb44-347" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb44-348"><a href="#cb44-348" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-349"><a href="#cb44-349" aria-hidden="true" tabindex="-1"></a>which <span class="in">`grf`</span> estimates with valid standard errors:</span>
+<span id="cb44-350"><a href="#cb44-350" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-353"><a href="#cb44-353" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb44-354"><a href="#cb44-354" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: blp</span></span>
+<span id="cb44-355"><a href="#cb44-355" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb44-356"><a href="#cb44-356" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-357"><a href="#cb44-357" aria-hidden="true" tabindex="-1"></a>blp <span class="ot">&lt;-</span> <span class="fu">best_linear_projection</span>(cf, <span class="at">A =</span> X)</span>
+<span id="cb44-358"><a href="#cb44-358" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(blp)</span>
+<span id="cb44-359"><a href="#cb44-359" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb44-360"><a href="#cb44-360" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-361"><a href="#cb44-361" aria-hidden="true" tabindex="-1"></a><span class="fu">## Variable importance</span></span>
-<span id="cb44-362"><a href="#cb44-362" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-363"><a href="#cb44-363" aria-hidden="true" tabindex="-1"></a><span class="in">`grf`</span> also reports variable importance. It is a rough diagnostic for which</span>
-<span id="cb44-364"><a href="#cb44-364" aria-hidden="true" tabindex="-1"></a>variables the forest uses to find heterogeneity.</span>
+<span id="cb44-361"><a href="#cb44-361" aria-hidden="true" tabindex="-1"></a>Here the coefficient on $X_1$ should be close to 2, and the coefficients on</span>
+<span id="cb44-362"><a href="#cb44-362" aria-hidden="true" tabindex="-1"></a>the other variables should be close to 0.</span>
+<span id="cb44-363"><a href="#cb44-363" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-364"><a href="#cb44-364" aria-hidden="true" tabindex="-1"></a><span class="fu">## Variable importance</span></span>
 <span id="cb44-365"><a href="#cb44-365" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-368"><a href="#cb44-368" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb44-369"><a href="#cb44-369" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: var-imp</span></span>
-<span id="cb44-370"><a href="#cb44-370" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb44-371"><a href="#cb44-371" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-372"><a href="#cb44-372" aria-hidden="true" tabindex="-1"></a>vi <span class="ot">&lt;-</span> <span class="fu">variable_importance</span>(cf)</span>
-<span id="cb44-373"><a href="#cb44-373" aria-hidden="true" tabindex="-1"></a>vi_df <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">variable =</span> <span class="fu">paste0</span>(<span class="st">"X"</span>, <span class="dv">1</span><span class="sc">:</span>p), <span class="at">importance =</span> <span class="fu">as.numeric</span>(vi)) <span class="sc">|&gt;</span></span>
-<span id="cb44-374"><a href="#cb44-374" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(importance))</span>
-<span id="cb44-375"><a href="#cb44-375" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(vi_df)</span>
-<span id="cb44-376"><a href="#cb44-376" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb44-377"><a href="#cb44-377" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-378"><a href="#cb44-378" aria-hidden="true" tabindex="-1"></a>$X_1$ should be the most important variable in this simulation.</span>
-<span id="cb44-379"><a href="#cb44-379" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-380"><a href="#cb44-380" aria-hidden="true" tabindex="-1"></a><span class="fu">## Policy trees: who should we treat?</span></span>
-<span id="cb44-381"><a href="#cb44-381" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-382"><a href="#cb44-382" aria-hidden="true" tabindex="-1"></a>A CATE estimate is not yet a policy. If treatment has a cost, the policy</span>
-<span id="cb44-383"><a href="#cb44-383" aria-hidden="true" tabindex="-1"></a>question is who should be treated. A policy tree turns estimated treatment</span>
-<span id="cb44-384"><a href="#cb44-384" aria-hidden="true" tabindex="-1"></a>effects into a simple treatment rule.</span>
-<span id="cb44-385"><a href="#cb44-385" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-388"><a href="#cb44-388" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb44-389"><a href="#cb44-389" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: policy-tree</span></span>
-<span id="cb44-390"><a href="#cb44-390" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb44-391"><a href="#cb44-391" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-392"><a href="#cb44-392" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute doubly-robust scores (used for policy learning)</span></span>
-<span id="cb44-393"><a href="#cb44-393" aria-hidden="true" tabindex="-1"></a>dr_scores <span class="ot">&lt;-</span> <span class="fu">double_robust_scores</span>(cf)</span>
-<span id="cb44-394"><a href="#cb44-394" aria-hidden="true" tabindex="-1"></a>cost <span class="ot">&lt;-</span> <span class="fl">0.5</span>     <span class="co"># cost of treating one unit, in outcome units</span></span>
-<span id="cb44-395"><a href="#cb44-395" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-396"><a href="#cb44-396" aria-hidden="true" tabindex="-1"></a><span class="co"># Net benefit of treatment vs control</span></span>
-<span id="cb44-397"><a href="#cb44-397" aria-hidden="true" tabindex="-1"></a>gain <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="dv">0</span>, dr_scores <span class="sc">-</span> cost)   <span class="co"># column 1 = no treat (gain 0), col 2 = treat (gain τ - cost)</span></span>
+<span id="cb44-366"><a href="#cb44-366" aria-hidden="true" tabindex="-1"></a><span class="in">`grf`</span> also reports variable importance. It is a rough diagnostic for which</span>
+<span id="cb44-367"><a href="#cb44-367" aria-hidden="true" tabindex="-1"></a>variables the forest uses to find heterogeneity.</span>
+<span id="cb44-368"><a href="#cb44-368" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-371"><a href="#cb44-371" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb44-372"><a href="#cb44-372" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: var-imp</span></span>
+<span id="cb44-373"><a href="#cb44-373" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb44-374"><a href="#cb44-374" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-375"><a href="#cb44-375" aria-hidden="true" tabindex="-1"></a>vi <span class="ot">&lt;-</span> <span class="fu">variable_importance</span>(cf)</span>
+<span id="cb44-376"><a href="#cb44-376" aria-hidden="true" tabindex="-1"></a>vi_df <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">variable =</span> <span class="fu">paste0</span>(<span class="st">"X"</span>, <span class="dv">1</span><span class="sc">:</span>p), <span class="at">importance =</span> <span class="fu">as.numeric</span>(vi)) <span class="sc">|&gt;</span></span>
+<span id="cb44-377"><a href="#cb44-377" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(importance))</span>
+<span id="cb44-378"><a href="#cb44-378" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(vi_df)</span>
+<span id="cb44-379"><a href="#cb44-379" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb44-380"><a href="#cb44-380" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-381"><a href="#cb44-381" aria-hidden="true" tabindex="-1"></a>$X_1$ should be the most important variable in this simulation.</span>
+<span id="cb44-382"><a href="#cb44-382" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-383"><a href="#cb44-383" aria-hidden="true" tabindex="-1"></a><span class="fu">## Policy trees: who should we treat?</span></span>
+<span id="cb44-384"><a href="#cb44-384" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-385"><a href="#cb44-385" aria-hidden="true" tabindex="-1"></a>A CATE estimate is not yet a policy. If treatment has a cost, the policy</span>
+<span id="cb44-386"><a href="#cb44-386" aria-hidden="true" tabindex="-1"></a>question is who should be treated. A policy tree turns estimated treatment</span>
+<span id="cb44-387"><a href="#cb44-387" aria-hidden="true" tabindex="-1"></a>effects into a simple treatment rule.</span>
+<span id="cb44-388"><a href="#cb44-388" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-391"><a href="#cb44-391" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb44-392"><a href="#cb44-392" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: policy-tree</span></span>
+<span id="cb44-393"><a href="#cb44-393" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb44-394"><a href="#cb44-394" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-395"><a href="#cb44-395" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute doubly-robust scores (used for policy learning)</span></span>
+<span id="cb44-396"><a href="#cb44-396" aria-hidden="true" tabindex="-1"></a>dr_scores <span class="ot">&lt;-</span> <span class="fu">double_robust_scores</span>(cf)</span>
+<span id="cb44-397"><a href="#cb44-397" aria-hidden="true" tabindex="-1"></a>cost <span class="ot">&lt;-</span> <span class="fl">0.5</span>     <span class="co"># cost of treating one unit, in outcome units</span></span>
 <span id="cb44-398"><a href="#cb44-398" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-399"><a href="#cb44-399" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit a depth-2 policy tree (shallow for interpretability)</span></span>
-<span id="cb44-400"><a href="#cb44-400" aria-hidden="true" tabindex="-1"></a>tree <span class="ot">&lt;-</span> <span class="fu">policy_tree</span>(X, gain, <span class="at">depth =</span> <span class="dv">2</span>)</span>
-<span id="cb44-401"><a href="#cb44-401" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(tree)</span>
-<span id="cb44-402"><a href="#cb44-402" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-403"><a href="#cb44-403" aria-hidden="true" tabindex="-1"></a><span class="co"># Recommended action for each unit</span></span>
-<span id="cb44-404"><a href="#cb44-404" aria-hidden="true" tabindex="-1"></a>actions <span class="ot">&lt;-</span> <span class="fu">predict</span>(tree, X)</span>
-<span id="cb44-405"><a href="#cb44-405" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Treatment rate under policy tree: %.1f%%</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb44-406"><a href="#cb44-406" aria-hidden="true" tabindex="-1"></a>            <span class="fu">mean</span>(actions <span class="sc">==</span> <span class="dv">2</span>) <span class="sc">*</span> <span class="dv">100</span>))</span>
-<span id="cb44-407"><a href="#cb44-407" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Estimated welfare gain over treat-everyone: %.3f units per person</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb44-408"><a href="#cb44-408" aria-hidden="true" tabindex="-1"></a>            <span class="fu">mean</span>((actions <span class="sc">==</span> <span class="dv">2</span>) <span class="sc">*</span> (dr_scores <span class="sc">-</span> cost) <span class="sc">-</span> (dr_scores <span class="sc">-</span> cost))))</span>
-<span id="cb44-409"><a href="#cb44-409" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb44-410"><a href="#cb44-410" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-411"><a href="#cb44-411" aria-hidden="true" tabindex="-1"></a>The point of the shallow tree is interpretability. It gives up some</span>
-<span id="cb44-412"><a href="#cb44-412" aria-hidden="true" tabindex="-1"></a>flexibility in exchange for a rule that can be inspected.</span>
+<span id="cb44-399"><a href="#cb44-399" aria-hidden="true" tabindex="-1"></a><span class="co"># Net benefit of treatment vs control</span></span>
+<span id="cb44-400"><a href="#cb44-400" aria-hidden="true" tabindex="-1"></a>gain <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="dv">0</span>, dr_scores <span class="sc">-</span> cost)   <span class="co"># column 1 = no treat (gain 0), col 2 = treat (gain τ - cost)</span></span>
+<span id="cb44-401"><a href="#cb44-401" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-402"><a href="#cb44-402" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit a depth-2 policy tree (shallow for interpretability)</span></span>
+<span id="cb44-403"><a href="#cb44-403" aria-hidden="true" tabindex="-1"></a>tree <span class="ot">&lt;-</span> <span class="fu">policy_tree</span>(X, gain, <span class="at">depth =</span> <span class="dv">2</span>)</span>
+<span id="cb44-404"><a href="#cb44-404" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(tree)</span>
+<span id="cb44-405"><a href="#cb44-405" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-406"><a href="#cb44-406" aria-hidden="true" tabindex="-1"></a><span class="co"># Recommended action for each unit</span></span>
+<span id="cb44-407"><a href="#cb44-407" aria-hidden="true" tabindex="-1"></a>actions <span class="ot">&lt;-</span> <span class="fu">predict</span>(tree, X)</span>
+<span id="cb44-408"><a href="#cb44-408" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Treatment rate under policy tree: %.1f%%</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb44-409"><a href="#cb44-409" aria-hidden="true" tabindex="-1"></a>            <span class="fu">mean</span>(actions <span class="sc">==</span> <span class="dv">2</span>) <span class="sc">*</span> <span class="dv">100</span>))</span>
+<span id="cb44-410"><a href="#cb44-410" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Estimated welfare gain over treat-everyone: %.3f units per person</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb44-411"><a href="#cb44-411" aria-hidden="true" tabindex="-1"></a>            <span class="fu">mean</span>((actions <span class="sc">==</span> <span class="dv">2</span>) <span class="sc">*</span> (dr_scores <span class="sc">-</span> cost) <span class="sc">-</span> (dr_scores <span class="sc">-</span> cost))))</span>
+<span id="cb44-412"><a href="#cb44-412" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb44-413"><a href="#cb44-413" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-414"><a href="#cb44-414" aria-hidden="true" tabindex="-1"></a>For an extended walkthrough of policy trees with IPW and AIPW losses,</span>
-<span id="cb44-415"><a href="#cb44-415" aria-hidden="true" tabindex="-1"></a>see the <span class="co">[</span><span class="ot">companion blog chapter on `policytree`</span><span class="co">](https://xiangao.github.io/blog_book/policytree.html)</span>.</span>
-<span id="cb44-416"><a href="#cb44-416" aria-hidden="true" tabindex="-1"></a>For a comparison of CATE estimators across software ecosystems</span>
-<span id="cb44-417"><a href="#cb44-417" aria-hidden="true" tabindex="-1"></a>(including Stata 19's new <span class="in">`cate`</span> command), see the</span>
-<span id="cb44-418"><a href="#cb44-418" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Stata CATE blog chapter</span><span class="co">](https://xiangao.github.io/blog_book/stata-cate.html)</span>.</span>
-<span id="cb44-419"><a href="#cb44-419" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-420"><a href="#cb44-420" aria-hidden="true" tabindex="-1"></a><span class="fu">## CLAN: testing for heterogeneity</span></span>
-<span id="cb44-421"><a href="#cb44-421" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-422"><a href="#cb44-422" aria-hidden="true" tabindex="-1"></a>CLAN is a simple way to report heterogeneity. Sort observations by predicted</span>
-<span id="cb44-423"><a href="#cb44-423" aria-hidden="true" tabindex="-1"></a>CATE, split them into bins, and estimate the ATE in each bin. If the bin</span>
-<span id="cb44-424"><a href="#cb44-424" aria-hidden="true" tabindex="-1"></a>ATEs differ, the heterogeneity is not just a graph.</span>
-<span id="cb44-425"><a href="#cb44-425" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-428"><a href="#cb44-428" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb44-429"><a href="#cb44-429" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: clan</span></span>
-<span id="cb44-430"><a href="#cb44-430" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb44-431"><a href="#cb44-431" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-432"><a href="#cb44-432" aria-hidden="true" tabindex="-1"></a><span class="co"># Sort by predicted CATE, split into 5 quintiles</span></span>
-<span id="cb44-433"><a href="#cb44-433" aria-hidden="true" tabindex="-1"></a>nq <span class="ot">&lt;-</span> <span class="dv">5</span></span>
-<span id="cb44-434"><a href="#cb44-434" aria-hidden="true" tabindex="-1"></a>quintile <span class="ot">&lt;-</span> <span class="fu">cut</span>(tau_cf, <span class="at">breaks =</span> <span class="fu">quantile</span>(tau_cf, <span class="at">probs =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1</span><span class="sc">/</span>nq)),</span>
-<span id="cb44-435"><a href="#cb44-435" aria-hidden="true" tabindex="-1"></a>                <span class="at">include.lowest =</span> <span class="cn">TRUE</span>, <span class="at">labels =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb44-436"><a href="#cb44-436" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-437"><a href="#cb44-437" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute AIPW ATE within each quintile</span></span>
-<span id="cb44-438"><a href="#cb44-438" aria-hidden="true" tabindex="-1"></a>get_ate <span class="ot">&lt;-</span> <span class="cf">function</span>(idx) {</span>
-<span id="cb44-439"><a href="#cb44-439" aria-hidden="true" tabindex="-1"></a>  ate <span class="ot">&lt;-</span> <span class="fu">average_treatment_effect</span>(cf, <span class="at">subset =</span> idx)</span>
-<span id="cb44-440"><a href="#cb44-440" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">est =</span> ate[<span class="st">"estimate"</span>], <span class="at">se =</span> ate[<span class="st">"std.err"</span>])</span>
-<span id="cb44-441"><a href="#cb44-441" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb44-442"><a href="#cb44-442" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-443"><a href="#cb44-443" aria-hidden="true" tabindex="-1"></a>clan <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span>nq, <span class="cf">function</span>(q) <span class="fu">get_ate</span>(quintile <span class="sc">==</span> q)))</span>
-<span id="cb44-444"><a href="#cb44-444" aria-hidden="true" tabindex="-1"></a>clan_df <span class="ot">&lt;-</span> <span class="fu">as_tibble</span>(clan) <span class="sc">|&gt;</span></span>
-<span id="cb44-445"><a href="#cb44-445" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">quintile =</span> <span class="dv">1</span><span class="sc">:</span>nq,</span>
-<span id="cb44-446"><a href="#cb44-446" aria-hidden="true" tabindex="-1"></a>         <span class="at">lo =</span> est.estimate <span class="sc">-</span> <span class="fl">1.96</span> <span class="sc">*</span> se.std.err,</span>
-<span id="cb44-447"><a href="#cb44-447" aria-hidden="true" tabindex="-1"></a>         <span class="at">hi =</span> est.estimate <span class="sc">+</span> <span class="fl">1.96</span> <span class="sc">*</span> se.std.err)</span>
-<span id="cb44-448"><a href="#cb44-448" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-449"><a href="#cb44-449" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(clan_df[, <span class="fu">c</span>(<span class="st">"quintile"</span>, <span class="st">"est.estimate"</span>, <span class="st">"se.std.err"</span>, <span class="st">"lo"</span>, <span class="st">"hi"</span>)],</span>
-<span id="cb44-450"><a href="#cb44-450" aria-hidden="true" tabindex="-1"></a>             <span class="at">col.names =</span> <span class="fu">c</span>(<span class="st">"Quintile"</span>, <span class="st">"ATE"</span>, <span class="st">"SE"</span>, <span class="st">"95% LB"</span>, <span class="st">"95% UB"</span>),</span>
-<span id="cb44-451"><a href="#cb44-451" aria-hidden="true" tabindex="-1"></a>             <span class="at">digits =</span> <span class="dv">3</span>,</span>
-<span id="cb44-452"><a href="#cb44-452" aria-hidden="true" tabindex="-1"></a>             <span class="at">caption =</span> <span class="st">"Quintile-specific ATEs from CLAN: heterogeneity is evident if quintile estimates differ."</span>)</span>
-<span id="cb44-453"><a href="#cb44-453" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb44-454"><a href="#cb44-454" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-455"><a href="#cb44-455" aria-hidden="true" tabindex="-1"></a>The bottom and top quintiles should have different estimated ATEs in this</span>
-<span id="cb44-456"><a href="#cb44-456" aria-hidden="true" tabindex="-1"></a>simulation.</span>
+<span id="cb44-414"><a href="#cb44-414" aria-hidden="true" tabindex="-1"></a>The point of the shallow tree is interpretability. It gives up some</span>
+<span id="cb44-415"><a href="#cb44-415" aria-hidden="true" tabindex="-1"></a>flexibility in exchange for a rule that can be inspected.</span>
+<span id="cb44-416"><a href="#cb44-416" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-417"><a href="#cb44-417" aria-hidden="true" tabindex="-1"></a>For an extended walkthrough of policy trees with IPW and AIPW losses,</span>
+<span id="cb44-418"><a href="#cb44-418" aria-hidden="true" tabindex="-1"></a>see the <span class="co">[</span><span class="ot">companion blog chapter on `policytree`</span><span class="co">](https://xiangao.github.io/blog_book/policytree.html)</span>.</span>
+<span id="cb44-419"><a href="#cb44-419" aria-hidden="true" tabindex="-1"></a>For a comparison of CATE estimators across software ecosystems</span>
+<span id="cb44-420"><a href="#cb44-420" aria-hidden="true" tabindex="-1"></a>(including Stata 19's new <span class="in">`cate`</span> command), see the</span>
+<span id="cb44-421"><a href="#cb44-421" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Stata CATE blog chapter</span><span class="co">](https://xiangao.github.io/blog_book/stata-cate.html)</span>.</span>
+<span id="cb44-422"><a href="#cb44-422" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-423"><a href="#cb44-423" aria-hidden="true" tabindex="-1"></a><span class="fu">## CLAN: testing for heterogeneity</span></span>
+<span id="cb44-424"><a href="#cb44-424" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-425"><a href="#cb44-425" aria-hidden="true" tabindex="-1"></a>CLAN is a simple way to report heterogeneity. Sort observations by predicted</span>
+<span id="cb44-426"><a href="#cb44-426" aria-hidden="true" tabindex="-1"></a>CATE, split them into bins, and estimate the ATE in each bin. If the bin</span>
+<span id="cb44-427"><a href="#cb44-427" aria-hidden="true" tabindex="-1"></a>ATEs differ, the heterogeneity is not just a graph.</span>
+<span id="cb44-428"><a href="#cb44-428" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-431"><a href="#cb44-431" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb44-432"><a href="#cb44-432" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: clan</span></span>
+<span id="cb44-433"><a href="#cb44-433" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb44-434"><a href="#cb44-434" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-435"><a href="#cb44-435" aria-hidden="true" tabindex="-1"></a><span class="co"># Sort by predicted CATE, split into 5 quintiles</span></span>
+<span id="cb44-436"><a href="#cb44-436" aria-hidden="true" tabindex="-1"></a>nq <span class="ot">&lt;-</span> <span class="dv">5</span></span>
+<span id="cb44-437"><a href="#cb44-437" aria-hidden="true" tabindex="-1"></a>quintile <span class="ot">&lt;-</span> <span class="fu">cut</span>(tau_cf, <span class="at">breaks =</span> <span class="fu">quantile</span>(tau_cf, <span class="at">probs =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1</span><span class="sc">/</span>nq)),</span>
+<span id="cb44-438"><a href="#cb44-438" aria-hidden="true" tabindex="-1"></a>                <span class="at">include.lowest =</span> <span class="cn">TRUE</span>, <span class="at">labels =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb44-439"><a href="#cb44-439" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-440"><a href="#cb44-440" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute AIPW ATE within each quintile</span></span>
+<span id="cb44-441"><a href="#cb44-441" aria-hidden="true" tabindex="-1"></a>get_ate <span class="ot">&lt;-</span> <span class="cf">function</span>(idx) {</span>
+<span id="cb44-442"><a href="#cb44-442" aria-hidden="true" tabindex="-1"></a>  ate <span class="ot">&lt;-</span> <span class="fu">average_treatment_effect</span>(cf, <span class="at">subset =</span> idx)</span>
+<span id="cb44-443"><a href="#cb44-443" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">est =</span> ate[<span class="st">"estimate"</span>], <span class="at">se =</span> ate[<span class="st">"std.err"</span>])</span>
+<span id="cb44-444"><a href="#cb44-444" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb44-445"><a href="#cb44-445" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-446"><a href="#cb44-446" aria-hidden="true" tabindex="-1"></a>clan <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span>nq, <span class="cf">function</span>(q) <span class="fu">get_ate</span>(quintile <span class="sc">==</span> q)))</span>
+<span id="cb44-447"><a href="#cb44-447" aria-hidden="true" tabindex="-1"></a>clan_df <span class="ot">&lt;-</span> <span class="fu">as_tibble</span>(clan) <span class="sc">|&gt;</span></span>
+<span id="cb44-448"><a href="#cb44-448" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">quintile =</span> <span class="dv">1</span><span class="sc">:</span>nq,</span>
+<span id="cb44-449"><a href="#cb44-449" aria-hidden="true" tabindex="-1"></a>         <span class="at">lo =</span> est.estimate <span class="sc">-</span> <span class="fl">1.96</span> <span class="sc">*</span> se.std.err,</span>
+<span id="cb44-450"><a href="#cb44-450" aria-hidden="true" tabindex="-1"></a>         <span class="at">hi =</span> est.estimate <span class="sc">+</span> <span class="fl">1.96</span> <span class="sc">*</span> se.std.err)</span>
+<span id="cb44-451"><a href="#cb44-451" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-452"><a href="#cb44-452" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(clan_df[, <span class="fu">c</span>(<span class="st">"quintile"</span>, <span class="st">"est.estimate"</span>, <span class="st">"se.std.err"</span>, <span class="st">"lo"</span>, <span class="st">"hi"</span>)],</span>
+<span id="cb44-453"><a href="#cb44-453" aria-hidden="true" tabindex="-1"></a>             <span class="at">col.names =</span> <span class="fu">c</span>(<span class="st">"Quintile"</span>, <span class="st">"ATE"</span>, <span class="st">"SE"</span>, <span class="st">"95% LB"</span>, <span class="st">"95% UB"</span>),</span>
+<span id="cb44-454"><a href="#cb44-454" aria-hidden="true" tabindex="-1"></a>             <span class="at">digits =</span> <span class="dv">3</span>,</span>
+<span id="cb44-455"><a href="#cb44-455" aria-hidden="true" tabindex="-1"></a>             <span class="at">caption =</span> <span class="st">"Quintile-specific ATEs from CLAN: heterogeneity is evident if quintile estimates differ."</span>)</span>
+<span id="cb44-456"><a href="#cb44-456" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb44-457"><a href="#cb44-457" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-458"><a href="#cb44-458" aria-hidden="true" tabindex="-1"></a><span class="fu">## Causal forests with panel data</span></span>
-<span id="cb44-459"><a href="#cb44-459" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-460"><a href="#cb44-460" aria-hidden="true" tabindex="-1"></a>With panel data, unit effects can be correlated with treatment and</span>
-<span id="cb44-461"><a href="#cb44-461" aria-hidden="true" tabindex="-1"></a>covariates. A cross-sectional causal forest can then be biased. Two</span>
-<span id="cb44-462"><a href="#cb44-462" aria-hidden="true" tabindex="-1"></a>practical fixes are:</span>
-<span id="cb44-463"><a href="#cb44-463" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-464"><a href="#cb44-464" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Demean by fixed effects** before running the causal forest.</span>
-<span id="cb44-465"><a href="#cb44-465" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Pass a `cluster` argument** to <span class="in">`causal_forest`</span> so that observations</span>
-<span id="cb44-466"><a href="#cb44-466" aria-hidden="true" tabindex="-1"></a>   from the same unit are kept in the same training fold during honest</span>
-<span id="cb44-467"><a href="#cb44-467" aria-hidden="true" tabindex="-1"></a>   sample-splitting.</span>
-<span id="cb44-468"><a href="#cb44-468" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-471"><a href="#cb44-471" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb44-472"><a href="#cb44-472" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: panel-dgp</span></span>
-<span id="cb44-473"><a href="#cb44-473" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb44-474"><a href="#cb44-474" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-475"><a href="#cb44-475" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2024</span>)</span>
-<span id="cb44-476"><a href="#cb44-476" aria-hidden="true" tabindex="-1"></a>n_firms <span class="ot">&lt;-</span> <span class="dv">200</span></span>
-<span id="cb44-477"><a href="#cb44-477" aria-hidden="true" tabindex="-1"></a>n_t     <span class="ot">&lt;-</span> <span class="dv">5</span></span>
-<span id="cb44-478"><a href="#cb44-478" aria-hidden="true" tabindex="-1"></a>n_total <span class="ot">&lt;-</span> n_firms <span class="sc">*</span> n_t</span>
-<span id="cb44-479"><a href="#cb44-479" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-480"><a href="#cb44-480" aria-hidden="true" tabindex="-1"></a><span class="co"># Panel data with a unit-specific effect correlated with V1 (the modifier)</span></span>
-<span id="cb44-481"><a href="#cb44-481" aria-hidden="true" tabindex="-1"></a>firm_id  <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>n_firms, <span class="at">each =</span> n_t)</span>
-<span id="cb44-482"><a href="#cb44-482" aria-hidden="true" tabindex="-1"></a>unit_fe  <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n_firms, <span class="at">sd =</span> <span class="fl">1.5</span>)[firm_id]</span>
-<span id="cb44-483"><a href="#cb44-483" aria-hidden="true" tabindex="-1"></a>V1_firm  <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n_firms, <span class="at">sd =</span> <span class="fl">1.0</span>)[firm_id]   <span class="co"># firm-level covariate</span></span>
-<span id="cb44-484"><a href="#cb44-484" aria-hidden="true" tabindex="-1"></a>V1       <span class="ot">&lt;-</span> V1_firm <span class="sc">+</span> <span class="fu">rnorm</span>(n_total, <span class="at">sd =</span> <span class="fl">0.3</span>)  <span class="co"># within-firm variation</span></span>
-<span id="cb44-485"><a href="#cb44-485" aria-hidden="true" tabindex="-1"></a>W        <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_total, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fl">0.5</span> <span class="sc">+</span> <span class="fl">0.3</span> <span class="sc">*</span> V1_firm))</span>
-<span id="cb44-486"><a href="#cb44-486" aria-hidden="true" tabindex="-1"></a><span class="co"># True CATE varies linearly with V1</span></span>
-<span id="cb44-487"><a href="#cb44-487" aria-hidden="true" tabindex="-1"></a>tau_panel <span class="ot">&lt;-</span> <span class="fl">0.5</span> <span class="sc">+</span> <span class="fl">1.0</span> <span class="sc">*</span> V1</span>
-<span id="cb44-488"><a href="#cb44-488" aria-hidden="true" tabindex="-1"></a>Y_panel  <span class="ot">&lt;-</span> unit_fe <span class="sc">+</span> V1 <span class="sc">+</span> W <span class="sc">+</span> tau_panel <span class="sc">*</span> (W <span class="sc">-</span> <span class="fu">mean</span>(W)) <span class="sc">+</span> <span class="fu">rnorm</span>(n_total)</span>
-<span id="cb44-489"><a href="#cb44-489" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-490"><a href="#cb44-490" aria-hidden="true" tabindex="-1"></a>df_panel <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">firm =</span> firm_id, <span class="at">V1 =</span> V1, <span class="at">W =</span> W, <span class="at">Y =</span> Y_panel)</span>
-<span id="cb44-491"><a href="#cb44-491" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(df_panel)</span>
-<span id="cb44-492"><a href="#cb44-492" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb44-493"><a href="#cb44-493" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-494"><a href="#cb44-494" aria-hidden="true" tabindex="-1"></a>A naive causal forest ignores the firm effects:</span>
-<span id="cb44-495"><a href="#cb44-495" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-498"><a href="#cb44-498" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb44-499"><a href="#cb44-499" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: cf-naive</span></span>
-<span id="cb44-500"><a href="#cb44-500" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb44-501"><a href="#cb44-501" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-502"><a href="#cb44-502" aria-hidden="true" tabindex="-1"></a>X_panel <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(df_panel[, <span class="st">"V1"</span>, <span class="at">drop =</span> <span class="cn">FALSE</span>])</span>
-<span id="cb44-503"><a href="#cb44-503" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-504"><a href="#cb44-504" aria-hidden="true" tabindex="-1"></a>cf_naive <span class="ot">&lt;-</span> <span class="fu">causal_forest</span>(<span class="at">X =</span> X_panel, <span class="at">Y =</span> df_panel<span class="sc">$</span>Y, <span class="at">W =</span> df_panel<span class="sc">$</span>W,</span>
-<span id="cb44-505"><a href="#cb44-505" aria-hidden="true" tabindex="-1"></a>                          <span class="at">num.trees =</span> <span class="dv">1000</span>)</span>
-<span id="cb44-506"><a href="#cb44-506" aria-hidden="true" tabindex="-1"></a>ate_naive <span class="ot">&lt;-</span> <span class="fu">average_treatment_effect</span>(cf_naive)</span>
-<span id="cb44-507"><a href="#cb44-507" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-508"><a href="#cb44-508" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Naive panel CF ATE: %.3f  (SE = %.3f)</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb44-509"><a href="#cb44-509" aria-hidden="true" tabindex="-1"></a>            ate_naive[<span class="st">"estimate"</span>], ate_naive[<span class="st">"std.err"</span>]))</span>
-<span id="cb44-510"><a href="#cb44-510" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"True ATE: %.3f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">mean</span>(tau_panel)))</span>
-<span id="cb44-511"><a href="#cb44-511" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb44-512"><a href="#cb44-512" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-513"><a href="#cb44-513" aria-hidden="true" tabindex="-1"></a>Adding <span class="in">`clusters = firm`</span> keeps a firm's observations together when <span class="in">`grf`</span></span>
-<span id="cb44-514"><a href="#cb44-514" aria-hidden="true" tabindex="-1"></a>does the honest sample split:</span>
+<span id="cb44-458"><a href="#cb44-458" aria-hidden="true" tabindex="-1"></a>The bottom and top quintiles should have different estimated ATEs in this</span>
+<span id="cb44-459"><a href="#cb44-459" aria-hidden="true" tabindex="-1"></a>simulation.</span>
+<span id="cb44-460"><a href="#cb44-460" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-461"><a href="#cb44-461" aria-hidden="true" tabindex="-1"></a><span class="fu">## Causal forests with panel data</span></span>
+<span id="cb44-462"><a href="#cb44-462" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-463"><a href="#cb44-463" aria-hidden="true" tabindex="-1"></a>With panel data, unit effects can be correlated with treatment and</span>
+<span id="cb44-464"><a href="#cb44-464" aria-hidden="true" tabindex="-1"></a>covariates. A cross-sectional causal forest can then be biased. Two</span>
+<span id="cb44-465"><a href="#cb44-465" aria-hidden="true" tabindex="-1"></a>practical fixes are:</span>
+<span id="cb44-466"><a href="#cb44-466" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-467"><a href="#cb44-467" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Demean by fixed effects** before running the causal forest.</span>
+<span id="cb44-468"><a href="#cb44-468" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Pass a `cluster` argument** to <span class="in">`causal_forest`</span> so that observations</span>
+<span id="cb44-469"><a href="#cb44-469" aria-hidden="true" tabindex="-1"></a>   from the same unit are kept in the same training fold during honest</span>
+<span id="cb44-470"><a href="#cb44-470" aria-hidden="true" tabindex="-1"></a>   sample-splitting.</span>
+<span id="cb44-471"><a href="#cb44-471" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-474"><a href="#cb44-474" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb44-475"><a href="#cb44-475" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: panel-dgp</span></span>
+<span id="cb44-476"><a href="#cb44-476" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb44-477"><a href="#cb44-477" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-478"><a href="#cb44-478" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2024</span>)</span>
+<span id="cb44-479"><a href="#cb44-479" aria-hidden="true" tabindex="-1"></a>n_firms <span class="ot">&lt;-</span> <span class="dv">200</span></span>
+<span id="cb44-480"><a href="#cb44-480" aria-hidden="true" tabindex="-1"></a>n_t     <span class="ot">&lt;-</span> <span class="dv">5</span></span>
+<span id="cb44-481"><a href="#cb44-481" aria-hidden="true" tabindex="-1"></a>n_total <span class="ot">&lt;-</span> n_firms <span class="sc">*</span> n_t</span>
+<span id="cb44-482"><a href="#cb44-482" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-483"><a href="#cb44-483" aria-hidden="true" tabindex="-1"></a><span class="co"># Panel data with a unit-specific effect correlated with V1 (the modifier)</span></span>
+<span id="cb44-484"><a href="#cb44-484" aria-hidden="true" tabindex="-1"></a>firm_id  <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>n_firms, <span class="at">each =</span> n_t)</span>
+<span id="cb44-485"><a href="#cb44-485" aria-hidden="true" tabindex="-1"></a>unit_fe  <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n_firms, <span class="at">sd =</span> <span class="fl">1.5</span>)[firm_id]</span>
+<span id="cb44-486"><a href="#cb44-486" aria-hidden="true" tabindex="-1"></a>V1_firm  <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n_firms, <span class="at">sd =</span> <span class="fl">1.0</span>)[firm_id]   <span class="co"># firm-level covariate</span></span>
+<span id="cb44-487"><a href="#cb44-487" aria-hidden="true" tabindex="-1"></a>V1       <span class="ot">&lt;-</span> V1_firm <span class="sc">+</span> <span class="fu">rnorm</span>(n_total, <span class="at">sd =</span> <span class="fl">0.3</span>)  <span class="co"># within-firm variation</span></span>
+<span id="cb44-488"><a href="#cb44-488" aria-hidden="true" tabindex="-1"></a>W        <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_total, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fl">0.5</span> <span class="sc">+</span> <span class="fl">0.3</span> <span class="sc">*</span> V1_firm))</span>
+<span id="cb44-489"><a href="#cb44-489" aria-hidden="true" tabindex="-1"></a><span class="co"># True CATE varies linearly with V1</span></span>
+<span id="cb44-490"><a href="#cb44-490" aria-hidden="true" tabindex="-1"></a>tau_panel <span class="ot">&lt;-</span> <span class="fl">0.5</span> <span class="sc">+</span> <span class="fl">1.0</span> <span class="sc">*</span> V1</span>
+<span id="cb44-491"><a href="#cb44-491" aria-hidden="true" tabindex="-1"></a>Y_panel  <span class="ot">&lt;-</span> unit_fe <span class="sc">+</span> V1 <span class="sc">+</span> W <span class="sc">+</span> tau_panel <span class="sc">*</span> (W <span class="sc">-</span> <span class="fu">mean</span>(W)) <span class="sc">+</span> <span class="fu">rnorm</span>(n_total)</span>
+<span id="cb44-492"><a href="#cb44-492" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-493"><a href="#cb44-493" aria-hidden="true" tabindex="-1"></a>df_panel <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">firm =</span> firm_id, <span class="at">V1 =</span> V1, <span class="at">W =</span> W, <span class="at">Y =</span> Y_panel)</span>
+<span id="cb44-494"><a href="#cb44-494" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(df_panel)</span>
+<span id="cb44-495"><a href="#cb44-495" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb44-496"><a href="#cb44-496" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-497"><a href="#cb44-497" aria-hidden="true" tabindex="-1"></a>A naive causal forest ignores the firm effects:</span>
+<span id="cb44-498"><a href="#cb44-498" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-501"><a href="#cb44-501" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb44-502"><a href="#cb44-502" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: cf-naive</span></span>
+<span id="cb44-503"><a href="#cb44-503" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb44-504"><a href="#cb44-504" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-505"><a href="#cb44-505" aria-hidden="true" tabindex="-1"></a>X_panel <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(df_panel[, <span class="st">"V1"</span>, <span class="at">drop =</span> <span class="cn">FALSE</span>])</span>
+<span id="cb44-506"><a href="#cb44-506" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-507"><a href="#cb44-507" aria-hidden="true" tabindex="-1"></a>cf_naive <span class="ot">&lt;-</span> <span class="fu">causal_forest</span>(<span class="at">X =</span> X_panel, <span class="at">Y =</span> df_panel<span class="sc">$</span>Y, <span class="at">W =</span> df_panel<span class="sc">$</span>W,</span>
+<span id="cb44-508"><a href="#cb44-508" aria-hidden="true" tabindex="-1"></a>                          <span class="at">num.trees =</span> <span class="dv">1000</span>)</span>
+<span id="cb44-509"><a href="#cb44-509" aria-hidden="true" tabindex="-1"></a>ate_naive <span class="ot">&lt;-</span> <span class="fu">average_treatment_effect</span>(cf_naive)</span>
+<span id="cb44-510"><a href="#cb44-510" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-511"><a href="#cb44-511" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Naive panel CF ATE: %.3f  (SE = %.3f)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb44-512"><a href="#cb44-512" aria-hidden="true" tabindex="-1"></a>            ate_naive[<span class="st">"estimate"</span>], ate_naive[<span class="st">"std.err"</span>]))</span>
+<span id="cb44-513"><a href="#cb44-513" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"True ATE: %.3f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">mean</span>(tau_panel)))</span>
+<span id="cb44-514"><a href="#cb44-514" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb44-515"><a href="#cb44-515" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-518"><a href="#cb44-518" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb44-519"><a href="#cb44-519" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: cf-clustered</span></span>
-<span id="cb44-520"><a href="#cb44-520" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb44-521"><a href="#cb44-521" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-522"><a href="#cb44-522" aria-hidden="true" tabindex="-1"></a>cf_clust <span class="ot">&lt;-</span> <span class="fu">causal_forest</span>(<span class="at">X =</span> X_panel, <span class="at">Y =</span> df_panel<span class="sc">$</span>Y, <span class="at">W =</span> df_panel<span class="sc">$</span>W,</span>
-<span id="cb44-523"><a href="#cb44-523" aria-hidden="true" tabindex="-1"></a>                          <span class="at">clusters =</span> df_panel<span class="sc">$</span>firm,</span>
-<span id="cb44-524"><a href="#cb44-524" aria-hidden="true" tabindex="-1"></a>                          <span class="at">num.trees =</span> <span class="dv">1000</span>)</span>
-<span id="cb44-525"><a href="#cb44-525" aria-hidden="true" tabindex="-1"></a>ate_clust <span class="ot">&lt;-</span> <span class="fu">average_treatment_effect</span>(cf_clust)</span>
-<span id="cb44-526"><a href="#cb44-526" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-527"><a href="#cb44-527" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Clustered panel CF ATE: %.3f  (SE = %.3f)</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb44-528"><a href="#cb44-528" aria-hidden="true" tabindex="-1"></a>            ate_clust[<span class="st">"estimate"</span>], ate_clust[<span class="st">"std.err"</span>]))</span>
-<span id="cb44-529"><a href="#cb44-529" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb44-530"><a href="#cb44-530" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-531"><a href="#cb44-531" aria-hidden="true" tabindex="-1"></a>For a fixed-effect style adjustment, demean by firm before fitting:</span>
-<span id="cb44-532"><a href="#cb44-532" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-535"><a href="#cb44-535" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb44-536"><a href="#cb44-536" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: cf-demean</span></span>
-<span id="cb44-537"><a href="#cb44-537" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb44-538"><a href="#cb44-538" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-539"><a href="#cb44-539" aria-hidden="true" tabindex="-1"></a>df_dm <span class="ot">&lt;-</span> df_panel <span class="sc">|&gt;</span></span>
-<span id="cb44-540"><a href="#cb44-540" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(firm) <span class="sc">|&gt;</span></span>
-<span id="cb44-541"><a href="#cb44-541" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Y_dm =</span> Y <span class="sc">-</span> <span class="fu">mean</span>(Y),</span>
-<span id="cb44-542"><a href="#cb44-542" aria-hidden="true" tabindex="-1"></a>         <span class="at">W_dm =</span> W <span class="sc">-</span> <span class="fu">mean</span>(W),</span>
-<span id="cb44-543"><a href="#cb44-543" aria-hidden="true" tabindex="-1"></a>         <span class="at">V1_dm =</span> V1 <span class="sc">-</span> <span class="fu">mean</span>(V1)) <span class="sc">|&gt;</span></span>
-<span id="cb44-544"><a href="#cb44-544" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
-<span id="cb44-545"><a href="#cb44-545" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-546"><a href="#cb44-546" aria-hidden="true" tabindex="-1"></a>cf_fe <span class="ot">&lt;-</span> <span class="fu">causal_forest</span>(<span class="at">X =</span> <span class="fu">as.matrix</span>(df_dm[, <span class="st">"V1_dm"</span>]),</span>
-<span id="cb44-547"><a href="#cb44-547" aria-hidden="true" tabindex="-1"></a>                       <span class="at">Y =</span> df_dm<span class="sc">$</span>Y_dm,</span>
-<span id="cb44-548"><a href="#cb44-548" aria-hidden="true" tabindex="-1"></a>                       <span class="at">W =</span> df_dm<span class="sc">$</span>W_dm,</span>
-<span id="cb44-549"><a href="#cb44-549" aria-hidden="true" tabindex="-1"></a>                       <span class="at">clusters =</span> df_dm<span class="sc">$</span>firm,</span>
-<span id="cb44-550"><a href="#cb44-550" aria-hidden="true" tabindex="-1"></a>                       <span class="at">num.trees =</span> <span class="dv">1000</span>)</span>
-<span id="cb44-551"><a href="#cb44-551" aria-hidden="true" tabindex="-1"></a>ate_fe <span class="ot">&lt;-</span> <span class="fu">average_treatment_effect</span>(cf_fe)</span>
-<span id="cb44-552"><a href="#cb44-552" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Within-transform CF ATE: %.3f  (SE = %.3f)</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb44-553"><a href="#cb44-553" aria-hidden="true" tabindex="-1"></a>            ate_fe[<span class="st">"estimate"</span>], ate_fe[<span class="st">"std.err"</span>]))</span>
-<span id="cb44-554"><a href="#cb44-554" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb44-555"><a href="#cb44-555" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-556"><a href="#cb44-556" aria-hidden="true" tabindex="-1"></a>The clustered, within-transformed causal forest is the closest analogue to a</span>
-<span id="cb44-557"><a href="#cb44-557" aria-hidden="true" tabindex="-1"></a>fixed-effect regression with heterogeneous effects.</span>
-<span id="cb44-558"><a href="#cb44-558" aria-hidden="true" tabindex="-1"></a>See the <span class="co">[</span><span class="ot">companion blog chapter on causal forests in panel data</span><span class="co">](https://xiangao.github.io/blog_book/causal-forest-panel.html)</span></span>
-<span id="cb44-559"><a href="#cb44-559" aria-hidden="true" tabindex="-1"></a>for an extended simulation study comparing the panel CF to fixed-effect</span>
-<span id="cb44-560"><a href="#cb44-560" aria-hidden="true" tabindex="-1"></a>regression and random-effect regression under linear and nonlinear DGPs.</span>
-<span id="cb44-561"><a href="#cb44-561" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-562"><a href="#cb44-562" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
-<span id="cb44-563"><a href="#cb44-563" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-564"><a href="#cb44-564" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Meta-learners turn outcome-regression tools into CATE estimators.</span>
-<span id="cb44-565"><a href="#cb44-565" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Causal forests are the main <span class="in">`grf`</span> estimator for heterogeneous effects.</span>
-<span id="cb44-566"><a href="#cb44-566" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>BLP and CLAN are useful because they summarize heterogeneity in a way that</span>
-<span id="cb44-567"><a href="#cb44-567" aria-hidden="true" tabindex="-1"></a>  looks like familiar regression output.</span>
-<span id="cb44-568"><a href="#cb44-568" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Policy trees translate CATE estimates into treatment rules.</span>
-<span id="cb44-569"><a href="#cb44-569" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>In applied work, compare at least two CATE estimators and always report</span>
-<span id="cb44-570"><a href="#cb44-570" aria-hidden="true" tabindex="-1"></a>  simple heterogeneity summaries, not only a CATE scatterplot.</span>
+<span id="cb44-516"><a href="#cb44-516" aria-hidden="true" tabindex="-1"></a>Adding <span class="in">`clusters = firm`</span> keeps a firm's observations together when <span class="in">`grf`</span></span>
+<span id="cb44-517"><a href="#cb44-517" aria-hidden="true" tabindex="-1"></a>does the honest sample split:</span>
+<span id="cb44-518"><a href="#cb44-518" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-521"><a href="#cb44-521" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb44-522"><a href="#cb44-522" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: cf-clustered</span></span>
+<span id="cb44-523"><a href="#cb44-523" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb44-524"><a href="#cb44-524" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-525"><a href="#cb44-525" aria-hidden="true" tabindex="-1"></a>cf_clust <span class="ot">&lt;-</span> <span class="fu">causal_forest</span>(<span class="at">X =</span> X_panel, <span class="at">Y =</span> df_panel<span class="sc">$</span>Y, <span class="at">W =</span> df_panel<span class="sc">$</span>W,</span>
+<span id="cb44-526"><a href="#cb44-526" aria-hidden="true" tabindex="-1"></a>                          <span class="at">clusters =</span> df_panel<span class="sc">$</span>firm,</span>
+<span id="cb44-527"><a href="#cb44-527" aria-hidden="true" tabindex="-1"></a>                          <span class="at">num.trees =</span> <span class="dv">1000</span>)</span>
+<span id="cb44-528"><a href="#cb44-528" aria-hidden="true" tabindex="-1"></a>ate_clust <span class="ot">&lt;-</span> <span class="fu">average_treatment_effect</span>(cf_clust)</span>
+<span id="cb44-529"><a href="#cb44-529" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-530"><a href="#cb44-530" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Clustered panel CF ATE: %.3f  (SE = %.3f)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb44-531"><a href="#cb44-531" aria-hidden="true" tabindex="-1"></a>            ate_clust[<span class="st">"estimate"</span>], ate_clust[<span class="st">"std.err"</span>]))</span>
+<span id="cb44-532"><a href="#cb44-532" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb44-533"><a href="#cb44-533" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-534"><a href="#cb44-534" aria-hidden="true" tabindex="-1"></a>For a fixed-effect style adjustment, demean by firm before fitting:</span>
+<span id="cb44-535"><a href="#cb44-535" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-538"><a href="#cb44-538" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb44-539"><a href="#cb44-539" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: cf-demean</span></span>
+<span id="cb44-540"><a href="#cb44-540" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb44-541"><a href="#cb44-541" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-542"><a href="#cb44-542" aria-hidden="true" tabindex="-1"></a>df_dm <span class="ot">&lt;-</span> df_panel <span class="sc">|&gt;</span></span>
+<span id="cb44-543"><a href="#cb44-543" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(firm) <span class="sc">|&gt;</span></span>
+<span id="cb44-544"><a href="#cb44-544" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Y_dm =</span> Y <span class="sc">-</span> <span class="fu">mean</span>(Y),</span>
+<span id="cb44-545"><a href="#cb44-545" aria-hidden="true" tabindex="-1"></a>         <span class="at">W_dm =</span> W <span class="sc">-</span> <span class="fu">mean</span>(W),</span>
+<span id="cb44-546"><a href="#cb44-546" aria-hidden="true" tabindex="-1"></a>         <span class="at">V1_dm =</span> V1 <span class="sc">-</span> <span class="fu">mean</span>(V1)) <span class="sc">|&gt;</span></span>
+<span id="cb44-547"><a href="#cb44-547" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb44-548"><a href="#cb44-548" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-549"><a href="#cb44-549" aria-hidden="true" tabindex="-1"></a>cf_fe <span class="ot">&lt;-</span> <span class="fu">causal_forest</span>(<span class="at">X =</span> <span class="fu">as.matrix</span>(df_dm[, <span class="st">"V1_dm"</span>]),</span>
+<span id="cb44-550"><a href="#cb44-550" aria-hidden="true" tabindex="-1"></a>                       <span class="at">Y =</span> df_dm<span class="sc">$</span>Y_dm,</span>
+<span id="cb44-551"><a href="#cb44-551" aria-hidden="true" tabindex="-1"></a>                       <span class="at">W =</span> df_dm<span class="sc">$</span>W_dm,</span>
+<span id="cb44-552"><a href="#cb44-552" aria-hidden="true" tabindex="-1"></a>                       <span class="at">clusters =</span> df_dm<span class="sc">$</span>firm,</span>
+<span id="cb44-553"><a href="#cb44-553" aria-hidden="true" tabindex="-1"></a>                       <span class="at">num.trees =</span> <span class="dv">1000</span>)</span>
+<span id="cb44-554"><a href="#cb44-554" aria-hidden="true" tabindex="-1"></a>ate_fe <span class="ot">&lt;-</span> <span class="fu">average_treatment_effect</span>(cf_fe)</span>
+<span id="cb44-555"><a href="#cb44-555" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Within-transform CF ATE: %.3f  (SE = %.3f)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb44-556"><a href="#cb44-556" aria-hidden="true" tabindex="-1"></a>            ate_fe[<span class="st">"estimate"</span>], ate_fe[<span class="st">"std.err"</span>]))</span>
+<span id="cb44-557"><a href="#cb44-557" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb44-558"><a href="#cb44-558" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-559"><a href="#cb44-559" aria-hidden="true" tabindex="-1"></a>The clustered, within-transformed causal forest is the closest analogue to a</span>
+<span id="cb44-560"><a href="#cb44-560" aria-hidden="true" tabindex="-1"></a>fixed-effect regression with heterogeneous effects.</span>
+<span id="cb44-561"><a href="#cb44-561" aria-hidden="true" tabindex="-1"></a>See the <span class="co">[</span><span class="ot">companion blog chapter on causal forests in panel data</span><span class="co">](https://xiangao.github.io/blog_book/causal-forest-panel.html)</span></span>
+<span id="cb44-562"><a href="#cb44-562" aria-hidden="true" tabindex="-1"></a>for an extended simulation study comparing the panel CF to fixed-effect</span>
+<span id="cb44-563"><a href="#cb44-563" aria-hidden="true" tabindex="-1"></a>regression and random-effect regression under linear and nonlinear DGPs.</span>
+<span id="cb44-564"><a href="#cb44-564" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-565"><a href="#cb44-565" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb44-566"><a href="#cb44-566" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-567"><a href="#cb44-567" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Meta-learners turn outcome-regression tools into CATE estimators.</span>
+<span id="cb44-568"><a href="#cb44-568" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Causal forests are the main <span class="in">`grf`</span> estimator for heterogeneous effects.</span>
+<span id="cb44-569"><a href="#cb44-569" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>BLP and CLAN are useful because they summarize heterogeneity in a way that</span>
+<span id="cb44-570"><a href="#cb44-570" aria-hidden="true" tabindex="-1"></a>  looks like familiar regression output.</span>
+<span id="cb44-571"><a href="#cb44-571" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Policy trees translate CATE estimates into treatment rules.</span>
+<span id="cb44-572"><a href="#cb44-572" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>In applied work, compare at least two CATE estimators and always report</span>
+<span id="cb44-573"><a href="#cb44-573" aria-hidden="true" tabindex="-1"></a>  simple heterogeneity summaries, not only a CATE scatterplot.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

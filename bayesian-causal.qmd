@@ -49,11 +49,12 @@ p <- 5
 
 X <- matrix(runif(n * p), n, p)
 colnames(X) <- paste0("X", 1:p)
-U <- rnorm(n)
-ps <- plogis(-0.3 + 1.5 * X[, 2] + 0.5 * U)
+# Treatment depends only on observed covariates, so unconfoundedness given X
+# holds and the "True ATE" comparison measures estimator performance (not bias).
+ps <- plogis(-0.3 + 1.5 * X[, 2])
 D  <- rbinom(n, 1, ps)
 tau <- 1 + 2 * X[, 1]
-Y0  <- 0.5 * X[, 2] + 0.3 * U + rnorm(n)
+Y0  <- 0.5 * X[, 2] + rnorm(n)
 Y1  <- Y0 + tau
 Y   <- ifelse(D == 1, Y1, Y0)
 

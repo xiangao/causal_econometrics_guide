@@ -514,7 +514,8 @@ window.Quarto = {
 <span><span class="va">data_mat</span>  <span class="op">&lt;-</span> <span class="fu">rmvDAG</span><span class="op">(</span><span class="va">n_samples</span>, <span class="va">true_dag</span>, errDist <span class="op">=</span> <span class="st">"normal"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span><span class="op">(</span><span class="va">data_mat</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">labels</span></span>
 <span></span>
-<span><span class="co"># Adjacency matrix from the true DAG (entry [i,j] = 1 means i -&gt; j)</span></span>
+<span><span class="co"># Adjacency matrix from the true DAG, in the pcalg "ends-at-i" convention:</span></span>
+<span><span class="co"># entry [i,j] = 1 means an edge ending at i, i.e. j -&gt; i.</span></span>
 <span><span class="va">adj_true</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span><span class="op">(</span><span class="fu">as</span><span class="op">(</span><span class="va">true_dag</span>, <span class="st">"matrix"</span><span class="op">)</span> <span class="op">!=</span> <span class="fl">0</span><span class="op">)</span> <span class="op">*</span> <span class="fl">1</span></span>
 <span></span>
 <span><span class="co"># igraph representation + shared layout for all comparison panels</span></span>
@@ -611,7 +612,10 @@ Figure&nbsp;19.1: True DAG used for simulation.
 <span><span class="co"># pcalg convention: amat[i,j] = 1 means an edge that ENDS at i,</span></span>
 <span><span class="co"># i.e. a directed edge j -&gt; i (or one endpoint of an undirected edge).</span></span>
 <span><span class="va">amat_from_graph</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">g</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">m</span> <span class="op">&lt;-</span> <span class="fu">as</span><span class="op">(</span><span class="va">g</span>, <span class="st">"matrix"</span><span class="op">)</span> <span class="op">!=</span> <span class="fl">0</span></span>
+<span>  <span class="co"># as(g, "matrix")[i,j] = 1 means i -&gt; j (from-&gt;to). Transpose so that</span></span>
+<span>  <span class="co"># [i,j] = 1 means an edge ending at i (j -&gt; i), matching adj_true's</span></span>
+<span>  <span class="co"># convention; otherwise CPDAG-F1 compares opposite orientations.</span></span>
+<span>  <span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span><span class="op">(</span><span class="fu">as</span><span class="op">(</span><span class="va">g</span>, <span class="st">"matrix"</span><span class="op">)</span> <span class="op">!=</span> <span class="fl">0</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/mode.html">storage.mode</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"integer"</span></span>
 <span>  <span class="va">m</span></span>
 <span><span class="op">}</span></span>
@@ -669,7 +673,7 @@ Figure&nbsp;19.1: True DAG used for simulation.
 <span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"PC:    skeleton F1 = %.3f   CPDAG F1 = %.3f   CI tests = %d"</span>,</span>
 <span>        <span class="va">f1_pc</span><span class="op">[</span><span class="st">"skeleton"</span><span class="op">]</span>, <span class="va">f1_pc</span><span class="op">[</span><span class="st">"cpdag"</span><span class="op">]</span>, <span class="va">ci_tests_pc</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "PC:    skeleton F1 = 0.952   CPDAG F1 = 0.190   CI tests = 293"</code></pre>
+<pre><code>[1] "PC:    skeleton F1 = 0.952   CPDAG F1 = 0.857   CI tests = 293"</code></pre>
 </div>
 </div>
 <p><strong>Computational complexity:</strong> In the worst case PC tests all subsets of neighbors, giving exponential growth with the maximum degree. In sparse graphs this is manageable; in dense graphs it becomes prohibitive.</p>
@@ -696,7 +700,7 @@ Figure&nbsp;19.1: True DAG used for simulation.
 <span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"GES:   skeleton F1 = %.3f   CPDAG F1 = %.3f   (score-based, no CI tests)"</span>,</span>
 <span>        <span class="va">f1_ges</span><span class="op">[</span><span class="st">"skeleton"</span><span class="op">]</span>, <span class="va">f1_ges</span><span class="op">[</span><span class="st">"cpdag"</span><span class="op">]</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] "GES:   skeleton F1 = 0.800   CPDAG F1 = 0.240   (score-based, no CI tests)"</code></pre>
+<pre><code>[1] "GES:   skeleton F1 = 0.800   CPDAG F1 = 0.720   (score-based, no CI tests)"</code></pre>
 </div>
 </div>
 <p>PC and GES fail differently. In PC, one wrong CI decision can affect later orientation decisions. In GES, a wrong score move is usually more local.</p>
@@ -745,14 +749,14 @@ Table&nbsp;19.1: Algorithm comparison on the simulated 8-node DAG (n = 2000, alp
 <td style="text-align: left;">PC</td>
 <td style="text-align: left;">Constraint-based</td>
 <td style="text-align: right;">0.952</td>
-<td style="text-align: right;">0.19</td>
+<td style="text-align: right;">0.857</td>
 <td style="text-align: right;">293</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">GES</td>
 <td style="text-align: left;">Score-based</td>
 <td style="text-align: right;">0.800</td>
-<td style="text-align: right;">0.24</td>
+<td style="text-align: right;">0.720</td>
 <td style="text-align: right;">NA</td>
 </tr>
 </tbody>
@@ -857,13 +861,13 @@ Figure&nbsp;19.2: True DAG vs.&nbsp;estimated CPDAGs. Arrows denote oriented edg
 <tr class="odd">
 <td style="text-align: left;">PC</td>
 <td style="text-align: right;">0.947</td>
-<td style="text-align: right;">0.342</td>
+<td style="text-align: right;">0.903</td>
 <td style="text-align: right;">230.6</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">GES</td>
 <td style="text-align: right;">0.933</td>
-<td style="text-align: right;">0.359</td>
+<td style="text-align: right;">0.825</td>
 <td style="text-align: right;">NA</td>
 </tr>
 </tbody>
@@ -1822,543 +1826,547 @@ Figure&nbsp;19.6: Bootstrap edge-selection frequency (weighted PC, 200 resamples
 <span id="cb26-123"><a href="#cb26-123" aria-hidden="true" tabindex="-1"></a>data_mat  <span class="ot">&lt;-</span> <span class="fu">rmvDAG</span>(n_samples, true_dag, <span class="at">errDist =</span> <span class="st">"normal"</span>)</span>
 <span id="cb26-124"><a href="#cb26-124" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(data_mat) <span class="ot">&lt;-</span> labels</span>
 <span id="cb26-125"><a href="#cb26-125" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-126"><a href="#cb26-126" aria-hidden="true" tabindex="-1"></a><span class="co"># Adjacency matrix from the true DAG (entry [i,j] = 1 means i -&gt; j)</span></span>
-<span id="cb26-127"><a href="#cb26-127" aria-hidden="true" tabindex="-1"></a>adj_true  <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">as</span>(true_dag, <span class="st">"matrix"</span>) <span class="sc">!=</span> <span class="dv">0</span>) <span class="sc">*</span> <span class="dv">1</span></span>
-<span id="cb26-128"><a href="#cb26-128" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-129"><a href="#cb26-129" aria-hidden="true" tabindex="-1"></a><span class="co"># igraph representation + shared layout for all comparison panels</span></span>
-<span id="cb26-130"><a href="#cb26-130" aria-hidden="true" tabindex="-1"></a>ig_true <span class="ot">&lt;-</span> <span class="fu">graphnel_to_ig</span>(true_dag)</span>
-<span id="cb26-131"><a href="#cb26-131" aria-hidden="true" tabindex="-1"></a>dag_layout <span class="ot">&lt;-</span> igraph<span class="sc">::</span><span class="fu">layout_with_sugiyama</span>(ig_true)<span class="sc">$</span>layout</span>
-<span id="cb26-132"><a href="#cb26-132" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Variables: %d   Samples: %d   True edges: %d"</span>,</span>
-<span id="cb26-133"><a href="#cb26-133" aria-hidden="true" tabindex="-1"></a>        n_vars, n_samples, <span class="fu">sum</span>(adj_true))</span>
-<span id="cb26-134"><a href="#cb26-134" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-135"><a href="#cb26-135" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-138"><a href="#cb26-138" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-139"><a href="#cb26-139" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-true-dag</span></span>
-<span id="cb26-140"><a href="#cb26-140" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "True DAG used for simulation."</span></span>
-<span id="cb26-141"><a href="#cb26-141" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 5</span></span>
-<span id="cb26-142"><a href="#cb26-142" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4</span></span>
-<span id="cb26-143"><a href="#cb26-143" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_true, <span class="at">layout =</span> dag_layout)</span>
-<span id="cb26-144"><a href="#cb26-144" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-145"><a href="#cb26-145" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-146"><a href="#cb26-146" aria-hidden="true" tabindex="-1"></a><span class="fu">## CI-Test and Score Infrastructure</span></span>
-<span id="cb26-147"><a href="#cb26-147" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-148"><a href="#cb26-148" aria-hidden="true" tabindex="-1"></a>PC uses a **Fisher-Z conditional independence test** appropriate for Gaussian data. Given the partial correlation $\hat\rho_{XY \mid Z}$, the test statistic is</span>
-<span id="cb26-149"><a href="#cb26-149" aria-hidden="true" tabindex="-1"></a>$$T = \sqrt{n - |Z| - 3} \cdot \operatorname{atanh}(\hat\rho_{XY \mid Z}) \;\sim\; N(0,1) \quad \text{under } H_0: X \perp<span class="sc">\!\!\!</span>\perp Y \mid Z.$$</span>
-<span id="cb26-150"><a href="#cb26-150" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-151"><a href="#cb26-151" aria-hidden="true" tabindex="-1"></a>**Choosing the significance level** $\alpha$ involves a bias–variance tradeoff on the skeleton:</span>
-<span id="cb26-152"><a href="#cb26-152" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-153"><a href="#cb26-153" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Low $\alpha$ (e.g., 0.001)**: conservative, keeps more edges. Fewer false removals but may retain spurious edges. Denser skeleton.</span>
-<span id="cb26-154"><a href="#cb26-154" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**High $\alpha$ (e.g., 0.05)**: liberal, removes more edges. Fewer spurious edges but may discard real ones. Sparser skeleton.</span>
-<span id="cb26-155"><a href="#cb26-155" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-156"><a href="#cb26-156" aria-hidden="true" tabindex="-1"></a>With $n = 2000$ and $p = 8$ we use $\alpha = 0.01$, a common default.</span>
-<span id="cb26-157"><a href="#cb26-157" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-158"><a href="#cb26-158" aria-hidden="true" tabindex="-1"></a>GES does not use a significance level. It maximizes the **Gaussian BIC** score</span>
-<span id="cb26-159"><a href="#cb26-159" aria-hidden="true" tabindex="-1"></a>$$\text{BIC}(G) = -2 \,\ell(\hat\theta; G) + |G| \log n,$$</span>
-<span id="cb26-160"><a href="#cb26-160" aria-hidden="true" tabindex="-1"></a>which penalizes graph complexity directly. Implemented in <span class="in">`pcalg`</span> as <span class="in">`GaussL0penObsScore`</span>.</span>
-<span id="cb26-161"><a href="#cb26-161" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-162"><a href="#cb26-162" aria-hidden="true" tabindex="-1"></a>We wrap <span class="in">`gaussCItest`</span> in a counter to track exactly how many CI tests PC calls:</span>
-<span id="cb26-163"><a href="#cb26-163" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-166"><a href="#cb26-166" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-167"><a href="#cb26-167" aria-hidden="true" tabindex="-1"></a>make_counted_ci <span class="ot">&lt;-</span> <span class="cf">function</span>(suff_stat) {</span>
-<span id="cb26-168"><a href="#cb26-168" aria-hidden="true" tabindex="-1"></a>  count <span class="ot">&lt;-</span> <span class="dv">0</span>L</span>
-<span id="cb26-169"><a href="#cb26-169" aria-hidden="true" tabindex="-1"></a>  ci <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y, S, suffStat) {</span>
-<span id="cb26-170"><a href="#cb26-170" aria-hidden="true" tabindex="-1"></a>    count <span class="ot">&lt;&lt;-</span> count <span class="sc">+</span> <span class="dv">1</span>L</span>
-<span id="cb26-171"><a href="#cb26-171" aria-hidden="true" tabindex="-1"></a>    <span class="fu">gaussCItest</span>(x, y, S, suffStat)</span>
-<span id="cb26-172"><a href="#cb26-172" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb26-173"><a href="#cb26-173" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">ci =</span> ci, <span class="at">count =</span> <span class="cf">function</span>() count)</span>
-<span id="cb26-174"><a href="#cb26-174" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb26-175"><a href="#cb26-175" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-176"><a href="#cb26-176" aria-hidden="true" tabindex="-1"></a>suff_stat <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">C =</span> <span class="fu">cor</span>(data_mat), <span class="at">n =</span> n_samples)</span>
-<span id="cb26-177"><a href="#cb26-177" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-178"><a href="#cb26-178" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-179"><a href="#cb26-179" aria-hidden="true" tabindex="-1"></a><span class="fu">## PC Algorithm</span></span>
-<span id="cb26-180"><a href="#cb26-180" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-181"><a href="#cb26-181" aria-hidden="true" tabindex="-1"></a>The **PC algorithm** (Spirtes &amp; Glymour, 1991) starts from a complete undirected graph and removes edges whenever a conditional independence is found. It searches for separating sets $Z$ of increasing size, conditioning on subsets of the current neighbors. After skeleton discovery, Meek's rules orient as many edges as possible.</span>
-<span id="cb26-182"><a href="#cb26-182" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-183"><a href="#cb26-183" aria-hidden="true" tabindex="-1"></a>**How it works, step by step:**</span>
-<span id="cb26-184"><a href="#cb26-184" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-185"><a href="#cb26-185" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Start with a complete undirected graph (every pair connected).</span>
-<span id="cb26-186"><a href="#cb26-186" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>For each pair $(X, Y)$, test $X \perp<span class="sc">\!\!\!</span>\perp Y \mid Z$ for all $Z \subseteq \text{neighbors}(X) \setminus <span class="sc">\{</span>Y<span class="sc">\}</span>$, starting with $|Z| = 0$. Remove the edge if any such test passes.</span>
-<span id="cb26-187"><a href="#cb26-187" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Repeat with conditioning sets of increasing size until no new edges are removed.</span>
-<span id="cb26-188"><a href="#cb26-188" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>Identify colliders: if $X - Z - Y$ and $X, Y$ non-adjacent, orient as $X \to Z \leftarrow Y$ only if $Z$ was not in the separating set of $X$ and $Y$.</span>
-<span id="cb26-189"><a href="#cb26-189" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>Apply Meek's orientation rules to propagate orientations without creating new colliders or cycles.</span>
-<span id="cb26-190"><a href="#cb26-190" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-193"><a href="#cb26-193" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-194"><a href="#cb26-194" aria-hidden="true" tabindex="-1"></a>sig_level <span class="ot">&lt;-</span> <span class="fl">0.01</span></span>
-<span id="cb26-195"><a href="#cb26-195" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-196"><a href="#cb26-196" aria-hidden="true" tabindex="-1"></a>ci_pc  <span class="ot">&lt;-</span> <span class="fu">make_counted_ci</span>(suff_stat)</span>
-<span id="cb26-197"><a href="#cb26-197" aria-hidden="true" tabindex="-1"></a>pc_fit <span class="ot">&lt;-</span> <span class="fu">pc</span>(<span class="at">suffStat =</span> suff_stat,</span>
-<span id="cb26-198"><a href="#cb26-198" aria-hidden="true" tabindex="-1"></a>             <span class="at">indepTest =</span> ci_pc<span class="sc">$</span>ci,</span>
-<span id="cb26-199"><a href="#cb26-199" aria-hidden="true" tabindex="-1"></a>             <span class="at">labels =</span> labels,</span>
-<span id="cb26-200"><a href="#cb26-200" aria-hidden="true" tabindex="-1"></a>             <span class="at">alpha =</span> sig_level,</span>
-<span id="cb26-201"><a href="#cb26-201" aria-hidden="true" tabindex="-1"></a>             <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb26-202"><a href="#cb26-202" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-203"><a href="#cb26-203" aria-hidden="true" tabindex="-1"></a>cpdag_pc <span class="ot">&lt;-</span> pc_fit<span class="sc">@</span>graph</span>
-<span id="cb26-204"><a href="#cb26-204" aria-hidden="true" tabindex="-1"></a>ci_tests_pc <span class="ot">&lt;-</span> ci_pc<span class="sc">$</span><span class="fu">count</span>()</span>
-<span id="cb26-205"><a href="#cb26-205" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-206"><a href="#cb26-206" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-207"><a href="#cb26-207" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
-<span id="cb26-208"><a href="#cb26-208" aria-hidden="true" tabindex="-1"></a>**Reading the output: F1 scores**</span>
-<span id="cb26-209"><a href="#cb26-209" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-210"><a href="#cb26-210" aria-hidden="true" tabindex="-1"></a>The **F1 score** is the harmonic mean of precision and recall, ranging from 0 (worst) to 1 (perfect).</span>
-<span id="cb26-211"><a href="#cb26-211" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-212"><a href="#cb26-212" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Skeleton F1** measures whether the algorithm found the right edges regardless of direction. An edge is a true positive if it exists in both the estimated skeleton and the true one.</span>
-<span id="cb26-213"><a href="#cb26-213" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**CPDAG F1** is stricter: a directed edge $X \to Y$ is only a true positive if the true DAG also has $X \to Y$; an undirected edge $X - Y$ counts as correct if the true DAG has *either* direction.</span>
-<span id="cb26-214"><a href="#cb26-214" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-215"><a href="#cb26-215" aria-hidden="true" tabindex="-1"></a>A high skeleton F1 with lower CPDAG F1 means the algorithm found the right adjacencies but left some edges unoriented — the typical case when the MEC contains many equivalent DAGs.</span>
-<span id="cb26-216"><a href="#cb26-216" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb26-217"><a href="#cb26-217" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-220"><a href="#cb26-220" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-221"><a href="#cb26-221" aria-hidden="true" tabindex="-1"></a><span class="co"># Helper: extract directed adjacency matrix from a graphNEL CPDAG.</span></span>
-<span id="cb26-222"><a href="#cb26-222" aria-hidden="true" tabindex="-1"></a><span class="co"># pcalg convention: amat[i,j] = 1 means an edge that ENDS at i,</span></span>
-<span id="cb26-223"><a href="#cb26-223" aria-hidden="true" tabindex="-1"></a><span class="co"># i.e. a directed edge j -&gt; i (or one endpoint of an undirected edge).</span></span>
-<span id="cb26-224"><a href="#cb26-224" aria-hidden="true" tabindex="-1"></a>amat_from_graph <span class="ot">&lt;-</span> <span class="cf">function</span>(g) {</span>
-<span id="cb26-225"><a href="#cb26-225" aria-hidden="true" tabindex="-1"></a>  m <span class="ot">&lt;-</span> <span class="fu">as</span>(g, <span class="st">"matrix"</span>) <span class="sc">!=</span> <span class="dv">0</span></span>
-<span id="cb26-226"><a href="#cb26-226" aria-hidden="true" tabindex="-1"></a>  <span class="fu">storage.mode</span>(m) <span class="ot">&lt;-</span> <span class="st">"integer"</span></span>
-<span id="cb26-227"><a href="#cb26-227" aria-hidden="true" tabindex="-1"></a>  m</span>
-<span id="cb26-228"><a href="#cb26-228" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb26-229"><a href="#cb26-229" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-230"><a href="#cb26-230" aria-hidden="true" tabindex="-1"></a><span class="co"># Skeleton: symmetrize (edge exists either way).</span></span>
-<span id="cb26-231"><a href="#cb26-231" aria-hidden="true" tabindex="-1"></a>amat_to_skel <span class="ot">&lt;-</span> <span class="cf">function</span>(amat) (amat <span class="sc">|</span> <span class="fu">t</span>(amat)) <span class="sc">*</span> <span class="dv">1</span>L</span>
-<span id="cb26-232"><a href="#cb26-232" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-233"><a href="#cb26-233" aria-hidden="true" tabindex="-1"></a><span class="co"># F1 scores: skeleton F1 (ignore direction) and CPDAG F1</span></span>
-<span id="cb26-234"><a href="#cb26-234" aria-hidden="true" tabindex="-1"></a><span class="co"># (directed edge in estimate must match a directed edge in the truth;</span></span>
-<span id="cb26-235"><a href="#cb26-235" aria-hidden="true" tabindex="-1"></a><span class="co">#  undirected in estimate matches either direction in truth).</span></span>
-<span id="cb26-236"><a href="#cb26-236" aria-hidden="true" tabindex="-1"></a>f1_scores <span class="ot">&lt;-</span> <span class="cf">function</span>(amat_true, amat_est) {</span>
-<span id="cb26-237"><a href="#cb26-237" aria-hidden="true" tabindex="-1"></a>  skel_t <span class="ot">&lt;-</span> <span class="fu">amat_to_skel</span>(amat_true)</span>
-<span id="cb26-238"><a href="#cb26-238" aria-hidden="true" tabindex="-1"></a>  skel_e <span class="ot">&lt;-</span> <span class="fu">amat_to_skel</span>(amat_est)</span>
-<span id="cb26-239"><a href="#cb26-239" aria-hidden="true" tabindex="-1"></a>  <span class="fu">diag</span>(skel_t) <span class="ot">&lt;-</span> <span class="fu">diag</span>(skel_e) <span class="ot">&lt;-</span> <span class="dv">0</span></span>
-<span id="cb26-240"><a href="#cb26-240" aria-hidden="true" tabindex="-1"></a>  tp <span class="ot">&lt;-</span> <span class="fu">sum</span>(skel_t <span class="sc">&amp;</span> skel_e) <span class="sc">/</span> <span class="dv">2</span></span>
-<span id="cb26-241"><a href="#cb26-241" aria-hidden="true" tabindex="-1"></a>  fp <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="sc">!</span>skel_t <span class="sc">&amp;</span> skel_e) <span class="sc">/</span> <span class="dv">2</span></span>
-<span id="cb26-242"><a href="#cb26-242" aria-hidden="true" tabindex="-1"></a>  fn <span class="ot">&lt;-</span> <span class="fu">sum</span>(skel_t <span class="sc">&amp;</span> <span class="sc">!</span>skel_e) <span class="sc">/</span> <span class="dv">2</span></span>
-<span id="cb26-243"><a href="#cb26-243" aria-hidden="true" tabindex="-1"></a>  f1_skel <span class="ot">&lt;-</span> <span class="cf">if</span> (tp <span class="sc">==</span> <span class="dv">0</span>) <span class="dv">0</span> <span class="cf">else</span> <span class="dv">2</span> <span class="sc">*</span> tp <span class="sc">/</span> (<span class="dv">2</span> <span class="sc">*</span> tp <span class="sc">+</span> fp <span class="sc">+</span> fn)</span>
-<span id="cb26-244"><a href="#cb26-244" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-245"><a href="#cb26-245" aria-hidden="true" tabindex="-1"></a>  <span class="co"># CPDAG F1: walk ordered pairs (i,j) with i &lt; j</span></span>
-<span id="cb26-246"><a href="#cb26-246" aria-hidden="true" tabindex="-1"></a>  tp <span class="ot">&lt;-</span> fp <span class="ot">&lt;-</span> fn <span class="ot">&lt;-</span> <span class="dv">0</span></span>
-<span id="cb26-247"><a href="#cb26-247" aria-hidden="true" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">nrow</span>(amat_true)</span>
-<span id="cb26-248"><a href="#cb26-248" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(p <span class="sc">-</span> <span class="dv">1</span>)) <span class="cf">for</span> (j <span class="cf">in</span> <span class="fu">seq.int</span>(i <span class="sc">+</span> <span class="dv">1</span>, p)) {</span>
-<span id="cb26-249"><a href="#cb26-249" aria-hidden="true" tabindex="-1"></a>    t_ij <span class="ot">&lt;-</span> amat_true[j, i] <span class="sc">==</span> <span class="dv">1</span>   <span class="co"># truth has i -&gt; j?</span></span>
-<span id="cb26-250"><a href="#cb26-250" aria-hidden="true" tabindex="-1"></a>    t_ji <span class="ot">&lt;-</span> amat_true[i, j] <span class="sc">==</span> <span class="dv">1</span>   <span class="co"># truth has j -&gt; i?</span></span>
-<span id="cb26-251"><a href="#cb26-251" aria-hidden="true" tabindex="-1"></a>    e_ij <span class="ot">&lt;-</span> amat_est[j, i] <span class="sc">==</span> <span class="dv">1</span></span>
-<span id="cb26-252"><a href="#cb26-252" aria-hidden="true" tabindex="-1"></a>    e_ji <span class="ot">&lt;-</span> amat_est[i, j] <span class="sc">==</span> <span class="dv">1</span></span>
-<span id="cb26-253"><a href="#cb26-253" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span>t_ij <span class="sc">&amp;&amp;</span> <span class="sc">!</span>t_ji <span class="sc">&amp;&amp;</span> <span class="sc">!</span>e_ij <span class="sc">&amp;&amp;</span> <span class="sc">!</span>e_ji) <span class="cf">next</span></span>
-<span id="cb26-254"><a href="#cb26-254" aria-hidden="true" tabindex="-1"></a>    truth_undirected <span class="ot">&lt;-</span> t_ij <span class="sc">&amp;&amp;</span> t_ji</span>
-<span id="cb26-255"><a href="#cb26-255" aria-hidden="true" tabindex="-1"></a>    est_undirected   <span class="ot">&lt;-</span> e_ij <span class="sc">&amp;&amp;</span> e_ji</span>
-<span id="cb26-256"><a href="#cb26-256" aria-hidden="true" tabindex="-1"></a>    has_t <span class="ot">&lt;-</span> t_ij <span class="sc">||</span> t_ji</span>
-<span id="cb26-257"><a href="#cb26-257" aria-hidden="true" tabindex="-1"></a>    has_e <span class="ot">&lt;-</span> e_ij <span class="sc">||</span> e_ji</span>
-<span id="cb26-258"><a href="#cb26-258" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (has_t <span class="sc">&amp;&amp;</span> has_e) {</span>
-<span id="cb26-259"><a href="#cb26-259" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (est_undirected <span class="sc">||</span> truth_undirected <span class="sc">||</span></span>
-<span id="cb26-260"><a href="#cb26-260" aria-hidden="true" tabindex="-1"></a>          (t_ij <span class="sc">==</span> e_ij <span class="sc">&amp;&amp;</span> t_ji <span class="sc">==</span> e_ji)) {</span>
-<span id="cb26-261"><a href="#cb26-261" aria-hidden="true" tabindex="-1"></a>        tp <span class="ot">&lt;-</span> tp <span class="sc">+</span> <span class="dv">1</span></span>
-<span id="cb26-262"><a href="#cb26-262" aria-hidden="true" tabindex="-1"></a>      } <span class="cf">else</span> {</span>
-<span id="cb26-263"><a href="#cb26-263" aria-hidden="true" tabindex="-1"></a>        fp <span class="ot">&lt;-</span> fp <span class="sc">+</span> <span class="dv">1</span>; fn <span class="ot">&lt;-</span> fn <span class="sc">+</span> <span class="dv">1</span></span>
-<span id="cb26-264"><a href="#cb26-264" aria-hidden="true" tabindex="-1"></a>      }</span>
-<span id="cb26-265"><a href="#cb26-265" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> <span class="cf">if</span> (has_e) {</span>
-<span id="cb26-266"><a href="#cb26-266" aria-hidden="true" tabindex="-1"></a>      fp <span class="ot">&lt;-</span> fp <span class="sc">+</span> <span class="dv">1</span></span>
-<span id="cb26-267"><a href="#cb26-267" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
-<span id="cb26-268"><a href="#cb26-268" aria-hidden="true" tabindex="-1"></a>      fn <span class="ot">&lt;-</span> fn <span class="sc">+</span> <span class="dv">1</span></span>
-<span id="cb26-269"><a href="#cb26-269" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb26-270"><a href="#cb26-270" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb26-271"><a href="#cb26-271" aria-hidden="true" tabindex="-1"></a>  f1_cpdag <span class="ot">&lt;-</span> <span class="cf">if</span> (tp <span class="sc">==</span> <span class="dv">0</span>) <span class="dv">0</span> <span class="cf">else</span> <span class="dv">2</span> <span class="sc">*</span> tp <span class="sc">/</span> (<span class="dv">2</span> <span class="sc">*</span> tp <span class="sc">+</span> fp <span class="sc">+</span> fn)</span>
-<span id="cb26-272"><a href="#cb26-272" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-273"><a href="#cb26-273" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">skeleton =</span> f1_skel, <span class="at">cpdag =</span> f1_cpdag)</span>
-<span id="cb26-274"><a href="#cb26-274" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb26-275"><a href="#cb26-275" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-276"><a href="#cb26-276" aria-hidden="true" tabindex="-1"></a>amat_pc  <span class="ot">&lt;-</span> <span class="fu">amat_from_graph</span>(cpdag_pc)</span>
-<span id="cb26-277"><a href="#cb26-277" aria-hidden="true" tabindex="-1"></a>f1_pc    <span class="ot">&lt;-</span> <span class="fu">f1_scores</span>(adj_true, amat_pc)</span>
-<span id="cb26-278"><a href="#cb26-278" aria-hidden="true" tabindex="-1"></a>ig_cpdag_pc <span class="ot">&lt;-</span> <span class="fu">graphnel_to_ig</span>(cpdag_pc)</span>
+<span id="cb26-126"><a href="#cb26-126" aria-hidden="true" tabindex="-1"></a><span class="co"># Adjacency matrix from the true DAG, in the pcalg "ends-at-i" convention:</span></span>
+<span id="cb26-127"><a href="#cb26-127" aria-hidden="true" tabindex="-1"></a><span class="co"># entry [i,j] = 1 means an edge ending at i, i.e. j -&gt; i.</span></span>
+<span id="cb26-128"><a href="#cb26-128" aria-hidden="true" tabindex="-1"></a>adj_true  <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">as</span>(true_dag, <span class="st">"matrix"</span>) <span class="sc">!=</span> <span class="dv">0</span>) <span class="sc">*</span> <span class="dv">1</span></span>
+<span id="cb26-129"><a href="#cb26-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-130"><a href="#cb26-130" aria-hidden="true" tabindex="-1"></a><span class="co"># igraph representation + shared layout for all comparison panels</span></span>
+<span id="cb26-131"><a href="#cb26-131" aria-hidden="true" tabindex="-1"></a>ig_true <span class="ot">&lt;-</span> <span class="fu">graphnel_to_ig</span>(true_dag)</span>
+<span id="cb26-132"><a href="#cb26-132" aria-hidden="true" tabindex="-1"></a>dag_layout <span class="ot">&lt;-</span> igraph<span class="sc">::</span><span class="fu">layout_with_sugiyama</span>(ig_true)<span class="sc">$</span>layout</span>
+<span id="cb26-133"><a href="#cb26-133" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Variables: %d   Samples: %d   True edges: %d"</span>,</span>
+<span id="cb26-134"><a href="#cb26-134" aria-hidden="true" tabindex="-1"></a>        n_vars, n_samples, <span class="fu">sum</span>(adj_true))</span>
+<span id="cb26-135"><a href="#cb26-135" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-136"><a href="#cb26-136" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-139"><a href="#cb26-139" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-140"><a href="#cb26-140" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-true-dag</span></span>
+<span id="cb26-141"><a href="#cb26-141" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "True DAG used for simulation."</span></span>
+<span id="cb26-142"><a href="#cb26-142" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 5</span></span>
+<span id="cb26-143"><a href="#cb26-143" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4</span></span>
+<span id="cb26-144"><a href="#cb26-144" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_true, <span class="at">layout =</span> dag_layout)</span>
+<span id="cb26-145"><a href="#cb26-145" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-146"><a href="#cb26-146" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-147"><a href="#cb26-147" aria-hidden="true" tabindex="-1"></a><span class="fu">## CI-Test and Score Infrastructure</span></span>
+<span id="cb26-148"><a href="#cb26-148" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-149"><a href="#cb26-149" aria-hidden="true" tabindex="-1"></a>PC uses a **Fisher-Z conditional independence test** appropriate for Gaussian data. Given the partial correlation $\hat\rho_{XY \mid Z}$, the test statistic is</span>
+<span id="cb26-150"><a href="#cb26-150" aria-hidden="true" tabindex="-1"></a>$$T = \sqrt{n - |Z| - 3} \cdot \operatorname{atanh}(\hat\rho_{XY \mid Z}) \;\sim\; N(0,1) \quad \text{under } H_0: X \perp<span class="sc">\!\!\!</span>\perp Y \mid Z.$$</span>
+<span id="cb26-151"><a href="#cb26-151" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-152"><a href="#cb26-152" aria-hidden="true" tabindex="-1"></a>**Choosing the significance level** $\alpha$ involves a bias–variance tradeoff on the skeleton:</span>
+<span id="cb26-153"><a href="#cb26-153" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-154"><a href="#cb26-154" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Low $\alpha$ (e.g., 0.001)**: conservative, keeps more edges. Fewer false removals but may retain spurious edges. Denser skeleton.</span>
+<span id="cb26-155"><a href="#cb26-155" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**High $\alpha$ (e.g., 0.05)**: liberal, removes more edges. Fewer spurious edges but may discard real ones. Sparser skeleton.</span>
+<span id="cb26-156"><a href="#cb26-156" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-157"><a href="#cb26-157" aria-hidden="true" tabindex="-1"></a>With $n = 2000$ and $p = 8$ we use $\alpha = 0.01$, a common default.</span>
+<span id="cb26-158"><a href="#cb26-158" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-159"><a href="#cb26-159" aria-hidden="true" tabindex="-1"></a>GES does not use a significance level. It maximizes the **Gaussian BIC** score</span>
+<span id="cb26-160"><a href="#cb26-160" aria-hidden="true" tabindex="-1"></a>$$\text{BIC}(G) = -2 \,\ell(\hat\theta; G) + |G| \log n,$$</span>
+<span id="cb26-161"><a href="#cb26-161" aria-hidden="true" tabindex="-1"></a>which penalizes graph complexity directly. Implemented in <span class="in">`pcalg`</span> as <span class="in">`GaussL0penObsScore`</span>.</span>
+<span id="cb26-162"><a href="#cb26-162" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-163"><a href="#cb26-163" aria-hidden="true" tabindex="-1"></a>We wrap <span class="in">`gaussCItest`</span> in a counter to track exactly how many CI tests PC calls:</span>
+<span id="cb26-164"><a href="#cb26-164" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-167"><a href="#cb26-167" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-168"><a href="#cb26-168" aria-hidden="true" tabindex="-1"></a>make_counted_ci <span class="ot">&lt;-</span> <span class="cf">function</span>(suff_stat) {</span>
+<span id="cb26-169"><a href="#cb26-169" aria-hidden="true" tabindex="-1"></a>  count <span class="ot">&lt;-</span> <span class="dv">0</span>L</span>
+<span id="cb26-170"><a href="#cb26-170" aria-hidden="true" tabindex="-1"></a>  ci <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y, S, suffStat) {</span>
+<span id="cb26-171"><a href="#cb26-171" aria-hidden="true" tabindex="-1"></a>    count <span class="ot">&lt;&lt;-</span> count <span class="sc">+</span> <span class="dv">1</span>L</span>
+<span id="cb26-172"><a href="#cb26-172" aria-hidden="true" tabindex="-1"></a>    <span class="fu">gaussCItest</span>(x, y, S, suffStat)</span>
+<span id="cb26-173"><a href="#cb26-173" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb26-174"><a href="#cb26-174" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">ci =</span> ci, <span class="at">count =</span> <span class="cf">function</span>() count)</span>
+<span id="cb26-175"><a href="#cb26-175" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb26-176"><a href="#cb26-176" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-177"><a href="#cb26-177" aria-hidden="true" tabindex="-1"></a>suff_stat <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">C =</span> <span class="fu">cor</span>(data_mat), <span class="at">n =</span> n_samples)</span>
+<span id="cb26-178"><a href="#cb26-178" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-179"><a href="#cb26-179" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-180"><a href="#cb26-180" aria-hidden="true" tabindex="-1"></a><span class="fu">## PC Algorithm</span></span>
+<span id="cb26-181"><a href="#cb26-181" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-182"><a href="#cb26-182" aria-hidden="true" tabindex="-1"></a>The **PC algorithm** (Spirtes &amp; Glymour, 1991) starts from a complete undirected graph and removes edges whenever a conditional independence is found. It searches for separating sets $Z$ of increasing size, conditioning on subsets of the current neighbors. After skeleton discovery, Meek's rules orient as many edges as possible.</span>
+<span id="cb26-183"><a href="#cb26-183" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-184"><a href="#cb26-184" aria-hidden="true" tabindex="-1"></a>**How it works, step by step:**</span>
+<span id="cb26-185"><a href="#cb26-185" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-186"><a href="#cb26-186" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Start with a complete undirected graph (every pair connected).</span>
+<span id="cb26-187"><a href="#cb26-187" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>For each pair $(X, Y)$, test $X \perp<span class="sc">\!\!\!</span>\perp Y \mid Z$ for all $Z \subseteq \text{neighbors}(X) \setminus <span class="sc">\{</span>Y<span class="sc">\}</span>$, starting with $|Z| = 0$. Remove the edge if any such test passes.</span>
+<span id="cb26-188"><a href="#cb26-188" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Repeat with conditioning sets of increasing size until no new edges are removed.</span>
+<span id="cb26-189"><a href="#cb26-189" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>Identify colliders: if $X - Z - Y$ and $X, Y$ non-adjacent, orient as $X \to Z \leftarrow Y$ only if $Z$ was not in the separating set of $X$ and $Y$.</span>
+<span id="cb26-190"><a href="#cb26-190" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>Apply Meek's orientation rules to propagate orientations without creating new colliders or cycles.</span>
+<span id="cb26-191"><a href="#cb26-191" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-194"><a href="#cb26-194" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-195"><a href="#cb26-195" aria-hidden="true" tabindex="-1"></a>sig_level <span class="ot">&lt;-</span> <span class="fl">0.01</span></span>
+<span id="cb26-196"><a href="#cb26-196" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-197"><a href="#cb26-197" aria-hidden="true" tabindex="-1"></a>ci_pc  <span class="ot">&lt;-</span> <span class="fu">make_counted_ci</span>(suff_stat)</span>
+<span id="cb26-198"><a href="#cb26-198" aria-hidden="true" tabindex="-1"></a>pc_fit <span class="ot">&lt;-</span> <span class="fu">pc</span>(<span class="at">suffStat =</span> suff_stat,</span>
+<span id="cb26-199"><a href="#cb26-199" aria-hidden="true" tabindex="-1"></a>             <span class="at">indepTest =</span> ci_pc<span class="sc">$</span>ci,</span>
+<span id="cb26-200"><a href="#cb26-200" aria-hidden="true" tabindex="-1"></a>             <span class="at">labels =</span> labels,</span>
+<span id="cb26-201"><a href="#cb26-201" aria-hidden="true" tabindex="-1"></a>             <span class="at">alpha =</span> sig_level,</span>
+<span id="cb26-202"><a href="#cb26-202" aria-hidden="true" tabindex="-1"></a>             <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb26-203"><a href="#cb26-203" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-204"><a href="#cb26-204" aria-hidden="true" tabindex="-1"></a>cpdag_pc <span class="ot">&lt;-</span> pc_fit<span class="sc">@</span>graph</span>
+<span id="cb26-205"><a href="#cb26-205" aria-hidden="true" tabindex="-1"></a>ci_tests_pc <span class="ot">&lt;-</span> ci_pc<span class="sc">$</span><span class="fu">count</span>()</span>
+<span id="cb26-206"><a href="#cb26-206" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-207"><a href="#cb26-207" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-208"><a href="#cb26-208" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
+<span id="cb26-209"><a href="#cb26-209" aria-hidden="true" tabindex="-1"></a>**Reading the output: F1 scores**</span>
+<span id="cb26-210"><a href="#cb26-210" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-211"><a href="#cb26-211" aria-hidden="true" tabindex="-1"></a>The **F1 score** is the harmonic mean of precision and recall, ranging from 0 (worst) to 1 (perfect).</span>
+<span id="cb26-212"><a href="#cb26-212" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-213"><a href="#cb26-213" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Skeleton F1** measures whether the algorithm found the right edges regardless of direction. An edge is a true positive if it exists in both the estimated skeleton and the true one.</span>
+<span id="cb26-214"><a href="#cb26-214" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**CPDAG F1** is stricter: a directed edge $X \to Y$ is only a true positive if the true DAG also has $X \to Y$; an undirected edge $X - Y$ counts as correct if the true DAG has *either* direction.</span>
+<span id="cb26-215"><a href="#cb26-215" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-216"><a href="#cb26-216" aria-hidden="true" tabindex="-1"></a>A high skeleton F1 with lower CPDAG F1 means the algorithm found the right adjacencies but left some edges unoriented — the typical case when the MEC contains many equivalent DAGs.</span>
+<span id="cb26-217"><a href="#cb26-217" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb26-218"><a href="#cb26-218" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-221"><a href="#cb26-221" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-222"><a href="#cb26-222" aria-hidden="true" tabindex="-1"></a><span class="co"># Helper: extract directed adjacency matrix from a graphNEL CPDAG.</span></span>
+<span id="cb26-223"><a href="#cb26-223" aria-hidden="true" tabindex="-1"></a><span class="co"># pcalg convention: amat[i,j] = 1 means an edge that ENDS at i,</span></span>
+<span id="cb26-224"><a href="#cb26-224" aria-hidden="true" tabindex="-1"></a><span class="co"># i.e. a directed edge j -&gt; i (or one endpoint of an undirected edge).</span></span>
+<span id="cb26-225"><a href="#cb26-225" aria-hidden="true" tabindex="-1"></a>amat_from_graph <span class="ot">&lt;-</span> <span class="cf">function</span>(g) {</span>
+<span id="cb26-226"><a href="#cb26-226" aria-hidden="true" tabindex="-1"></a>  <span class="co"># as(g, "matrix")[i,j] = 1 means i -&gt; j (from-&gt;to). Transpose so that</span></span>
+<span id="cb26-227"><a href="#cb26-227" aria-hidden="true" tabindex="-1"></a>  <span class="co"># [i,j] = 1 means an edge ending at i (j -&gt; i), matching adj_true's</span></span>
+<span id="cb26-228"><a href="#cb26-228" aria-hidden="true" tabindex="-1"></a>  <span class="co"># convention; otherwise CPDAG-F1 compares opposite orientations.</span></span>
+<span id="cb26-229"><a href="#cb26-229" aria-hidden="true" tabindex="-1"></a>  m <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">as</span>(g, <span class="st">"matrix"</span>) <span class="sc">!=</span> <span class="dv">0</span>)</span>
+<span id="cb26-230"><a href="#cb26-230" aria-hidden="true" tabindex="-1"></a>  <span class="fu">storage.mode</span>(m) <span class="ot">&lt;-</span> <span class="st">"integer"</span></span>
+<span id="cb26-231"><a href="#cb26-231" aria-hidden="true" tabindex="-1"></a>  m</span>
+<span id="cb26-232"><a href="#cb26-232" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb26-233"><a href="#cb26-233" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-234"><a href="#cb26-234" aria-hidden="true" tabindex="-1"></a><span class="co"># Skeleton: symmetrize (edge exists either way).</span></span>
+<span id="cb26-235"><a href="#cb26-235" aria-hidden="true" tabindex="-1"></a>amat_to_skel <span class="ot">&lt;-</span> <span class="cf">function</span>(amat) (amat <span class="sc">|</span> <span class="fu">t</span>(amat)) <span class="sc">*</span> <span class="dv">1</span>L</span>
+<span id="cb26-236"><a href="#cb26-236" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-237"><a href="#cb26-237" aria-hidden="true" tabindex="-1"></a><span class="co"># F1 scores: skeleton F1 (ignore direction) and CPDAG F1</span></span>
+<span id="cb26-238"><a href="#cb26-238" aria-hidden="true" tabindex="-1"></a><span class="co"># (directed edge in estimate must match a directed edge in the truth;</span></span>
+<span id="cb26-239"><a href="#cb26-239" aria-hidden="true" tabindex="-1"></a><span class="co">#  undirected in estimate matches either direction in truth).</span></span>
+<span id="cb26-240"><a href="#cb26-240" aria-hidden="true" tabindex="-1"></a>f1_scores <span class="ot">&lt;-</span> <span class="cf">function</span>(amat_true, amat_est) {</span>
+<span id="cb26-241"><a href="#cb26-241" aria-hidden="true" tabindex="-1"></a>  skel_t <span class="ot">&lt;-</span> <span class="fu">amat_to_skel</span>(amat_true)</span>
+<span id="cb26-242"><a href="#cb26-242" aria-hidden="true" tabindex="-1"></a>  skel_e <span class="ot">&lt;-</span> <span class="fu">amat_to_skel</span>(amat_est)</span>
+<span id="cb26-243"><a href="#cb26-243" aria-hidden="true" tabindex="-1"></a>  <span class="fu">diag</span>(skel_t) <span class="ot">&lt;-</span> <span class="fu">diag</span>(skel_e) <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb26-244"><a href="#cb26-244" aria-hidden="true" tabindex="-1"></a>  tp <span class="ot">&lt;-</span> <span class="fu">sum</span>(skel_t <span class="sc">&amp;</span> skel_e) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb26-245"><a href="#cb26-245" aria-hidden="true" tabindex="-1"></a>  fp <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="sc">!</span>skel_t <span class="sc">&amp;</span> skel_e) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb26-246"><a href="#cb26-246" aria-hidden="true" tabindex="-1"></a>  fn <span class="ot">&lt;-</span> <span class="fu">sum</span>(skel_t <span class="sc">&amp;</span> <span class="sc">!</span>skel_e) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb26-247"><a href="#cb26-247" aria-hidden="true" tabindex="-1"></a>  f1_skel <span class="ot">&lt;-</span> <span class="cf">if</span> (tp <span class="sc">==</span> <span class="dv">0</span>) <span class="dv">0</span> <span class="cf">else</span> <span class="dv">2</span> <span class="sc">*</span> tp <span class="sc">/</span> (<span class="dv">2</span> <span class="sc">*</span> tp <span class="sc">+</span> fp <span class="sc">+</span> fn)</span>
+<span id="cb26-248"><a href="#cb26-248" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-249"><a href="#cb26-249" aria-hidden="true" tabindex="-1"></a>  <span class="co"># CPDAG F1: walk ordered pairs (i,j) with i &lt; j</span></span>
+<span id="cb26-250"><a href="#cb26-250" aria-hidden="true" tabindex="-1"></a>  tp <span class="ot">&lt;-</span> fp <span class="ot">&lt;-</span> fn <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb26-251"><a href="#cb26-251" aria-hidden="true" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">nrow</span>(amat_true)</span>
+<span id="cb26-252"><a href="#cb26-252" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(p <span class="sc">-</span> <span class="dv">1</span>)) <span class="cf">for</span> (j <span class="cf">in</span> <span class="fu">seq.int</span>(i <span class="sc">+</span> <span class="dv">1</span>, p)) {</span>
+<span id="cb26-253"><a href="#cb26-253" aria-hidden="true" tabindex="-1"></a>    t_ij <span class="ot">&lt;-</span> amat_true[j, i] <span class="sc">==</span> <span class="dv">1</span>   <span class="co"># truth has i -&gt; j?</span></span>
+<span id="cb26-254"><a href="#cb26-254" aria-hidden="true" tabindex="-1"></a>    t_ji <span class="ot">&lt;-</span> amat_true[i, j] <span class="sc">==</span> <span class="dv">1</span>   <span class="co"># truth has j -&gt; i?</span></span>
+<span id="cb26-255"><a href="#cb26-255" aria-hidden="true" tabindex="-1"></a>    e_ij <span class="ot">&lt;-</span> amat_est[j, i] <span class="sc">==</span> <span class="dv">1</span></span>
+<span id="cb26-256"><a href="#cb26-256" aria-hidden="true" tabindex="-1"></a>    e_ji <span class="ot">&lt;-</span> amat_est[i, j] <span class="sc">==</span> <span class="dv">1</span></span>
+<span id="cb26-257"><a href="#cb26-257" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="sc">!</span>t_ij <span class="sc">&amp;&amp;</span> <span class="sc">!</span>t_ji <span class="sc">&amp;&amp;</span> <span class="sc">!</span>e_ij <span class="sc">&amp;&amp;</span> <span class="sc">!</span>e_ji) <span class="cf">next</span></span>
+<span id="cb26-258"><a href="#cb26-258" aria-hidden="true" tabindex="-1"></a>    truth_undirected <span class="ot">&lt;-</span> t_ij <span class="sc">&amp;&amp;</span> t_ji</span>
+<span id="cb26-259"><a href="#cb26-259" aria-hidden="true" tabindex="-1"></a>    est_undirected   <span class="ot">&lt;-</span> e_ij <span class="sc">&amp;&amp;</span> e_ji</span>
+<span id="cb26-260"><a href="#cb26-260" aria-hidden="true" tabindex="-1"></a>    has_t <span class="ot">&lt;-</span> t_ij <span class="sc">||</span> t_ji</span>
+<span id="cb26-261"><a href="#cb26-261" aria-hidden="true" tabindex="-1"></a>    has_e <span class="ot">&lt;-</span> e_ij <span class="sc">||</span> e_ji</span>
+<span id="cb26-262"><a href="#cb26-262" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (has_t <span class="sc">&amp;&amp;</span> has_e) {</span>
+<span id="cb26-263"><a href="#cb26-263" aria-hidden="true" tabindex="-1"></a>      <span class="cf">if</span> (est_undirected <span class="sc">||</span> truth_undirected <span class="sc">||</span></span>
+<span id="cb26-264"><a href="#cb26-264" aria-hidden="true" tabindex="-1"></a>          (t_ij <span class="sc">==</span> e_ij <span class="sc">&amp;&amp;</span> t_ji <span class="sc">==</span> e_ji)) {</span>
+<span id="cb26-265"><a href="#cb26-265" aria-hidden="true" tabindex="-1"></a>        tp <span class="ot">&lt;-</span> tp <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb26-266"><a href="#cb26-266" aria-hidden="true" tabindex="-1"></a>      } <span class="cf">else</span> {</span>
+<span id="cb26-267"><a href="#cb26-267" aria-hidden="true" tabindex="-1"></a>        fp <span class="ot">&lt;-</span> fp <span class="sc">+</span> <span class="dv">1</span>; fn <span class="ot">&lt;-</span> fn <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb26-268"><a href="#cb26-268" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb26-269"><a href="#cb26-269" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> <span class="cf">if</span> (has_e) {</span>
+<span id="cb26-270"><a href="#cb26-270" aria-hidden="true" tabindex="-1"></a>      fp <span class="ot">&lt;-</span> fp <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb26-271"><a href="#cb26-271" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb26-272"><a href="#cb26-272" aria-hidden="true" tabindex="-1"></a>      fn <span class="ot">&lt;-</span> fn <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb26-273"><a href="#cb26-273" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb26-274"><a href="#cb26-274" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb26-275"><a href="#cb26-275" aria-hidden="true" tabindex="-1"></a>  f1_cpdag <span class="ot">&lt;-</span> <span class="cf">if</span> (tp <span class="sc">==</span> <span class="dv">0</span>) <span class="dv">0</span> <span class="cf">else</span> <span class="dv">2</span> <span class="sc">*</span> tp <span class="sc">/</span> (<span class="dv">2</span> <span class="sc">*</span> tp <span class="sc">+</span> fp <span class="sc">+</span> fn)</span>
+<span id="cb26-276"><a href="#cb26-276" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-277"><a href="#cb26-277" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">skeleton =</span> f1_skel, <span class="at">cpdag =</span> f1_cpdag)</span>
+<span id="cb26-278"><a href="#cb26-278" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb26-279"><a href="#cb26-279" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-280"><a href="#cb26-280" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"PC:    skeleton F1 = %.3f   CPDAG F1 = %.3f   CI tests = %d"</span>,</span>
-<span id="cb26-281"><a href="#cb26-281" aria-hidden="true" tabindex="-1"></a>        f1_pc[<span class="st">"skeleton"</span>], f1_pc[<span class="st">"cpdag"</span>], ci_tests_pc)</span>
-<span id="cb26-282"><a href="#cb26-282" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-280"><a href="#cb26-280" aria-hidden="true" tabindex="-1"></a>amat_pc  <span class="ot">&lt;-</span> <span class="fu">amat_from_graph</span>(cpdag_pc)</span>
+<span id="cb26-281"><a href="#cb26-281" aria-hidden="true" tabindex="-1"></a>f1_pc    <span class="ot">&lt;-</span> <span class="fu">f1_scores</span>(adj_true, amat_pc)</span>
+<span id="cb26-282"><a href="#cb26-282" aria-hidden="true" tabindex="-1"></a>ig_cpdag_pc <span class="ot">&lt;-</span> <span class="fu">graphnel_to_ig</span>(cpdag_pc)</span>
 <span id="cb26-283"><a href="#cb26-283" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-284"><a href="#cb26-284" aria-hidden="true" tabindex="-1"></a>**Computational complexity:** In the worst case PC tests all subsets of neighbors, giving exponential growth with the maximum degree. In sparse graphs this is manageable; in dense graphs it becomes prohibitive.</span>
-<span id="cb26-285"><a href="#cb26-285" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-286"><a href="#cb26-286" aria-hidden="true" tabindex="-1"></a><span class="fu">## GES Algorithm</span></span>
+<span id="cb26-284"><a href="#cb26-284" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"PC:    skeleton F1 = %.3f   CPDAG F1 = %.3f   CI tests = %d"</span>,</span>
+<span id="cb26-285"><a href="#cb26-285" aria-hidden="true" tabindex="-1"></a>        f1_pc[<span class="st">"skeleton"</span>], f1_pc[<span class="st">"cpdag"</span>], ci_tests_pc)</span>
+<span id="cb26-286"><a href="#cb26-286" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb26-287"><a href="#cb26-287" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-288"><a href="#cb26-288" aria-hidden="true" tabindex="-1"></a>**GES** (Greedy Equivalence Search; Chickering, 2002) uses a different strategy. Instead of testing independences and removing edges, it searches the space of CPDAGs by adding and then removing edges that improve a model score. Under faithfulness and a consistent score such as BIC, GES recovers the true CPDAG as $n \to \infty$.</span>
+<span id="cb26-288"><a href="#cb26-288" aria-hidden="true" tabindex="-1"></a>**Computational complexity:** In the worst case PC tests all subsets of neighbors, giving exponential growth with the maximum degree. In sparse graphs this is manageable; in dense graphs it becomes prohibitive.</span>
 <span id="cb26-289"><a href="#cb26-289" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-290"><a href="#cb26-290" aria-hidden="true" tabindex="-1"></a>**How it works, step by step:**</span>
+<span id="cb26-290"><a href="#cb26-290" aria-hidden="true" tabindex="-1"></a><span class="fu">## GES Algorithm</span></span>
 <span id="cb26-291"><a href="#cb26-291" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-292"><a href="#cb26-292" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Forward phase.** Start from the empty graph. At each step, add the single edge whose addition most increases the BIC score, restricted to additions that stay within a CPDAG. Stop when no addition improves the score.</span>
-<span id="cb26-293"><a href="#cb26-293" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Backward phase.** From the forward-phase output, remove the single edge whose removal most increases the score. Stop when no removal improves the score.</span>
-<span id="cb26-294"><a href="#cb26-294" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-295"><a href="#cb26-295" aria-hidden="true" tabindex="-1"></a>The whole search operates on CPDAGs (equivalence classes), not individual DAGs, so it explores a much smaller space than naïve DAG search.</span>
-<span id="cb26-296"><a href="#cb26-296" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-299"><a href="#cb26-299" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-300"><a href="#cb26-300" aria-hidden="true" tabindex="-1"></a>score_ges <span class="ot">&lt;-</span> <span class="fu">new</span>(<span class="st">"GaussL0penObsScore"</span>, data_mat)</span>
-<span id="cb26-301"><a href="#cb26-301" aria-hidden="true" tabindex="-1"></a>ges_fit   <span class="ot">&lt;-</span> <span class="fu">ges</span>(score_ges, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb26-302"><a href="#cb26-302" aria-hidden="true" tabindex="-1"></a>cpdag_ges <span class="ot">&lt;-</span> <span class="fu">as</span>(ges_fit<span class="sc">$</span>essgraph, <span class="st">"graphNEL"</span>)</span>
-<span id="cb26-303"><a href="#cb26-303" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-304"><a href="#cb26-304" aria-hidden="true" tabindex="-1"></a>amat_ges  <span class="ot">&lt;-</span> <span class="fu">amat_from_graph</span>(cpdag_ges)</span>
-<span id="cb26-305"><a href="#cb26-305" aria-hidden="true" tabindex="-1"></a>f1_ges    <span class="ot">&lt;-</span> <span class="fu">f1_scores</span>(adj_true, amat_ges)</span>
-<span id="cb26-306"><a href="#cb26-306" aria-hidden="true" tabindex="-1"></a>ig_cpdag_ges <span class="ot">&lt;-</span> <span class="fu">graphnel_to_ig</span>(cpdag_ges)</span>
+<span id="cb26-292"><a href="#cb26-292" aria-hidden="true" tabindex="-1"></a>**GES** (Greedy Equivalence Search; Chickering, 2002) uses a different strategy. Instead of testing independences and removing edges, it searches the space of CPDAGs by adding and then removing edges that improve a model score. Under faithfulness and a consistent score such as BIC, GES recovers the true CPDAG as $n \to \infty$.</span>
+<span id="cb26-293"><a href="#cb26-293" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-294"><a href="#cb26-294" aria-hidden="true" tabindex="-1"></a>**How it works, step by step:**</span>
+<span id="cb26-295"><a href="#cb26-295" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-296"><a href="#cb26-296" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Forward phase.** Start from the empty graph. At each step, add the single edge whose addition most increases the BIC score, restricted to additions that stay within a CPDAG. Stop when no addition improves the score.</span>
+<span id="cb26-297"><a href="#cb26-297" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Backward phase.** From the forward-phase output, remove the single edge whose removal most increases the score. Stop when no removal improves the score.</span>
+<span id="cb26-298"><a href="#cb26-298" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-299"><a href="#cb26-299" aria-hidden="true" tabindex="-1"></a>The whole search operates on CPDAGs (equivalence classes), not individual DAGs, so it explores a much smaller space than naïve DAG search.</span>
+<span id="cb26-300"><a href="#cb26-300" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-303"><a href="#cb26-303" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-304"><a href="#cb26-304" aria-hidden="true" tabindex="-1"></a>score_ges <span class="ot">&lt;-</span> <span class="fu">new</span>(<span class="st">"GaussL0penObsScore"</span>, data_mat)</span>
+<span id="cb26-305"><a href="#cb26-305" aria-hidden="true" tabindex="-1"></a>ges_fit   <span class="ot">&lt;-</span> <span class="fu">ges</span>(score_ges, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb26-306"><a href="#cb26-306" aria-hidden="true" tabindex="-1"></a>cpdag_ges <span class="ot">&lt;-</span> <span class="fu">as</span>(ges_fit<span class="sc">$</span>essgraph, <span class="st">"graphNEL"</span>)</span>
 <span id="cb26-307"><a href="#cb26-307" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-308"><a href="#cb26-308" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"GES:   skeleton F1 = %.3f   CPDAG F1 = %.3f   (score-based, no CI tests)"</span>,</span>
-<span id="cb26-309"><a href="#cb26-309" aria-hidden="true" tabindex="-1"></a>        f1_ges[<span class="st">"skeleton"</span>], f1_ges[<span class="st">"cpdag"</span>])</span>
-<span id="cb26-310"><a href="#cb26-310" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-308"><a href="#cb26-308" aria-hidden="true" tabindex="-1"></a>amat_ges  <span class="ot">&lt;-</span> <span class="fu">amat_from_graph</span>(cpdag_ges)</span>
+<span id="cb26-309"><a href="#cb26-309" aria-hidden="true" tabindex="-1"></a>f1_ges    <span class="ot">&lt;-</span> <span class="fu">f1_scores</span>(adj_true, amat_ges)</span>
+<span id="cb26-310"><a href="#cb26-310" aria-hidden="true" tabindex="-1"></a>ig_cpdag_ges <span class="ot">&lt;-</span> <span class="fu">graphnel_to_ig</span>(cpdag_ges)</span>
 <span id="cb26-311"><a href="#cb26-311" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-312"><a href="#cb26-312" aria-hidden="true" tabindex="-1"></a>PC and GES fail differently. In PC, one wrong CI decision can affect later</span>
-<span id="cb26-313"><a href="#cb26-313" aria-hidden="true" tabindex="-1"></a>orientation decisions. In GES, a wrong score move is usually more local.</span>
-<span id="cb26-314"><a href="#cb26-314" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-315"><a href="#cb26-315" aria-hidden="true" tabindex="-1"></a><span class="fu">## Comparison</span></span>
-<span id="cb26-316"><a href="#cb26-316" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-317"><a href="#cb26-317" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
-<span id="cb26-318"><a href="#cb26-318" aria-hidden="true" tabindex="-1"></a>**Reading the CPDAG figure**</span>
-<span id="cb26-319"><a href="#cb26-319" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-320"><a href="#cb26-320" aria-hidden="true" tabindex="-1"></a>In the side-by-side graph display:</span>
-<span id="cb26-321"><a href="#cb26-321" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-322"><a href="#cb26-322" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A **directed edge** $X_i \to X_j$ means this orientation is invariant across all equivalent DAGs.</span>
-<span id="cb26-323"><a href="#cb26-323" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>An **undirected edge** $X_i - X_j$ in the CPDAG display represents an *unoriented* edge: both $X_i \to X_j$ and $X_i \leftarrow X_j$ are statistically equivalent. This is **not** a hidden common cause — it means the data cannot determine direction.</span>
-<span id="cb26-324"><a href="#cb26-324" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A **missing edge** means the algorithm found a conditional independence separating those two variables.</span>
+<span id="cb26-312"><a href="#cb26-312" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"GES:   skeleton F1 = %.3f   CPDAG F1 = %.3f   (score-based, no CI tests)"</span>,</span>
+<span id="cb26-313"><a href="#cb26-313" aria-hidden="true" tabindex="-1"></a>        f1_ges[<span class="st">"skeleton"</span>], f1_ges[<span class="st">"cpdag"</span>])</span>
+<span id="cb26-314"><a href="#cb26-314" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-315"><a href="#cb26-315" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-316"><a href="#cb26-316" aria-hidden="true" tabindex="-1"></a>PC and GES fail differently. In PC, one wrong CI decision can affect later</span>
+<span id="cb26-317"><a href="#cb26-317" aria-hidden="true" tabindex="-1"></a>orientation decisions. In GES, a wrong score move is usually more local.</span>
+<span id="cb26-318"><a href="#cb26-318" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-319"><a href="#cb26-319" aria-hidden="true" tabindex="-1"></a><span class="fu">## Comparison</span></span>
+<span id="cb26-320"><a href="#cb26-320" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-321"><a href="#cb26-321" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
+<span id="cb26-322"><a href="#cb26-322" aria-hidden="true" tabindex="-1"></a>**Reading the CPDAG figure**</span>
+<span id="cb26-323"><a href="#cb26-323" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-324"><a href="#cb26-324" aria-hidden="true" tabindex="-1"></a>In the side-by-side graph display:</span>
 <span id="cb26-325"><a href="#cb26-325" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-326"><a href="#cb26-326" aria-hidden="true" tabindex="-1"></a>Compare the estimated CPDAGs to the true DAG: extra edges are false positives; missing edges are false negatives.</span>
-<span id="cb26-327"><a href="#cb26-327" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb26-328"><a href="#cb26-328" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-331"><a href="#cb26-331" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-332"><a href="#cb26-332" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: tbl-comparison</span></span>
-<span id="cb26-333"><a href="#cb26-333" aria-hidden="true" tabindex="-1"></a><span class="co">#| tbl-cap: "Algorithm comparison on the simulated 8-node DAG (n = 2000, alpha = 0.01)"</span></span>
-<span id="cb26-334"><a href="#cb26-334" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(<span class="fu">data.frame</span>(</span>
-<span id="cb26-335"><a href="#cb26-335" aria-hidden="true" tabindex="-1"></a>  <span class="at">Algorithm   =</span> <span class="fu">c</span>(<span class="st">"PC"</span>, <span class="st">"GES"</span>),</span>
-<span id="cb26-336"><a href="#cb26-336" aria-hidden="true" tabindex="-1"></a>  <span class="at">Paradigm    =</span> <span class="fu">c</span>(<span class="st">"Constraint-based"</span>, <span class="st">"Score-based"</span>),</span>
-<span id="cb26-337"><a href="#cb26-337" aria-hidden="true" tabindex="-1"></a>  <span class="at">Skeleton_F1 =</span> <span class="fu">round</span>(<span class="fu">c</span>(f1_pc[<span class="st">"skeleton"</span>], f1_ges[<span class="st">"skeleton"</span>]), <span class="dv">3</span>),</span>
-<span id="cb26-338"><a href="#cb26-338" aria-hidden="true" tabindex="-1"></a>  <span class="at">CPDAG_F1    =</span> <span class="fu">round</span>(<span class="fu">c</span>(f1_pc[<span class="st">"cpdag"</span>],    f1_ges[<span class="st">"cpdag"</span>]),    <span class="dv">3</span>),</span>
-<span id="cb26-339"><a href="#cb26-339" aria-hidden="true" tabindex="-1"></a>  <span class="at">CI_Tests    =</span> <span class="fu">c</span>(ci_tests_pc, <span class="cn">NA</span>)</span>
-<span id="cb26-340"><a href="#cb26-340" aria-hidden="true" tabindex="-1"></a>), <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb26-341"><a href="#cb26-341" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-342"><a href="#cb26-342" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-345"><a href="#cb26-345" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-346"><a href="#cb26-346" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-cpdags</span></span>
-<span id="cb26-347"><a href="#cb26-347" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "True DAG vs. estimated CPDAGs. Arrows denote oriented edges; lines without arrowheads are unoriented (both directions are CI-equivalent)."</span></span>
-<span id="cb26-348"><a href="#cb26-348" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 12</span></span>
-<span id="cb26-349"><a href="#cb26-349" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4.5</span></span>
-<span id="cb26-350"><a href="#cb26-350" aria-hidden="true" tabindex="-1"></a>op <span class="ot">&lt;-</span> <span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">3</span>), <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">1</span>))</span>
-<span id="cb26-351"><a href="#cb26-351" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_true,     <span class="at">layout =</span> dag_layout, <span class="at">main =</span> <span class="st">"True DAG"</span>)</span>
-<span id="cb26-352"><a href="#cb26-352" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_cpdag_pc, <span class="at">layout =</span> dag_layout, <span class="at">main =</span> <span class="st">"PC — estimated CPDAG"</span>)</span>
-<span id="cb26-353"><a href="#cb26-353" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_cpdag_ges,<span class="at">layout =</span> dag_layout, <span class="at">main =</span> <span class="st">"GES — estimated CPDAG"</span>)</span>
-<span id="cb26-354"><a href="#cb26-354" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(op)</span>
-<span id="cb26-355"><a href="#cb26-355" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-356"><a href="#cb26-356" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-357"><a href="#cb26-357" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
-<span id="cb26-358"><a href="#cb26-358" aria-hidden="true" tabindex="-1"></a>**Interpreting the comparison table**</span>
-<span id="cb26-359"><a href="#cb26-359" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-360"><a href="#cb26-360" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Skeleton F1** is the primary metric for comparing algorithms: it measures edge recovery independent of orientation, since orientation accuracy is bounded by the MEC.</span>
-<span id="cb26-361"><a href="#cb26-361" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**CPDAG F1** rewards correctly oriented edges and penalizes leaving orientable edges undirected.</span>
-<span id="cb26-362"><a href="#cb26-362" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**CI tests** is reported only for PC — GES is score-based and does not perform CI tests.</span>
+<span id="cb26-326"><a href="#cb26-326" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A **directed edge** $X_i \to X_j$ means this orientation is invariant across all equivalent DAGs.</span>
+<span id="cb26-327"><a href="#cb26-327" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>An **undirected edge** $X_i - X_j$ in the CPDAG display represents an *unoriented* edge: both $X_i \to X_j$ and $X_i \leftarrow X_j$ are statistically equivalent. This is **not** a hidden common cause — it means the data cannot determine direction.</span>
+<span id="cb26-328"><a href="#cb26-328" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A **missing edge** means the algorithm found a conditional independence separating those two variables.</span>
+<span id="cb26-329"><a href="#cb26-329" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-330"><a href="#cb26-330" aria-hidden="true" tabindex="-1"></a>Compare the estimated CPDAGs to the true DAG: extra edges are false positives; missing edges are false negatives.</span>
+<span id="cb26-331"><a href="#cb26-331" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb26-332"><a href="#cb26-332" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-335"><a href="#cb26-335" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-336"><a href="#cb26-336" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: tbl-comparison</span></span>
+<span id="cb26-337"><a href="#cb26-337" aria-hidden="true" tabindex="-1"></a><span class="co">#| tbl-cap: "Algorithm comparison on the simulated 8-node DAG (n = 2000, alpha = 0.01)"</span></span>
+<span id="cb26-338"><a href="#cb26-338" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(<span class="fu">data.frame</span>(</span>
+<span id="cb26-339"><a href="#cb26-339" aria-hidden="true" tabindex="-1"></a>  <span class="at">Algorithm   =</span> <span class="fu">c</span>(<span class="st">"PC"</span>, <span class="st">"GES"</span>),</span>
+<span id="cb26-340"><a href="#cb26-340" aria-hidden="true" tabindex="-1"></a>  <span class="at">Paradigm    =</span> <span class="fu">c</span>(<span class="st">"Constraint-based"</span>, <span class="st">"Score-based"</span>),</span>
+<span id="cb26-341"><a href="#cb26-341" aria-hidden="true" tabindex="-1"></a>  <span class="at">Skeleton_F1 =</span> <span class="fu">round</span>(<span class="fu">c</span>(f1_pc[<span class="st">"skeleton"</span>], f1_ges[<span class="st">"skeleton"</span>]), <span class="dv">3</span>),</span>
+<span id="cb26-342"><a href="#cb26-342" aria-hidden="true" tabindex="-1"></a>  <span class="at">CPDAG_F1    =</span> <span class="fu">round</span>(<span class="fu">c</span>(f1_pc[<span class="st">"cpdag"</span>],    f1_ges[<span class="st">"cpdag"</span>]),    <span class="dv">3</span>),</span>
+<span id="cb26-343"><a href="#cb26-343" aria-hidden="true" tabindex="-1"></a>  <span class="at">CI_Tests    =</span> <span class="fu">c</span>(ci_tests_pc, <span class="cn">NA</span>)</span>
+<span id="cb26-344"><a href="#cb26-344" aria-hidden="true" tabindex="-1"></a>), <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb26-345"><a href="#cb26-345" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-346"><a href="#cb26-346" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-349"><a href="#cb26-349" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-350"><a href="#cb26-350" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-cpdags</span></span>
+<span id="cb26-351"><a href="#cb26-351" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "True DAG vs. estimated CPDAGs. Arrows denote oriented edges; lines without arrowheads are unoriented (both directions are CI-equivalent)."</span></span>
+<span id="cb26-352"><a href="#cb26-352" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 12</span></span>
+<span id="cb26-353"><a href="#cb26-353" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4.5</span></span>
+<span id="cb26-354"><a href="#cb26-354" aria-hidden="true" tabindex="-1"></a>op <span class="ot">&lt;-</span> <span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">3</span>), <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">1</span>))</span>
+<span id="cb26-355"><a href="#cb26-355" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_true,     <span class="at">layout =</span> dag_layout, <span class="at">main =</span> <span class="st">"True DAG"</span>)</span>
+<span id="cb26-356"><a href="#cb26-356" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_cpdag_pc, <span class="at">layout =</span> dag_layout, <span class="at">main =</span> <span class="st">"PC — estimated CPDAG"</span>)</span>
+<span id="cb26-357"><a href="#cb26-357" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_cpdag_ges,<span class="at">layout =</span> dag_layout, <span class="at">main =</span> <span class="st">"GES — estimated CPDAG"</span>)</span>
+<span id="cb26-358"><a href="#cb26-358" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(op)</span>
+<span id="cb26-359"><a href="#cb26-359" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-360"><a href="#cb26-360" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-361"><a href="#cb26-361" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
+<span id="cb26-362"><a href="#cb26-362" aria-hidden="true" tabindex="-1"></a>**Interpreting the comparison table**</span>
 <span id="cb26-363"><a href="#cb26-363" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-364"><a href="#cb26-364" aria-hidden="true" tabindex="-1"></a>On this dataset PC and GES typically achieve similar skeleton F1. GES often pulls ahead on CPDAG F1 because the BIC score gives it a directional signal that PC's CI tests do not — score-based methods can break some ties that constraint-based methods leave as undirected edges.</span>
-<span id="cb26-365"><a href="#cb26-365" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb26-366"><a href="#cb26-366" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-367"><a href="#cb26-367" aria-hidden="true" tabindex="-1"></a><span class="fu">## Monte Carlo Evaluation</span></span>
-<span id="cb26-368"><a href="#cb26-368" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-369"><a href="#cb26-369" aria-hidden="true" tabindex="-1"></a>A single dataset can be lucky. We average over 100 replications to get stable estimates.</span>
+<span id="cb26-364"><a href="#cb26-364" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Skeleton F1** is the primary metric for comparing algorithms: it measures edge recovery independent of orientation, since orientation accuracy is bounded by the MEC.</span>
+<span id="cb26-365"><a href="#cb26-365" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**CPDAG F1** rewards correctly oriented edges and penalizes leaving orientable edges undirected.</span>
+<span id="cb26-366"><a href="#cb26-366" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**CI tests** is reported only for PC — GES is score-based and does not perform CI tests.</span>
+<span id="cb26-367"><a href="#cb26-367" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-368"><a href="#cb26-368" aria-hidden="true" tabindex="-1"></a>On this dataset PC and GES typically achieve similar skeleton F1. GES often pulls ahead on CPDAG F1 because the BIC score gives it a directional signal that PC's CI tests do not — score-based methods can break some ties that constraint-based methods leave as undirected edges.</span>
+<span id="cb26-369"><a href="#cb26-369" aria-hidden="true" tabindex="-1"></a>:::</span>
 <span id="cb26-370"><a href="#cb26-370" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-371"><a href="#cb26-371" aria-hidden="true" tabindex="-1"></a>**What to look for in the MC results:**</span>
+<span id="cb26-371"><a href="#cb26-371" aria-hidden="true" tabindex="-1"></a><span class="fu">## Monte Carlo Evaluation</span></span>
 <span id="cb26-372"><a href="#cb26-372" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-373"><a href="#cb26-373" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The **mean skeleton F1** is the headline: how often does each algorithm recover the true adjacencies?</span>
-<span id="cb26-374"><a href="#cb26-374" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The distribution of **CI test counts** (shown in @fig-mc-ci) tracks PC's computational variability; GES has no analogous quantity, so we plot PC alone.</span>
-<span id="cb26-375"><a href="#cb26-375" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>High variance in F1 across replications suggests the algorithms are sensitive to the particular random graph.</span>
+<span id="cb26-373"><a href="#cb26-373" aria-hidden="true" tabindex="-1"></a>A single dataset can be lucky. We average over 100 replications to get stable estimates.</span>
+<span id="cb26-374"><a href="#cb26-374" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-375"><a href="#cb26-375" aria-hidden="true" tabindex="-1"></a>**What to look for in the MC results:**</span>
 <span id="cb26-376"><a href="#cb26-376" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-379"><a href="#cb26-379" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-380"><a href="#cb26-380" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb26-381"><a href="#cb26-381" aria-hidden="true" tabindex="-1"></a>evaluate_once <span class="ot">&lt;-</span> <span class="cf">function</span>(seed, <span class="at">n_vars =</span> <span class="dv">8</span>, <span class="at">n_samples =</span> <span class="dv">2000</span>,</span>
-<span id="cb26-382"><a href="#cb26-382" aria-hidden="true" tabindex="-1"></a>                          <span class="at">edge_prob =</span> <span class="fl">0.35</span>, <span class="at">sig =</span> <span class="fl">0.01</span>) {</span>
-<span id="cb26-383"><a href="#cb26-383" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set.seed</span>(seed)</span>
-<span id="cb26-384"><a href="#cb26-384" aria-hidden="true" tabindex="-1"></a>  dag      <span class="ot">&lt;-</span> <span class="fu">randomDAG</span>(n_vars, <span class="at">prob =</span> edge_prob, <span class="at">lB =</span> <span class="fl">0.25</span>, <span class="at">uB =</span> <span class="dv">1</span>)</span>
-<span id="cb26-385"><a href="#cb26-385" aria-hidden="true" tabindex="-1"></a>  labs     <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"X"</span>, <span class="dv">1</span><span class="sc">:</span>n_vars)</span>
-<span id="cb26-386"><a href="#cb26-386" aria-hidden="true" tabindex="-1"></a>  graph<span class="sc">::</span><span class="fu">nodes</span>(dag) <span class="ot">&lt;-</span> labs</span>
-<span id="cb26-387"><a href="#cb26-387" aria-hidden="true" tabindex="-1"></a>  d        <span class="ot">&lt;-</span> <span class="fu">rmvDAG</span>(n_samples, dag, <span class="at">errDist =</span> <span class="st">"normal"</span>)</span>
-<span id="cb26-388"><a href="#cb26-388" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(d) <span class="ot">&lt;-</span> labs</span>
-<span id="cb26-389"><a href="#cb26-389" aria-hidden="true" tabindex="-1"></a>  adj      <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">as</span>(dag, <span class="st">"matrix"</span>) <span class="sc">!=</span> <span class="dv">0</span>) <span class="sc">*</span> <span class="dv">1</span>L</span>
-<span id="cb26-390"><a href="#cb26-390" aria-hidden="true" tabindex="-1"></a>  ss       <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">C =</span> <span class="fu">cor</span>(d), <span class="at">n =</span> n_samples)</span>
-<span id="cb26-391"><a href="#cb26-391" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-392"><a href="#cb26-392" aria-hidden="true" tabindex="-1"></a>  ci       <span class="ot">&lt;-</span> <span class="fu">make_counted_ci</span>(ss)</span>
-<span id="cb26-393"><a href="#cb26-393" aria-hidden="true" tabindex="-1"></a>  pc_f     <span class="ot">&lt;-</span> <span class="fu">pc</span>(ss, ci<span class="sc">$</span>ci, <span class="at">labels =</span> labs, <span class="at">alpha =</span> sig, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb26-394"><a href="#cb26-394" aria-hidden="true" tabindex="-1"></a>  amat_p   <span class="ot">&lt;-</span> <span class="fu">amat_from_graph</span>(pc_f<span class="sc">@</span>graph)</span>
+<span id="cb26-377"><a href="#cb26-377" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The **mean skeleton F1** is the headline: how often does each algorithm recover the true adjacencies?</span>
+<span id="cb26-378"><a href="#cb26-378" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The distribution of **CI test counts** (shown in @fig-mc-ci) tracks PC's computational variability; GES has no analogous quantity, so we plot PC alone.</span>
+<span id="cb26-379"><a href="#cb26-379" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>High variance in F1 across replications suggests the algorithms are sensitive to the particular random graph.</span>
+<span id="cb26-380"><a href="#cb26-380" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-383"><a href="#cb26-383" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-384"><a href="#cb26-384" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb26-385"><a href="#cb26-385" aria-hidden="true" tabindex="-1"></a>evaluate_once <span class="ot">&lt;-</span> <span class="cf">function</span>(seed, <span class="at">n_vars =</span> <span class="dv">8</span>, <span class="at">n_samples =</span> <span class="dv">2000</span>,</span>
+<span id="cb26-386"><a href="#cb26-386" aria-hidden="true" tabindex="-1"></a>                          <span class="at">edge_prob =</span> <span class="fl">0.35</span>, <span class="at">sig =</span> <span class="fl">0.01</span>) {</span>
+<span id="cb26-387"><a href="#cb26-387" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set.seed</span>(seed)</span>
+<span id="cb26-388"><a href="#cb26-388" aria-hidden="true" tabindex="-1"></a>  dag      <span class="ot">&lt;-</span> <span class="fu">randomDAG</span>(n_vars, <span class="at">prob =</span> edge_prob, <span class="at">lB =</span> <span class="fl">0.25</span>, <span class="at">uB =</span> <span class="dv">1</span>)</span>
+<span id="cb26-389"><a href="#cb26-389" aria-hidden="true" tabindex="-1"></a>  labs     <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"X"</span>, <span class="dv">1</span><span class="sc">:</span>n_vars)</span>
+<span id="cb26-390"><a href="#cb26-390" aria-hidden="true" tabindex="-1"></a>  graph<span class="sc">::</span><span class="fu">nodes</span>(dag) <span class="ot">&lt;-</span> labs</span>
+<span id="cb26-391"><a href="#cb26-391" aria-hidden="true" tabindex="-1"></a>  d        <span class="ot">&lt;-</span> <span class="fu">rmvDAG</span>(n_samples, dag, <span class="at">errDist =</span> <span class="st">"normal"</span>)</span>
+<span id="cb26-392"><a href="#cb26-392" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(d) <span class="ot">&lt;-</span> labs</span>
+<span id="cb26-393"><a href="#cb26-393" aria-hidden="true" tabindex="-1"></a>  adj      <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">as</span>(dag, <span class="st">"matrix"</span>) <span class="sc">!=</span> <span class="dv">0</span>) <span class="sc">*</span> <span class="dv">1</span>L</span>
+<span id="cb26-394"><a href="#cb26-394" aria-hidden="true" tabindex="-1"></a>  ss       <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">C =</span> <span class="fu">cor</span>(d), <span class="at">n =</span> n_samples)</span>
 <span id="cb26-395"><a href="#cb26-395" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-396"><a href="#cb26-396" aria-hidden="true" tabindex="-1"></a>  ges_f    <span class="ot">&lt;-</span> <span class="fu">ges</span>(<span class="fu">new</span>(<span class="st">"GaussL0penObsScore"</span>, d), <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb26-397"><a href="#cb26-397" aria-hidden="true" tabindex="-1"></a>  amat_g   <span class="ot">&lt;-</span> <span class="fu">amat_from_graph</span>(<span class="fu">as</span>(ges_f<span class="sc">$</span>essgraph, <span class="st">"graphNEL"</span>))</span>
-<span id="cb26-398"><a href="#cb26-398" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-399"><a href="#cb26-399" aria-hidden="true" tabindex="-1"></a>  f_p <span class="ot">&lt;-</span> <span class="fu">f1_scores</span>(adj, amat_p); f_g <span class="ot">&lt;-</span> <span class="fu">f1_scores</span>(adj, amat_g)</span>
-<span id="cb26-400"><a href="#cb26-400" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">f1_skel_pc  =</span> f_p[<span class="st">"skeleton"</span>], <span class="at">f1_skel_ges =</span> f_g[<span class="st">"skeleton"</span>],</span>
-<span id="cb26-401"><a href="#cb26-401" aria-hidden="true" tabindex="-1"></a>    <span class="at">f1_cpdag_pc =</span> f_p[<span class="st">"cpdag"</span>],    <span class="at">f1_cpdag_ges =</span> f_g[<span class="st">"cpdag"</span>],</span>
-<span id="cb26-402"><a href="#cb26-402" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_pc       =</span> ci<span class="sc">$</span><span class="fu">count</span>())</span>
-<span id="cb26-403"><a href="#cb26-403" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb26-404"><a href="#cb26-404" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-405"><a href="#cb26-405" aria-hidden="true" tabindex="-1"></a>mc <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">t</span>(<span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>, evaluate_once)))</span>
-<span id="cb26-406"><a href="#cb26-406" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(mc) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"f1_skel_pc"</span>,<span class="st">"f1_skel_ges"</span>,<span class="st">"f1_cpdag_pc"</span>,<span class="st">"f1_cpdag_ges"</span>,<span class="st">"ci_pc"</span>)</span>
-<span id="cb26-407"><a href="#cb26-407" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-408"><a href="#cb26-408" aria-hidden="true" tabindex="-1"></a>mc_summary <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb26-409"><a href="#cb26-409" aria-hidden="true" tabindex="-1"></a>  <span class="at">Method      =</span> <span class="fu">c</span>(<span class="st">"PC"</span>, <span class="st">"GES"</span>),</span>
-<span id="cb26-410"><a href="#cb26-410" aria-hidden="true" tabindex="-1"></a>  <span class="at">Skeleton_F1 =</span> <span class="fu">round</span>(<span class="fu">c</span>(<span class="fu">mean</span>(mc<span class="sc">$</span>f1_skel_pc),  <span class="fu">mean</span>(mc<span class="sc">$</span>f1_skel_ges)),  <span class="dv">3</span>),</span>
-<span id="cb26-411"><a href="#cb26-411" aria-hidden="true" tabindex="-1"></a>  <span class="at">CPDAG_F1    =</span> <span class="fu">round</span>(<span class="fu">c</span>(<span class="fu">mean</span>(mc<span class="sc">$</span>f1_cpdag_pc), <span class="fu">mean</span>(mc<span class="sc">$</span>f1_cpdag_ges)), <span class="dv">3</span>),</span>
-<span id="cb26-412"><a href="#cb26-412" aria-hidden="true" tabindex="-1"></a>  <span class="at">CI_Tests    =</span> <span class="fu">c</span>(<span class="fu">round</span>(<span class="fu">mean</span>(mc<span class="sc">$</span>ci_pc), <span class="dv">1</span>), <span class="cn">NA</span>)</span>
-<span id="cb26-413"><a href="#cb26-413" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb26-414"><a href="#cb26-414" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(mc_summary,</span>
-<span id="cb26-415"><a href="#cb26-415" aria-hidden="true" tabindex="-1"></a>      <span class="at">caption =</span> <span class="st">"Monte Carlo averages (100 replications, n = 2000, p = 8)"</span>,</span>
-<span id="cb26-416"><a href="#cb26-416" aria-hidden="true" tabindex="-1"></a>      <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb26-417"><a href="#cb26-417" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-418"><a href="#cb26-418" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-421"><a href="#cb26-421" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-422"><a href="#cb26-422" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-mc-ci</span></span>
-<span id="cb26-423"><a href="#cb26-423" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Distribution of PC's CI-test counts across 100 replications. The spread reflects how PC's cost depends on the realized graph density and the order of CI decisions."</span></span>
-<span id="cb26-424"><a href="#cb26-424" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
-<span id="cb26-425"><a href="#cb26-425" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4</span></span>
-<span id="cb26-426"><a href="#cb26-426" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(mc, <span class="fu">aes</span>(<span class="at">x =</span> ci_pc)) <span class="sc">+</span></span>
-<span id="cb26-427"><a href="#cb26-427" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">bins =</span> <span class="dv">20</span>, <span class="at">fill =</span> <span class="st">"steelblue"</span>, <span class="at">alpha =</span> <span class="fl">0.75</span>, <span class="at">color =</span> <span class="st">"white"</span>) <span class="sc">+</span></span>
-<span id="cb26-428"><a href="#cb26-428" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"CI tests (PC)"</span>, <span class="at">y =</span> <span class="st">"Frequency"</span>,</span>
-<span id="cb26-429"><a href="#cb26-429" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"PC CI-test counts across 100 replications"</span>) <span class="sc">+</span></span>
-<span id="cb26-430"><a href="#cb26-430" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb26-431"><a href="#cb26-431" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-432"><a href="#cb26-432" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-433"><a href="#cb26-433" aria-hidden="true" tabindex="-1"></a><span class="fu">## Real Data: Student Performance in PISA</span></span>
-<span id="cb26-434"><a href="#cb26-434" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-435"><a href="#cb26-435" aria-hidden="true" tabindex="-1"></a>The simulation had a luxury real research never does: a known true DAG, so we</span>
-<span id="cb26-436"><a href="#cb26-436" aria-hidden="true" tabindex="-1"></a>could score recovery with F1. On real data there is **no ground truth**, so the</span>
-<span id="cb26-437"><a href="#cb26-437" aria-hidden="true" tabindex="-1"></a>questions change. Instead of "how close is the estimate to the truth?" we ask:</span>
-<span id="cb26-438"><a href="#cb26-438" aria-hidden="true" tabindex="-1"></a>do PC and GES *agree*; what can *background knowledge* orient; and is the</span>
-<span id="cb26-439"><a href="#cb26-439" aria-hidden="true" tabindex="-1"></a>structure *stable* under resampling?</span>
-<span id="cb26-440"><a href="#cb26-440" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-441"><a href="#cb26-441" aria-hidden="true" tabindex="-1"></a>We illustrate on the OECD's **PISA 2022** assessment, restricted to **United</span>
-<span id="cb26-442"><a href="#cb26-442" aria-hidden="true" tabindex="-1"></a>States** students and six variables with a clear substantive ordering.</span>
-<span id="cb26-443"><a href="#cb26-443" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-444"><a href="#cb26-444" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Node <span class="pp">|</span> Meaning <span class="pp">|</span> Role <span class="pp">|</span></span>
-<span id="cb26-445"><a href="#cb26-445" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
-<span id="cb26-446"><a href="#cb26-446" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`HISEI`</span> <span class="pp">|</span> Highest parental occupational status (ISEI) <span class="pp">|</span> Family background <span class="pp">|</span></span>
-<span id="cb26-447"><a href="#cb26-447" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`HOMEPOS`</span> <span class="pp">|</span> Home possessions index <span class="pp">|</span> Family background <span class="pp">|</span></span>
-<span id="cb26-448"><a href="#cb26-448" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`IMMIG`</span> <span class="pp">|</span> Immigration status (1 native … 3 first-gen) <span class="pp">|</span> Demographic <span class="pp">|</span></span>
-<span id="cb26-449"><a href="#cb26-449" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`GRADE`</span> <span class="pp">|</span> Grade relative to modal grade for age <span class="pp">|</span> Schooling <span class="pp">|</span></span>
-<span id="cb26-450"><a href="#cb26-450" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`GENDER`</span> <span class="pp">|</span> 1 = female, 0 = male <span class="pp">|</span> Demographic <span class="pp">|</span></span>
-<span id="cb26-451"><a href="#cb26-451" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`MATH`</span> <span class="pp">|</span> Mean of the 10 mathematics plausible values <span class="pp">|</span> Outcome <span class="pp">|</span></span>
-<span id="cb26-452"><a href="#cb26-452" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-455"><a href="#cb26-455" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-456"><a href="#cb26-456" aria-hidden="true" tabindex="-1"></a>pisa <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"data/pisa_usa2022.csv"</span>)</span>
-<span id="cb26-457"><a href="#cb26-457" aria-hidden="true" tabindex="-1"></a>Xp   <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(pisa[, <span class="fu">c</span>(<span class="st">"HISEI"</span>,<span class="st">"HOMEPOS"</span>,<span class="st">"IMMIG"</span>,<span class="st">"GRADE"</span>,<span class="st">"GENDER"</span>,<span class="st">"MATH"</span>)])</span>
-<span id="cb26-458"><a href="#cb26-458" aria-hidden="true" tabindex="-1"></a>wp   <span class="ot">&lt;-</span> pisa<span class="sc">$</span>W</span>
-<span id="cb26-459"><a href="#cb26-459" aria-hidden="true" tabindex="-1"></a>plabs <span class="ot">&lt;-</span> <span class="fu">colnames</span>(Xp)</span>
-<span id="cb26-460"><a href="#cb26-460" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Students (complete cases): %d"</span>, <span class="fu">nrow</span>(Xp))</span>
-<span id="cb26-461"><a href="#cb26-461" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-462"><a href="#cb26-462" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-463"><a href="#cb26-463" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
-<span id="cb26-464"><a href="#cb26-464" aria-hidden="true" tabindex="-1"></a>**Three honesty caveats**, kept explicit:</span>
-<span id="cb26-465"><a href="#cb26-465" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-466"><a href="#cb26-466" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Plausible values.** Each student's ability is reported as 10 plausible</span>
-<span id="cb26-467"><a href="#cb26-467" aria-hidden="true" tabindex="-1"></a>  values (posterior draws), not one score. We use their mean, understating the</span>
-<span id="cb26-468"><a href="#cb26-468" aria-hidden="true" tabindex="-1"></a>  measurement variance; a full treatment runs discovery on each PV and pools.</span>
-<span id="cb26-469"><a href="#cb26-469" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Categorical-as-Gaussian.** <span class="in">`IMMIG`</span>, <span class="in">`GRADE`</span>, <span class="in">`GENDER`</span> are discrete; Fisher-Z</span>
-<span id="cb26-470"><a href="#cb26-470" aria-hidden="true" tabindex="-1"></a>  assumes joint Gaussianity — a standard but imperfect approximation.</span>
-<span id="cb26-471"><a href="#cb26-471" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**One country, one wave.** Pooling would inject country/time structure that</span>
-<span id="cb26-472"><a href="#cb26-472" aria-hidden="true" tabindex="-1"></a>  appears as spurious edges unless modelled as extra nodes.</span>
-<span id="cb26-473"><a href="#cb26-473" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb26-474"><a href="#cb26-474" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-475"><a href="#cb26-475" aria-hidden="true" tabindex="-1"></a><span class="fu">### Respecting the survey design</span></span>
-<span id="cb26-476"><a href="#cb26-476" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-477"><a href="#cb26-477" aria-hidden="true" tabindex="-1"></a>PISA is not a simple random sample — students carry final weights <span class="in">`W_FSTUWT`</span>.</span>
-<span id="cb26-478"><a href="#cb26-478" aria-hidden="true" tabindex="-1"></a>The CI tests and the score are functions of the **covariance matrix** and a</span>
-<span id="cb26-479"><a href="#cb26-479" aria-hidden="true" tabindex="-1"></a>**sample size**, so we supply design-consistent inputs: a **weighted</span>
-<span id="cb26-480"><a href="#cb26-480" aria-hidden="true" tabindex="-1"></a>covariance/correlation** matrix, and **Kish's effective sample size**</span>
-<span id="cb26-481"><a href="#cb26-481" aria-hidden="true" tabindex="-1"></a>$n_{\text{eff}} = (\sum_i w_i)^2 / \sum_i w_i^2$.</span>
-<span id="cb26-482"><a href="#cb26-482" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-485"><a href="#cb26-485" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-486"><a href="#cb26-486" aria-hidden="true" tabindex="-1"></a>cwp   <span class="ot">&lt;-</span> <span class="fu">cov.wt</span>(Xp, <span class="at">wt =</span> wp, <span class="at">cor =</span> <span class="cn">TRUE</span>)   <span class="co"># design-weighted moments</span></span>
-<span id="cb26-487"><a href="#cb26-487" aria-hidden="true" tabindex="-1"></a>Cwp   <span class="ot">&lt;-</span> cwp<span class="sc">$</span>cor</span>
-<span id="cb26-488"><a href="#cb26-488" aria-hidden="true" tabindex="-1"></a>Sigp  <span class="ot">&lt;-</span> cwp<span class="sc">$</span>cov</span>
-<span id="cb26-489"><a href="#cb26-489" aria-hidden="true" tabindex="-1"></a>neff  <span class="ot">&lt;-</span> <span class="fu">sum</span>(wp)<span class="sc">^</span><span class="dv">2</span> <span class="sc">/</span> <span class="fu">sum</span>(wp<span class="sc">^</span><span class="dv">2</span>)</span>
-<span id="cb26-490"><a href="#cb26-490" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Raw n = %d   Kish effective n = %.0f"</span>, <span class="fu">nrow</span>(Xp), neff)</span>
-<span id="cb26-491"><a href="#cb26-491" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-492"><a href="#cb26-492" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-495"><a href="#cb26-495" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-496"><a href="#cb26-496" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: tbl-pisa-cor</span></span>
-<span id="cb26-497"><a href="#cb26-497" aria-hidden="true" tabindex="-1"></a><span class="co">#| tbl-cap: "Design-weighted correlation matrix (PISA 2022, USA)."</span></span>
-<span id="cb26-498"><a href="#cb26-498" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(<span class="fu">round</span>(Cwp, <span class="dv">2</span>))</span>
-<span id="cb26-499"><a href="#cb26-499" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-500"><a href="#cb26-500" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-501"><a href="#cb26-501" aria-hidden="true" tabindex="-1"></a><span class="fu">### Two algorithms on the weighted data</span></span>
-<span id="cb26-502"><a href="#cb26-502" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-503"><a href="#cb26-503" aria-hidden="true" tabindex="-1"></a>PC consumes the weighted correlation and effective $n$ directly. GES is</span>
-<span id="cb26-504"><a href="#cb26-504" aria-hidden="true" tabindex="-1"></a>score-based and needs a data matrix, so we build a synthetic sample of</span>
-<span id="cb26-505"><a href="#cb26-505" aria-hidden="true" tabindex="-1"></a>$n_{\text{eff}}$ rows whose empirical covariance equals the design-weighted</span>
-<span id="cb26-506"><a href="#cb26-506" aria-hidden="true" tabindex="-1"></a>$\Sigma_w$ exactly (a Cholesky recolour) — a device to feed the *same* second</span>
-<span id="cb26-507"><a href="#cb26-507" aria-hidden="true" tabindex="-1"></a>moments into a score that expects raw data, adding no information beyond</span>
-<span id="cb26-508"><a href="#cb26-508" aria-hidden="true" tabindex="-1"></a>$\Sigma_w$.</span>
-<span id="cb26-509"><a href="#cb26-509" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-512"><a href="#cb26-512" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-513"><a href="#cb26-513" aria-hidden="true" tabindex="-1"></a><span class="co"># Synthetic matrix with covariance == Sigp exactly, neff rows</span></span>
-<span id="cb26-514"><a href="#cb26-514" aria-hidden="true" tabindex="-1"></a>m_eff <span class="ot">&lt;-</span> <span class="fu">round</span>(neff)</span>
-<span id="cb26-515"><a href="#cb26-515" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
-<span id="cb26-516"><a href="#cb26-516" aria-hidden="true" tabindex="-1"></a>Zp <span class="ot">&lt;-</span> <span class="fu">scale</span>(<span class="fu">matrix</span>(<span class="fu">rnorm</span>(m_eff <span class="sc">*</span> <span class="fu">ncol</span>(Xp)), m_eff), <span class="at">center =</span> <span class="cn">TRUE</span>, <span class="at">scale =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb26-517"><a href="#cb26-517" aria-hidden="true" tabindex="-1"></a>Zp <span class="ot">&lt;-</span> Zp <span class="sc">%*%</span> <span class="fu">solve</span>(<span class="fu">chol</span>(<span class="fu">cov</span>(Zp)))     <span class="co"># whiten</span></span>
-<span id="cb26-518"><a href="#cb26-518" aria-hidden="true" tabindex="-1"></a>Xw <span class="ot">&lt;-</span> Zp <span class="sc">%*%</span> <span class="fu">chol</span>(Sigp)               <span class="co"># recolour to weighted covariance</span></span>
-<span id="cb26-519"><a href="#cb26-519" aria-hidden="true" tabindex="-1"></a>Xw <span class="ot">&lt;-</span> <span class="fu">sweep</span>(Xw, <span class="dv">2</span>, cwp<span class="sc">$</span>center, <span class="st">"+"</span>)</span>
-<span id="cb26-520"><a href="#cb26-520" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(Xw) <span class="ot">&lt;-</span> plabs</span>
-<span id="cb26-521"><a href="#cb26-521" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-522"><a href="#cb26-522" aria-hidden="true" tabindex="-1"></a>pc_pisa   <span class="ot">&lt;-</span> <span class="fu">pc</span>(<span class="fu">list</span>(<span class="at">C =</span> Cwp, <span class="at">n =</span> neff), <span class="at">indepTest =</span> gaussCItest,</span>
-<span id="cb26-523"><a href="#cb26-523" aria-hidden="true" tabindex="-1"></a>                <span class="at">labels =</span> plabs, <span class="at">alpha =</span> <span class="fl">0.01</span>)</span>
-<span id="cb26-524"><a href="#cb26-524" aria-hidden="true" tabindex="-1"></a>amat_pcp  <span class="ot">&lt;-</span> <span class="fu">amat_from_graph</span>(pc_pisa<span class="sc">@</span>graph)</span>
+<span id="cb26-396"><a href="#cb26-396" aria-hidden="true" tabindex="-1"></a>  ci       <span class="ot">&lt;-</span> <span class="fu">make_counted_ci</span>(ss)</span>
+<span id="cb26-397"><a href="#cb26-397" aria-hidden="true" tabindex="-1"></a>  pc_f     <span class="ot">&lt;-</span> <span class="fu">pc</span>(ss, ci<span class="sc">$</span>ci, <span class="at">labels =</span> labs, <span class="at">alpha =</span> sig, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb26-398"><a href="#cb26-398" aria-hidden="true" tabindex="-1"></a>  amat_p   <span class="ot">&lt;-</span> <span class="fu">amat_from_graph</span>(pc_f<span class="sc">@</span>graph)</span>
+<span id="cb26-399"><a href="#cb26-399" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-400"><a href="#cb26-400" aria-hidden="true" tabindex="-1"></a>  ges_f    <span class="ot">&lt;-</span> <span class="fu">ges</span>(<span class="fu">new</span>(<span class="st">"GaussL0penObsScore"</span>, d), <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb26-401"><a href="#cb26-401" aria-hidden="true" tabindex="-1"></a>  amat_g   <span class="ot">&lt;-</span> <span class="fu">amat_from_graph</span>(<span class="fu">as</span>(ges_f<span class="sc">$</span>essgraph, <span class="st">"graphNEL"</span>))</span>
+<span id="cb26-402"><a href="#cb26-402" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-403"><a href="#cb26-403" aria-hidden="true" tabindex="-1"></a>  f_p <span class="ot">&lt;-</span> <span class="fu">f1_scores</span>(adj, amat_p); f_g <span class="ot">&lt;-</span> <span class="fu">f1_scores</span>(adj, amat_g)</span>
+<span id="cb26-404"><a href="#cb26-404" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">f1_skel_pc  =</span> f_p[<span class="st">"skeleton"</span>], <span class="at">f1_skel_ges =</span> f_g[<span class="st">"skeleton"</span>],</span>
+<span id="cb26-405"><a href="#cb26-405" aria-hidden="true" tabindex="-1"></a>    <span class="at">f1_cpdag_pc =</span> f_p[<span class="st">"cpdag"</span>],    <span class="at">f1_cpdag_ges =</span> f_g[<span class="st">"cpdag"</span>],</span>
+<span id="cb26-406"><a href="#cb26-406" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_pc       =</span> ci<span class="sc">$</span><span class="fu">count</span>())</span>
+<span id="cb26-407"><a href="#cb26-407" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb26-408"><a href="#cb26-408" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-409"><a href="#cb26-409" aria-hidden="true" tabindex="-1"></a>mc <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">t</span>(<span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>, evaluate_once)))</span>
+<span id="cb26-410"><a href="#cb26-410" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(mc) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"f1_skel_pc"</span>,<span class="st">"f1_skel_ges"</span>,<span class="st">"f1_cpdag_pc"</span>,<span class="st">"f1_cpdag_ges"</span>,<span class="st">"ci_pc"</span>)</span>
+<span id="cb26-411"><a href="#cb26-411" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-412"><a href="#cb26-412" aria-hidden="true" tabindex="-1"></a>mc_summary <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb26-413"><a href="#cb26-413" aria-hidden="true" tabindex="-1"></a>  <span class="at">Method      =</span> <span class="fu">c</span>(<span class="st">"PC"</span>, <span class="st">"GES"</span>),</span>
+<span id="cb26-414"><a href="#cb26-414" aria-hidden="true" tabindex="-1"></a>  <span class="at">Skeleton_F1 =</span> <span class="fu">round</span>(<span class="fu">c</span>(<span class="fu">mean</span>(mc<span class="sc">$</span>f1_skel_pc),  <span class="fu">mean</span>(mc<span class="sc">$</span>f1_skel_ges)),  <span class="dv">3</span>),</span>
+<span id="cb26-415"><a href="#cb26-415" aria-hidden="true" tabindex="-1"></a>  <span class="at">CPDAG_F1    =</span> <span class="fu">round</span>(<span class="fu">c</span>(<span class="fu">mean</span>(mc<span class="sc">$</span>f1_cpdag_pc), <span class="fu">mean</span>(mc<span class="sc">$</span>f1_cpdag_ges)), <span class="dv">3</span>),</span>
+<span id="cb26-416"><a href="#cb26-416" aria-hidden="true" tabindex="-1"></a>  <span class="at">CI_Tests    =</span> <span class="fu">c</span>(<span class="fu">round</span>(<span class="fu">mean</span>(mc<span class="sc">$</span>ci_pc), <span class="dv">1</span>), <span class="cn">NA</span>)</span>
+<span id="cb26-417"><a href="#cb26-417" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb26-418"><a href="#cb26-418" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(mc_summary,</span>
+<span id="cb26-419"><a href="#cb26-419" aria-hidden="true" tabindex="-1"></a>      <span class="at">caption =</span> <span class="st">"Monte Carlo averages (100 replications, n = 2000, p = 8)"</span>,</span>
+<span id="cb26-420"><a href="#cb26-420" aria-hidden="true" tabindex="-1"></a>      <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb26-421"><a href="#cb26-421" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-422"><a href="#cb26-422" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-425"><a href="#cb26-425" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-426"><a href="#cb26-426" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-mc-ci</span></span>
+<span id="cb26-427"><a href="#cb26-427" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Distribution of PC's CI-test counts across 100 replications. The spread reflects how PC's cost depends on the realized graph density and the order of CI decisions."</span></span>
+<span id="cb26-428"><a href="#cb26-428" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
+<span id="cb26-429"><a href="#cb26-429" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4</span></span>
+<span id="cb26-430"><a href="#cb26-430" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(mc, <span class="fu">aes</span>(<span class="at">x =</span> ci_pc)) <span class="sc">+</span></span>
+<span id="cb26-431"><a href="#cb26-431" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">bins =</span> <span class="dv">20</span>, <span class="at">fill =</span> <span class="st">"steelblue"</span>, <span class="at">alpha =</span> <span class="fl">0.75</span>, <span class="at">color =</span> <span class="st">"white"</span>) <span class="sc">+</span></span>
+<span id="cb26-432"><a href="#cb26-432" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"CI tests (PC)"</span>, <span class="at">y =</span> <span class="st">"Frequency"</span>,</span>
+<span id="cb26-433"><a href="#cb26-433" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"PC CI-test counts across 100 replications"</span>) <span class="sc">+</span></span>
+<span id="cb26-434"><a href="#cb26-434" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb26-435"><a href="#cb26-435" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-436"><a href="#cb26-436" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-437"><a href="#cb26-437" aria-hidden="true" tabindex="-1"></a><span class="fu">## Real Data: Student Performance in PISA</span></span>
+<span id="cb26-438"><a href="#cb26-438" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-439"><a href="#cb26-439" aria-hidden="true" tabindex="-1"></a>The simulation had a luxury real research never does: a known true DAG, so we</span>
+<span id="cb26-440"><a href="#cb26-440" aria-hidden="true" tabindex="-1"></a>could score recovery with F1. On real data there is **no ground truth**, so the</span>
+<span id="cb26-441"><a href="#cb26-441" aria-hidden="true" tabindex="-1"></a>questions change. Instead of "how close is the estimate to the truth?" we ask:</span>
+<span id="cb26-442"><a href="#cb26-442" aria-hidden="true" tabindex="-1"></a>do PC and GES *agree*; what can *background knowledge* orient; and is the</span>
+<span id="cb26-443"><a href="#cb26-443" aria-hidden="true" tabindex="-1"></a>structure *stable* under resampling?</span>
+<span id="cb26-444"><a href="#cb26-444" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-445"><a href="#cb26-445" aria-hidden="true" tabindex="-1"></a>We illustrate on the OECD's **PISA 2022** assessment, restricted to **United</span>
+<span id="cb26-446"><a href="#cb26-446" aria-hidden="true" tabindex="-1"></a>States** students and six variables with a clear substantive ordering.</span>
+<span id="cb26-447"><a href="#cb26-447" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-448"><a href="#cb26-448" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Node <span class="pp">|</span> Meaning <span class="pp">|</span> Role <span class="pp">|</span></span>
+<span id="cb26-449"><a href="#cb26-449" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
+<span id="cb26-450"><a href="#cb26-450" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`HISEI`</span> <span class="pp">|</span> Highest parental occupational status (ISEI) <span class="pp">|</span> Family background <span class="pp">|</span></span>
+<span id="cb26-451"><a href="#cb26-451" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`HOMEPOS`</span> <span class="pp">|</span> Home possessions index <span class="pp">|</span> Family background <span class="pp">|</span></span>
+<span id="cb26-452"><a href="#cb26-452" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`IMMIG`</span> <span class="pp">|</span> Immigration status (1 native … 3 first-gen) <span class="pp">|</span> Demographic <span class="pp">|</span></span>
+<span id="cb26-453"><a href="#cb26-453" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`GRADE`</span> <span class="pp">|</span> Grade relative to modal grade for age <span class="pp">|</span> Schooling <span class="pp">|</span></span>
+<span id="cb26-454"><a href="#cb26-454" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`GENDER`</span> <span class="pp">|</span> 1 = female, 0 = male <span class="pp">|</span> Demographic <span class="pp">|</span></span>
+<span id="cb26-455"><a href="#cb26-455" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`MATH`</span> <span class="pp">|</span> Mean of the 10 mathematics plausible values <span class="pp">|</span> Outcome <span class="pp">|</span></span>
+<span id="cb26-456"><a href="#cb26-456" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-459"><a href="#cb26-459" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-460"><a href="#cb26-460" aria-hidden="true" tabindex="-1"></a>pisa <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"data/pisa_usa2022.csv"</span>)</span>
+<span id="cb26-461"><a href="#cb26-461" aria-hidden="true" tabindex="-1"></a>Xp   <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(pisa[, <span class="fu">c</span>(<span class="st">"HISEI"</span>,<span class="st">"HOMEPOS"</span>,<span class="st">"IMMIG"</span>,<span class="st">"GRADE"</span>,<span class="st">"GENDER"</span>,<span class="st">"MATH"</span>)])</span>
+<span id="cb26-462"><a href="#cb26-462" aria-hidden="true" tabindex="-1"></a>wp   <span class="ot">&lt;-</span> pisa<span class="sc">$</span>W</span>
+<span id="cb26-463"><a href="#cb26-463" aria-hidden="true" tabindex="-1"></a>plabs <span class="ot">&lt;-</span> <span class="fu">colnames</span>(Xp)</span>
+<span id="cb26-464"><a href="#cb26-464" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Students (complete cases): %d"</span>, <span class="fu">nrow</span>(Xp))</span>
+<span id="cb26-465"><a href="#cb26-465" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-466"><a href="#cb26-466" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-467"><a href="#cb26-467" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
+<span id="cb26-468"><a href="#cb26-468" aria-hidden="true" tabindex="-1"></a>**Three honesty caveats**, kept explicit:</span>
+<span id="cb26-469"><a href="#cb26-469" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-470"><a href="#cb26-470" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Plausible values.** Each student's ability is reported as 10 plausible</span>
+<span id="cb26-471"><a href="#cb26-471" aria-hidden="true" tabindex="-1"></a>  values (posterior draws), not one score. We use their mean, understating the</span>
+<span id="cb26-472"><a href="#cb26-472" aria-hidden="true" tabindex="-1"></a>  measurement variance; a full treatment runs discovery on each PV and pools.</span>
+<span id="cb26-473"><a href="#cb26-473" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Categorical-as-Gaussian.** <span class="in">`IMMIG`</span>, <span class="in">`GRADE`</span>, <span class="in">`GENDER`</span> are discrete; Fisher-Z</span>
+<span id="cb26-474"><a href="#cb26-474" aria-hidden="true" tabindex="-1"></a>  assumes joint Gaussianity — a standard but imperfect approximation.</span>
+<span id="cb26-475"><a href="#cb26-475" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**One country, one wave.** Pooling would inject country/time structure that</span>
+<span id="cb26-476"><a href="#cb26-476" aria-hidden="true" tabindex="-1"></a>  appears as spurious edges unless modelled as extra nodes.</span>
+<span id="cb26-477"><a href="#cb26-477" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb26-478"><a href="#cb26-478" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-479"><a href="#cb26-479" aria-hidden="true" tabindex="-1"></a><span class="fu">### Respecting the survey design</span></span>
+<span id="cb26-480"><a href="#cb26-480" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-481"><a href="#cb26-481" aria-hidden="true" tabindex="-1"></a>PISA is not a simple random sample — students carry final weights <span class="in">`W_FSTUWT`</span>.</span>
+<span id="cb26-482"><a href="#cb26-482" aria-hidden="true" tabindex="-1"></a>The CI tests and the score are functions of the **covariance matrix** and a</span>
+<span id="cb26-483"><a href="#cb26-483" aria-hidden="true" tabindex="-1"></a>**sample size**, so we supply design-consistent inputs: a **weighted</span>
+<span id="cb26-484"><a href="#cb26-484" aria-hidden="true" tabindex="-1"></a>covariance/correlation** matrix, and **Kish's effective sample size**</span>
+<span id="cb26-485"><a href="#cb26-485" aria-hidden="true" tabindex="-1"></a>$n_{\text{eff}} = (\sum_i w_i)^2 / \sum_i w_i^2$.</span>
+<span id="cb26-486"><a href="#cb26-486" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-489"><a href="#cb26-489" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-490"><a href="#cb26-490" aria-hidden="true" tabindex="-1"></a>cwp   <span class="ot">&lt;-</span> <span class="fu">cov.wt</span>(Xp, <span class="at">wt =</span> wp, <span class="at">cor =</span> <span class="cn">TRUE</span>)   <span class="co"># design-weighted moments</span></span>
+<span id="cb26-491"><a href="#cb26-491" aria-hidden="true" tabindex="-1"></a>Cwp   <span class="ot">&lt;-</span> cwp<span class="sc">$</span>cor</span>
+<span id="cb26-492"><a href="#cb26-492" aria-hidden="true" tabindex="-1"></a>Sigp  <span class="ot">&lt;-</span> cwp<span class="sc">$</span>cov</span>
+<span id="cb26-493"><a href="#cb26-493" aria-hidden="true" tabindex="-1"></a>neff  <span class="ot">&lt;-</span> <span class="fu">sum</span>(wp)<span class="sc">^</span><span class="dv">2</span> <span class="sc">/</span> <span class="fu">sum</span>(wp<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb26-494"><a href="#cb26-494" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Raw n = %d   Kish effective n = %.0f"</span>, <span class="fu">nrow</span>(Xp), neff)</span>
+<span id="cb26-495"><a href="#cb26-495" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-496"><a href="#cb26-496" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-499"><a href="#cb26-499" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-500"><a href="#cb26-500" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: tbl-pisa-cor</span></span>
+<span id="cb26-501"><a href="#cb26-501" aria-hidden="true" tabindex="-1"></a><span class="co">#| tbl-cap: "Design-weighted correlation matrix (PISA 2022, USA)."</span></span>
+<span id="cb26-502"><a href="#cb26-502" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(<span class="fu">round</span>(Cwp, <span class="dv">2</span>))</span>
+<span id="cb26-503"><a href="#cb26-503" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-504"><a href="#cb26-504" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-505"><a href="#cb26-505" aria-hidden="true" tabindex="-1"></a><span class="fu">### Two algorithms on the weighted data</span></span>
+<span id="cb26-506"><a href="#cb26-506" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-507"><a href="#cb26-507" aria-hidden="true" tabindex="-1"></a>PC consumes the weighted correlation and effective $n$ directly. GES is</span>
+<span id="cb26-508"><a href="#cb26-508" aria-hidden="true" tabindex="-1"></a>score-based and needs a data matrix, so we build a synthetic sample of</span>
+<span id="cb26-509"><a href="#cb26-509" aria-hidden="true" tabindex="-1"></a>$n_{\text{eff}}$ rows whose empirical covariance equals the design-weighted</span>
+<span id="cb26-510"><a href="#cb26-510" aria-hidden="true" tabindex="-1"></a>$\Sigma_w$ exactly (a Cholesky recolour) — a device to feed the *same* second</span>
+<span id="cb26-511"><a href="#cb26-511" aria-hidden="true" tabindex="-1"></a>moments into a score that expects raw data, adding no information beyond</span>
+<span id="cb26-512"><a href="#cb26-512" aria-hidden="true" tabindex="-1"></a>$\Sigma_w$.</span>
+<span id="cb26-513"><a href="#cb26-513" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-516"><a href="#cb26-516" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-517"><a href="#cb26-517" aria-hidden="true" tabindex="-1"></a><span class="co"># Synthetic matrix with covariance == Sigp exactly, neff rows</span></span>
+<span id="cb26-518"><a href="#cb26-518" aria-hidden="true" tabindex="-1"></a>m_eff <span class="ot">&lt;-</span> <span class="fu">round</span>(neff)</span>
+<span id="cb26-519"><a href="#cb26-519" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb26-520"><a href="#cb26-520" aria-hidden="true" tabindex="-1"></a>Zp <span class="ot">&lt;-</span> <span class="fu">scale</span>(<span class="fu">matrix</span>(<span class="fu">rnorm</span>(m_eff <span class="sc">*</span> <span class="fu">ncol</span>(Xp)), m_eff), <span class="at">center =</span> <span class="cn">TRUE</span>, <span class="at">scale =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb26-521"><a href="#cb26-521" aria-hidden="true" tabindex="-1"></a>Zp <span class="ot">&lt;-</span> Zp <span class="sc">%*%</span> <span class="fu">solve</span>(<span class="fu">chol</span>(<span class="fu">cov</span>(Zp)))     <span class="co"># whiten</span></span>
+<span id="cb26-522"><a href="#cb26-522" aria-hidden="true" tabindex="-1"></a>Xw <span class="ot">&lt;-</span> Zp <span class="sc">%*%</span> <span class="fu">chol</span>(Sigp)               <span class="co"># recolour to weighted covariance</span></span>
+<span id="cb26-523"><a href="#cb26-523" aria-hidden="true" tabindex="-1"></a>Xw <span class="ot">&lt;-</span> <span class="fu">sweep</span>(Xw, <span class="dv">2</span>, cwp<span class="sc">$</span>center, <span class="st">"+"</span>)</span>
+<span id="cb26-524"><a href="#cb26-524" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(Xw) <span class="ot">&lt;-</span> plabs</span>
 <span id="cb26-525"><a href="#cb26-525" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-526"><a href="#cb26-526" aria-hidden="true" tabindex="-1"></a>ges_pisa  <span class="ot">&lt;-</span> <span class="fu">ges</span>(<span class="fu">new</span>(<span class="st">"GaussL0penObsScore"</span>, Xw))</span>
-<span id="cb26-527"><a href="#cb26-527" aria-hidden="true" tabindex="-1"></a>cpdag_gesp<span class="ot">&lt;-</span> <span class="fu">as</span>(ges_pisa<span class="sc">$</span>essgraph, <span class="st">"graphNEL"</span>)</span>
-<span id="cb26-528"><a href="#cb26-528" aria-hidden="true" tabindex="-1"></a>amat_gesp <span class="ot">&lt;-</span> <span class="fu">amat_from_graph</span>(cpdag_gesp)</span>
+<span id="cb26-526"><a href="#cb26-526" aria-hidden="true" tabindex="-1"></a>pc_pisa   <span class="ot">&lt;-</span> <span class="fu">pc</span>(<span class="fu">list</span>(<span class="at">C =</span> Cwp, <span class="at">n =</span> neff), <span class="at">indepTest =</span> gaussCItest,</span>
+<span id="cb26-527"><a href="#cb26-527" aria-hidden="true" tabindex="-1"></a>                <span class="at">labels =</span> plabs, <span class="at">alpha =</span> <span class="fl">0.01</span>)</span>
+<span id="cb26-528"><a href="#cb26-528" aria-hidden="true" tabindex="-1"></a>amat_pcp  <span class="ot">&lt;-</span> <span class="fu">amat_from_graph</span>(pc_pisa<span class="sc">@</span>graph)</span>
 <span id="cb26-529"><a href="#cb26-529" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-530"><a href="#cb26-530" aria-hidden="true" tabindex="-1"></a>skp <span class="ot">&lt;-</span> <span class="fu">amat_to_skel</span>(amat_pcp); skg <span class="ot">&lt;-</span> <span class="fu">amat_to_skel</span>(amat_gesp)</span>
-<span id="cb26-531"><a href="#cb26-531" aria-hidden="true" tabindex="-1"></a><span class="fu">diag</span>(skp) <span class="ot">&lt;-</span> <span class="fu">diag</span>(skg) <span class="ot">&lt;-</span> <span class="dv">0</span></span>
-<span id="cb26-532"><a href="#cb26-532" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Skeleton edges — PC: %d   GES: %d   in both: %d"</span>,</span>
-<span id="cb26-533"><a href="#cb26-533" aria-hidden="true" tabindex="-1"></a>        <span class="fu">sum</span>(skp)<span class="sc">/</span><span class="dv">2</span>, <span class="fu">sum</span>(skg)<span class="sc">/</span><span class="dv">2</span>, <span class="fu">sum</span>(skp <span class="sc">&amp;</span> skg)<span class="sc">/</span><span class="dv">2</span>)</span>
-<span id="cb26-534"><a href="#cb26-534" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-535"><a href="#cb26-535" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-538"><a href="#cb26-538" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-539"><a href="#cb26-539" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-pisa-cpdags</span></span>
-<span id="cb26-540"><a href="#cb26-540" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Estimated CPDAGs from PC and GES on PISA 2022 (USA). Arrows are oriented edges; plain lines are unoriented. There is no true-DAG panel — on real data we have no ground truth."</span></span>
-<span id="cb26-541"><a href="#cb26-541" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 11</span></span>
-<span id="cb26-542"><a href="#cb26-542" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4.5</span></span>
-<span id="cb26-543"><a href="#cb26-543" aria-hidden="true" tabindex="-1"></a>ig_pcp  <span class="ot">&lt;-</span> <span class="fu">graphnel_to_ig</span>(pc_pisa<span class="sc">@</span>graph)</span>
-<span id="cb26-544"><a href="#cb26-544" aria-hidden="true" tabindex="-1"></a>ig_gesp <span class="ot">&lt;-</span> <span class="fu">graphnel_to_ig</span>(cpdag_gesp)</span>
-<span id="cb26-545"><a href="#cb26-545" aria-hidden="true" tabindex="-1"></a>lay_p   <span class="ot">&lt;-</span> igraph<span class="sc">::</span><span class="fu">layout_with_sugiyama</span>(ig_pcp)<span class="sc">$</span>layout</span>
-<span id="cb26-546"><a href="#cb26-546" aria-hidden="true" tabindex="-1"></a>op <span class="ot">&lt;-</span> <span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">1</span>))</span>
-<span id="cb26-547"><a href="#cb26-547" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_pcp,  <span class="at">layout =</span> lay_p, <span class="at">main =</span> <span class="st">"PC — estimated CPDAG"</span>)</span>
-<span id="cb26-548"><a href="#cb26-548" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_gesp, <span class="at">layout =</span> lay_p, <span class="at">main =</span> <span class="st">"GES — estimated CPDAG"</span>)</span>
-<span id="cb26-549"><a href="#cb26-549" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(op)</span>
-<span id="cb26-550"><a href="#cb26-550" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-551"><a href="#cb26-551" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-552"><a href="#cb26-552" aria-hidden="true" tabindex="-1"></a>::: {.callout-important}</span>
-<span id="cb26-553"><a href="#cb26-553" aria-hidden="true" tabindex="-1"></a>**Read the disagreement, not just the agreement.** A purely data-driven score</span>
-<span id="cb26-554"><a href="#cb26-554" aria-hidden="true" tabindex="-1"></a>may orient an edge as <span class="in">`MATH → HISEI`</span> — a child's test score causing their</span>
-<span id="cb26-555"><a href="#cb26-555" aria-hidden="true" tabindex="-1"></a>parent's occupational status. That is causally backwards, and no CI test can</span>
-<span id="cb26-556"><a href="#cb26-556" aria-hidden="true" tabindex="-1"></a>rule it out, because <span class="in">`HISEI → MATH`</span> and <span class="in">`MATH → HISEI`</span> are Markov-equivalent.</span>
-<span id="cb26-557"><a href="#cb26-557" aria-hidden="true" tabindex="-1"></a>This is exactly why background knowledge is not optional.</span>
-<span id="cb26-558"><a href="#cb26-558" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb26-559"><a href="#cb26-559" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-560"><a href="#cb26-560" aria-hidden="true" tabindex="-1"></a><span class="fu">### Orienting with background knowledge</span></span>
-<span id="cb26-561"><a href="#cb26-561" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-562"><a href="#cb26-562" aria-hidden="true" tabindex="-1"></a>Sex and immigration background are fixed at birth; family socioeconomic status</span>
-<span id="cb26-563"><a href="#cb26-563" aria-hidden="true" tabindex="-1"></a>is established long before the test; grade precedes the assessment; the score is</span>
-<span id="cb26-564"><a href="#cb26-564" aria-hidden="true" tabindex="-1"></a>the outcome. That gives a **tier ordering**</span>
+<span id="cb26-530"><a href="#cb26-530" aria-hidden="true" tabindex="-1"></a>ges_pisa  <span class="ot">&lt;-</span> <span class="fu">ges</span>(<span class="fu">new</span>(<span class="st">"GaussL0penObsScore"</span>, Xw))</span>
+<span id="cb26-531"><a href="#cb26-531" aria-hidden="true" tabindex="-1"></a>cpdag_gesp<span class="ot">&lt;-</span> <span class="fu">as</span>(ges_pisa<span class="sc">$</span>essgraph, <span class="st">"graphNEL"</span>)</span>
+<span id="cb26-532"><a href="#cb26-532" aria-hidden="true" tabindex="-1"></a>amat_gesp <span class="ot">&lt;-</span> <span class="fu">amat_from_graph</span>(cpdag_gesp)</span>
+<span id="cb26-533"><a href="#cb26-533" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-534"><a href="#cb26-534" aria-hidden="true" tabindex="-1"></a>skp <span class="ot">&lt;-</span> <span class="fu">amat_to_skel</span>(amat_pcp); skg <span class="ot">&lt;-</span> <span class="fu">amat_to_skel</span>(amat_gesp)</span>
+<span id="cb26-535"><a href="#cb26-535" aria-hidden="true" tabindex="-1"></a><span class="fu">diag</span>(skp) <span class="ot">&lt;-</span> <span class="fu">diag</span>(skg) <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb26-536"><a href="#cb26-536" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Skeleton edges — PC: %d   GES: %d   in both: %d"</span>,</span>
+<span id="cb26-537"><a href="#cb26-537" aria-hidden="true" tabindex="-1"></a>        <span class="fu">sum</span>(skp)<span class="sc">/</span><span class="dv">2</span>, <span class="fu">sum</span>(skg)<span class="sc">/</span><span class="dv">2</span>, <span class="fu">sum</span>(skp <span class="sc">&amp;</span> skg)<span class="sc">/</span><span class="dv">2</span>)</span>
+<span id="cb26-538"><a href="#cb26-538" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-539"><a href="#cb26-539" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-542"><a href="#cb26-542" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-543"><a href="#cb26-543" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-pisa-cpdags</span></span>
+<span id="cb26-544"><a href="#cb26-544" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Estimated CPDAGs from PC and GES on PISA 2022 (USA). Arrows are oriented edges; plain lines are unoriented. There is no true-DAG panel — on real data we have no ground truth."</span></span>
+<span id="cb26-545"><a href="#cb26-545" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 11</span></span>
+<span id="cb26-546"><a href="#cb26-546" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4.5</span></span>
+<span id="cb26-547"><a href="#cb26-547" aria-hidden="true" tabindex="-1"></a>ig_pcp  <span class="ot">&lt;-</span> <span class="fu">graphnel_to_ig</span>(pc_pisa<span class="sc">@</span>graph)</span>
+<span id="cb26-548"><a href="#cb26-548" aria-hidden="true" tabindex="-1"></a>ig_gesp <span class="ot">&lt;-</span> <span class="fu">graphnel_to_ig</span>(cpdag_gesp)</span>
+<span id="cb26-549"><a href="#cb26-549" aria-hidden="true" tabindex="-1"></a>lay_p   <span class="ot">&lt;-</span> igraph<span class="sc">::</span><span class="fu">layout_with_sugiyama</span>(ig_pcp)<span class="sc">$</span>layout</span>
+<span id="cb26-550"><a href="#cb26-550" aria-hidden="true" tabindex="-1"></a>op <span class="ot">&lt;-</span> <span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">1</span>))</span>
+<span id="cb26-551"><a href="#cb26-551" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_pcp,  <span class="at">layout =</span> lay_p, <span class="at">main =</span> <span class="st">"PC — estimated CPDAG"</span>)</span>
+<span id="cb26-552"><a href="#cb26-552" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_gesp, <span class="at">layout =</span> lay_p, <span class="at">main =</span> <span class="st">"GES — estimated CPDAG"</span>)</span>
+<span id="cb26-553"><a href="#cb26-553" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(op)</span>
+<span id="cb26-554"><a href="#cb26-554" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-555"><a href="#cb26-555" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-556"><a href="#cb26-556" aria-hidden="true" tabindex="-1"></a>::: {.callout-important}</span>
+<span id="cb26-557"><a href="#cb26-557" aria-hidden="true" tabindex="-1"></a>**Read the disagreement, not just the agreement.** A purely data-driven score</span>
+<span id="cb26-558"><a href="#cb26-558" aria-hidden="true" tabindex="-1"></a>may orient an edge as <span class="in">`MATH → HISEI`</span> — a child's test score causing their</span>
+<span id="cb26-559"><a href="#cb26-559" aria-hidden="true" tabindex="-1"></a>parent's occupational status. That is causally backwards, and no CI test can</span>
+<span id="cb26-560"><a href="#cb26-560" aria-hidden="true" tabindex="-1"></a>rule it out, because <span class="in">`HISEI → MATH`</span> and <span class="in">`MATH → HISEI`</span> are Markov-equivalent.</span>
+<span id="cb26-561"><a href="#cb26-561" aria-hidden="true" tabindex="-1"></a>This is exactly why background knowledge is not optional.</span>
+<span id="cb26-562"><a href="#cb26-562" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb26-563"><a href="#cb26-563" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-564"><a href="#cb26-564" aria-hidden="true" tabindex="-1"></a><span class="fu">### Orienting with background knowledge</span></span>
 <span id="cb26-565"><a href="#cb26-565" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-566"><a href="#cb26-566" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb26-567"><a href="#cb26-567" aria-hidden="true" tabindex="-1"></a><span class="sc">\{</span>\text{GENDER}, \text{IMMIG}<span class="sc">\}</span> \prec <span class="sc">\{</span>\text{HISEI}, \text{HOMEPOS}<span class="sc">\}</span></span>
-<span id="cb26-568"><a href="#cb26-568" aria-hidden="true" tabindex="-1"></a>\prec \text{GRADE} \prec \text{MATH}.</span>
-<span id="cb26-569"><a href="#cb26-569" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb26-570"><a href="#cb26-570" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-571"><a href="#cb26-571" aria-hidden="true" tabindex="-1"></a>A cross-tier edge must point earlier→later; a within-tier edge the ordering</span>
-<span id="cb26-572"><a href="#cb26-572" aria-hidden="true" tabindex="-1"></a>cannot decide. We impose this on the discovered **skeleton**, because the</span>
-<span id="cb26-573"><a href="#cb26-573" aria-hidden="true" tabindex="-1"></a>ordering is knowledge we hold independently of how the data oriented things.</span>
+<span id="cb26-566"><a href="#cb26-566" aria-hidden="true" tabindex="-1"></a>Sex and immigration background are fixed at birth; family socioeconomic status</span>
+<span id="cb26-567"><a href="#cb26-567" aria-hidden="true" tabindex="-1"></a>is established long before the test; grade precedes the assessment; the score is</span>
+<span id="cb26-568"><a href="#cb26-568" aria-hidden="true" tabindex="-1"></a>the outcome. That gives a **tier ordering**</span>
+<span id="cb26-569"><a href="#cb26-569" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-570"><a href="#cb26-570" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb26-571"><a href="#cb26-571" aria-hidden="true" tabindex="-1"></a><span class="sc">\{</span>\text{GENDER}, \text{IMMIG}<span class="sc">\}</span> \prec <span class="sc">\{</span>\text{HISEI}, \text{HOMEPOS}<span class="sc">\}</span></span>
+<span id="cb26-572"><a href="#cb26-572" aria-hidden="true" tabindex="-1"></a>\prec \text{GRADE} \prec \text{MATH}.</span>
+<span id="cb26-573"><a href="#cb26-573" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb26-574"><a href="#cb26-574" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-577"><a href="#cb26-577" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-578"><a href="#cb26-578" aria-hidden="true" tabindex="-1"></a>tier_p <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">HISEI =</span> <span class="dv">1</span>, <span class="at">HOMEPOS =</span> <span class="dv">1</span>, <span class="at">IMMIG =</span> <span class="dv">0</span>, <span class="at">GRADE =</span> <span class="dv">2</span>, <span class="at">GENDER =</span> <span class="dv">0</span>, <span class="at">MATH =</span> <span class="dv">3</span>)[plabs]</span>
-<span id="cb26-579"><a href="#cb26-579" aria-hidden="true" tabindex="-1"></a>skel_p <span class="ot">&lt;-</span> <span class="fu">amat_to_skel</span>(amat_pcp)</span>
-<span id="cb26-580"><a href="#cb26-580" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-581"><a href="#cb26-581" aria-hidden="true" tabindex="-1"></a>edges_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(); undir_flag <span class="ot">&lt;-</span> <span class="fu">logical</span>(<span class="dv">0</span>)</span>
-<span id="cb26-582"><a href="#cb26-582" aria-hidden="true" tabindex="-1"></a>pp <span class="ot">&lt;-</span> <span class="fu">length</span>(plabs)</span>
-<span id="cb26-583"><a href="#cb26-583" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(pp<span class="dv">-1</span>)) <span class="cf">for</span> (j <span class="cf">in</span> <span class="fu">seq.int</span>(i<span class="sc">+</span><span class="dv">1</span>, pp)) {</span>
-<span id="cb26-584"><a href="#cb26-584" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (skel_p[i, j] <span class="sc">==</span> <span class="dv">0</span>) <span class="cf">next</span></span>
-<span id="cb26-585"><a href="#cb26-585" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> plabs[i]; b <span class="ot">&lt;-</span> plabs[j]</span>
-<span id="cb26-586"><a href="#cb26-586" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (tier_p[a] <span class="sc">==</span> tier_p[b]) {</span>
-<span id="cb26-587"><a href="#cb26-587" aria-hidden="true" tabindex="-1"></a>    edges_df <span class="ot">&lt;-</span> <span class="fu">rbind</span>(edges_df, <span class="fu">data.frame</span>(<span class="at">from =</span> a, <span class="at">to =</span> b)); undir_flag <span class="ot">&lt;-</span> <span class="fu">c</span>(undir_flag, <span class="cn">TRUE</span>)</span>
-<span id="cb26-588"><a href="#cb26-588" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
-<span id="cb26-589"><a href="#cb26-589" aria-hidden="true" tabindex="-1"></a>    lo <span class="ot">&lt;-</span> <span class="cf">if</span> (tier_p[a] <span class="sc">&lt;</span> tier_p[b]) a <span class="cf">else</span> b</span>
-<span id="cb26-590"><a href="#cb26-590" aria-hidden="true" tabindex="-1"></a>    hi <span class="ot">&lt;-</span> <span class="cf">if</span> (tier_p[a] <span class="sc">&lt;</span> tier_p[b]) b <span class="cf">else</span> a</span>
-<span id="cb26-591"><a href="#cb26-591" aria-hidden="true" tabindex="-1"></a>    edges_df <span class="ot">&lt;-</span> <span class="fu">rbind</span>(edges_df, <span class="fu">data.frame</span>(<span class="at">from =</span> lo, <span class="at">to =</span> hi)); undir_flag <span class="ot">&lt;-</span> <span class="fu">c</span>(undir_flag, <span class="cn">FALSE</span>)</span>
-<span id="cb26-592"><a href="#cb26-592" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb26-593"><a href="#cb26-593" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb26-594"><a href="#cb26-594" aria-hidden="true" tabindex="-1"></a>ig_orient <span class="ot">&lt;-</span> igraph<span class="sc">::</span><span class="fu">graph_from_data_frame</span>(edges_df, <span class="at">vertices =</span> plabs)</span>
-<span id="cb26-595"><a href="#cb26-595" aria-hidden="true" tabindex="-1"></a>igraph<span class="sc">::</span><span class="fu">E</span>(ig_orient)<span class="sc">$</span>undirected <span class="ot">&lt;-</span> undir_flag</span>
-<span id="cb26-596"><a href="#cb26-596" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-597"><a href="#cb26-597" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-598"><a href="#cb26-598" aria-hidden="true" tabindex="-1"></a>::: {.callout-warning}</span>
-<span id="cb26-599"><a href="#cb26-599" aria-hidden="true" tabindex="-1"></a>**Where data-driven orientation disagreed with us.** Left to itself, PC oriented</span>
-<span id="cb26-600"><a href="#cb26-600" aria-hidden="true" tabindex="-1"></a><span class="in">`IMMIG–GRADE`</span> as <span class="in">`GRADE → IMMIG`</span> — schooling causing immigration status, which</span>
-<span id="cb26-601"><a href="#cb26-601" aria-hidden="true" tabindex="-1"></a>is impossible. No CI test could have prevented it: the two orientations are</span>
-<span id="cb26-602"><a href="#cb26-602" aria-hidden="true" tabindex="-1"></a>Markov-equivalent. Imposing the tier order overrides it. The lesson: **never</span>
-<span id="cb26-603"><a href="#cb26-603" aria-hidden="true" tabindex="-1"></a>ship a discovered orientation you have prior reason to disbelieve**.</span>
-<span id="cb26-604"><a href="#cb26-604" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb26-605"><a href="#cb26-605" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-608"><a href="#cb26-608" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-609"><a href="#cb26-609" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-pisa-oriented</span></span>
-<span id="cb26-610"><a href="#cb26-610" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "PC skeleton oriented by the temporal/logical tiers. Cross-tier edges point earlier-to-later; HISEI–HOMEPOS stays undirected (same tier)."</span></span>
-<span id="cb26-611"><a href="#cb26-611" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 6</span></span>
-<span id="cb26-612"><a href="#cb26-612" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4.5</span></span>
-<span id="cb26-613"><a href="#cb26-613" aria-hidden="true" tabindex="-1"></a>lay_or <span class="ot">&lt;-</span> igraph<span class="sc">::</span><span class="fu">layout_with_sugiyama</span>(ig_orient)<span class="sc">$</span>layout</span>
-<span id="cb26-614"><a href="#cb26-614" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_orient, <span class="at">layout =</span> lay_or, <span class="at">main =</span> <span class="st">"PC skeleton + tier ordering"</span>)</span>
-<span id="cb26-615"><a href="#cb26-615" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-616"><a href="#cb26-616" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-617"><a href="#cb26-617" aria-hidden="true" tabindex="-1"></a>Every edge into <span class="in">`MATH`</span> is now a candidate causal parent of achievement — the</span>
-<span id="cb26-618"><a href="#cb26-618" aria-hidden="true" tabindex="-1"></a>bridge from discovery to estimation (back-door adjustment on the parents of the</span>
-<span id="cb26-619"><a href="#cb26-619" aria-hidden="true" tabindex="-1"></a>outcome). The only edge the ordering leaves undirected, <span class="in">`HISEI – HOMEPOS`</span>, is</span>
-<span id="cb26-620"><a href="#cb26-620" aria-hidden="true" tabindex="-1"></a>two same-tier measures of family background that temporal logic cannot separate.</span>
-<span id="cb26-621"><a href="#cb26-621" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-622"><a href="#cb26-622" aria-hidden="true" tabindex="-1"></a><span class="fu">### Stability: does the skeleton survive resampling?</span></span>
-<span id="cb26-623"><a href="#cb26-623" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-624"><a href="#cb26-624" aria-hidden="true" tabindex="-1"></a>A single fit can be lucky. We resample students with replacement, re-estimate</span>
-<span id="cb26-625"><a href="#cb26-625" aria-hidden="true" tabindex="-1"></a>the **weighted** PC skeleton, and record how often each edge appears.</span>
-<span id="cb26-626"><a href="#cb26-626" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-629"><a href="#cb26-629" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-630"><a href="#cb26-630" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb26-631"><a href="#cb26-631" aria-hidden="true" tabindex="-1"></a>B_pisa <span class="ot">&lt;-</span> <span class="dv">200</span></span>
-<span id="cb26-632"><a href="#cb26-632" aria-hidden="true" tabindex="-1"></a>boot_once <span class="ot">&lt;-</span> <span class="cf">function</span>(b) {</span>
-<span id="cb26-633"><a href="#cb26-633" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set.seed</span>(<span class="dv">1000</span> <span class="sc">+</span> b)</span>
-<span id="cb26-634"><a href="#cb26-634" aria-hidden="true" tabindex="-1"></a>  idx <span class="ot">&lt;-</span> <span class="fu">sample.int</span>(<span class="fu">nrow</span>(Xp), <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb26-635"><a href="#cb26-635" aria-hidden="true" tabindex="-1"></a>  Xb  <span class="ot">&lt;-</span> Xp[idx, ]; wb <span class="ot">&lt;-</span> wp[idx]</span>
-<span id="cb26-636"><a href="#cb26-636" aria-hidden="true" tabindex="-1"></a>  cwb <span class="ot">&lt;-</span> <span class="fu">cov.wt</span>(Xb, <span class="at">wt =</span> wb, <span class="at">cor =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb26-637"><a href="#cb26-637" aria-hidden="true" tabindex="-1"></a>  neff_b <span class="ot">&lt;-</span> <span class="fu">sum</span>(wb)<span class="sc">^</span><span class="dv">2</span> <span class="sc">/</span> <span class="fu">sum</span>(wb<span class="sc">^</span><span class="dv">2</span>)</span>
-<span id="cb26-638"><a href="#cb26-638" aria-hidden="true" tabindex="-1"></a>  fit <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(<span class="fu">pc</span>(<span class="fu">list</span>(<span class="at">C =</span> cwb<span class="sc">$</span>cor, <span class="at">n =</span> neff_b), <span class="at">indepTest =</span> gaussCItest,</span>
-<span id="cb26-639"><a href="#cb26-639" aria-hidden="true" tabindex="-1"></a>                     <span class="at">labels =</span> plabs, <span class="at">alpha =</span> <span class="fl">0.01</span>), <span class="at">error =</span> <span class="cf">function</span>(e) <span class="cn">NULL</span>)</span>
-<span id="cb26-640"><a href="#cb26-640" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.null</span>(fit)) <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
-<span id="cb26-641"><a href="#cb26-641" aria-hidden="true" tabindex="-1"></a>  <span class="fu">amat_to_skel</span>(<span class="fu">amat_from_graph</span>(fit<span class="sc">@</span>graph))</span>
-<span id="cb26-642"><a href="#cb26-642" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb26-643"><a href="#cb26-643" aria-hidden="true" tabindex="-1"></a>ncores <span class="ot">&lt;-</span> <span class="fu">max</span>(<span class="dv">1</span>, parallel<span class="sc">::</span><span class="fu">detectCores</span>() <span class="sc">-</span> <span class="dv">1</span>)</span>
-<span id="cb26-644"><a href="#cb26-644" aria-hidden="true" tabindex="-1"></a>skels  <span class="ot">&lt;-</span> parallel<span class="sc">::</span><span class="fu">mclapply</span>(<span class="fu">seq_len</span>(B_pisa), boot_once, <span class="at">mc.cores =</span> ncores)</span>
-<span id="cb26-645"><a href="#cb26-645" aria-hidden="true" tabindex="-1"></a>skels  <span class="ot">&lt;-</span> skels[<span class="sc">!</span><span class="fu">vapply</span>(skels, is.null, <span class="fu">logical</span>(<span class="dv">1</span>))]</span>
-<span id="cb26-646"><a href="#cb26-646" aria-hidden="true" tabindex="-1"></a>edge_freq <span class="ot">&lt;-</span> <span class="fu">Reduce</span>(<span class="st">`</span><span class="at">+</span><span class="st">`</span>, skels) <span class="sc">/</span> <span class="fu">length</span>(skels)</span>
-<span id="cb26-647"><a href="#cb26-647" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-648"><a href="#cb26-648" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-651"><a href="#cb26-651" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-652"><a href="#cb26-652" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-pisa-stability</span></span>
-<span id="cb26-653"><a href="#cb26-653" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Bootstrap edge-selection frequency (weighted PC, 200 resamples). Edges near 1.0 are robust; near 0.5 are sample-dependent."</span></span>
-<span id="cb26-654"><a href="#cb26-654" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
-<span id="cb26-655"><a href="#cb26-655" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4</span></span>
-<span id="cb26-656"><a href="#cb26-656" aria-hidden="true" tabindex="-1"></a>pairs_df <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(<span class="fu">seq_len</span>(pp<span class="dv">-1</span>), <span class="cf">function</span>(i)</span>
-<span id="cb26-657"><a href="#cb26-657" aria-hidden="true" tabindex="-1"></a>  <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(<span class="fu">seq.int</span>(i<span class="sc">+</span><span class="dv">1</span>, pp), <span class="cf">function</span>(j)</span>
-<span id="cb26-658"><a href="#cb26-658" aria-hidden="true" tabindex="-1"></a>    <span class="fu">data.frame</span>(<span class="at">Edge =</span> <span class="fu">paste</span>(plabs[i], <span class="st">"—"</span>, plabs[j]),</span>
-<span id="cb26-659"><a href="#cb26-659" aria-hidden="true" tabindex="-1"></a>               <span class="at">Frequency =</span> <span class="fu">round</span>(edge_freq[i, j], <span class="dv">2</span>))))))</span>
-<span id="cb26-660"><a href="#cb26-660" aria-hidden="true" tabindex="-1"></a>pairs_df <span class="ot">&lt;-</span> pairs_df[pairs_df<span class="sc">$</span>Frequency <span class="sc">&gt;</span> <span class="dv">0</span>, ]</span>
-<span id="cb26-661"><a href="#cb26-661" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pairs_df, <span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">reorder</span>(Edge, Frequency), <span class="at">y =</span> Frequency)) <span class="sc">+</span></span>
-<span id="cb26-662"><a href="#cb26-662" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>(<span class="at">fill =</span> <span class="st">"steelblue"</span>, <span class="at">alpha =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
-<span id="cb26-663"><a href="#cb26-663" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="fl">0.5</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">colour =</span> <span class="st">"grey50"</span>) <span class="sc">+</span></span>
-<span id="cb26-664"><a href="#cb26-664" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_flip</span>() <span class="sc">+</span> <span class="fu">ylim</span>(<span class="dv">0</span>, <span class="dv">1</span>) <span class="sc">+</span></span>
-<span id="cb26-665"><a href="#cb26-665" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="st">"Selection frequency across bootstrap resamples"</span>) <span class="sc">+</span></span>
-<span id="cb26-666"><a href="#cb26-666" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb26-667"><a href="#cb26-667" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-668"><a href="#cb26-668" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-669"><a href="#cb26-669" aria-hidden="true" tabindex="-1"></a>The family-background→math edges (<span class="in">`HISEI`</span>, <span class="in">`HOMEPOS`</span>) are the most stable</span>
-<span id="cb26-670"><a href="#cb26-670" aria-hidden="true" tabindex="-1"></a>features: the SES gradient in achievement is not an artefact. On real data,</span>
-<span id="cb26-671"><a href="#cb26-671" aria-hidden="true" tabindex="-1"></a>causal discovery is best read as **hypothesis generation** — it proposes a</span>
-<span id="cb26-672"><a href="#cb26-672" aria-hidden="true" tabindex="-1"></a>skeleton and the orientations the data support, which you then reconcile with</span>
-<span id="cb26-673"><a href="#cb26-673" aria-hidden="true" tabindex="-1"></a>subject-matter knowledge before estimating effects.</span>
-<span id="cb26-674"><a href="#cb26-674" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-675"><a href="#cb26-675" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
-<span id="cb26-676"><a href="#cb26-676" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-677"><a href="#cb26-677" aria-hidden="true" tabindex="-1"></a>PC and GES target the same Markov equivalence class. PC uses conditional</span>
-<span id="cb26-678"><a href="#cb26-678" aria-hidden="true" tabindex="-1"></a>independence tests; GES uses model fit. If they agree on the skeleton, that</span>
-<span id="cb26-679"><a href="#cb26-679" aria-hidden="true" tabindex="-1"></a>is reassuring. If they disagree, check sample size, model assumptions, and</span>
-<span id="cb26-680"><a href="#cb26-680" aria-hidden="true" tabindex="-1"></a>possible faithfulness problems.</span>
-<span id="cb26-681"><a href="#cb26-681" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-682"><a href="#cb26-682" aria-hidden="true" tabindex="-1"></a>**From CPDAG to causal estimation:** Once a CPDAG is in hand, the workflow continues as follows:</span>
-<span id="cb26-683"><a href="#cb26-683" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-684"><a href="#cb26-684" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Use background knowledge to orient undirected edges.** Temporal ordering is the most common source: if $X$ is measured before $Y$, the edge must be $X \to Y$. Domain expertise, experimental context, or exclusion restrictions can orient others.</span>
-<span id="cb26-685"><a href="#cb26-685" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Check identifiability.** With a fully oriented DAG, apply the backdoor, front-door, or ID algorithm to determine whether the effect of interest is identifiable.</span>
-<span id="cb26-686"><a href="#cb26-686" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Estimate.** Use the identified functional with the estimators from earlier chapters (RA, IPW, AIPW, TMLE).</span>
+<span id="cb26-575"><a href="#cb26-575" aria-hidden="true" tabindex="-1"></a>A cross-tier edge must point earlier→later; a within-tier edge the ordering</span>
+<span id="cb26-576"><a href="#cb26-576" aria-hidden="true" tabindex="-1"></a>cannot decide. We impose this on the discovered **skeleton**, because the</span>
+<span id="cb26-577"><a href="#cb26-577" aria-hidden="true" tabindex="-1"></a>ordering is knowledge we hold independently of how the data oriented things.</span>
+<span id="cb26-578"><a href="#cb26-578" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-581"><a href="#cb26-581" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-582"><a href="#cb26-582" aria-hidden="true" tabindex="-1"></a>tier_p <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="at">HISEI =</span> <span class="dv">1</span>, <span class="at">HOMEPOS =</span> <span class="dv">1</span>, <span class="at">IMMIG =</span> <span class="dv">0</span>, <span class="at">GRADE =</span> <span class="dv">2</span>, <span class="at">GENDER =</span> <span class="dv">0</span>, <span class="at">MATH =</span> <span class="dv">3</span>)[plabs]</span>
+<span id="cb26-583"><a href="#cb26-583" aria-hidden="true" tabindex="-1"></a>skel_p <span class="ot">&lt;-</span> <span class="fu">amat_to_skel</span>(amat_pcp)</span>
+<span id="cb26-584"><a href="#cb26-584" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-585"><a href="#cb26-585" aria-hidden="true" tabindex="-1"></a>edges_df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(); undir_flag <span class="ot">&lt;-</span> <span class="fu">logical</span>(<span class="dv">0</span>)</span>
+<span id="cb26-586"><a href="#cb26-586" aria-hidden="true" tabindex="-1"></a>pp <span class="ot">&lt;-</span> <span class="fu">length</span>(plabs)</span>
+<span id="cb26-587"><a href="#cb26-587" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(pp<span class="dv">-1</span>)) <span class="cf">for</span> (j <span class="cf">in</span> <span class="fu">seq.int</span>(i<span class="sc">+</span><span class="dv">1</span>, pp)) {</span>
+<span id="cb26-588"><a href="#cb26-588" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (skel_p[i, j] <span class="sc">==</span> <span class="dv">0</span>) <span class="cf">next</span></span>
+<span id="cb26-589"><a href="#cb26-589" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> plabs[i]; b <span class="ot">&lt;-</span> plabs[j]</span>
+<span id="cb26-590"><a href="#cb26-590" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (tier_p[a] <span class="sc">==</span> tier_p[b]) {</span>
+<span id="cb26-591"><a href="#cb26-591" aria-hidden="true" tabindex="-1"></a>    edges_df <span class="ot">&lt;-</span> <span class="fu">rbind</span>(edges_df, <span class="fu">data.frame</span>(<span class="at">from =</span> a, <span class="at">to =</span> b)); undir_flag <span class="ot">&lt;-</span> <span class="fu">c</span>(undir_flag, <span class="cn">TRUE</span>)</span>
+<span id="cb26-592"><a href="#cb26-592" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb26-593"><a href="#cb26-593" aria-hidden="true" tabindex="-1"></a>    lo <span class="ot">&lt;-</span> <span class="cf">if</span> (tier_p[a] <span class="sc">&lt;</span> tier_p[b]) a <span class="cf">else</span> b</span>
+<span id="cb26-594"><a href="#cb26-594" aria-hidden="true" tabindex="-1"></a>    hi <span class="ot">&lt;-</span> <span class="cf">if</span> (tier_p[a] <span class="sc">&lt;</span> tier_p[b]) b <span class="cf">else</span> a</span>
+<span id="cb26-595"><a href="#cb26-595" aria-hidden="true" tabindex="-1"></a>    edges_df <span class="ot">&lt;-</span> <span class="fu">rbind</span>(edges_df, <span class="fu">data.frame</span>(<span class="at">from =</span> lo, <span class="at">to =</span> hi)); undir_flag <span class="ot">&lt;-</span> <span class="fu">c</span>(undir_flag, <span class="cn">FALSE</span>)</span>
+<span id="cb26-596"><a href="#cb26-596" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb26-597"><a href="#cb26-597" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb26-598"><a href="#cb26-598" aria-hidden="true" tabindex="-1"></a>ig_orient <span class="ot">&lt;-</span> igraph<span class="sc">::</span><span class="fu">graph_from_data_frame</span>(edges_df, <span class="at">vertices =</span> plabs)</span>
+<span id="cb26-599"><a href="#cb26-599" aria-hidden="true" tabindex="-1"></a>igraph<span class="sc">::</span><span class="fu">E</span>(ig_orient)<span class="sc">$</span>undirected <span class="ot">&lt;-</span> undir_flag</span>
+<span id="cb26-600"><a href="#cb26-600" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-601"><a href="#cb26-601" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-602"><a href="#cb26-602" aria-hidden="true" tabindex="-1"></a>::: {.callout-warning}</span>
+<span id="cb26-603"><a href="#cb26-603" aria-hidden="true" tabindex="-1"></a>**Where data-driven orientation disagreed with us.** Left to itself, PC oriented</span>
+<span id="cb26-604"><a href="#cb26-604" aria-hidden="true" tabindex="-1"></a><span class="in">`IMMIG–GRADE`</span> as <span class="in">`GRADE → IMMIG`</span> — schooling causing immigration status, which</span>
+<span id="cb26-605"><a href="#cb26-605" aria-hidden="true" tabindex="-1"></a>is impossible. No CI test could have prevented it: the two orientations are</span>
+<span id="cb26-606"><a href="#cb26-606" aria-hidden="true" tabindex="-1"></a>Markov-equivalent. Imposing the tier order overrides it. The lesson: **never</span>
+<span id="cb26-607"><a href="#cb26-607" aria-hidden="true" tabindex="-1"></a>ship a discovered orientation you have prior reason to disbelieve**.</span>
+<span id="cb26-608"><a href="#cb26-608" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb26-609"><a href="#cb26-609" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-612"><a href="#cb26-612" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-613"><a href="#cb26-613" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-pisa-oriented</span></span>
+<span id="cb26-614"><a href="#cb26-614" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "PC skeleton oriented by the temporal/logical tiers. Cross-tier edges point earlier-to-later; HISEI–HOMEPOS stays undirected (same tier)."</span></span>
+<span id="cb26-615"><a href="#cb26-615" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 6</span></span>
+<span id="cb26-616"><a href="#cb26-616" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4.5</span></span>
+<span id="cb26-617"><a href="#cb26-617" aria-hidden="true" tabindex="-1"></a>lay_or <span class="ot">&lt;-</span> igraph<span class="sc">::</span><span class="fu">layout_with_sugiyama</span>(ig_orient)<span class="sc">$</span>layout</span>
+<span id="cb26-618"><a href="#cb26-618" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_orient, <span class="at">layout =</span> lay_or, <span class="at">main =</span> <span class="st">"PC skeleton + tier ordering"</span>)</span>
+<span id="cb26-619"><a href="#cb26-619" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-620"><a href="#cb26-620" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-621"><a href="#cb26-621" aria-hidden="true" tabindex="-1"></a>Every edge into <span class="in">`MATH`</span> is now a candidate causal parent of achievement — the</span>
+<span id="cb26-622"><a href="#cb26-622" aria-hidden="true" tabindex="-1"></a>bridge from discovery to estimation (back-door adjustment on the parents of the</span>
+<span id="cb26-623"><a href="#cb26-623" aria-hidden="true" tabindex="-1"></a>outcome). The only edge the ordering leaves undirected, <span class="in">`HISEI – HOMEPOS`</span>, is</span>
+<span id="cb26-624"><a href="#cb26-624" aria-hidden="true" tabindex="-1"></a>two same-tier measures of family background that temporal logic cannot separate.</span>
+<span id="cb26-625"><a href="#cb26-625" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-626"><a href="#cb26-626" aria-hidden="true" tabindex="-1"></a><span class="fu">### Stability: does the skeleton survive resampling?</span></span>
+<span id="cb26-627"><a href="#cb26-627" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-628"><a href="#cb26-628" aria-hidden="true" tabindex="-1"></a>A single fit can be lucky. We resample students with replacement, re-estimate</span>
+<span id="cb26-629"><a href="#cb26-629" aria-hidden="true" tabindex="-1"></a>the **weighted** PC skeleton, and record how often each edge appears.</span>
+<span id="cb26-630"><a href="#cb26-630" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-633"><a href="#cb26-633" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-634"><a href="#cb26-634" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb26-635"><a href="#cb26-635" aria-hidden="true" tabindex="-1"></a>B_pisa <span class="ot">&lt;-</span> <span class="dv">200</span></span>
+<span id="cb26-636"><a href="#cb26-636" aria-hidden="true" tabindex="-1"></a>boot_once <span class="ot">&lt;-</span> <span class="cf">function</span>(b) {</span>
+<span id="cb26-637"><a href="#cb26-637" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set.seed</span>(<span class="dv">1000</span> <span class="sc">+</span> b)</span>
+<span id="cb26-638"><a href="#cb26-638" aria-hidden="true" tabindex="-1"></a>  idx <span class="ot">&lt;-</span> <span class="fu">sample.int</span>(<span class="fu">nrow</span>(Xp), <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb26-639"><a href="#cb26-639" aria-hidden="true" tabindex="-1"></a>  Xb  <span class="ot">&lt;-</span> Xp[idx, ]; wb <span class="ot">&lt;-</span> wp[idx]</span>
+<span id="cb26-640"><a href="#cb26-640" aria-hidden="true" tabindex="-1"></a>  cwb <span class="ot">&lt;-</span> <span class="fu">cov.wt</span>(Xb, <span class="at">wt =</span> wb, <span class="at">cor =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb26-641"><a href="#cb26-641" aria-hidden="true" tabindex="-1"></a>  neff_b <span class="ot">&lt;-</span> <span class="fu">sum</span>(wb)<span class="sc">^</span><span class="dv">2</span> <span class="sc">/</span> <span class="fu">sum</span>(wb<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb26-642"><a href="#cb26-642" aria-hidden="true" tabindex="-1"></a>  fit <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(<span class="fu">pc</span>(<span class="fu">list</span>(<span class="at">C =</span> cwb<span class="sc">$</span>cor, <span class="at">n =</span> neff_b), <span class="at">indepTest =</span> gaussCItest,</span>
+<span id="cb26-643"><a href="#cb26-643" aria-hidden="true" tabindex="-1"></a>                     <span class="at">labels =</span> plabs, <span class="at">alpha =</span> <span class="fl">0.01</span>), <span class="at">error =</span> <span class="cf">function</span>(e) <span class="cn">NULL</span>)</span>
+<span id="cb26-644"><a href="#cb26-644" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">is.null</span>(fit)) <span class="fu">return</span>(<span class="cn">NULL</span>)</span>
+<span id="cb26-645"><a href="#cb26-645" aria-hidden="true" tabindex="-1"></a>  <span class="fu">amat_to_skel</span>(<span class="fu">amat_from_graph</span>(fit<span class="sc">@</span>graph))</span>
+<span id="cb26-646"><a href="#cb26-646" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb26-647"><a href="#cb26-647" aria-hidden="true" tabindex="-1"></a>ncores <span class="ot">&lt;-</span> <span class="fu">max</span>(<span class="dv">1</span>, parallel<span class="sc">::</span><span class="fu">detectCores</span>() <span class="sc">-</span> <span class="dv">1</span>)</span>
+<span id="cb26-648"><a href="#cb26-648" aria-hidden="true" tabindex="-1"></a>skels  <span class="ot">&lt;-</span> parallel<span class="sc">::</span><span class="fu">mclapply</span>(<span class="fu">seq_len</span>(B_pisa), boot_once, <span class="at">mc.cores =</span> ncores)</span>
+<span id="cb26-649"><a href="#cb26-649" aria-hidden="true" tabindex="-1"></a>skels  <span class="ot">&lt;-</span> skels[<span class="sc">!</span><span class="fu">vapply</span>(skels, is.null, <span class="fu">logical</span>(<span class="dv">1</span>))]</span>
+<span id="cb26-650"><a href="#cb26-650" aria-hidden="true" tabindex="-1"></a>edge_freq <span class="ot">&lt;-</span> <span class="fu">Reduce</span>(<span class="st">`</span><span class="at">+</span><span class="st">`</span>, skels) <span class="sc">/</span> <span class="fu">length</span>(skels)</span>
+<span id="cb26-651"><a href="#cb26-651" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-652"><a href="#cb26-652" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-655"><a href="#cb26-655" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-656"><a href="#cb26-656" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-pisa-stability</span></span>
+<span id="cb26-657"><a href="#cb26-657" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Bootstrap edge-selection frequency (weighted PC, 200 resamples). Edges near 1.0 are robust; near 0.5 are sample-dependent."</span></span>
+<span id="cb26-658"><a href="#cb26-658" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
+<span id="cb26-659"><a href="#cb26-659" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4</span></span>
+<span id="cb26-660"><a href="#cb26-660" aria-hidden="true" tabindex="-1"></a>pairs_df <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(<span class="fu">seq_len</span>(pp<span class="dv">-1</span>), <span class="cf">function</span>(i)</span>
+<span id="cb26-661"><a href="#cb26-661" aria-hidden="true" tabindex="-1"></a>  <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(<span class="fu">seq.int</span>(i<span class="sc">+</span><span class="dv">1</span>, pp), <span class="cf">function</span>(j)</span>
+<span id="cb26-662"><a href="#cb26-662" aria-hidden="true" tabindex="-1"></a>    <span class="fu">data.frame</span>(<span class="at">Edge =</span> <span class="fu">paste</span>(plabs[i], <span class="st">"—"</span>, plabs[j]),</span>
+<span id="cb26-663"><a href="#cb26-663" aria-hidden="true" tabindex="-1"></a>               <span class="at">Frequency =</span> <span class="fu">round</span>(edge_freq[i, j], <span class="dv">2</span>))))))</span>
+<span id="cb26-664"><a href="#cb26-664" aria-hidden="true" tabindex="-1"></a>pairs_df <span class="ot">&lt;-</span> pairs_df[pairs_df<span class="sc">$</span>Frequency <span class="sc">&gt;</span> <span class="dv">0</span>, ]</span>
+<span id="cb26-665"><a href="#cb26-665" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pairs_df, <span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">reorder</span>(Edge, Frequency), <span class="at">y =</span> Frequency)) <span class="sc">+</span></span>
+<span id="cb26-666"><a href="#cb26-666" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>(<span class="at">fill =</span> <span class="st">"steelblue"</span>, <span class="at">alpha =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
+<span id="cb26-667"><a href="#cb26-667" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="fl">0.5</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">colour =</span> <span class="st">"grey50"</span>) <span class="sc">+</span></span>
+<span id="cb26-668"><a href="#cb26-668" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_flip</span>() <span class="sc">+</span> <span class="fu">ylim</span>(<span class="dv">0</span>, <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb26-669"><a href="#cb26-669" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="st">"Selection frequency across bootstrap resamples"</span>) <span class="sc">+</span></span>
+<span id="cb26-670"><a href="#cb26-670" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb26-671"><a href="#cb26-671" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-672"><a href="#cb26-672" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-673"><a href="#cb26-673" aria-hidden="true" tabindex="-1"></a>The family-background→math edges (<span class="in">`HISEI`</span>, <span class="in">`HOMEPOS`</span>) are the most stable</span>
+<span id="cb26-674"><a href="#cb26-674" aria-hidden="true" tabindex="-1"></a>features: the SES gradient in achievement is not an artefact. On real data,</span>
+<span id="cb26-675"><a href="#cb26-675" aria-hidden="true" tabindex="-1"></a>causal discovery is best read as **hypothesis generation** — it proposes a</span>
+<span id="cb26-676"><a href="#cb26-676" aria-hidden="true" tabindex="-1"></a>skeleton and the orientations the data support, which you then reconcile with</span>
+<span id="cb26-677"><a href="#cb26-677" aria-hidden="true" tabindex="-1"></a>subject-matter knowledge before estimating effects.</span>
+<span id="cb26-678"><a href="#cb26-678" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-679"><a href="#cb26-679" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb26-680"><a href="#cb26-680" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-681"><a href="#cb26-681" aria-hidden="true" tabindex="-1"></a>PC and GES target the same Markov equivalence class. PC uses conditional</span>
+<span id="cb26-682"><a href="#cb26-682" aria-hidden="true" tabindex="-1"></a>independence tests; GES uses model fit. If they agree on the skeleton, that</span>
+<span id="cb26-683"><a href="#cb26-683" aria-hidden="true" tabindex="-1"></a>is reassuring. If they disagree, check sample size, model assumptions, and</span>
+<span id="cb26-684"><a href="#cb26-684" aria-hidden="true" tabindex="-1"></a>possible faithfulness problems.</span>
+<span id="cb26-685"><a href="#cb26-685" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-686"><a href="#cb26-686" aria-hidden="true" tabindex="-1"></a>**From CPDAG to causal estimation:** Once a CPDAG is in hand, the workflow continues as follows:</span>
 <span id="cb26-687"><a href="#cb26-687" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-688"><a href="#cb26-688" aria-hidden="true" tabindex="-1"></a>If some edges remain undirected after exhausting background knowledge, you can either report the CPDAG and bound the estimand over the equivalence class, or collect additional interventional data to break the remaining equivalences.</span>
-<span id="cb26-689"><a href="#cb26-689" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-690"><a href="#cb26-690" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
-<span id="cb26-691"><a href="#cb26-691" aria-hidden="true" tabindex="-1"></a>**What cannot be recovered from observational data alone**</span>
-<span id="cb26-692"><a href="#cb26-692" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-693"><a href="#cb26-693" aria-hidden="true" tabindex="-1"></a>Both algorithms identify the CPDAG, not necessarily the true DAG. Some edge</span>
-<span id="cb26-694"><a href="#cb26-694" aria-hidden="true" tabindex="-1"></a>directions require extra assumptions, temporal ordering, or interventional</span>
-<span id="cb26-695"><a href="#cb26-695" aria-hidden="true" tabindex="-1"></a>data.</span>
+<span id="cb26-688"><a href="#cb26-688" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Use background knowledge to orient undirected edges.** Temporal ordering is the most common source: if $X$ is measured before $Y$, the edge must be $X \to Y$. Domain expertise, experimental context, or exclusion restrictions can orient others.</span>
+<span id="cb26-689"><a href="#cb26-689" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Check identifiability.** With a fully oriented DAG, apply the backdoor, front-door, or ID algorithm to determine whether the effect of interest is identifiable.</span>
+<span id="cb26-690"><a href="#cb26-690" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Estimate.** Use the identified functional with the estimators from earlier chapters (RA, IPW, AIPW, TMLE).</span>
+<span id="cb26-691"><a href="#cb26-691" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-692"><a href="#cb26-692" aria-hidden="true" tabindex="-1"></a>If some edges remain undirected after exhausting background knowledge, you can either report the CPDAG and bound the estimand over the equivalence class, or collect additional interventional data to break the remaining equivalences.</span>
+<span id="cb26-693"><a href="#cb26-693" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-694"><a href="#cb26-694" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
+<span id="cb26-695"><a href="#cb26-695" aria-hidden="true" tabindex="-1"></a>**What cannot be recovered from observational data alone**</span>
 <span id="cb26-696"><a href="#cb26-696" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-697"><a href="#cb26-697" aria-hidden="true" tabindex="-1"></a>The next chapter addresses a harder problem: recovering the causal skeleton when some variables are *unobserved*.</span>
-<span id="cb26-698"><a href="#cb26-698" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb26-697"><a href="#cb26-697" aria-hidden="true" tabindex="-1"></a>Both algorithms identify the CPDAG, not necessarily the true DAG. Some edge</span>
+<span id="cb26-698"><a href="#cb26-698" aria-hidden="true" tabindex="-1"></a>directions require extra assumptions, temporal ordering, or interventional</span>
+<span id="cb26-699"><a href="#cb26-699" aria-hidden="true" tabindex="-1"></a>data.</span>
+<span id="cb26-700"><a href="#cb26-700" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-701"><a href="#cb26-701" aria-hidden="true" tabindex="-1"></a>The next chapter addresses a harder problem: recovering the causal skeleton when some variables are *unobserved*.</span>
+<span id="cb26-702"><a href="#cb26-702" aria-hidden="true" tabindex="-1"></a>:::</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

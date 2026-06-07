@@ -50,12 +50,13 @@ p <- 5      # 5 covariates: only X1 is the effect modifier; X2..X5 are noise
 
 X <- matrix(runif(n * p), n, p)
 colnames(X) <- paste0("X", 1:p)
-U <- rnorm(n)
-# Treatment depends on a noise covariate (X2) and U — backdoor confounding
-ps  <- plogis(-0.3 + 1.5 * X[, 2] + 0.5 * U)
+# Treatment depends on the OBSERVED covariate X2 (a backdoor confounder we
+# adjust for), so unconfoundedness given X holds and the estimators are
+# consistent for the true ATE/CATE.
+ps  <- plogis(-0.3 + 1.5 * X[, 2])
 D   <- rbinom(n, 1, ps)
 tau <- 1 + 2 * X[, 1]          # CATE varies along X1 only
-Y0  <- 0.5 * X[, 2] + 0.3 * U + rnorm(n)
+Y0  <- 0.5 * X[, 2] + rnorm(n)
 Y1  <- Y0 + tau
 Y   <- ifelse(D == 1, Y1, Y0)
 
@@ -64,8 +65,10 @@ cat(sprintf("True CATE at X1 = 0.2: %.2f\n", 1 + 2 * 0.2))
 cat(sprintf("True CATE at X1 = 0.8: %.2f\n", 1 + 2 * 0.8))
 ```
 
-Treatment is related to $X_2$ and the unobserved $U$. We include $X_2$ in
-the conditioning set but not $U$, because $U$ is unobserved.
+Treatment is related to the observed covariate $X_2$, which also affects the
+outcome — a backdoor confounder. Because $X_2$ is observed and included in the
+conditioning set, unconfoundedness holds and the meta-learners and causal
+forest below are consistent for the true CATE/ATE.
 
 ## Meta-learners
 

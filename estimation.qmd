@@ -73,19 +73,17 @@ Implementation of linear RA is easy. We regress $Y$ on $X$ and $W$ and their int
 
 ```{r ra1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 data(pension)
-data <- pension %>%
-  mutate(inc_dm=inc-mean(inc), age_dm=age-mean(age))
-
+#  for ATE, de-mean X by deducting the mean of X in the whole sample:
+#  data <- pension %>% mutate(inc_dm=inc-mean(inc), age_dm=age-mean(age))
+#  for ATT (used here), de-mean X by deducting the mean of X in the treated group:
 data <- pension %>%
   mutate(inc_dm=inc-mean(pension$inc[pension$p401==1]), age_dm=age- mean(pension$age[pension$p401==1]))
-#  for ATT, we de-mean X by deducting the mean of X in the treated group
-#  for ATE, we de-mean X by deducting the mean of X in the whole sample
 lm_ra <- lm(net_tfa ~ p401*(inc_dm + age_dm),data=data)
 summary(lm_ra)
 #coeftest(lm_ra, vcov=vcovHC(lm_ra, type='HC2'))[2,]
 ```
 
-After demeaning the covariates, we include all interactions of demeaned covariates with treatment. The coefficient on $W$ is the average treatment effect.
+After demeaning the covariates, we include all interactions of demeaned covariates with treatment. Because we de-meaned at the treated-group means, the coefficient on $W$ is the average treatment effect on the treated (ATT); de-meaning at the whole-sample means instead would give the ATE.
 
 ### Questions on RA
 

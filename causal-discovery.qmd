@@ -119,7 +119,8 @@ graph::nodes(true_dag) <- labels          # rename from "1".."8" to "X1".."X8"
 data_mat  <- rmvDAG(n_samples, true_dag, errDist = "normal")
 colnames(data_mat) <- labels
 
-# Adjacency matrix from the true DAG (entry [i,j] = 1 means i -> j)
+# Adjacency matrix from the true DAG, in the pcalg "ends-at-i" convention:
+# entry [i,j] = 1 means an edge ending at i, i.e. j -> i.
 adj_true  <- t(as(true_dag, "matrix") != 0) * 1
 
 # igraph representation + shared layout for all comparison panels
@@ -210,7 +211,10 @@ A high skeleton F1 with lower CPDAG F1 means the algorithm found the right adjac
 # pcalg convention: amat[i,j] = 1 means an edge that ENDS at i,
 # i.e. a directed edge j -> i (or one endpoint of an undirected edge).
 amat_from_graph <- function(g) {
-  m <- as(g, "matrix") != 0
+  # as(g, "matrix")[i,j] = 1 means i -> j (from->to). Transpose so that
+  # [i,j] = 1 means an edge ending at i (j -> i), matching adj_true's
+  # convention; otherwise CPDAG-F1 compares opposite orientations.
+  m <- t(as(g, "matrix") != 0)
   storage.mode(m) <- "integer"
   m
 }

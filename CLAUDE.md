@@ -64,3 +64,16 @@ To regenerate the simulated datasets: run `Rscript` with the DGP code at the top
 - Data files are in `data/`, images in `images/`
 - CI renders the full book on push to master (no R installed on runner — relies entirely on `_freeze/` cache; new chunks must be rendered locally first)
 - Source slides: `~/projects/claude/causal_econometrics/code/causal_econometrics.qmd`
+
+## Review pass (2026-06-07)
+Math/code audit + fixes across 11 chapters (audit trail: ../_review/). Key corrections:
+- g-methods: stated "true" effects 1.0/0.5 were wrong (correct 1.5/1.0; code was right). Verified by hand: E[Y(a0,a1)]-E[Y(0,0)] = 1.0*a0 + 0.5*a1.
+- causal-discovery: CPDAG-F1 compared transposed adjacency conventions (0.19 → 0.86 after fixing `amat_from_graph`).
+- iv-rdd: compliance types redefined by potential treatments (W(0),W(1)), not observed (Z,W); Wald = LATE not ATE.
+- mediation: NDE/NIE/ATE now computed and printed (was blank).
+- estimation: linear-RA coefficient relabeled ATT (covariates demeaned at treated means).
+- bayesian-causal, heterogeneous-effects: dropped the unobserved confounder U from the propensity → examples now identified; BCF posterior recovers true ATE.
+- sensitivity-analysis: rewrote the broken Manski-bounds formula (proper width-K interval); risk-ratio CI now uses robust sandwich SEs.
+- nonparametric: ψ=E[Y(1)] (a single arm mean), not "the ATE". identification: two-sided positivity 0<π(X)<1.
+- survival-causal: REGENERATED shared data/survival_sim.csv (had zero censoring); added the censoring model the doubly-robust `ate()` requires. Generator: data/gen_survival.R.
+Re-rendered + outputs verified.

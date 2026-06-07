@@ -84,13 +84,15 @@ A0 <- rbinom(n, 1, plogis(-0.5 + 0.8 * L0))
 L1 <- 0.5 * L0 + 1.0 * A0 + rnorm(n)
 # Treatment at t=1 depends on L1
 A1 <- rbinom(n, 1, plogis(-0.5 + 0.8 * L1))
-# Outcome: true effect of EACH treatment is 0.5 → cumulative effect = 1.0
-# But L1 also affects Y directly
+# Outcome: each treatment has a direct effect of 0.5 on Y.
+# A0 ALSO affects Y indirectly through L1 (A0 -> L1 -> Y): the L1 path
+# contributes 1.0 * 0.5 = 0.5, so A0's TOTAL effect is 0.5 + 0.5 = 1.0,
+# while A1's total effect is 0.5. Always-vs-never total effect = 1.5.
 Y <- 0.5 * A0 + 0.5 * A1 + 0.5 * L1 + 0.5 * L0 + rnorm(n)
 
 df <- tibble(L0, A0, L1, A1, Y)
 
-cat("True total effect of always-treated vs never-treated: 1.0\n\n")
+cat("True total effect of always-treated vs never-treated: 1.5\n\n")
 
 # Naive regression 1: ignore L1
 naive_no_L1 <- lm(Y ~ A0 + A1 + L0, data = df)
@@ -157,7 +159,7 @@ E_Y00 <- mean(replicate(B, g_compute(0, 0)))
 
 g_effect <- E_Y11 - E_Y00
 cat(sprintf("G-formula estimate (always treat vs never treat): %.3f\n", g_effect))
-cat("True total effect: 1.0\n")
+cat("True total effect: 1.5\n")
 ```
 
 The important step is simulating $L_1$ under the counterfactual treatment.
@@ -175,11 +177,14 @@ $t=0$:
 
 set.seed(99)
 E_Y10 <- mean(replicate(B, g_compute(1, 0)))
-cat(sprintf("Effect of treating only at t=0:  %.3f  (true = 0.5)\n",
+cat(sprintf("Effect of treating only at t=0:  %.3f  (true = 1.0)\n",
             E_Y10 - E_Y00))
 ```
 
-This recovers the true effect of 0.5 from treating only at $t = 0$.
+This recovers the true effect of 1.0 from treating only at $t = 0$ — the
+direct effect of $A_0$ (0.5) plus its indirect effect through $L_1$ (0.5).
+Note this differs from $A_0$'s *direct* effect alone (0.5): the regime
+$(1,0)$ lets $A_0$ act through the mediator $L_1$.
 
 ## IPTW for time-varying treatments
 
@@ -245,7 +250,7 @@ msm_fit <- svyglm(Y ~ A0 + A1, design = design)
 tidy(msm_fit) |> knitr::kable(digits = 3,
                               caption = "MSM coefficients with stabilized weights")
 
-cat(sprintf("\nMSM total effect (always vs never): %.3f  (true = 1.0)\n",
+cat(sprintf("\nMSM total effect (always vs never): %.3f  (true = 1.5)\n",
             coef(msm_fit)["A0"] + coef(msm_fit)["A1"]))
 ```
 
@@ -301,7 +306,7 @@ summary(ltmle_contrast)
 ```
 
 The contrast output gives the effect of always treating versus never
-treating. In this simulation it should be close to 1.
+treating. In this simulation it should be close to 1.5.
 
 ## Choosing among the four
 

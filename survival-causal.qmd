@@ -229,10 +229,15 @@ df$trt_f <- factor(df$trt)
 cox_for_ate <- coxph(Surv(time, event) ~ trt_f + age + sex, data = df,
                      x = TRUE, y = TRUE)
 ps_for_ate  <- glm(trt_f ~ age + sex, data = df, family = binomial, x = TRUE)
+# With right-censoring, the IPTW/AIPTW survival estimator needs a model for
+# the censoring mechanism (a Cox model for time-to-censoring).
+cens_for_ate <- coxph(Surv(time, event == 0) ~ age + sex, data = df,
+                      x = TRUE, y = TRUE)
 
 ate_surv <- ate(
   event       = cox_for_ate,
   treatment   = ps_for_ate,
+  censor      = cens_for_ate,
   data        = df,
   times       = 5,
   estimator   = c("Gformula", "IPTW", "AIPTW"),

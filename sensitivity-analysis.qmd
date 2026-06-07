@@ -84,7 +84,7 @@ cat(sprintf("\nAdjusted ACE estimate: %.3f kg  (SE = %.3f)\n",
             coef(ols)["qsmk"], summary(ols)$coefficients["qsmk", 2]))
 ```
 
-The adjusted estimate is around 3.5 kg, larger than the unadjusted difference.
+The adjusted estimate is around 3.4 kg, larger than the unadjusted difference.
 But the identification assumption requires that we have controlled for *all*
 relevant confounders. What if we missed one — say, a propensity to gain
 weight that also correlates with quitting decisions? Sensitivity analysis
@@ -165,8 +165,13 @@ rr_fit <- glm(gain ~ qsmk + sex + age + race + education + smokeintensity +
 rr_summary <- tidy(rr_fit, exp = TRUE, conf.int = TRUE)
 
 rr_est <- exp(coef(rr_fit)["qsmk"])
-rr_lo  <- exp(confint.default(rr_fit)["qsmk", 1])
-rr_hi  <- exp(confint.default(rr_fit)["qsmk", 2])
+# The Poisson likelihood is misspecified for a binary outcome (the Zou 2004
+# log-binomial-via-Poisson trick), so the model-based variance is wrong.
+# Use robust (sandwich/HC) standard errors for the RR confidence interval.
+rr_ci  <- lmtest::coefci(rr_fit, parm = "qsmk",
+                         vcov. = sandwich::vcovHC(rr_fit, type = "HC0"))
+rr_lo  <- exp(rr_ci[1])
+rr_hi  <- exp(rr_ci[2])
 
 cat(sprintf("Adjusted RR (quit vs not): %.3f  [%.3f, %.3f]\n",
             rr_est, rr_lo, rr_hi))
@@ -296,11 +301,14 @@ under weaker assumptions.
 The Manski (1990) "no-assumption" bounds say:
 
 $$
-\text{ATE} \in [\mathbb{E}[Y | D=1] - \max Y(1)] \cup [\mathbb{E}[Y | D=0] - \min Y(0)],
+\text{ATE} \in \Big[\; \mathbb{E}[Y|D{=}1]P(D{=}1) - \big(\mathbb{E}[Y|D{=}0]P(D{=}0) + K\,P(D{=}1)\big),\;\;
+\big(\mathbb{E}[Y|D{=}1]P(D{=}1) + K\,P(D{=}0)\big) - \mathbb{E}[Y|D{=}0]P(D{=}0) \;\Big].
 $$
 
-i.e., when outcomes are bounded $Y \in [0, K]$, the ATE is bounded but the
-width is often large. Lee (2009) bounds exploit selection on observables
+Each potential-outcome mean is split by the law of total expectation, filling
+in the unobserved arm with its worst/best case. With outcomes bounded in
+$Y \in [0, K]$, this is a single interval of width exactly $K$ — bounded, but
+often too wide to be useful. Lee (2009) bounds exploit selection on observables
 plus monotonicity to get tighter bounds. Mourifié-Wan provide LATE bounds
 when monotonicity may fail.
 

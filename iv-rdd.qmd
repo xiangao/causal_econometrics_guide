@@ -70,7 +70,7 @@ There are four possible groups of subjects in the case of binary treatment and b
 
 : compliance groups
 
-These four groups (stratum) have different causal mechanisms. For example, the compliers are the only group that is affected by the treatment assignment Z in the same direction. The defiers are the only group that is affected by the treatment assignment Z in the opposite direction. The always-takers and never-takers are not affected by the treatment assignment Z.
+These four groups (strata) have different causal mechanisms. The compliers and defiers are the groups whose *treatment status* responds to the assignment $Z$ — compliers in the same direction as the assignment, defiers in the opposite direction. The always-takers and never-takers take the same treatment regardless of $Z$.
 
 Unfortunately we cannot identify the compliance group by looking at the data.
 
@@ -95,19 +95,19 @@ $$ \small
 \begin{aligned}
 & E[Y(Z=1) - Y(Z=0) | G = C] \\
 &= \frac{E[Y(Z=1) - Y(Z=0)]}{P(W(1)=1, W(0)=0)} \\
-&= \frac{E[Y|Z=1] - E[Y|Z=0]}{1-P(W=0|Z=1)-P(W=1|Z=0)} \text{ (rule out groups A and N) } \\
+&= \frac{E[Y|Z=1] - E[Y|Z=0]}{1-P(W=0|Z=1)-P(W=1|Z=0)} \text{ (monotonicity rules out D; the A and N shares subtract) } \\
 &= \frac{E[Y|Z=1] - E[Y|Z=0]}{P(W=1|Z=1)-P(W=1|Z=0)} \\
-&= \frac{E[Y|Z=1] - E[Y|Z=0]}{E[W|Z=1)-E[W|Z=0]}
+&= \frac{E[Y|Z=1] - E[Y|Z=0]}{E[W|Z=1]-E[W|Z=0]}
 \end{aligned}
 $$
 
 ### Parametric Models
 
-If we assume linearity, then this becomes the ratio of two OLS coefficients, sometimes called the Wald estimator.
+With a binary instrument this is exactly the ratio of two OLS coefficients — no linearity assumption is needed, since a regression on a binary regressor just computes the two group means. This is sometimes called the Wald estimator.
 
 $$
 \begin{aligned}
-\tau_{LATE} &= \frac{E[Y|Z=1] - E[Y|Z=0]}{E[W|Z=1)-E[W|Z=0]} \\
+\tau_{LATE} &= \frac{E[Y|Z=1] - E[Y|Z=0]}{E[W|Z=1]-E[W|Z=0]} \\
 &= \frac{Cov(Y,Z)}{Cov(W,Z)}
 \end{aligned}
 $$
@@ -117,7 +117,7 @@ Why do covariates help? Because we hope even if we don't have exogeneity or excl
 ### Example
 
 ```{r iv1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
-## DGP: data$y <- data$x + data$z + data$u
+## DGP: data$y <- data$w + data$m + data$u
 library(sem)
 set.seed(66)
 nobs=10000
@@ -125,12 +125,13 @@ nDim = 3
 sdww = 1
 sdzz=1
 sdmm=1
-## here we have three variables x,z,w.
-## m is the omitted variable,x and m are correlated,  z is the instrument, which is correlated with x, but not m.  u is independent of everything else.
-crwm=.6
+## here we have three variables w, m, z.
+## m is the omitted variable; w and m are correlated; z is the instrument, which is correlated with w, but not m.  u is independent of everything else.
+## with unit variances, the covariances below ARE the correlations
+crwm=.36
 crmz=0
-crwz=.8
-covarMat = matrix( c(sdww^2, crwm^2, crwz^2, crwm^2, sdmm^2, crmz^2,  crwz^2, crmz^2, sdzz^2 ) , nrow=nDim , ncol=nDim )
+crwz=.64
+covarMat = matrix( c(sdww^2, crwm, crwz, crwm, sdmm^2, crmz,  crwz, crmz, sdzz^2 ) , nrow=nDim , ncol=nDim )
 data  = data.frame(MASS::mvrnorm(n=nobs, mu=rep(0,nDim), Sigma=covarMat ))
 names(data) <- c('w','m','z')
 data$u <- rnorm(nobs,0,1)
@@ -187,10 +188,10 @@ sprintf("DWH test on v_hat: coef = %.4f  se = %.4f  t = %.3f  p = %.4g",
         rho_summary["t value"], rho_summary["Pr(>|t|)"])
 ```
 
-The two $\hat\beta_w$ values agree to machine precision, confirming FWL. The large $|t|$ on $\hat v$ rejects $H_0\!:\rho = 0$, confirming that `w` is endogenous.
+The two $\hat\beta_w$ values agree to machine precision, confirming FWL. The large $|t|$ on $\hat v$ rejects $H_0\!:\rho = 0$, confirming that `w` is endogenous. One caveat: the OLS standard errors from the augmented regression are not valid for $\hat\beta$ ($\hat v$ is a generated regressor; the DWH test is fine because under $H_0$ the first-stage estimation error does not matter). Use 2SLS standard errors, or bootstrap the two stages jointly as we do in the Poisson IV chapter.
 
 ::: {.callout-note}
-**Why FWL fails in nonlinear models.** FWL relies on the residual-maker matrix being idempotent and the second stage being linear — both fail once we replace OLS with Poisson or Probit. In a nonlinear second stage, $\hat v$ must enter *inside* the link function (e.g. $\exp(\mathbf{x}\boldsymbol\beta + \rho \hat v)$), which requires a structural assumption beyond instrument exogeneity. This is the subject of the next chapter.
+**Why FWL fails in nonlinear models.** FWL is a property of linear projections; once we replace OLS with Poisson or Probit, the estimator is no longer a linear projection and the partialling-out logic does not apply. In a nonlinear second stage, $\hat v$ must enter *inside* the link function (e.g. $\exp(\mathbf{x}\boldsymbol\beta + \rho \hat v)$), which requires a structural assumption beyond instrument exogeneity. This is the subject of the next chapter.
 :::
 
 ## When 2SLS with Covariates Is *Actually* LATE
@@ -301,20 +302,25 @@ dml_pliv <- DoubleMLPLIV$new(dml_data,
 dml_pliv$fit()
 b_pliv <- as.numeric(dml_pliv$coef)
 
+se_lin  <- summary(tsls_lin)$coefficients["W", "Std. Error"]
+se_poly <- summary(tsls_poly)$coefficients["W", "Std. Error"]
+se_pliv <- as.numeric(dml_pliv$se)
+
 results <- data.frame(
   Estimator = c("True LATE",
                 "Wald (no covariates)",
                 "TSLS, X linear",
                 "TSLS, poly(X, 7)",
                 "DDML PLIV (DoubleML + ranger)"),
-  Estimate  = c(true_LATE, wald, b_lin, b_poly, b_pliv)
+  Estimate  = c(true_LATE, wald, b_lin, b_poly, b_pliv),
+  SE        = c(NA, NA, se_lin, se_poly, se_pliv)
 )
 print(results, row.names = FALSE, digits = 3)
 ```
 
-The linear-in-$X$ 2SLS does not recover the true LATE. The polynomial 2SLS is closer, and DDML PLIV is closer still. The Wald estimator is far off because $Z$ is not unconditionally exogenous, and Wald has no way to use $X$.
+The linear-in-$X$ 2SLS does not recover the true LATE — and neither do the more flexible versions. Two things are going on, and the standard errors in the table help separate them. First, the estimands differ: for this DGP the linear-projection 2SLS converges to 0.55, and the polynomial 2SLS and DDML PLIV converge to approximately $\beta_{rich} = 0.58$ (computable by integrating the weight formula below), all below the population LATE of 0.60 — a real but modest gap that persists at any sample size. Second, sampling noise: with SEs near 0.06, this particular draw happens to land about 1.5 SEs below its own estimand, which is why the estimates cluster near 0.49–0.51 rather than 0.55–0.58. The Wald estimator is far off for a different reason entirely: $Z$ is not unconditionally exogenous, and Wald has no way to use $X$.
 
-What are the polynomial 2SLS and DDML PLIV estimating, if not LATE? Both target $\beta_{rich}$, a weighted average of conditional LATEs with weights proportional to $\text{Var}(Z \mid X) \cdot P(\text{complier} \mid X)$. It is non-negatively weighted, so it is weakly causal. But it is not the unconditional LATE we usually want.
+What are the polynomial 2SLS and DDML PLIV estimating, if not LATE? PLIV targets $\beta_{rich}$, a weighted average of conditional LATEs with weights proportional to $\text{Var}(Z \mid X) \cdot P(\text{complier} \mid X)$; the polynomial 2SLS targets nearly the same quantity (a degree-7 polynomial cannot fully reproduce this $E[Z \mid X]$, so its estimand is a misspecified-projection variant sitting just below $\beta_{rich}$). These are non-negatively weighted, so weakly causal. But they are not the unconditional LATE we usually want.
 
 ### Diagnostic: RESET on Z ~ X
 
@@ -340,7 +346,7 @@ In our DGP it rejects strongly. The same test on real data is cheap, and it tell
    \hat\beta_{late} = \frac{\sum_i Y_i [Z_i/\hat p(X_i) - (1-Z_i)/(1-\hat p(X_i))]}{\sum_i W_i [Z_i/\hat p(X_i) - (1-Z_i)/(1-\hat p(X_i))]},
    $$
 
-   where $\hat p(X) = P(Z = 1 \mid X)$ is estimated nonparametrically. Stata has `ipsw`. In R it is straightforward to build once $\hat p(X)$ is in hand.
+   where $\hat p(X) = P(Z = 1 \mid X)$ is estimated nonparametrically. Stata has `kappalate` (Słoczyński, Uysal and Wooldridge), which implements this and related weighting estimators of the LATE. In R it is straightforward to build once $\hat p(X)$ is in hand.
 
 ### A Note on the FRDD Example
 

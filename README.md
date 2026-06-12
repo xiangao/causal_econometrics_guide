@@ -22,7 +22,7 @@ CI auto-publishes to GitHub Pages on push to `master` via `.github/workflows/pub
 
 ## Requirements
 
-R with the following CRAN packages: `ggplot2`, `ggdag`, `dagitty`, `causaleffect`, `tidyverse`, `haven`, `causaldata`, `hdm`, `SuperLearner`, `npcausal`, `tmle`, `DoubleML`, `mlr3`, `mlr3learners`, `did`, `etwfe`, `fixest`, `synthdid`, `sem`, `MASS`, `rdrobust`, `gmm`, `lavaan`, `medoutcon`, `pcalg`.
+R with the following CRAN packages: `ggplot2`, `ggdag`, `dagitty`, `causaleffect`, `tidyverse`, `haven`, `causaldata`, `hdm`, `SuperLearner`, `tmle`, `DoubleML`, `mlr3`, `mlr3learners`, `did`, `etwfe`, `fixest`, `synthdid`, `sem`, `MASS`, `rdrobust`, `gmm`, `lavaan`, `pcalg`.
 
 Bioconductor packages (required by `pcalg`): `graph`, `RBGL`, `Rgraphviz`. Install once via:
 
@@ -32,4 +32,13 @@ BiocManager::install(c("graph", "RBGL", "Rgraphviz"))
 install.packages("pcalg")
 ```
 
+GitHub-only packages:
+
+```r
+remotes::install_github("ehkennedy/npcausal")
+remotes::install_github("nhejazi/medoutcon")
+```
+
 > **2026-06-07:** Math/code review pass — see `CLAUDE.md` (Review pass section) for the list of corrections. Audit trail in `../_review/`.
+>
+> **2026-06-12:** Second review pass (derivation-focused, all 20 chapters; audit trail in `../_review2/`, fixes in `../_review2/FIXLOG.md`). Highlights: repaired policy-tree example (3-action score-matrix bug), panel causal-forest DGP (no actual FE confounding + wrong stated truth), interventional-effects decomposition now matches the `medoutcon` estimand, stabilized-weight display, PC α-tradeoff direction, True-MAG endpoint encoding (arrows were reversed), and the non-identifiability `causaleffect` example (was identifiable as coded).

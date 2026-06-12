@@ -121,11 +121,13 @@ R's `pcalg` package provides two algorithms for the latent-variable case:
 
 | Algorithm | Output | Cost |
 |---|---|---|
-| **FCI** (Spirtes, Meek & Richardson, 1995) | Full PAG (skeleton + all orientation marks) | Expensive: 10 orientation rules, many CI tests |
-| **RFCI** (Colombo, Maathuis, Kalisch & Richardson, 2012) | Skeleton + partial orientations | Cheap: skips the most expensive CI tests |
+| **FCI** (Spirtes, Meek & Richardson, 1995) | Full PAG (skeleton + all orientation marks) | Expensive: the Possible-D-SEP stage performs many additional CI tests |
+| **RFCI** (Colombo, Maathuis, Kalisch & Richardson, 2012) | PAG with possibly fewer/weaker orientations | Cheaper: skips the Possible-D-SEP tests |
 
-RFCI gives fewer orientations than FCI, but its skeleton targets the same
-object. It is a faster screening tool.
+RFCI can give fewer orientations than FCI, and its skeleton converges to a
+(uniquely defined) *supergraph* of the true PAG skeleton — in special
+configurations it retains an edge FCI would remove, though on many graphs the
+two coincide. It is a faster screening tool.
 
 ## Simulation with Hidden Variables
 
@@ -193,8 +195,10 @@ true_mag_amat <- function(dag, observed_names) {
     if (sep) next
     anc_u <- ancestors_of(dag, u)
     anc_v <- ancestors_of(dag, v)
-    if      (u %in% anc_v) { amat[i, j] <- 3L; amat[j, i] <- 2L }   # u -> v
-    else if (v %in% anc_u) { amat[i, j] <- 2L; amat[j, i] <- 3L }   # v -> u
+    # pcalg amat.pag convention: amat[i, j] is the mark AT j
+    # (u -> v means arrowhead (2) at v, tail (3) at u)
+    if      (u %in% anc_v) { amat[i, j] <- 2L; amat[j, i] <- 3L }   # u -> v
+    else if (v %in% anc_u) { amat[i, j] <- 3L; amat[j, i] <- 2L }   # v -> u
     else                   { amat[i, j] <- 2L; amat[j, i] <- 2L }   # u <-> v
   }
   amat
@@ -243,9 +247,9 @@ produce bidirected edges for hidden common causes.
 **How FCI extends PC:**
 
 1. **Phase 1 (skeleton):** Same as PC — remove edges via CI tests with growing conditioning sets.
-2. **Phase 2 (initial orientation):** Mark all edge endpoints as $\circ$ (uncertain).
-3. **Phase 3 (collider detection):** For each unshielded triple $X \;\circ\!-\!\circ\; Z \;\circ\!-\!\circ\; Y$ with $X, Y$ non-adjacent: orient as $X \;\circ\!\!\!\to Z \leftarrow\!\!\!\circ\; Y$ if $Z$ is not in the separating set of $X$ and $Y$.
-4. **Phase 4 (rule propagation):** Apply 10 orientation rules that propagate known marks without creating contradictions, including rules that can produce definite $\to$ and $\leftrightarrow$ edges.
+2. **Phase 2 (initial orientation):** Mark all edge endpoints as $\circ$ (uncertain); orient unshielded colliders as in PC.
+3. **Phase 3 (Possible-D-SEP pruning):** For each remaining edge $X - Y$, compute the **Possible-D-SEP** sets and run *additional* CI tests conditioning on their subsets, removing further edges. With latent variables, two non-adjacent nodes need not be separable by a subset of their neighbors — this stage is what makes FCI's skeleton differ from PC's, and it is the expensive part (the number of subsets can grow exponentially). Colliders are then re-oriented on the pruned skeleton.
+4. **Phase 4 (rule propagation):** Apply the 10 orientation rules of @zhang-2008-orientation-rules (as implemented in `pcalg`) that propagate known marks without creating contradictions, including rules that can produce definite $\to$ and $\leftrightarrow$ edges. These rules perform no CI tests and are computationally cheap.
 
 The extra marks let FCI say what is known and what remains uncertain, but the
 output is harder to read than a DAG.
@@ -271,8 +275,8 @@ ci_tests_fci <- ci_fci$count()
 
 ```{r}
 # pcalg PAG amat encoding: 0 = no edge, 1 = circle, 2 = arrowhead, 3 = tail.
-# An edge between i and j is described by amat[i,j] (mark at i)
-# and amat[j,i] (mark at j).
+# An edge between i and j is described by amat[i,j] (the mark AT j)
+# and amat[j,i] (the mark AT i).
 pag_skeleton_amat <- function(amat) {
   out <- (amat != 0 | t(amat) != 0) * 1L
   diag(out) <- 0L
@@ -306,7 +310,7 @@ plot_ig(ig_fci, layout = obs_layout)
 
 In `pcalg`'s plot output:
 
-- A **plain arrow** $X \to Y$ is a definite direct cause (in every equivalent MAG).
+- A **plain arrow** $X \to Y$ is a definite cause — $X$ is an ancestor of $Y$ in every equivalent MAG. It need not be a *direct* effect: the path may run through latent mediators (the DAG $X \to L \to Y$ with $L$ hidden yields the MAG $X \to Y$).
 - A **double-headed arrow** $X \leftrightarrow Y$ is a definite hidden common cause.
 - A **circle endpoint** is the $\circ$ mark — uncertain at that endpoint.
 
@@ -317,13 +321,13 @@ In practice for economic research: focus first on $\leftrightarrow$ edges — th
 
 ## RFCI Algorithm
 
-**RFCI** (Really Fast Causal Inference; Colombo et al., 2012) replaces FCI's expensive Phase 4 with a leaner orientation phase that uses only a subset of the orientation rules — the ones whose validity does not require expensive *additional* CI tests on triples or quadruples.
+**RFCI** (Really Fast Causal Inference; Colombo et al., 2012) skips FCI's expensive **Possible-D-SEP pruning stage** entirely — the stage responsible for most of FCI's CI tests. To stay sound without it, RFCI adds a few extra CI tests of its own inside the collider and discriminating-path checks; the orientation-rule propagation is kept.
 
 **Key differences from FCI:**
 
-1. **Skeleton phase:** identical to FCI.
-2. **Collider check:** before orienting an unshielded triple as a collider, RFCI runs *additional* CI tests to verify the orientation. This costs more in Phase 3 but means RFCI can safely *skip* the expensive Phase 4 rules.
-3. **Orientation output:** RFCI produces a *partial* PAG. Some edges that FCI orients are left as $\circ\!-\!\circ$ in RFCI; conversely, every edge RFCI does orient is guaranteed correct under the same asymptotic conditions.
+1. **Skeleton phase:** the PC-style skeleton search is the same, but RFCI does **not** run the Possible-D-SEP removals — this is where the savings come from, and why its skeleton can retain extra edges (it converges to a supergraph of the PAG skeleton).
+2. **Collider check:** before orienting an unshielded triple as a collider, RFCI runs *additional* CI tests to verify the orientation — a modest extra cost that restores soundness without the Possible-D-SEP stage.
+3. **Orientation output:** RFCI produces a *partial* PAG. Some edges that FCI orients are left as $\circ\!-\!\circ$ in RFCI; conversely, every mark RFCI does output is asymptotically correct under the same conditions.
 
 In practice, the skeleton is often the main output: it tells us which pairs
 need substantive attention. Full PAG orientations are useful, but they are
@@ -423,7 +427,7 @@ kable(mc_summary,
 
 ```{r}
 #| label: fig-latent-mc
-#| fig-cap: "CI-test count distributions across 100 replications. RFCI's lighter Phase 4 typically — though not always — runs fewer tests than FCI."
+#| fig-cap: "CI-test count distributions across 100 replications. By skipping the Possible-D-SEP tests, RFCI typically — though not always — runs fewer tests than FCI."
 #| fig-width: 7
 #| fig-height: 4
 #| warning: false
@@ -446,9 +450,9 @@ ggplot(mc_long, aes(x = ci, fill = method)) +
 |---|---|---|---|
 | Latent confounders | ✗ assumes none | ✓ handles | ✓ handles |
 | Output | CPDAG | Full PAG | Skeleton + partial PAG |
-| Skeleton consistency | ✓ | ✓ | ✓ |
+| Skeleton consistency | ✓ | ✓ | converges to a slight supergraph |
 | Orientation coverage | full | full (under faithfulness) | partial (conservative) |
-| CI cost | PC: PC's cost; GES: none | FCI's full Phase 4 | reduced Phase 4 |
+| CI cost | PC: PC's cost; GES: none | skeleton + Possible-D-SEP tests | skeleton only (no Possible-D-SEP) |
 
 FCI and RFCI serve different purposes. Use FCI when orientations matter. Use
 RFCI when the goal is a faster skeleton screen.

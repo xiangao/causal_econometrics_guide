@@ -17,7 +17,7 @@ Once we have identification, which means we can identify the causal effect from 
 
 ## Experimental Data
 
-If we have experimental data, then we have the assumptions satisfied. We can directly compare the treated and control groups. We can use a difference-in-means estimator. $$ \hat{\tau_{ATT}} = \bar Y_1 - \bar Y_0 $$
+If we have experimental data, then we have the assumptions satisfied. We can directly compare the treated and control groups. We can use a difference-in-means estimator (under randomisation ATE = ATT = ATU, so no subscript is needed): $$ \hat{\tau} = \bar Y_1 - \bar Y_0 $$
 
 In experimental setting, we can do a t test for the difference in means. We can also do a regression of $Y$ on $W$ and $X$.
 
@@ -58,8 +58,8 @@ where $\hat \mu_0(X_i)$ is the predicted value of $Y_i$ from a regression of $Y$
 
 Target: $$  \begin{align}
 \tau_{ATT} &= E[Y|W=1] - E[Y(0)|W=1] \\
-&= E[Y|W=1, X] - \mu_0(X)  \\
-& = E[Y|W=1, X] - (\alpha_0 + E(X) \beta_0)
+&= E[Y|W=1] - E[\mu_0(X) | W=1]  \\
+& = E[Y|W=1] - (\alpha_0 + E[X|W=1] \beta_0)
 \end{align}
 $$
 
@@ -92,7 +92,7 @@ After demeaning the covariates, we include all interactions of demeaned covariat
 
 Answers:
 
-1.  It has been shown (Słoczyński (2022, REStat)) that with heterogeneous treatment effect, and unequal divide between treated and control, we need to do the interaction term. Otherwise, we'll get biased estimates, for $\tau_{ATT}$ or $\tau_{ATE}$. The intuition is that we need to model the difference between treated and control, and the difference is not constant across $X$.
+1.  It has been shown [@sloczynski-2022] that with heterogeneous treatment effect, and unequal divide between treated and control, we need to do the interaction term. Otherwise, we'll get biased estimates, for $\tau_{ATT}$ or $\tau_{ATE}$. The intuition is that we need to model the difference between treated and control, and the difference is not constant across $X$.
 2.  If we don't de-mean $X$, then the coefficient on $W$ is not the average treatment effect. We can still retrieve the ATT or ATE by calculating the marginal effect of $W$ though.
 
 ## IPW
@@ -100,9 +100,9 @@ Answers:
 Under unconfoundedness and overlap,
 
 $$ \small \begin{align}
-E[Y(w)] &= E[E[y|W=w,X]] \\
-&= \sum_x (\sum_y P(y|w,x)) P(x) \\
-&= \sum_x \sum_y P(y|w,x)) P(x) {\frac{P(w|x)}{P(w|x)}} \\
+E[Y(w)] &= E[E[Y|W=w,X]] \\
+&= \sum_x (\sum_y y P(y|w,x)) P(x) \\
+&= \sum_x \sum_y y P(y|w,x) P(x) {\frac{P(w|x)}{P(w|x)}} \\
 &= \sum_x \sum_y y P(y,w,x) {\frac{1}{P(w|x)}} \\
 &= \sum_x E[\mathbb{1}(W=w,X=x)Y] {\frac{1}{P(w|x)}} \\
 &= E[\frac{\mathbb{1}(W=w)Y} {P(w|X)}]
@@ -113,7 +113,7 @@ The IPW equation means that the expected value of the potential outcome is the w
 
 $$ \begin{align}
 \tau_{ATE} &= E[Y(1)] - E[Y(0)] \\
-&= E[\frac{W Y} {\pi_1(X)}] - E[\frac{(1-W) Y} {1-\pi_1(X)}] \\
+&= E[\frac{W Y} {\pi(X)}] - E[\frac{(1-W) Y} {1-\pi(X)}] \\
 \end{align}
 $$
 
@@ -125,9 +125,14 @@ $$ \begin{align}
 $$
 
 $$ \begin{align}
-\hat \tau_{ATT, IPW} &= \bar Y_1 - \frac{1}{N_1} \sum_i \frac{(1-W_i) Y_i} {1-\hat \pi(X_i)}
+\hat \tau_{ATT, IPW} &= \bar Y_1 - \frac{1}{N_1} \sum_i \frac{\hat\pi(X_i)}{1-\hat \pi(X_i)} (1-W_i) Y_i
 \end{align}
 $$
+
+For the ATT, control units are weighted by the odds $\hat\pi(X_i)/(1-\hat\pi(X_i))$
+rather than $1/(1-\hat\pi(X_i))$: this reweights the controls to the covariate
+distribution of the treated (one can check
+${\rm E}[\frac{\pi(X)}{1-\pi(X)}(1-W)Y] = P(W=1)\, {\rm E}[Y(0)|W=1]$).
 
 ### IPW Intuition
 
@@ -141,9 +146,14 @@ We can model both outcome and treatment assignment, and use both models to estim
 
 ### AIPW
 
-$$ \mu_1^{AIPW} = E[\frac{W(Y-\mu_1(X))}{\pi(X)} + \mu_1(X)] $$
+$$ \psi_1^{AIPW} = E[\frac{W(Y-\mu_1(X))}{\pi(X)} + \mu_1(X)] $$
 
-$$ \mu_0^{AIPW} = E[\frac{(1-W)(Y-\mu_0(X))}{1-\pi(X)} + \mu_0(X)] $$
+$$ \psi_0^{AIPW} = E[\frac{(1-W)(Y-\mu_0(X))}{1-\pi(X)} + \mu_0(X)] $$
+
+Here $\mu_w(X)=E[Y|W=w,X]$ is the outcome-model nuisance function, while the
+scalar $\psi_w^{AIPW}$ equals $E[Y(w)]$ as long as either the outcome model
+or the propensity score is correctly specified; the ATE is
+$\psi_1^{AIPW}-\psi_0^{AIPW}$.
 
 ```{r aipw1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 data <- read_dta(file="https://www.stata-press.com/data/r18/cattaneo2.dta")
@@ -167,7 +177,7 @@ The idea of IPWRA is to combine RA and IPW. Basically RA with IPW weights.
 Implementation:
 
 -   Estimate propensity score. Get predicted probability of treated for each observation.
--   Estimate outcome model. But cannot use fully interaction of treatment and covariates. Instead, estimate two equations, one for treated and one for control. Use $1/\hat \pi(X)$ as weights for treated group and $1/(1-\hat \pi(X))$ as weights for control group.
+-   Estimate outcome model with the IPW weights: two separate equations, one for treated (weights $1/\hat \pi(X)$) and one for control (weights $1/(1-\hat \pi(X))$). Equivalently, one weighted regression with full treatment–covariate interaction — the interacted design matrix is block-diagonal across the two groups, so the weighted normal equations decouple and the two routes give identical fits.
 -   Get predicted values for setting everyone treated. Get predicted values for setting everyone control. These are the two potential outcomes.
 -   Take difference. The average is the ATE.
 

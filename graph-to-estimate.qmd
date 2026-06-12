@@ -210,10 +210,14 @@ cause and there is no front-door variable, the effect is not identified.
 #| label: not-identified
 #| cache: true
 
-# A → Y with unmeasured confounding (A <-> Y) and no mediator
-g_unident_ig <- graph_from_literal(A -+ Y, Y -+ A)
+# A → Y with unmeasured confounding (A <-> Y) and no mediator: the "bow"
+# graph needs THREE igraph edges — the directed A → Y plus the
+# bidirected pair (encoded as two opposite edges marked "U").
+# graph_from_literal() silently collapses a duplicated A -+ Y, so we
+# build the multigraph with make_graph().
+g_unident_ig <- make_graph(c("A","Y",  "A","Y",  "Y","A"), directed = TRUE)
 g_unident_ig <- set_edge_attr(g_unident_ig, "description",
-                               index = 1:2, value = "U")
+                               index = 2:3, value = "U")
 
 result <- tryCatch(
   causal.effect(y = "Y", x = "A", G = g_unident_ig, simp = TRUE),
@@ -222,8 +226,8 @@ result <- tryCatch(
 cat("Result from causal.effect:\n", result, "\n")
 ```
 
-`causaleffect` returns an error or `FALSE`, indicating the effect is not
-identifiable. The honest response in applied work is to report the
+`causaleffect` raises an error ("Not identifiable"), which the `tryCatch`
+captures, indicating the effect is not identifiable. The honest response in applied work is to report the
 non-identifiability, then either:
 
 1. Find additional variables that close the unmeasured-confounding paths
@@ -250,8 +254,11 @@ pc_fit   <- pc(suffStat, indepTest = gaussCItest,
                alpha = 0.05, p = ncol(data_obs))
 
 # Step 2: check for backdoor adjustment set using dagitty
-# (convert pcalg CPDAG → dagitty for convenience)
-g_dag <- pcalg2dagitty(as(pc_fit@graph, "matrix"),
+# (convert pcalg CPDAG → dagitty for convenience).
+# NOTE the t(): as(graphNEL, "matrix") is from→to, but pcalg2dagitty
+# expects the amat.cpdag coding, which is its transpose — without it
+# every directed edge is silently reversed.
+g_dag <- pcalg2dagitty(t(as(pc_fit@graph, "matrix")),
                         colnames(data_obs), type = "cpdag")
 sets  <- adjustmentSets(g_dag, exposure = "A", outcome = "Y")
 

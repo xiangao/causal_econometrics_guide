@@ -52,7 +52,27 @@ div.sourceCode
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="site_libs/quarto-nav/headroom.min.js"></script>
@@ -455,7 +475,7 @@ window.Quarto = {
 </header><p>Once we have identification, which means we can identify the causal effect from the observed data, we can move to estimation. Estimation is to estimate the identified causal effect from the observed data. We have several methods for estimation, including regression adjustment (RA), inverse probability weighting (IPW), augmented inverse probability weighting (AIPW) and inverse probability weighted regression adjustment (IPWRA).</p>
 <section id="experimental-data" class="level2" data-number="6.1"><h2 data-number="6.1" class="anchored" data-anchor-id="experimental-data">
 <span class="header-section-number">6.1</span> Experimental Data</h2>
-<p>If we have experimental data, then we have the assumptions satisfied. We can directly compare the treated and control groups. We can use a difference-in-means estimator. <span class="math display">\[ \hat{\tau_{ATT}} = \bar Y_1 - \bar Y_0 \]</span></p>
+<p>If we have experimental data, then we have the assumptions satisfied. We can directly compare the treated and control groups. We can use a difference-in-means estimator (under randomisation ATE = ATT = ATU, so no subscript is needed): <span class="math display">\[ \hat{\tau} = \bar Y_1 - \bar Y_0 \]</span></p>
 <p>In experimental setting, we can do a t test for the difference in means. We can also do a regression of <span class="math inline">\(Y\)</span> on <span class="math inline">\(W\)</span> and <span class="math inline">\(X\)</span>.</p>
 </section><section id="adjustment-formula" class="level2" data-number="6.2"><h2 data-number="6.2" class="anchored" data-anchor-id="adjustment-formula">
 <span class="header-section-number">6.2</span> Adjustment Formula</h2>
@@ -486,8 +506,8 @@ E[Y(1)-Y(0)] &amp;= E[Y(1)] - E[Y(0)] \\
 <p>where <span class="math inline">\(\hat \mu_0(X_i)\)</span> is the predicted value of <span class="math inline">\(Y_i\)</span> from a regression of <span class="math inline">\(Y\)</span> on <span class="math inline">\(X\)</span> for the control group.</p>
 <p>Target: <span class="math display">\[  \begin{align}
 \tau_{ATT} &amp;= E[Y|W=1] - E[Y(0)|W=1] \\
-&amp;= E[Y|W=1, X] - \mu_0(X)  \\
-&amp; = E[Y|W=1, X] - (\alpha_0 + E(X) \beta_0)
+&amp;= E[Y|W=1] - E[\mu_0(X) | W=1]  \\
+&amp; = E[Y|W=1] - (\alpha_0 + E[X|W=1] \beta_0)
 \end{align}
 \]</span></p>
 <p>The last term is a linear form of <span class="math inline">\(\mu_0(X)\)</span>. We can specify other forms, but the idea is to model it with some functional form. For parametric forms, we need to make sure extrapolation does not go out of control.</p>
@@ -539,15 +559,15 @@ F-statistic: 462.9 on 5 and 9909 DF,  p-value: &lt; 2.2e-16</code></pre>
 </ol>
 <p>Answers:</p>
 <ol type="1">
-<li>It has been shown (Słoczyński (2022, REStat)) that with heterogeneous treatment effect, and unequal divide between treated and control, we need to do the interaction term. Otherwise, we’ll get biased estimates, for <span class="math inline">\(\tau_{ATT}\)</span> or <span class="math inline">\(\tau_{ATE}\)</span>. The intuition is that we need to model the difference between treated and control, and the difference is not constant across <span class="math inline">\(X\)</span>.</li>
+<li>It has been shown <span class="citation" data-cites="sloczynski-2022">(<a href="references.html#ref-sloczynski-2022" role="doc-biblioref">Słoczyński 2022</a>)</span> that with heterogeneous treatment effect, and unequal divide between treated and control, we need to do the interaction term. Otherwise, we’ll get biased estimates, for <span class="math inline">\(\tau_{ATT}\)</span> or <span class="math inline">\(\tau_{ATE}\)</span>. The intuition is that we need to model the difference between treated and control, and the difference is not constant across <span class="math inline">\(X\)</span>.</li>
 <li>If we don’t de-mean <span class="math inline">\(X\)</span>, then the coefficient on <span class="math inline">\(W\)</span> is not the average treatment effect. We can still retrieve the ATT or ATE by calculating the marginal effect of <span class="math inline">\(W\)</span> though.</li>
 </ol></section></section><section id="ipw" class="level2" data-number="6.5"><h2 data-number="6.5" class="anchored" data-anchor-id="ipw">
 <span class="header-section-number">6.5</span> IPW</h2>
 <p>Under unconfoundedness and overlap,</p>
 <p><span class="math display">\[ \small \begin{align}
-E[Y(w)] &amp;= E[E[y|W=w,X]] \\
-&amp;= \sum_x (\sum_y P(y|w,x)) P(x) \\
-&amp;= \sum_x \sum_y P(y|w,x)) P(x) {\frac{P(w|x)}{P(w|x)}} \\
+E[Y(w)] &amp;= E[E[Y|W=w,X]] \\
+&amp;= \sum_x (\sum_y y P(y|w,x)) P(x) \\
+&amp;= \sum_x \sum_y y P(y|w,x) P(x) {\frac{P(w|x)}{P(w|x)}} \\
 &amp;= \sum_x \sum_y y P(y,w,x) {\frac{1}{P(w|x)}} \\
 &amp;= \sum_x E[\mathbb{1}(W=w,X=x)Y] {\frac{1}{P(w|x)}} \\
 &amp;= E[\frac{\mathbb{1}(W=w)Y} {P(w|X)}]
@@ -556,7 +576,7 @@ E[Y(w)] &amp;= E[E[y|W=w,X]] \\
 <p>The IPW equation means that the expected value of the potential outcome is the weighted average of the observed outcome, where the weight is the inverse of the propensity score <span class="math inline">\(P(w|x)\)</span>. <span class="math inline">\(\mathbb{1}(W=w)\)</span> is an indicator function, which is 1 if <span class="math inline">\(W=w\)</span> and 0 otherwise.</p>
 <p><span class="math display">\[ \begin{align}
 \tau_{ATE} &amp;= E[Y(1)] - E[Y(0)] \\
-&amp;= E[\frac{W Y} {\pi_1(X)}] - E[\frac{(1-W) Y} {1-\pi_1(X)}] \\
+&amp;= E[\frac{W Y} {\pi(X)}] - E[\frac{(1-W) Y} {1-\pi(X)}] \\
 \end{align}
 \]</span></p>
 <p>The sample estimators are:</p>
@@ -565,9 +585,10 @@ E[Y(w)] &amp;= E[E[y|W=w,X]] \\
 \end{align}
 \]</span></p>
 <p><span class="math display">\[ \begin{align}
-\hat \tau_{ATT, IPW} &amp;= \bar Y_1 - \frac{1}{N_1} \sum_i \frac{(1-W_i) Y_i} {1-\hat \pi(X_i)}
+\hat \tau_{ATT, IPW} &amp;= \bar Y_1 - \frac{1}{N_1} \sum_i \frac{\hat\pi(X_i)}{1-\hat \pi(X_i)} (1-W_i) Y_i
 \end{align}
 \]</span></p>
+<p>For the ATT, control units are weighted by the odds <span class="math inline">\(\hat\pi(X_i)/(1-\hat\pi(X_i))\)</span> rather than <span class="math inline">\(1/(1-\hat\pi(X_i))\)</span>: this reweights the controls to the covariate distribution of the treated (one can check <span class="math inline">\({\rm E}[\frac{\pi(X)}{1-\pi(X)}(1-W)Y] = P(W=1)\, {\rm E}[Y(0)|W=1]\)</span>).</p>
 <section id="ipw-intuition" class="level3" data-number="6.5.1"><h3 data-number="6.5.1" class="anchored" data-anchor-id="ipw-intuition">
 <span class="header-section-number">6.5.1</span> IPW Intuition</h3>
 <p>IPW removes confounding <span class="math inline">\(X\)</span> by creating a pseudo-population in which <span class="math inline">\(X\)</span> is independent of <span class="math inline">\(W\)</span>. The intuition is that we can create a pseudo-population in which <span class="math inline">\(X\)</span> is independent of <span class="math inline">\(W\)</span>, by weighting the observations by the inverse of the propensity score. Once <span class="math inline">\(X\)</span> is independent of <span class="math inline">\(W\)</span>, <span class="math inline">\(X\)</span> is not a confounder anymore. We can then estimate the effect of <span class="math inline">\(W\)</span> on <span class="math inline">\(Y\)</span> by comparing the weighted average of <span class="math inline">\(Y\)</span> for <span class="math inline">\(W=1\)</span> and <span class="math inline">\(W=0\)</span>.</p>
@@ -577,8 +598,9 @@ E[Y(w)] &amp;= E[E[y|W=w,X]] \\
 <p>We can model both outcome and treatment assignment, and use both models to estimate the treatment effect. The intuition is that if either model is correct, the estimator will be consistent. The estimator is called doubly robust because it is robust to either model being misspecified.</p>
 <section id="aipw" class="level3" data-number="6.6.1"><h3 data-number="6.6.1" class="anchored" data-anchor-id="aipw">
 <span class="header-section-number">6.6.1</span> AIPW</h3>
-<p><span class="math display">\[ \mu_1^{AIPW} = E[\frac{W(Y-\mu_1(X))}{\pi(X)} + \mu_1(X)] \]</span></p>
-<p><span class="math display">\[ \mu_0^{AIPW} = E[\frac{(1-W)(Y-\mu_0(X))}{1-\pi(X)} + \mu_0(X)] \]</span></p>
+<p><span class="math display">\[ \psi_1^{AIPW} = E[\frac{W(Y-\mu_1(X))}{\pi(X)} + \mu_1(X)] \]</span></p>
+<p><span class="math display">\[ \psi_0^{AIPW} = E[\frac{(1-W)(Y-\mu_0(X))}{1-\pi(X)} + \mu_0(X)] \]</span></p>
+<p>Here <span class="math inline">\(\mu_w(X)=E[Y|W=w,X]\)</span> is the outcome-model nuisance function, while the scalar <span class="math inline">\(\psi_w^{AIPW}\)</span> equals <span class="math inline">\(E[Y(w)]\)</span> as long as either the outcome model or the propensity score is correctly specified; the ATE is <span class="math inline">\(\psi_1^{AIPW}-\psi_0^{AIPW}\)</span>.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu">read_dta</span><span class="op">(</span>file<span class="op">=</span><span class="st">"https://www.stata-press.com/data/r18/cattaneo2.dta"</span><span class="op">)</span></span>
 <span><span class="va">mu</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html">lm</a></span><span class="op">(</span><span class="va">bweight</span> <span class="op">~</span> <span class="va">mbsmoke</span><span class="op">*</span><span class="op">(</span><span class="va">prenatal1</span> <span class="op">+</span> <span class="va">mmarried</span> <span class="op">+</span> <span class="va">mage</span> <span class="op">+</span> <span class="va">fbaby</span><span class="op">)</span>, data<span class="op">=</span><span class="va">data</span><span class="op">)</span></span>
@@ -605,7 +627,7 @@ E[Y(w)] &amp;= E[E[y|W=w,X]] \\
 <p>Implementation:</p>
 <ul>
 <li>Estimate propensity score. Get predicted probability of treated for each observation.</li>
-<li>Estimate outcome model. But cannot use fully interaction of treatment and covariates. Instead, estimate two equations, one for treated and one for control. Use <span class="math inline">\(1/\hat \pi(X)\)</span> as weights for treated group and <span class="math inline">\(1/(1-\hat \pi(X))\)</span> as weights for control group.</li>
+<li>Estimate outcome model with the IPW weights: two separate equations, one for treated (weights <span class="math inline">\(1/\hat \pi(X)\)</span>) and one for control (weights <span class="math inline">\(1/(1-\hat \pi(X))\)</span>). Equivalently, one weighted regression with full treatment–covariate interaction — the interacted design matrix is block-diagonal across the two groups, so the weighted normal equations decouple and the two routes give identical fits.</li>
 <li>Get predicted values for setting everyone treated. Get predicted values for setting everyone control. These are the two potential outcomes.</li>
 <li>Take difference. The average is the ATE.</li>
 </ul>
@@ -637,6 +659,11 @@ E[Y(w)] &amp;= E[E[y|W=w,X]] \\
 
 <!-- -->
 
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-sloczynski-2022" class="csl-entry" role="listitem">
+Słoczyński, Tymon. 2022. <span>“Interpreting <span>OLS</span> Estimands When Treatment Effects Are Heterogeneous: Smaller Groups Get Larger Weights.”</span> <em>The Review of Economics and Statistics</em> 104 (3): 501–9.
+</div>
+</div>
 </section></section></main><!-- /main --><script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     const icon = "";
@@ -1117,7 +1144,7 @@ E[Y(w)] &amp;= E[E[y|W=w,X]] \\
 <span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="fu">## Experimental Data</span></span>
 <span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>If we have experimental data, then we have the assumptions satisfied. We can directly compare the treated and control groups. We can use a difference-in-means estimator. $$ \hat{\tau_{ATT}} = \bar Y_1 - \bar Y_0 $$</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>If we have experimental data, then we have the assumptions satisfied. We can directly compare the treated and control groups. We can use a difference-in-means estimator (under randomisation ATE = ATT = ATU, so no subscript is needed): $$ \hat{\tau} = \bar Y_1 - \bar Y_0 $$</span>
 <span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>In experimental setting, we can do a t test for the difference in means. We can also do a regression of $Y$ on $W$ and $X$.</span>
 <span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a></span>
@@ -1158,8 +1185,8 @@ E[Y(w)] &amp;= E[E[y|W=w,X]] \\
 <span id="cb8-60"><a href="#cb8-60" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-61"><a href="#cb8-61" aria-hidden="true" tabindex="-1"></a>Target: $$  \begin{align}</span>
 <span id="cb8-62"><a href="#cb8-62" aria-hidden="true" tabindex="-1"></a>\tau_{ATT} &amp;= E<span class="co">[</span><span class="ot">Y|W=1</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y(0)|W=1</span><span class="co">]</span> <span class="sc">\\</span></span>
-<span id="cb8-63"><a href="#cb8-63" aria-hidden="true" tabindex="-1"></a>&amp;= E<span class="co">[</span><span class="ot">Y|W=1, X</span><span class="co">]</span> - \mu_0(X)  <span class="sc">\\</span></span>
-<span id="cb8-64"><a href="#cb8-64" aria-hidden="true" tabindex="-1"></a>&amp; = E<span class="co">[</span><span class="ot">Y|W=1, X</span><span class="co">]</span> - (\alpha_0 + E(X) \beta_0)</span>
+<span id="cb8-63"><a href="#cb8-63" aria-hidden="true" tabindex="-1"></a>&amp;= E<span class="co">[</span><span class="ot">Y|W=1</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">\mu_0(X) | W=1</span><span class="co">]</span>  <span class="sc">\\</span></span>
+<span id="cb8-64"><a href="#cb8-64" aria-hidden="true" tabindex="-1"></a>&amp; = E<span class="co">[</span><span class="ot">Y|W=1</span><span class="co">]</span> - (\alpha_0 + E<span class="co">[</span><span class="ot">X|W=1</span><span class="co">]</span> \beta_0)</span>
 <span id="cb8-65"><a href="#cb8-65" aria-hidden="true" tabindex="-1"></a>\end{align}</span>
 <span id="cb8-66"><a href="#cb8-66" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb8-67"><a href="#cb8-67" aria-hidden="true" tabindex="-1"></a></span>
@@ -1192,7 +1219,7 @@ E[Y(w)] &amp;= E[E[y|W=w,X]] \\
 <span id="cb8-94"><a href="#cb8-94" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-95"><a href="#cb8-95" aria-hidden="true" tabindex="-1"></a>Answers:</span>
 <span id="cb8-96"><a href="#cb8-96" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-97"><a href="#cb8-97" aria-hidden="true" tabindex="-1"></a><span class="ss">1.  </span>It has been shown (Słoczyński (2022, REStat)) that with heterogeneous treatment effect, and unequal divide between treated and control, we need to do the interaction term. Otherwise, we'll get biased estimates, for $\tau_{ATT}$ or $\tau_{ATE}$. The intuition is that we need to model the difference between treated and control, and the difference is not constant across $X$.</span>
+<span id="cb8-97"><a href="#cb8-97" aria-hidden="true" tabindex="-1"></a><span class="ss">1.  </span>It has been shown <span class="co">[</span><span class="ot">@sloczynski-2022</span><span class="co">]</span> that with heterogeneous treatment effect, and unequal divide between treated and control, we need to do the interaction term. Otherwise, we'll get biased estimates, for $\tau_{ATT}$ or $\tau_{ATE}$. The intuition is that we need to model the difference between treated and control, and the difference is not constant across $X$.</span>
 <span id="cb8-98"><a href="#cb8-98" aria-hidden="true" tabindex="-1"></a><span class="ss">2.  </span>If we don't de-mean $X$, then the coefficient on $W$ is not the average treatment effect. We can still retrieve the ATT or ATE by calculating the marginal effect of $W$ though.</span>
 <span id="cb8-99"><a href="#cb8-99" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-100"><a href="#cb8-100" aria-hidden="true" tabindex="-1"></a><span class="fu">## IPW</span></span>
@@ -1200,9 +1227,9 @@ E[Y(w)] &amp;= E[E[y|W=w,X]] \\
 <span id="cb8-102"><a href="#cb8-102" aria-hidden="true" tabindex="-1"></a>Under unconfoundedness and overlap,</span>
 <span id="cb8-103"><a href="#cb8-103" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-104"><a href="#cb8-104" aria-hidden="true" tabindex="-1"></a>$$ \small \begin{align}</span>
-<span id="cb8-105"><a href="#cb8-105" aria-hidden="true" tabindex="-1"></a>E<span class="co">[</span><span class="ot">Y(w)</span><span class="co">]</span> &amp;= E<span class="co">[</span><span class="ot">E[y|W=w,X]</span><span class="co">]</span> <span class="sc">\\</span></span>
-<span id="cb8-106"><a href="#cb8-106" aria-hidden="true" tabindex="-1"></a>&amp;= \sum_x (\sum_y P(y|w,x)) P(x) <span class="sc">\\</span></span>
-<span id="cb8-107"><a href="#cb8-107" aria-hidden="true" tabindex="-1"></a>&amp;= \sum_x \sum_y P(y|w,x)) P(x) {\frac{P(w|x)}{P(w|x)}} <span class="sc">\\</span></span>
+<span id="cb8-105"><a href="#cb8-105" aria-hidden="true" tabindex="-1"></a>E<span class="co">[</span><span class="ot">Y(w)</span><span class="co">]</span> &amp;= E<span class="co">[</span><span class="ot">E[Y|W=w,X]</span><span class="co">]</span> <span class="sc">\\</span></span>
+<span id="cb8-106"><a href="#cb8-106" aria-hidden="true" tabindex="-1"></a>&amp;= \sum_x (\sum_y y P(y|w,x)) P(x) <span class="sc">\\</span></span>
+<span id="cb8-107"><a href="#cb8-107" aria-hidden="true" tabindex="-1"></a>&amp;= \sum_x \sum_y y P(y|w,x) P(x) {\frac{P(w|x)}{P(w|x)}} <span class="sc">\\</span></span>
 <span id="cb8-108"><a href="#cb8-108" aria-hidden="true" tabindex="-1"></a>&amp;= \sum_x \sum_y y P(y,w,x) {\frac{1}{P(w|x)}} <span class="sc">\\</span></span>
 <span id="cb8-109"><a href="#cb8-109" aria-hidden="true" tabindex="-1"></a>&amp;= \sum_x E<span class="co">[</span><span class="ot">\mathbb{1}(W=w,X=x)Y</span><span class="co">]</span> {\frac{1}{P(w|x)}} <span class="sc">\\</span></span>
 <span id="cb8-110"><a href="#cb8-110" aria-hidden="true" tabindex="-1"></a>&amp;= E<span class="co">[</span><span class="ot">\frac{\mathbb{1}(W=w)Y} {P(w|X)}</span><span class="co">]</span></span>
@@ -1213,7 +1240,7 @@ E[Y(w)] &amp;= E[E[y|W=w,X]] \\
 <span id="cb8-115"><a href="#cb8-115" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-116"><a href="#cb8-116" aria-hidden="true" tabindex="-1"></a>$$ \begin{align}</span>
 <span id="cb8-117"><a href="#cb8-117" aria-hidden="true" tabindex="-1"></a>\tau_{ATE} &amp;= E<span class="co">[</span><span class="ot">Y(1)</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y(0)</span><span class="co">]</span> <span class="sc">\\</span></span>
-<span id="cb8-118"><a href="#cb8-118" aria-hidden="true" tabindex="-1"></a>&amp;= E<span class="co">[</span><span class="ot">\frac{W Y} {\pi_1(X)}</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">\frac{(1-W) Y} {1-\pi_1(X)}</span><span class="co">]</span> <span class="sc">\\</span></span>
+<span id="cb8-118"><a href="#cb8-118" aria-hidden="true" tabindex="-1"></a>&amp;= E<span class="co">[</span><span class="ot">\frac{W Y} {\pi(X)}</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">\frac{(1-W) Y} {1-\pi(X)}</span><span class="co">]</span> <span class="sc">\\</span></span>
 <span id="cb8-119"><a href="#cb8-119" aria-hidden="true" tabindex="-1"></a>\end{align}</span>
 <span id="cb8-120"><a href="#cb8-120" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb8-121"><a href="#cb8-121" aria-hidden="true" tabindex="-1"></a></span>
@@ -1225,70 +1252,80 @@ E[Y(w)] &amp;= E[E[y|W=w,X]] \\
 <span id="cb8-127"><a href="#cb8-127" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb8-128"><a href="#cb8-128" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-129"><a href="#cb8-129" aria-hidden="true" tabindex="-1"></a>$$ \begin{align}</span>
-<span id="cb8-130"><a href="#cb8-130" aria-hidden="true" tabindex="-1"></a>\hat \tau_{ATT, IPW} &amp;= \bar Y_1 - \frac{1}{N_1} \sum_i \frac{(1-W_i) Y_i} {1-\hat \pi(X_i)}</span>
+<span id="cb8-130"><a href="#cb8-130" aria-hidden="true" tabindex="-1"></a>\hat \tau_{ATT, IPW} &amp;= \bar Y_1 - \frac{1}{N_1} \sum_i \frac{\hat\pi(X_i)}{1-\hat \pi(X_i)} (1-W_i) Y_i</span>
 <span id="cb8-131"><a href="#cb8-131" aria-hidden="true" tabindex="-1"></a>\end{align}</span>
 <span id="cb8-132"><a href="#cb8-132" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb8-133"><a href="#cb8-133" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-134"><a href="#cb8-134" aria-hidden="true" tabindex="-1"></a><span class="fu">### IPW Intuition</span></span>
-<span id="cb8-135"><a href="#cb8-135" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-136"><a href="#cb8-136" aria-hidden="true" tabindex="-1"></a>IPW removes confounding $X$ by creating a pseudo-population in which $X$ is independent of $W$. The intuition is that we can create a pseudo-population in which $X$ is independent of $W$, by weighting the observations by the inverse of the propensity score. Once $X$ is independent of $W$, $X$ is not a confounder anymore. We can then estimate the effect of $W$ on $Y$ by comparing the weighted average of $Y$ for $W=1$ and $W=0$.</span>
-<span id="cb8-137"><a href="#cb8-137" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-138"><a href="#cb8-138" aria-hidden="true" tabindex="-1"></a>Suppose there are two types of people, one type has high probability to be treated, the other one has low probability to be treated. Without adjusting for the propensity score, the treated group will be dominated by the first type, and the control group will be dominated by the second type. The difference between the treated and control group will be due to the difference in the composition of the two groups, not due to the treatment effect. By weighting the observations by the inverse of the propensity score, we can create a pseudo-population in which the two groups have the same composition. The difference between the treated and control group will be due to the treatment effect.</span>
-<span id="cb8-139"><a href="#cb8-139" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-140"><a href="#cb8-140" aria-hidden="true" tabindex="-1"></a><span class="fu">## Doubly Robust Estimators</span></span>
-<span id="cb8-141"><a href="#cb8-141" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-142"><a href="#cb8-142" aria-hidden="true" tabindex="-1"></a>We can model both outcome and treatment assignment, and use both models to estimate the treatment effect. The intuition is that if either model is correct, the estimator will be consistent. The estimator is called doubly robust because it is robust to either model being misspecified.</span>
-<span id="cb8-143"><a href="#cb8-143" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-144"><a href="#cb8-144" aria-hidden="true" tabindex="-1"></a><span class="fu">### AIPW</span></span>
-<span id="cb8-145"><a href="#cb8-145" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-146"><a href="#cb8-146" aria-hidden="true" tabindex="-1"></a>$$ \mu_1^{AIPW} = E<span class="co">[</span><span class="ot">\frac{W(Y-\mu_1(X))}{\pi(X)} + \mu_1(X)</span><span class="co">]</span> $$</span>
-<span id="cb8-147"><a href="#cb8-147" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-148"><a href="#cb8-148" aria-hidden="true" tabindex="-1"></a>$$ \mu_0^{AIPW} = E<span class="co">[</span><span class="ot">\frac{(1-W)(Y-\mu_0(X))}{1-\pi(X)} + \mu_0(X)</span><span class="co">]</span> $$</span>
-<span id="cb8-149"><a href="#cb8-149" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-150"><a href="#cb8-150" aria-hidden="true" tabindex="-1"></a><span class="in">```{r aipw1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb8-151"><a href="#cb8-151" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">read_dta</span>(<span class="at">file=</span><span class="st">"https://www.stata-press.com/data/r18/cattaneo2.dta"</span>)</span>
-<span id="cb8-152"><a href="#cb8-152" aria-hidden="true" tabindex="-1"></a>mu <span class="ot">&lt;-</span> <span class="fu">lm</span>(bweight <span class="sc">~</span> mbsmoke<span class="sc">*</span>(prenatal1 <span class="sc">+</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby), <span class="at">data=</span>data)</span>
-<span id="cb8-153"><a href="#cb8-153" aria-hidden="true" tabindex="-1"></a>pi <span class="ot">&lt;-</span> <span class="fu">glm</span>( mbsmoke <span class="sc">~</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby <span class="sc">+</span> medu, <span class="at">data=</span>data, <span class="at">family=</span><span class="fu">binomial</span>(<span class="at">link=</span><span class="st">"logit"</span>))</span>
-<span id="cb8-154"><a href="#cb8-154" aria-hidden="true" tabindex="-1"></a>mm1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">mbsmoke=</span><span class="dv">1</span>))</span>
-<span id="cb8-155"><a href="#cb8-155" aria-hidden="true" tabindex="-1"></a>mm0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">mbsmoke=</span><span class="dv">0</span>))</span>
-<span id="cb8-156"><a href="#cb8-156" aria-hidden="true" tabindex="-1"></a>pi1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(pi, <span class="at">newdata=</span>data, <span class="at">type=</span><span class="st">"response"</span>)</span>
-<span id="cb8-157"><a href="#cb8-157" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
-<span id="cb8-158"><a href="#cb8-158" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">w=</span>mbsmoke, <span class="at">y=</span>bweight, <span class="at">m1=</span>mm1, <span class="at">m0=</span>mm0, <span class="at">pi1=</span>pi1)</span>
-<span id="cb8-159"><a href="#cb8-159" aria-hidden="true" tabindex="-1"></a>data2 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
-<span id="cb8-160"><a href="#cb8-160" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">mu1=</span>(w<span class="sc">*</span>(y<span class="sc">-</span>m1)<span class="sc">/</span>pi1 <span class="sc">+</span> m1), <span class="at">mu0=</span>((<span class="dv">1</span><span class="sc">-</span>w)<span class="sc">*</span>(y<span class="sc">-</span>m0)<span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>pi1) <span class="sc">+</span> m0)) <span class="sc">%&gt;%</span></span>
-<span id="cb8-161"><a href="#cb8-161" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">tau=</span>mu1<span class="sc">-</span>mu0)</span>
-<span id="cb8-162"><a href="#cb8-162" aria-hidden="true" tabindex="-1"></a>data2 <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="fu">mean</span>(tau))</span>
-<span id="cb8-163"><a href="#cb8-163" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb8-164"><a href="#cb8-164" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-165"><a href="#cb8-165" aria-hidden="true" tabindex="-1"></a><span class="fu">### IPWRA</span></span>
-<span id="cb8-166"><a href="#cb8-166" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-167"><a href="#cb8-167" aria-hidden="true" tabindex="-1"></a>The idea of IPWRA is to combine RA and IPW. Basically RA with IPW weights.</span>
-<span id="cb8-168"><a href="#cb8-168" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-169"><a href="#cb8-169" aria-hidden="true" tabindex="-1"></a>Implementation:</span>
-<span id="cb8-170"><a href="#cb8-170" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-171"><a href="#cb8-171" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Estimate propensity score. Get predicted probability of treated for each observation.</span>
-<span id="cb8-172"><a href="#cb8-172" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Estimate outcome model. But cannot use fully interaction of treatment and covariates. Instead, estimate two equations, one for treated and one for control. Use $1/\hat \pi(X)$ as weights for treated group and $1/(1-\hat \pi(X))$ as weights for control group.</span>
-<span id="cb8-173"><a href="#cb8-173" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Get predicted values for setting everyone treated. Get predicted values for setting everyone control. These are the two potential outcomes.</span>
-<span id="cb8-174"><a href="#cb8-174" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Take difference. The average is the ATE.</span>
-<span id="cb8-175"><a href="#cb8-175" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-176"><a href="#cb8-176" aria-hidden="true" tabindex="-1"></a><span class="in">```{r ipwra1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb8-177"><a href="#cb8-177" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">read_dta</span>(<span class="at">file=</span><span class="st">"https://www.stata-press.com/data/r18/cattaneo2.dta"</span>)</span>
-<span id="cb8-178"><a href="#cb8-178" aria-hidden="true" tabindex="-1"></a>pi <span class="ot">&lt;-</span> <span class="fu">glm</span>( mbsmoke <span class="sc">~</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby <span class="sc">+</span> medu, <span class="at">data=</span>data, <span class="at">family=</span><span class="fu">binomial</span>(<span class="at">link=</span><span class="st">"logit"</span>))</span>
-<span id="cb8-179"><a href="#cb8-179" aria-hidden="true" tabindex="-1"></a>pi1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(pi, <span class="at">newdata=</span>data, <span class="at">type=</span><span class="st">"response"</span>)</span>
-<span id="cb8-180"><a href="#cb8-180" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
-<span id="cb8-181"><a href="#cb8-181" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pi1=</span>pi1)</span>
-<span id="cb8-182"><a href="#cb8-182" aria-hidden="true" tabindex="-1"></a>data1 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span> <span class="fu">filter</span>(mbsmoke<span class="sc">==</span><span class="dv">1</span>)</span>
-<span id="cb8-183"><a href="#cb8-183" aria-hidden="true" tabindex="-1"></a>data0 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span> <span class="fu">filter</span>(mbsmoke<span class="sc">==</span><span class="dv">0</span>)</span>
-<span id="cb8-184"><a href="#cb8-184" aria-hidden="true" tabindex="-1"></a>mu1 <span class="ot">&lt;-</span> <span class="fu">lm</span>(bweight <span class="sc">~</span> prenatal1 <span class="sc">+</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby, <span class="at">data=</span>data1, <span class="at">weights=</span><span class="dv">1</span><span class="sc">/</span>data1<span class="sc">$</span>pi1)</span>
-<span id="cb8-185"><a href="#cb8-185" aria-hidden="true" tabindex="-1"></a>mu0 <span class="ot">&lt;-</span> <span class="fu">lm</span>(bweight <span class="sc">~</span> prenatal1 <span class="sc">+</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby, <span class="at">data=</span>data0, <span class="at">weights=</span><span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>data0<span class="sc">$</span>pi1))</span>
-<span id="cb8-186"><a href="#cb8-186" aria-hidden="true" tabindex="-1"></a>mm1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu1, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">mbsmoke=</span><span class="dv">1</span>))</span>
-<span id="cb8-187"><a href="#cb8-187" aria-hidden="true" tabindex="-1"></a>mm0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu0, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">mbsmoke=</span><span class="dv">0</span>))</span>
-<span id="cb8-188"><a href="#cb8-188" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
-<span id="cb8-189"><a href="#cb8-189" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">w=</span>mbsmoke, <span class="at">y=</span>bweight, <span class="at">m1=</span>mm1, <span class="at">m0=</span>mm0, <span class="at">pi1=</span>pi1)</span>
-<span id="cb8-190"><a href="#cb8-190" aria-hidden="true" tabindex="-1"></a>data2 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
-<span id="cb8-191"><a href="#cb8-191" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">tau=</span>m1<span class="sc">-</span>m0)</span>
-<span id="cb8-192"><a href="#cb8-192" aria-hidden="true" tabindex="-1"></a>data2 <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="fu">mean</span>(tau))</span>
-<span id="cb8-193"><a href="#cb8-193" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb8-134"><a href="#cb8-134" aria-hidden="true" tabindex="-1"></a>For the ATT, control units are weighted by the odds $\hat\pi(X_i)/(1-\hat\pi(X_i))$</span>
+<span id="cb8-135"><a href="#cb8-135" aria-hidden="true" tabindex="-1"></a>rather than $1/(1-\hat\pi(X_i))$: this reweights the controls to the covariate</span>
+<span id="cb8-136"><a href="#cb8-136" aria-hidden="true" tabindex="-1"></a>distribution of the treated (one can check</span>
+<span id="cb8-137"><a href="#cb8-137" aria-hidden="true" tabindex="-1"></a>${\rm E}<span class="co">[</span><span class="ot">\frac{\pi(X)}{1-\pi(X)}(1-W)Y</span><span class="co">]</span> = P(W=1)\, {\rm E}<span class="co">[</span><span class="ot">Y(0)|W=1</span><span class="co">]</span>$).</span>
+<span id="cb8-138"><a href="#cb8-138" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-139"><a href="#cb8-139" aria-hidden="true" tabindex="-1"></a><span class="fu">### IPW Intuition</span></span>
+<span id="cb8-140"><a href="#cb8-140" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-141"><a href="#cb8-141" aria-hidden="true" tabindex="-1"></a>IPW removes confounding $X$ by creating a pseudo-population in which $X$ is independent of $W$. The intuition is that we can create a pseudo-population in which $X$ is independent of $W$, by weighting the observations by the inverse of the propensity score. Once $X$ is independent of $W$, $X$ is not a confounder anymore. We can then estimate the effect of $W$ on $Y$ by comparing the weighted average of $Y$ for $W=1$ and $W=0$.</span>
+<span id="cb8-142"><a href="#cb8-142" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-143"><a href="#cb8-143" aria-hidden="true" tabindex="-1"></a>Suppose there are two types of people, one type has high probability to be treated, the other one has low probability to be treated. Without adjusting for the propensity score, the treated group will be dominated by the first type, and the control group will be dominated by the second type. The difference between the treated and control group will be due to the difference in the composition of the two groups, not due to the treatment effect. By weighting the observations by the inverse of the propensity score, we can create a pseudo-population in which the two groups have the same composition. The difference between the treated and control group will be due to the treatment effect.</span>
+<span id="cb8-144"><a href="#cb8-144" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-145"><a href="#cb8-145" aria-hidden="true" tabindex="-1"></a><span class="fu">## Doubly Robust Estimators</span></span>
+<span id="cb8-146"><a href="#cb8-146" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-147"><a href="#cb8-147" aria-hidden="true" tabindex="-1"></a>We can model both outcome and treatment assignment, and use both models to estimate the treatment effect. The intuition is that if either model is correct, the estimator will be consistent. The estimator is called doubly robust because it is robust to either model being misspecified.</span>
+<span id="cb8-148"><a href="#cb8-148" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-149"><a href="#cb8-149" aria-hidden="true" tabindex="-1"></a><span class="fu">### AIPW</span></span>
+<span id="cb8-150"><a href="#cb8-150" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-151"><a href="#cb8-151" aria-hidden="true" tabindex="-1"></a>$$ \psi_1^{AIPW} = E<span class="co">[</span><span class="ot">\frac{W(Y-\mu_1(X))}{\pi(X)} + \mu_1(X)</span><span class="co">]</span> $$</span>
+<span id="cb8-152"><a href="#cb8-152" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-153"><a href="#cb8-153" aria-hidden="true" tabindex="-1"></a>$$ \psi_0^{AIPW} = E<span class="co">[</span><span class="ot">\frac{(1-W)(Y-\mu_0(X))}{1-\pi(X)} + \mu_0(X)</span><span class="co">]</span> $$</span>
+<span id="cb8-154"><a href="#cb8-154" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-155"><a href="#cb8-155" aria-hidden="true" tabindex="-1"></a>Here $\mu_w(X)=E<span class="co">[</span><span class="ot">Y|W=w,X</span><span class="co">]</span>$ is the outcome-model nuisance function, while the</span>
+<span id="cb8-156"><a href="#cb8-156" aria-hidden="true" tabindex="-1"></a>scalar $\psi_w^{AIPW}$ equals $E<span class="co">[</span><span class="ot">Y(w)</span><span class="co">]</span>$ as long as either the outcome model</span>
+<span id="cb8-157"><a href="#cb8-157" aria-hidden="true" tabindex="-1"></a>or the propensity score is correctly specified; the ATE is</span>
+<span id="cb8-158"><a href="#cb8-158" aria-hidden="true" tabindex="-1"></a>$\psi_1^{AIPW}-\psi_0^{AIPW}$.</span>
+<span id="cb8-159"><a href="#cb8-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-160"><a href="#cb8-160" aria-hidden="true" tabindex="-1"></a><span class="in">```{r aipw1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb8-161"><a href="#cb8-161" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">read_dta</span>(<span class="at">file=</span><span class="st">"https://www.stata-press.com/data/r18/cattaneo2.dta"</span>)</span>
+<span id="cb8-162"><a href="#cb8-162" aria-hidden="true" tabindex="-1"></a>mu <span class="ot">&lt;-</span> <span class="fu">lm</span>(bweight <span class="sc">~</span> mbsmoke<span class="sc">*</span>(prenatal1 <span class="sc">+</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby), <span class="at">data=</span>data)</span>
+<span id="cb8-163"><a href="#cb8-163" aria-hidden="true" tabindex="-1"></a>pi <span class="ot">&lt;-</span> <span class="fu">glm</span>( mbsmoke <span class="sc">~</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby <span class="sc">+</span> medu, <span class="at">data=</span>data, <span class="at">family=</span><span class="fu">binomial</span>(<span class="at">link=</span><span class="st">"logit"</span>))</span>
+<span id="cb8-164"><a href="#cb8-164" aria-hidden="true" tabindex="-1"></a>mm1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">mbsmoke=</span><span class="dv">1</span>))</span>
+<span id="cb8-165"><a href="#cb8-165" aria-hidden="true" tabindex="-1"></a>mm0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">mbsmoke=</span><span class="dv">0</span>))</span>
+<span id="cb8-166"><a href="#cb8-166" aria-hidden="true" tabindex="-1"></a>pi1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(pi, <span class="at">newdata=</span>data, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb8-167"><a href="#cb8-167" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
+<span id="cb8-168"><a href="#cb8-168" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">w=</span>mbsmoke, <span class="at">y=</span>bweight, <span class="at">m1=</span>mm1, <span class="at">m0=</span>mm0, <span class="at">pi1=</span>pi1)</span>
+<span id="cb8-169"><a href="#cb8-169" aria-hidden="true" tabindex="-1"></a>data2 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
+<span id="cb8-170"><a href="#cb8-170" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">mu1=</span>(w<span class="sc">*</span>(y<span class="sc">-</span>m1)<span class="sc">/</span>pi1 <span class="sc">+</span> m1), <span class="at">mu0=</span>((<span class="dv">1</span><span class="sc">-</span>w)<span class="sc">*</span>(y<span class="sc">-</span>m0)<span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>pi1) <span class="sc">+</span> m0)) <span class="sc">%&gt;%</span></span>
+<span id="cb8-171"><a href="#cb8-171" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">tau=</span>mu1<span class="sc">-</span>mu0)</span>
+<span id="cb8-172"><a href="#cb8-172" aria-hidden="true" tabindex="-1"></a>data2 <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="fu">mean</span>(tau))</span>
+<span id="cb8-173"><a href="#cb8-173" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb8-174"><a href="#cb8-174" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-175"><a href="#cb8-175" aria-hidden="true" tabindex="-1"></a><span class="fu">### IPWRA</span></span>
+<span id="cb8-176"><a href="#cb8-176" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-177"><a href="#cb8-177" aria-hidden="true" tabindex="-1"></a>The idea of IPWRA is to combine RA and IPW. Basically RA with IPW weights.</span>
+<span id="cb8-178"><a href="#cb8-178" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-179"><a href="#cb8-179" aria-hidden="true" tabindex="-1"></a>Implementation:</span>
+<span id="cb8-180"><a href="#cb8-180" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-181"><a href="#cb8-181" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Estimate propensity score. Get predicted probability of treated for each observation.</span>
+<span id="cb8-182"><a href="#cb8-182" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Estimate outcome model with the IPW weights: two separate equations, one for treated (weights $1/\hat \pi(X)$) and one for control (weights $1/(1-\hat \pi(X))$). Equivalently, one weighted regression with full treatment–covariate interaction — the interacted design matrix is block-diagonal across the two groups, so the weighted normal equations decouple and the two routes give identical fits.</span>
+<span id="cb8-183"><a href="#cb8-183" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Get predicted values for setting everyone treated. Get predicted values for setting everyone control. These are the two potential outcomes.</span>
+<span id="cb8-184"><a href="#cb8-184" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Take difference. The average is the ATE.</span>
+<span id="cb8-185"><a href="#cb8-185" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-186"><a href="#cb8-186" aria-hidden="true" tabindex="-1"></a><span class="in">```{r ipwra1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb8-187"><a href="#cb8-187" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">read_dta</span>(<span class="at">file=</span><span class="st">"https://www.stata-press.com/data/r18/cattaneo2.dta"</span>)</span>
+<span id="cb8-188"><a href="#cb8-188" aria-hidden="true" tabindex="-1"></a>pi <span class="ot">&lt;-</span> <span class="fu">glm</span>( mbsmoke <span class="sc">~</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby <span class="sc">+</span> medu, <span class="at">data=</span>data, <span class="at">family=</span><span class="fu">binomial</span>(<span class="at">link=</span><span class="st">"logit"</span>))</span>
+<span id="cb8-189"><a href="#cb8-189" aria-hidden="true" tabindex="-1"></a>pi1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(pi, <span class="at">newdata=</span>data, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb8-190"><a href="#cb8-190" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
+<span id="cb8-191"><a href="#cb8-191" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pi1=</span>pi1)</span>
+<span id="cb8-192"><a href="#cb8-192" aria-hidden="true" tabindex="-1"></a>data1 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span> <span class="fu">filter</span>(mbsmoke<span class="sc">==</span><span class="dv">1</span>)</span>
+<span id="cb8-193"><a href="#cb8-193" aria-hidden="true" tabindex="-1"></a>data0 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span> <span class="fu">filter</span>(mbsmoke<span class="sc">==</span><span class="dv">0</span>)</span>
+<span id="cb8-194"><a href="#cb8-194" aria-hidden="true" tabindex="-1"></a>mu1 <span class="ot">&lt;-</span> <span class="fu">lm</span>(bweight <span class="sc">~</span> prenatal1 <span class="sc">+</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby, <span class="at">data=</span>data1, <span class="at">weights=</span><span class="dv">1</span><span class="sc">/</span>data1<span class="sc">$</span>pi1)</span>
+<span id="cb8-195"><a href="#cb8-195" aria-hidden="true" tabindex="-1"></a>mu0 <span class="ot">&lt;-</span> <span class="fu">lm</span>(bweight <span class="sc">~</span> prenatal1 <span class="sc">+</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby, <span class="at">data=</span>data0, <span class="at">weights=</span><span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>data0<span class="sc">$</span>pi1))</span>
+<span id="cb8-196"><a href="#cb8-196" aria-hidden="true" tabindex="-1"></a>mm1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu1, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">mbsmoke=</span><span class="dv">1</span>))</span>
+<span id="cb8-197"><a href="#cb8-197" aria-hidden="true" tabindex="-1"></a>mm0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu0, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">mbsmoke=</span><span class="dv">0</span>))</span>
+<span id="cb8-198"><a href="#cb8-198" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
+<span id="cb8-199"><a href="#cb8-199" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">w=</span>mbsmoke, <span class="at">y=</span>bweight, <span class="at">m1=</span>mm1, <span class="at">m0=</span>mm0, <span class="at">pi1=</span>pi1)</span>
+<span id="cb8-200"><a href="#cb8-200" aria-hidden="true" tabindex="-1"></a>data2 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
+<span id="cb8-201"><a href="#cb8-201" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">tau=</span>m1<span class="sc">-</span>m0)</span>
+<span id="cb8-202"><a href="#cb8-202" aria-hidden="true" tabindex="-1"></a>data2 <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="fu">mean</span>(tau))</span>
+<span id="cb8-203"><a href="#cb8-203" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

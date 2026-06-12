@@ -62,7 +62,8 @@ To regenerate the simulated datasets: run `Rscript` with the DGP code at the top
 - Each chapter has a hidden setup chunk (`#| include: false`) loading required libraries
 - `execute: freeze: auto` in `_quarto.yml` caches R output; delete `_freeze/` to force re-run
 - Data files are in `data/`, images in `images/`
-- CI renders the full book on push to master (no R installed on runner — relies entirely on `_freeze/` cache; new chunks must be rendered locally first)
+- CI does NOT render: `.github/workflows/publish.yml` just uploads the committed `_book/` to GitHub Pages on push to master. Render locally (one chapter at a time: `quarto render <chapter>.qmd`) and commit `_book/` + `_freeze/` along with sources.
+- **knitr-cache trap**: `cache: true` hashes only a chunk's own code. After editing a DGP chunk, downstream chunks with unchanged code serve results computed from the OLD data — delete their entries in `<chapter>_cache/html/` (or the whole cache dir) before re-rendering.
 - Source slides: `~/projects/claude/causal_econometrics/code/causal_econometrics.qmd`
 
 ## Review pass (2026-06-07)
@@ -77,3 +78,15 @@ Math/code audit + fixes across 11 chapters (audit trail: ../_review/). Key corre
 - nonparametric: ψ=E[Y(1)] (a single arm mean), not "the ATE". identification: two-sided positivity 0<π(X)<1.
 - survival-causal: REGENERATED shared data/survival_sim.csv (had zero censoring); added the censoring model the doubly-robust `ate()` requires. Generator: data/gen_survival.R.
 Re-rendered + outputs verified.
+
+## Review pass 2 (2026-06-10 → 2026-06-12)
+Derivation-focused audit of ALL 20 chapters (audit trail: ../_review2/, fixes itemized in ../_review2/FIXLOG.md; every CRIT/MAJOR hand- or numerically verified before editing). Highest-severity corrections:
+- heterogeneous-effects (CRIT): policy-tree example — `double_robust_scores()` returns an n×2 per-arm score matrix, NOT a CATE vector; `cbind(0, scores - cost)` built a meaningless 3-action tree, "treatment rate" counted the control action, and the welfare line recycled a vector against the matrix. Rewritten (cost 2, non-degenerate rule); tree now finds the true X1≈0.5 threshold.
+- heterogeneous-effects (MAJOR ×2): panel section — stated "True ATE" omitted the +W main effect (truth said 0.566, DGP implied 1.566), AND unit_fe was independent of treatment so there was no FE confounding to demonstrate. New DGP: W depends on unit_fe; naive/clustered CF biased (~1.7), within-transform recovers truth (0.577 vs 0.566). `clusters=` fixes honesty/SEs, NOT confounding.
+- causal-discovery-latent (CRIT): `true_mag_amat` inverted the pcalg amat.pag convention (amat[i,j] = mark AT j) — all directed edges in the "True MAG" panels were drawn backwards. FCI/RFCI cost story rewritten around the Possible-D-SEP stage (what RFCI actually skips; the 10 orientation rules run no CI tests).
+- graph-to-estimate (CRIT): "When identification fails" example marked BOTH igraph edges as the latent pair → encoded plain A↔Y (no directed edge) → causal.effect returns "P(Y)" (identified!) while prose claimed it errors. Bow graph rebuilt with make_graph (graph_from_literal dedupes parallel edges); now errors "Not identifiable." Also: pcalg2dagitty needs the TRANSPOSED graphNEL matrix or every edge reverses.
+- causal-discovery (MAJOR ×3): α-tradeoff direction was backwards (low α ⇒ SPARSER skeleton); PC-vs-GES callout contradicted the book's own tables (PC wins both metrics here; BIC is score-equivalent — no "directional signal"); PISA misorientation callout attributed GES's GRADE→IMMIG error to PC (PC's actual tier conflicts: HISEI/HOMEPOS→IMMIG).
+- mediation (MAJOR): interventional-effects decomposition rewritten to the standard G_0/G_1 randomized-draw form (sum = overall effect ≠ ATE) matching the medoutcon estimand (Díaz et al. 2021, verified against package docs).
+- g-methods (MAJOR): stabilized-weight display conditioned the denominator on L̄_{t−1} (skipping L_t, THE time-varying confounder); code was always right. Untrimmed MSM added: trimming reintroduces confounding bias (1.652 vs 1.560, truth 1.5).
+- continuous-treatments (MED): lmtp styled print emits space-padded lines → Quarto renders literal `::: {.cell-output}` paragraphs; display via tidy()/$estimates instead.
+- survival-causal: ate() three-estimator table added (G-formula/IPTW/AIPTW: −0.106/−0.095/−0.099 — "agreement" now visible). package-ecosystem/references: npcausal+medoutcon are GitHub-only; igraph (not Rgraphviz) does the plotting; references page can't show the full bib (chapter-level nocite ignored in HTML books).

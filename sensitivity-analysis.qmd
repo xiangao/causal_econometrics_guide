@@ -31,8 +31,8 @@ conclusion?
 
 Here I use three methods:
 
-1. **Cinelli-Hazlett (2020) omitted-variable bias bounds** — for any
-   regression-based estimator, quantifies how strong an omitted variable
+1. **Cinelli-Hazlett (2020) omitted-variable bias bounds** — for OLS
+   regression estimates, quantifies how strong an omitted variable
    would need to be (in terms of partial $R^2$ with treatment and outcome)
    to bring the estimate to zero.
 2. **E-values (VanderWeele-Ding 2017)** — for risk ratios, the minimum
@@ -204,10 +204,11 @@ within matched pairs.
 
 Suppose units in a matched pair are observationally identical, but one
 might still be more likely than the other to receive treatment due to
-unobserved factors. Let $\Gamma$ be the odds ratio of treatment within a
-matched pair due to hidden bias: $\Gamma = 1$ means matched pairs are
-perfectly randomised; $\Gamma = 2$ means within a pair, the treated unit
-was twice as likely to get treatment due to unobservables.
+unobserved factors. Let $\Gamma$ bound the ratio of treatment odds between
+the two units of a pair: $\Gamma = 1$ means matched pairs are perfectly
+randomised (both units equally likely to be the treated one); $\Gamma = 2$
+means hidden bias could make one unit's odds of treatment up to twice the
+other's.
 
 Rosenbaum bounds compute the range of $p$-values for the matched test
 under each value of $\Gamma$. The **critical $\Gamma$** is the smallest
@@ -257,7 +258,7 @@ rosenbaum_pvalue <- function(diffs, gamma) {
   abs_d <- abs(diffs)
   signs <- sign(diffs)
   ranks <- rank(abs_d)
-  # Under Gamma, P(positive sign) is bounded between Γ/(1+Γ) and 1/(1+Γ).
+  # Under Gamma, P(positive sign) is bounded between 1/(1+Γ) and Γ/(1+Γ).
   # Upper-bound p-value: assume P(positive) = Γ/(1+Γ) (against null of zero)
   p_pos_upper <- gamma / (1 + gamma)
   # Test statistic: sum of positive ranks
@@ -292,6 +293,12 @@ cat(sprintf("Critical Gamma (p > 0.05): %.2f\n",
             critical_gamma))
 ```
 
+This reports the first value *on the 0.25 grid* at which significance is
+lost; the actual crossing lies between this value and the preceding grid
+point (a finer grid, or interpolation, would locate it more precisely —
+the convention in applied work is often to report the largest $\Gamma$ at
+which significance is retained).
+
 ## What about partial identification?
 
 When sensitivity analysis shows the point estimate is fragile, partial
@@ -308,9 +315,12 @@ $$
 Each potential-outcome mean is split by the law of total expectation, filling
 in the unobserved arm with its worst/best case. With outcomes bounded in
 $Y \in [0, K]$, this is a single interval of width exactly $K$ — bounded, but
-often too wide to be useful. Lee (2009) bounds exploit selection on observables
-plus monotonicity to get tighter bounds. Mourifié-Wan provide LATE bounds
-when monotonicity may fail.
+often too wide to be useful. Tighter bounds come from adding structure to a
+specific problem: Lee (2009) bounds address sample selection/attrition (the
+outcome is observed only for selected units) by combining random assignment
+with monotone selection and trimming the over-selected arm. For IV settings,
+Mourifié and Wan (2017) provide a test of the LATE identifying assumptions
+(instrument validity plus monotonicity).
 
 These bounds usually complement a point estimate. They are useful when the
 point estimate depends too much on an untestable assumption.

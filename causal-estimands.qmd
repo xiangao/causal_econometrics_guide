@@ -47,8 +47,12 @@ Z <- rbinom(n, 1, 0.5)    # random instrument
 pD0 <- pmin(pmax(0.10 + 0.20 * U,        0), 1)  # P(D=1 | Z=0, U)
 pD1 <- pmin(pmax(0.10 + 0.20 * U + 0.50, 0), 1)  # P(D=1 | Z=1, U) — adds 0.50
 
-D0 <- rbinom(n, 1, pD0)   # potential treatment if not offered slot
-D1 <- rbinom(n, 1, pD1)   # potential treatment if offered slot
+# One latent draw V per person, thresholded against both probabilities.
+# Since pD1 >= pD0, V < pD0 implies V < pD1, so D1 >= D0 for every unit:
+# monotonicity (no defiers) holds by construction, as the LATE theorem requires.
+V  <- runif(n)
+D0 <- as.integer(V < pD0)   # potential treatment if not offered slot
+D1 <- as.integer(V < pD1)   # potential treatment if offered slot
 D  <- ifelse(Z == 1, D1, D0)
 
 # Heterogeneous treatment effect: depends on X
@@ -159,16 +163,16 @@ bin_idx <- cut(X, breaks = breaks, include.lowest = TRUE, labels = FALSE)
 
 cate_est <- tapply(Y1 - Y0, bin_idx, mean)
 
-cat(sprintf("CATE at x=0.2: estimated %.2f, true %.2f\n",
-            cate_est[4], tau_fn(0.2)))
-cat(sprintf("CATE at x=0.8: estimated %.2f, true %.2f\n",
-            cate_est[16], tau_fn(0.8)))
+cat(sprintf("CATE at x=%.3f: estimated %.2f, true %.2f\n",
+            centers[4], cate_est[4], tau_fn(centers[4])))
+cat(sprintf("CATE at x=%.3f: estimated %.2f, true %.2f\n",
+            centers[16], cate_est[16], tau_fn(centers[16])))
 ```
 
 ### QTE — quantile treatment effect
 
 $$
-\text{QTE}(\tau) = F^{-1}_{Y(1)}(\tau) - F^{-1}_{Y(0)}(\tau)
+\text{QTE}(q) = F^{-1}_{Y(1)}(q) - F^{-1}_{Y(0)}(q)
 $$
 
 QTE compares the two marginal outcome distributions. It is the difference
@@ -192,13 +196,13 @@ cat(sprintf("QTE(0.90) = %.3f\n", quantile(Y1, 0.90) - quantile(Y0, 0.90)))
 ```{r}
 #| label: estimand-plot
 #| cache: true
-#| fig-cap: "Five views of the same DGP. The horizontal lines for ATE/ATT/LATE collapse the effect to a single scalar. CATE(x) shows how the effect varies with X. QTE(τ) shows how the effect varies across the outcome distribution. Each curve answers a different question."
+#| fig-cap: "Five views of the same DGP. The horizontal lines for ATE/ATT/LATE collapse the effect to a single scalar. CATE(x) shows how the effect varies with X. QTE(q) shows how the effect varies across the outcome distribution. Each curve answers a different question."
 #| fig-width: 10
 #| fig-height: 4
 
 df_cate <- data.frame(x = centers, cate = as.numeric(cate_est),
                       true_tau = tau_fn(centers))
-df_qte  <- data.frame(tau = qte_grid, qte = as.numeric(qte_est))
+df_qte  <- data.frame(q = qte_grid, qte = as.numeric(qte_est))
 
 p1 <- ggplot(df_cate, aes(x = x)) +
   geom_line(aes(y = cate, colour = "CATE(x)"), linewidth = 1.2) +
@@ -216,12 +220,12 @@ p1 <- ggplot(df_cate, aes(x = x)) +
   theme_minimal() +
   theme(legend.position = "bottom")
 
-p2 <- ggplot(df_qte, aes(x = tau, y = qte)) +
+p2 <- ggplot(df_qte, aes(x = q, y = qte)) +
   geom_line(colour = "#8e44ad", linewidth = 1.2) +
   geom_hline(yintercept = ate_true, linetype = "dashed", colour = "#2c3e50") +
   annotate("text", x = 0.07, y = ate_true + 0.06, label = "ATE",
            colour = "#2c3e50", size = 3) +
-  labs(x = "Quantile τ", y = "QTE(τ)",
+  labs(x = "Quantile q", y = "QTE(q)",
        title = "QTE — distribution-level effect") +
   theme_minimal()
 
@@ -261,8 +265,9 @@ Z2 <- rbinom(n2, 1, 0.5)
 # High X → much more likely to take treatment (selection on X, the modifier)
 pD0_2 <- pmin(pmax(0.10 + 0.20 * U2 + 0.6 * X2, 0), 1)
 pD1_2 <- pmin(pmax(pD0_2 + 0.50,                 0), 1)
-D0_2  <- rbinom(n2, 1, pD0_2)
-D1_2  <- rbinom(n2, 1, pD1_2)
+V2    <- runif(n2)                  # shared draw → D1_2 >= D0_2, no defiers
+D0_2  <- as.integer(V2 < pD0_2)
+D1_2  <- as.integer(V2 < pD1_2)
 D2    <- ifelse(Z2 == 1, D1_2, D0_2)
 Y0_2  <- 0.5 * X2 + 0.3 * U2 + rnorm(n2)
 Y1_2  <- Y0_2 + tau_fn(X2)
@@ -293,7 +298,7 @@ The estimand should come from the research question:
 | "What did treating the currently-treated achieve?" | ATT |
 | "What can the instrument tell us?" | LATE |
 | "Who benefits most?" | CATE($x$) |
-| "Does the effect vary across the outcome distribution?" | QTE($\tau$) |
+| "Does the effect vary across the outcome distribution?" | QTE($q$) |
 | "What is the distribution of individual effects?" | Often unidentifiable; bounds required |
 
 It is fine for one paper to report more than one estimand, as long as each is
@@ -304,7 +309,7 @@ to estimate and call it "the causal effect."
 
 - ATE, ATT and LATE are different averages of the individual treatment
   effect.
-- CATE($x$) keeps heterogeneity by covariates. QTE($\tau$) describes changes
+- CATE($x$) keeps heterogeneity by covariates. QTE($q$) describes changes
   in the outcome distribution.
 - With heterogeneous effects, IV estimates LATE. It should not be described
   as ATE unless extra assumptions justify that interpretation. This is the

@@ -37,8 +37,9 @@ I use four kinds of tools:
 
 ## The data-generating process
 
-I reuse the DGP from the estimands chapter. The true CATE is
-$\tau(x)=1+2x_1$.
+I use the same CATE function as the estimands chapter,
+$\tau(x)=1+2x_1$ (the rest of the DGP differs: five covariates and
+confounding through the observed $X_2$).
 
 ```{r}
 #| label: dgp
@@ -129,7 +130,7 @@ The T-learner gives treatment and control separate outcome models. That can
 help with heterogeneity, but it can also extrapolate badly when the treated
 and control covariate distributions do not overlap.
 
-### X-learner (Künzel et al. 2019)
+### X-learner [@kunzel-2019-metalearners]
 
 The X-learner starts from the T-learner. It imputes missing potential
 outcomes, creates pseudo-treatment effects, and then smooths those
@@ -165,7 +166,7 @@ cat(sprintf("X-learner CATE correlation with truth: %.3f\n", cor_X))
 The X-learner is useful when one treatment arm is much smaller than the
 other.
 
-### R-learner (Nie & Wager 2021)
+### R-learner [@nie-wager-2021]
 
 The R-learner partials out the main effects of $X$ from both $Y$ and $D$.
 It then estimates how the residualized treatment predicts the residualized
@@ -215,7 +216,7 @@ cat(sprintf("R-learner CATE correlation with truth: %.3f\n", cor_R))
 The R-learner is often stable when overlap is reasonable because errors in
 the nuisance models have only second-order effects on the target.
 
-### DR-learner (Kennedy 2020)
+### DR-learner [@kennedy-2020-optimal-dr]
 
 The DR-learner uses an AIPW-style pseudo-outcome and then regresses it on
 $X$:
@@ -323,7 +324,7 @@ covariates are associated with larger effects? The best linear projection
 of CATE onto $X$ is
 
 $$
-\text{BLP}(X) = \arg\min_{\beta} \mathbb{E}\left[ (\tau(X) - X'\beta)^2 \right],
+\text{BLP}(X) = \arg\min_{\beta_0, \beta} \mathbb{E}\left[ (\tau(X) - \beta_0 - X'\beta)^2 \right],
 $$
 
 which `grf` estimates with valid standard errors:
@@ -366,27 +367,37 @@ effects into a simple treatment rule.
 #| label: policy-tree
 #| cache: true
 
-# Compute doubly-robust scores (used for policy learning)
-dr_scores <- double_robust_scores(cf)
-cost <- 0.5     # cost of treating one unit, in outcome units
+# double_robust_scores() returns an n x 2 matrix of AIPW scores,
+# one column per action: Gamma_i(control), Gamma_i(treated)
+Gamma <- double_robust_scores(cf)
+cost <- 2     # cost of treating one unit, in outcome units
 
-# Net benefit of treatment vs control
-gain <- cbind(0, dr_scores - cost)   # column 1 = no treat (gain 0), col 2 = treat (gain τ - cost)
+# Net value of each action: control stays as is, treating pays the cost.
+# With tau(x) = 1 + 2*x1 in [1, 3], the optimal rule is: treat iff x1 > 0.5.
+Gamma[, "treated"] <- Gamma[, "treated"] - cost
 
 # Fit a depth-2 policy tree (shallow for interpretability)
-tree <- policy_tree(X, gain, depth = 2)
+tree <- policy_tree(X, Gamma, depth = 2)
 print(tree)
 
-# Recommended action for each unit
+# Recommended action for each unit (1 = control, 2 = treated)
 actions <- predict(tree, X)
-cat(sprintf("\nTreatment rate under policy tree: %.1f%%\n",
-            mean(actions == 2) * 100))
-cat(sprintf("Estimated welfare gain over treat-everyone: %.3f units per person\n",
-            mean((actions == 2) * (dr_scores - cost) - (dr_scores - cost))))
+cat(sprintf("\nTreatment rate under policy tree: %.1f%% (optimal: %.1f%%)\n",
+            mean(actions == 2) * 100, mean(X[, 1] > 0.5) * 100))
+
+# Value of the learned rule vs treating everyone, both evaluated with
+# the same doubly-robust scores
+welfare_tree <- mean(ifelse(actions == 2, Gamma[, "treated"], Gamma[, "control"]))
+welfare_all  <- mean(Gamma[, "treated"])
+cat(sprintf("Estimated welfare: policy tree %.3f vs treat-everyone %.3f (gain %.3f)\n",
+            welfare_tree, welfare_all, welfare_tree - welfare_all))
 ```
 
 The point of the shallow tree is interpretability. It gives up some
-flexibility in exchange for a rule that can be inspected.
+flexibility in exchange for a rule that can be inspected. Here the tree
+splits on $X_1$ — the true effect modifier — close to the optimal
+threshold of $0.5$, and the learned rule beats treat-everyone because
+units with $\tau(x) < 2$ are not worth the cost.
 
 For an extended walkthrough of policy trees with IPW and AIPW losses,
 see the [companion blog chapter on `policytree`](https://xiangao.github.io/blog_book/policytree.html).
@@ -394,11 +405,16 @@ For a comparison of CATE estimators across software ecosystems
 (including Stata 19's new `cate` command), see the
 [Stata CATE blog chapter](https://xiangao.github.io/blog_book/stata-cate.html).
 
-## CLAN: testing for heterogeneity
+## GATES: sorted group ATEs
 
-CLAN is a simple way to report heterogeneity. Sort observations by predicted
-CATE, split them into bins, and estimate the ATE in each bin. If the bin
-ATEs differ, the heterogeneity is not just a graph.
+GATES (group average treatment effects) is a simple way to report
+heterogeneity [@chernozhukov-2018-generic-ml]. Sort observations by
+predicted CATE, split them into bins, and estimate the ATE in each bin. If
+the bin ATEs differ, the heterogeneity is not just a graph. (The same
+paper's CLAN — classification analysis — is the natural companion: compare
+average *covariates* between the most- and least-affected bins; here that
+comparison would show high $X_1$ in the top quintile and low $X_1$ in the
+bottom one.)
 
 ```{r}
 #| label: clan
@@ -424,11 +440,15 @@ clan_df <- as_tibble(clan) |>
 knitr::kable(clan_df[, c("quintile", "est.estimate", "se.std.err", "lo", "hi")],
              col.names = c("Quintile", "ATE", "SE", "95% LB", "95% UB"),
              digits = 3,
-             caption = "Quintile-specific ATEs from CLAN: heterogeneity is evident if quintile estimates differ.")
+             caption = "GATES: quintile-specific ATEs sorted by predicted CATE. Heterogeneity is evident if quintile estimates differ.")
 ```
 
 The bottom and top quintiles should have different estimated ATEs in this
-simulation.
+simulation. One caveat: the quintiles are formed from the same forest's
+(out-of-bag) predictions used to estimate the group ATEs, which mitigates
+but does not fully remove the bias from grouping and estimating on the same
+data; for formal inference use a held-out fold or
+`grf::rank_average_treatment_effect()`.
 
 ## Causal forests with panel data
 
@@ -437,7 +457,7 @@ covariates. A cross-sectional causal forest can then be biased. Two
 practical fixes are:
 
 1. **Demean by fixed effects** before running the causal forest.
-2. **Pass a `cluster` argument** to `causal_forest` so that observations
+2. **Pass a `clusters` argument** to `causal_forest` so that observations
    from the same unit are kept in the same training fold during honest
    sample-splitting.
 
@@ -450,21 +470,24 @@ n_firms <- 200
 n_t     <- 5
 n_total <- n_firms * n_t
 
-# Panel data with a unit-specific effect correlated with V1 (the modifier)
+# Panel data with a unit effect that drives BOTH treatment and the outcome
+# (classic fixed-effect confounding; unit_fe is unobserved to the forest)
 firm_id  <- rep(1:n_firms, each = n_t)
 unit_fe  <- rnorm(n_firms, sd = 1.5)[firm_id]
 V1_firm  <- rnorm(n_firms, sd = 1.0)[firm_id]   # firm-level covariate
 V1       <- V1_firm + rnorm(n_total, sd = 0.3)  # within-firm variation
-W        <- rbinom(n_total, 1, plogis(0.5 + 0.3 * V1_firm))
+W        <- rbinom(n_total, 1, plogis(0.3 * V1_firm + 0.5 * unit_fe))
 # True CATE varies linearly with V1
 tau_panel <- 0.5 + 1.0 * V1
-Y_panel  <- unit_fe + V1 + W + tau_panel * (W - mean(W)) + rnorm(n_total)
+Y_panel  <- unit_fe + V1 + tau_panel * W + rnorm(n_total)
 
 df_panel <- tibble(firm = firm_id, V1 = V1, W = W, Y = Y_panel)
 glimpse(df_panel)
 ```
 
-A naive causal forest ignores the firm effects:
+A naive causal forest ignores the firm effects. Because `unit_fe` raises
+both the treatment probability and the outcome, and is not in $X$, the
+naive estimate is badly biased upward:
 
 ```{r}
 #| label: cf-naive
@@ -482,7 +505,10 @@ cat(sprintf("True ATE: %.3f\n", mean(tau_panel)))
 ```
 
 Adding `clusters = firm` keeps a firm's observations together when `grf`
-does the honest sample split:
+does the honest sample split. Note what this does and does not do: it makes
+the honest splitting and the standard errors respect the panel structure,
+but it does *not* remove the unobserved-unit-effect confounding — the
+estimate stays close to the naive one:
 
 ```{r}
 #| label: cf-clustered
@@ -497,7 +523,8 @@ cat(sprintf("Clustered panel CF ATE: %.3f  (SE = %.3f)\n",
             ate_clust["estimate"], ate_clust["std.err"]))
 ```
 
-For a fixed-effect style adjustment, demean by firm before fitting:
+What removes the confounding is the fixed-effect style adjustment: demean
+$Y$, $W$, and $V_1$ by firm before fitting, which sweeps out `unit_fe`:
 
 ```{r}
 #| label: cf-demean
@@ -530,8 +557,8 @@ regression and random-effect regression under linear and nonlinear DGPs.
 
 - Meta-learners turn outcome-regression tools into CATE estimators.
 - Causal forests are the main `grf` estimator for heterogeneous effects.
-- BLP and CLAN are useful because they summarize heterogeneity in a way that
-  looks like familiar regression output.
+- BLP and GATES are useful because they summarize heterogeneity in a way
+  that looks like familiar regression output.
 - Policy trees translate CATE estimates into treatment rules.
 - In applied work, compare at least two CATE estimators and always report
   simple heterogeneity summaries, not only a CATE scatterplot.

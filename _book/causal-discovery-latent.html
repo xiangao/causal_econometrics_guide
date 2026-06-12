@@ -52,7 +52,27 @@ div.sourceCode
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="site_libs/quarto-nav/headroom.min.js"></script>
@@ -532,17 +552,17 @@ window.Quarto = {
 <td>
 <strong>FCI</strong> (Spirtes, Meek &amp; Richardson, 1995)</td>
 <td>Full PAG (skeleton + all orientation marks)</td>
-<td>Expensive: 10 orientation rules, many CI tests</td>
+<td>Expensive: the Possible-D-SEP stage performs many additional CI tests</td>
 </tr>
 <tr class="even">
 <td>
 <strong>RFCI</strong> (Colombo, Maathuis, Kalisch &amp; Richardson, 2012)</td>
-<td>Skeleton + partial orientations</td>
-<td>Cheap: skips the most expensive CI tests</td>
+<td>PAG with possibly fewer/weaker orientations</td>
+<td>Cheaper: skips the Possible-D-SEP tests</td>
 </tr>
 </tbody>
 </table>
-<p>RFCI gives fewer orientations than FCI, but its skeleton targets the same object. It is a faster screening tool.</p>
+<p>RFCI can give fewer orientations than FCI, and its skeleton converges to a (uniquely defined) <em>supergraph</em> of the true PAG skeleton — in special configurations it retains an edge FCI would remove, though on many graphs the two coincide. It is a faster screening tool.</p>
 </section><section id="simulation-with-hidden-variables" class="level2" data-number="20.3"><h2 data-number="20.3" class="anchored" data-anchor-id="simulation-with-hidden-variables">
 <span class="header-section-number">20.3</span> Simulation with Hidden Variables</h2>
 <p>We reuse the same 8-node Gaussian linear DAG from the previous chapter and hide 2 nodes, treating them as unobserved confounders.</p>
@@ -609,8 +629,10 @@ window.Quarto = {
 <span>    <span class="kw">if</span> <span class="op">(</span><span class="va">sep</span><span class="op">)</span> <span class="kw">next</span></span>
 <span>    <span class="va">anc_u</span> <span class="op">&lt;-</span> <span class="fu">ancestors_of</span><span class="op">(</span><span class="va">dag</span>, <span class="va">u</span><span class="op">)</span></span>
 <span>    <span class="va">anc_v</span> <span class="op">&lt;-</span> <span class="fu">ancestors_of</span><span class="op">(</span><span class="va">dag</span>, <span class="va">v</span><span class="op">)</span></span>
-<span>    <span class="kw">if</span>      <span class="op">(</span><span class="va">u</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">anc_v</span><span class="op">)</span> <span class="op">{</span> <span class="va">amat</span><span class="op">[</span><span class="va">i</span>, <span class="va">j</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">3L</span>; <span class="va">amat</span><span class="op">[</span><span class="va">j</span>, <span class="va">i</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">2L</span> <span class="op">}</span>   <span class="co"># u -&gt; v</span></span>
-<span>    <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span><span class="va">v</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">anc_u</span><span class="op">)</span> <span class="op">{</span> <span class="va">amat</span><span class="op">[</span><span class="va">i</span>, <span class="va">j</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">2L</span>; <span class="va">amat</span><span class="op">[</span><span class="va">j</span>, <span class="va">i</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">3L</span> <span class="op">}</span>   <span class="co"># v -&gt; u</span></span>
+<span>    <span class="co"># pcalg amat.pag convention: amat[i, j] is the mark AT j</span></span>
+<span>    <span class="co"># (u -&gt; v means arrowhead (2) at v, tail (3) at u)</span></span>
+<span>    <span class="kw">if</span>      <span class="op">(</span><span class="va">u</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">anc_v</span><span class="op">)</span> <span class="op">{</span> <span class="va">amat</span><span class="op">[</span><span class="va">i</span>, <span class="va">j</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">2L</span>; <span class="va">amat</span><span class="op">[</span><span class="va">j</span>, <span class="va">i</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">3L</span> <span class="op">}</span>   <span class="co"># u -&gt; v</span></span>
+<span>    <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span><span class="va">v</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">anc_u</span><span class="op">)</span> <span class="op">{</span> <span class="va">amat</span><span class="op">[</span><span class="va">i</span>, <span class="va">j</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">3L</span>; <span class="va">amat</span><span class="op">[</span><span class="va">j</span>, <span class="va">i</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">2L</span> <span class="op">}</span>   <span class="co"># v -&gt; u</span></span>
 <span>    <span class="kw">else</span>                   <span class="op">{</span> <span class="va">amat</span><span class="op">[</span><span class="va">i</span>, <span class="va">j</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">2L</span>; <span class="va">amat</span><span class="op">[</span><span class="va">j</span>, <span class="va">i</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">2L</span> <span class="op">}</span>   <span class="co"># u &lt;-&gt; v</span></span>
 <span>  <span class="op">}</span></span>
 <span>  <span class="va">amat</span></span>
@@ -665,11 +687,11 @@ Figure&nbsp;20.1: Full DAG (all 8 nodes) and the true MAG skeleton over observed
 <li>
 <strong>Phase 1 (skeleton):</strong> Same as PC — remove edges via CI tests with growing conditioning sets.</li>
 <li>
-<strong>Phase 2 (initial orientation):</strong> Mark all edge endpoints as <span class="math inline">\(\circ\)</span> (uncertain).</li>
+<strong>Phase 2 (initial orientation):</strong> Mark all edge endpoints as <span class="math inline">\(\circ\)</span> (uncertain); orient unshielded colliders as in PC.</li>
 <li>
-<strong>Phase 3 (collider detection):</strong> For each unshielded triple <span class="math inline">\(X \;\circ\!-\!\circ\; Z \;\circ\!-\!\circ\; Y\)</span> with <span class="math inline">\(X, Y\)</span> non-adjacent: orient as <span class="math inline">\(X \;\circ\!\!\!\to Z \leftarrow\!\!\!\circ\; Y\)</span> if <span class="math inline">\(Z\)</span> is not in the separating set of <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span>.</li>
+<strong>Phase 3 (Possible-D-SEP pruning):</strong> For each remaining edge <span class="math inline">\(X - Y\)</span>, compute the <strong>Possible-D-SEP</strong> sets and run <em>additional</em> CI tests conditioning on their subsets, removing further edges. With latent variables, two non-adjacent nodes need not be separable by a subset of their neighbors — this stage is what makes FCI’s skeleton differ from PC’s, and it is the expensive part (the number of subsets can grow exponentially). Colliders are then re-oriented on the pruned skeleton.</li>
 <li>
-<strong>Phase 4 (rule propagation):</strong> Apply 10 orientation rules that propagate known marks without creating contradictions, including rules that can produce definite <span class="math inline">\(\to\)</span> and <span class="math inline">\(\leftrightarrow\)</span> edges.</li>
+<strong>Phase 4 (rule propagation):</strong> Apply the 10 orientation rules of <span class="citation" data-cites="zhang-2008-orientation-rules">Zhang (<a href="references.html#ref-zhang-2008-orientation-rules" role="doc-biblioref">2008</a>)</span> (as implemented in <code>pcalg</code>) that propagate known marks without creating contradictions, including rules that can produce definite <span class="math inline">\(\to\)</span> and <span class="math inline">\(\leftrightarrow\)</span> edges. These rules perform no CI tests and are computationally cheap.</li>
 </ol>
 <p>The extra marks let FCI say what is known and what remains uncertain, but the output is harder to read than a DAG.</p>
 <div class="cell">
@@ -692,8 +714,8 @@ Figure&nbsp;20.1: Full DAG (all 8 nodes) and the true MAG skeleton over observed
 </div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># pcalg PAG amat encoding: 0 = no edge, 1 = circle, 2 = arrowhead, 3 = tail.</span></span>
-<span><span class="co"># An edge between i and j is described by amat[i,j] (mark at i)</span></span>
-<span><span class="co"># and amat[j,i] (mark at j).</span></span>
+<span><span class="co"># An edge between i and j is described by amat[i,j] (the mark AT j)</span></span>
+<span><span class="co"># and amat[j,i] (the mark AT i).</span></span>
 <span><span class="va">pag_skeleton_amat</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">amat</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">out</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">amat</span> <span class="op">!=</span> <span class="fl">0</span> <span class="op">|</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span><span class="op">(</span><span class="va">amat</span><span class="op">)</span> <span class="op">!=</span> <span class="fl">0</span><span class="op">)</span> <span class="op">*</span> <span class="fl">1L</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/diag.html">diag</a></span><span class="op">(</span><span class="va">out</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">0L</span></span>
@@ -738,7 +760,7 @@ Figure&nbsp;20.2: PAG estimated by FCI. Dashed edges indicate endpoints with cir
 <p><strong>Reading the PAG plot</strong></p>
 <p>In <code>pcalg</code>’s plot output:</p>
 <ul>
-<li>A <strong>plain arrow</strong> <span class="math inline">\(X \to Y\)</span> is a definite direct cause (in every equivalent MAG).</li>
+<li>A <strong>plain arrow</strong> <span class="math inline">\(X \to Y\)</span> is a definite cause — <span class="math inline">\(X\)</span> is an ancestor of <span class="math inline">\(Y\)</span> in every equivalent MAG. It need not be a <em>direct</em> effect: the path may run through latent mediators (the DAG <span class="math inline">\(X \to L \to Y\)</span> with <span class="math inline">\(L\)</span> hidden yields the MAG <span class="math inline">\(X \to Y\)</span>).</li>
 <li>A <strong>double-headed arrow</strong> <span class="math inline">\(X \leftrightarrow Y\)</span> is a definite hidden common cause.</li>
 <li>A <strong>circle endpoint</strong> is the <span class="math inline">\(\circ\)</span> mark — uncertain at that endpoint.</li>
 </ul>
@@ -749,15 +771,15 @@ Figure&nbsp;20.2: PAG estimated by FCI. Dashed edges indicate endpoints with cir
 <p><strong>When FCI gives wrong answers:</strong> FCI assumes the CI tests are perfectly accurate (no finite-sample error). In practice, with small <span class="math inline">\(n\)</span> or many variables, some false CI decisions propagate through the 10 orientation rules. The skeleton quality (F1) is generally more reliable than the orientation quality.</p>
 </section><section id="rfci-algorithm" class="level2" data-number="20.5"><h2 data-number="20.5" class="anchored" data-anchor-id="rfci-algorithm">
 <span class="header-section-number">20.5</span> RFCI Algorithm</h2>
-<p><strong>RFCI</strong> (Really Fast Causal Inference; Colombo et al., 2012) replaces FCI’s expensive Phase 4 with a leaner orientation phase that uses only a subset of the orientation rules — the ones whose validity does not require expensive <em>additional</em> CI tests on triples or quadruples.</p>
+<p><strong>RFCI</strong> (Really Fast Causal Inference; Colombo et al., 2012) skips FCI’s expensive <strong>Possible-D-SEP pruning stage</strong> entirely — the stage responsible for most of FCI’s CI tests. To stay sound without it, RFCI adds a few extra CI tests of its own inside the collider and discriminating-path checks; the orientation-rule propagation is kept.</p>
 <p><strong>Key differences from FCI:</strong></p>
 <ol type="1">
 <li>
-<strong>Skeleton phase:</strong> identical to FCI.</li>
+<strong>Skeleton phase:</strong> the PC-style skeleton search is the same, but RFCI does <strong>not</strong> run the Possible-D-SEP removals — this is where the savings come from, and why its skeleton can retain extra edges (it converges to a supergraph of the PAG skeleton).</li>
 <li>
-<strong>Collider check:</strong> before orienting an unshielded triple as a collider, RFCI runs <em>additional</em> CI tests to verify the orientation. This costs more in Phase 3 but means RFCI can safely <em>skip</em> the expensive Phase 4 rules.</li>
+<strong>Collider check:</strong> before orienting an unshielded triple as a collider, RFCI runs <em>additional</em> CI tests to verify the orientation — a modest extra cost that restores soundness without the Possible-D-SEP stage.</li>
 <li>
-<strong>Orientation output:</strong> RFCI produces a <em>partial</em> PAG. Some edges that FCI orients are left as <span class="math inline">\(\circ\!-\!\circ\)</span> in RFCI; conversely, every edge RFCI does orient is guaranteed correct under the same asymptotic conditions.</li>
+<strong>Orientation output:</strong> RFCI produces a <em>partial</em> PAG. Some edges that FCI orients are left as <span class="math inline">\(\circ\!-\!\circ\)</span> in RFCI; conversely, every mark RFCI does output is asymptotically correct under the same conditions.</li>
 </ol>
 <p>In practice, the skeleton is often the main output: it tells us which pairs need substantive attention. Full PAG orientations are useful, but they are harder to defend.</p>
 <div class="cell">
@@ -926,7 +948,7 @@ Figure&nbsp;20.3: True MAG vs.&nbsp;PAGs recovered by FCI and RFCI. Directed arr
 <img src="causal-discovery-latent_files/figure-html/fig-latent-mc-1.png" class="img-fluid figure-img" width="672">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-latent-mc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;20.4: CI-test count distributions across 100 replications. RFCI’s lighter Phase 4 typically — though not always — runs fewer tests than FCI.
+Figure&nbsp;20.4: CI-test count distributions across 100 replications. By skipping the Possible-D-SEP tests, RFCI typically — though not always — runs fewer tests than FCI.
 </figcaption></figure>
 </div>
 </div>
@@ -963,7 +985,7 @@ Figure&nbsp;20.4: CI-test count distributions across 100 replications. RFCI’s 
 <td>Skeleton consistency</td>
 <td>✓</td>
 <td>✓</td>
-<td>✓</td>
+<td>converges to a slight supergraph</td>
 </tr>
 <tr class="even">
 <td>Orientation coverage</td>
@@ -974,8 +996,8 @@ Figure&nbsp;20.4: CI-test count distributions across 100 replications. RFCI’s 
 <tr class="odd">
 <td>CI cost</td>
 <td>PC: PC’s cost; GES: none</td>
-<td>FCI’s full Phase 4</td>
-<td>reduced Phase 4</td>
+<td>skeleton + Possible-D-SEP tests</td>
+<td>skeleton only (no Possible-D-SEP)</td>
 </tr>
 </tbody>
 </table>
@@ -1067,6 +1089,11 @@ Figure&nbsp;20.4: CI-test count distributions across 100 replications. RFCI’s 
 
 <!-- -->
 
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-zhang-2008-orientation-rules" class="csl-entry" role="listitem">
+Zhang, Jiji. 2008. <span>“On the Completeness of Orientation Rules for Causal Discovery in the Presence of Latent Confounders and Selection Bias.”</span> <em>Artificial Intelligence</em> 172 (16–17): 1873–96.
+</div>
+</div>
 </section></main><!-- /main --><script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     const icon = "";
@@ -1651,403 +1678,407 @@ Figure&nbsp;20.4: CI-test count distributions across 100 replications. RFCI’s 
 <span id="cb16-123"><a href="#cb16-123" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-124"><a href="#cb16-124" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Algorithm <span class="pp">|</span> Output <span class="pp">|</span> Cost <span class="pp">|</span></span>
 <span id="cb16-125"><a href="#cb16-125" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
-<span id="cb16-126"><a href="#cb16-126" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **FCI** (Spirtes, Meek &amp; Richardson, 1995) <span class="pp">|</span> Full PAG (skeleton + all orientation marks) <span class="pp">|</span> Expensive: 10 orientation rules, many CI tests <span class="pp">|</span></span>
-<span id="cb16-127"><a href="#cb16-127" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **RFCI** (Colombo, Maathuis, Kalisch &amp; Richardson, 2012) <span class="pp">|</span> Skeleton + partial orientations <span class="pp">|</span> Cheap: skips the most expensive CI tests <span class="pp">|</span></span>
+<span id="cb16-126"><a href="#cb16-126" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **FCI** (Spirtes, Meek &amp; Richardson, 1995) <span class="pp">|</span> Full PAG (skeleton + all orientation marks) <span class="pp">|</span> Expensive: the Possible-D-SEP stage performs many additional CI tests <span class="pp">|</span></span>
+<span id="cb16-127"><a href="#cb16-127" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **RFCI** (Colombo, Maathuis, Kalisch &amp; Richardson, 2012) <span class="pp">|</span> PAG with possibly fewer/weaker orientations <span class="pp">|</span> Cheaper: skips the Possible-D-SEP tests <span class="pp">|</span></span>
 <span id="cb16-128"><a href="#cb16-128" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-129"><a href="#cb16-129" aria-hidden="true" tabindex="-1"></a>RFCI gives fewer orientations than FCI, but its skeleton targets the same</span>
-<span id="cb16-130"><a href="#cb16-130" aria-hidden="true" tabindex="-1"></a>object. It is a faster screening tool.</span>
-<span id="cb16-131"><a href="#cb16-131" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-132"><a href="#cb16-132" aria-hidden="true" tabindex="-1"></a><span class="fu">## Simulation with Hidden Variables</span></span>
+<span id="cb16-129"><a href="#cb16-129" aria-hidden="true" tabindex="-1"></a>RFCI can give fewer orientations than FCI, and its skeleton converges to a</span>
+<span id="cb16-130"><a href="#cb16-130" aria-hidden="true" tabindex="-1"></a>(uniquely defined) *supergraph* of the true PAG skeleton — in special</span>
+<span id="cb16-131"><a href="#cb16-131" aria-hidden="true" tabindex="-1"></a>configurations it retains an edge FCI would remove, though on many graphs the</span>
+<span id="cb16-132"><a href="#cb16-132" aria-hidden="true" tabindex="-1"></a>two coincide. It is a faster screening tool.</span>
 <span id="cb16-133"><a href="#cb16-133" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-134"><a href="#cb16-134" aria-hidden="true" tabindex="-1"></a>We reuse the same 8-node Gaussian linear DAG from the previous chapter and hide 2 nodes, treating them as unobserved confounders.</span>
+<span id="cb16-134"><a href="#cb16-134" aria-hidden="true" tabindex="-1"></a><span class="fu">## Simulation with Hidden Variables</span></span>
 <span id="cb16-135"><a href="#cb16-135" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-138"><a href="#cb16-138" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb16-139"><a href="#cb16-139" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2025</span>)</span>
-<span id="cb16-140"><a href="#cb16-140" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-141"><a href="#cb16-141" aria-hidden="true" tabindex="-1"></a>n_vars     <span class="ot">&lt;-</span> <span class="dv">8</span></span>
-<span id="cb16-142"><a href="#cb16-142" aria-hidden="true" tabindex="-1"></a>n_samples  <span class="ot">&lt;-</span> <span class="dv">2000</span></span>
-<span id="cb16-143"><a href="#cb16-143" aria-hidden="true" tabindex="-1"></a>edge_prob  <span class="ot">&lt;-</span> <span class="fl">0.35</span></span>
-<span id="cb16-144"><a href="#cb16-144" aria-hidden="true" tabindex="-1"></a>latent_idx <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">3</span>, <span class="dv">6</span>)</span>
-<span id="cb16-145"><a href="#cb16-145" aria-hidden="true" tabindex="-1"></a>obs_idx    <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(<span class="dv">1</span><span class="sc">:</span>n_vars, latent_idx)</span>
-<span id="cb16-146"><a href="#cb16-146" aria-hidden="true" tabindex="-1"></a>all_labels <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"X"</span>, <span class="dv">1</span><span class="sc">:</span>n_vars)</span>
-<span id="cb16-147"><a href="#cb16-147" aria-hidden="true" tabindex="-1"></a>obs_labels <span class="ot">&lt;-</span> all_labels[obs_idx]</span>
-<span id="cb16-148"><a href="#cb16-148" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-149"><a href="#cb16-149" aria-hidden="true" tabindex="-1"></a>true_dag   <span class="ot">&lt;-</span> <span class="fu">randomDAG</span>(n_vars, <span class="at">prob =</span> edge_prob, <span class="at">lB =</span> <span class="fl">0.25</span>, <span class="at">uB =</span> <span class="dv">1</span>)</span>
-<span id="cb16-150"><a href="#cb16-150" aria-hidden="true" tabindex="-1"></a><span class="fu">nodes</span>(true_dag) <span class="ot">&lt;-</span> all_labels</span>
-<span id="cb16-151"><a href="#cb16-151" aria-hidden="true" tabindex="-1"></a>data_full  <span class="ot">&lt;-</span> <span class="fu">rmvDAG</span>(n_samples, true_dag, <span class="at">errDist =</span> <span class="st">"normal"</span>)</span>
-<span id="cb16-152"><a href="#cb16-152" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(data_full) <span class="ot">&lt;-</span> all_labels</span>
-<span id="cb16-153"><a href="#cb16-153" aria-hidden="true" tabindex="-1"></a>data_obs   <span class="ot">&lt;-</span> data_full[, obs_idx]</span>
-<span id="cb16-154"><a href="#cb16-154" aria-hidden="true" tabindex="-1"></a>n_obs      <span class="ot">&lt;-</span> <span class="fu">length</span>(obs_idx)</span>
-<span id="cb16-155"><a href="#cb16-155" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-156"><a href="#cb16-156" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Total variables: %d   Hidden: %s   Observed: %d"</span>,</span>
-<span id="cb16-157"><a href="#cb16-157" aria-hidden="true" tabindex="-1"></a>        n_vars, <span class="fu">paste</span>(all_labels[latent_idx], <span class="at">collapse =</span> <span class="st">", "</span>), n_obs)</span>
-<span id="cb16-158"><a href="#cb16-158" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb16-159"><a href="#cb16-159" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-160"><a href="#cb16-160" aria-hidden="true" tabindex="-1"></a><span class="fu">### True structure over observed variables</span></span>
+<span id="cb16-136"><a href="#cb16-136" aria-hidden="true" tabindex="-1"></a>We reuse the same 8-node Gaussian linear DAG from the previous chapter and hide 2 nodes, treating them as unobserved confounders.</span>
+<span id="cb16-137"><a href="#cb16-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-140"><a href="#cb16-140" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-141"><a href="#cb16-141" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2025</span>)</span>
+<span id="cb16-142"><a href="#cb16-142" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-143"><a href="#cb16-143" aria-hidden="true" tabindex="-1"></a>n_vars     <span class="ot">&lt;-</span> <span class="dv">8</span></span>
+<span id="cb16-144"><a href="#cb16-144" aria-hidden="true" tabindex="-1"></a>n_samples  <span class="ot">&lt;-</span> <span class="dv">2000</span></span>
+<span id="cb16-145"><a href="#cb16-145" aria-hidden="true" tabindex="-1"></a>edge_prob  <span class="ot">&lt;-</span> <span class="fl">0.35</span></span>
+<span id="cb16-146"><a href="#cb16-146" aria-hidden="true" tabindex="-1"></a>latent_idx <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">3</span>, <span class="dv">6</span>)</span>
+<span id="cb16-147"><a href="#cb16-147" aria-hidden="true" tabindex="-1"></a>obs_idx    <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(<span class="dv">1</span><span class="sc">:</span>n_vars, latent_idx)</span>
+<span id="cb16-148"><a href="#cb16-148" aria-hidden="true" tabindex="-1"></a>all_labels <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"X"</span>, <span class="dv">1</span><span class="sc">:</span>n_vars)</span>
+<span id="cb16-149"><a href="#cb16-149" aria-hidden="true" tabindex="-1"></a>obs_labels <span class="ot">&lt;-</span> all_labels[obs_idx]</span>
+<span id="cb16-150"><a href="#cb16-150" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-151"><a href="#cb16-151" aria-hidden="true" tabindex="-1"></a>true_dag   <span class="ot">&lt;-</span> <span class="fu">randomDAG</span>(n_vars, <span class="at">prob =</span> edge_prob, <span class="at">lB =</span> <span class="fl">0.25</span>, <span class="at">uB =</span> <span class="dv">1</span>)</span>
+<span id="cb16-152"><a href="#cb16-152" aria-hidden="true" tabindex="-1"></a><span class="fu">nodes</span>(true_dag) <span class="ot">&lt;-</span> all_labels</span>
+<span id="cb16-153"><a href="#cb16-153" aria-hidden="true" tabindex="-1"></a>data_full  <span class="ot">&lt;-</span> <span class="fu">rmvDAG</span>(n_samples, true_dag, <span class="at">errDist =</span> <span class="st">"normal"</span>)</span>
+<span id="cb16-154"><a href="#cb16-154" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(data_full) <span class="ot">&lt;-</span> all_labels</span>
+<span id="cb16-155"><a href="#cb16-155" aria-hidden="true" tabindex="-1"></a>data_obs   <span class="ot">&lt;-</span> data_full[, obs_idx]</span>
+<span id="cb16-156"><a href="#cb16-156" aria-hidden="true" tabindex="-1"></a>n_obs      <span class="ot">&lt;-</span> <span class="fu">length</span>(obs_idx)</span>
+<span id="cb16-157"><a href="#cb16-157" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-158"><a href="#cb16-158" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"Total variables: %d   Hidden: %s   Observed: %d"</span>,</span>
+<span id="cb16-159"><a href="#cb16-159" aria-hidden="true" tabindex="-1"></a>        n_vars, <span class="fu">paste</span>(all_labels[latent_idx], <span class="at">collapse =</span> <span class="st">", "</span>), n_obs)</span>
+<span id="cb16-160"><a href="#cb16-160" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb16-161"><a href="#cb16-161" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-162"><a href="#cb16-162" aria-hidden="true" tabindex="-1"></a>Two observed variables are adjacent in the MAG iff no subset of the *observed* variables d-separates them in the full DAG. We compute this with <span class="in">`pcalg::dsep`</span>.</span>
+<span id="cb16-162"><a href="#cb16-162" aria-hidden="true" tabindex="-1"></a><span class="fu">### True structure over observed variables</span></span>
 <span id="cb16-163"><a href="#cb16-163" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-166"><a href="#cb16-166" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb16-167"><a href="#cb16-167" aria-hidden="true" tabindex="-1"></a>all_subsets <span class="ot">&lt;-</span> <span class="cf">function</span>(xs) {</span>
-<span id="cb16-168"><a href="#cb16-168" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="fu">character</span>(<span class="dv">0</span>))</span>
-<span id="cb16-169"><a href="#cb16-169" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (k <span class="cf">in</span> <span class="fu">seq_along</span>(xs)) out <span class="ot">&lt;-</span> <span class="fu">c</span>(out, <span class="fu">combn</span>(xs, k, <span class="at">simplify =</span> <span class="cn">FALSE</span>))</span>
-<span id="cb16-170"><a href="#cb16-170" aria-hidden="true" tabindex="-1"></a>  out</span>
-<span id="cb16-171"><a href="#cb16-171" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-172"><a href="#cb16-172" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-173"><a href="#cb16-173" aria-hidden="true" tabindex="-1"></a><span class="co"># Ancestors of a node in a graphNEL DAG (excluding the node itself).</span></span>
-<span id="cb16-174"><a href="#cb16-174" aria-hidden="true" tabindex="-1"></a>ancestors_of <span class="ot">&lt;-</span> <span class="cf">function</span>(dag, target) {</span>
-<span id="cb16-175"><a href="#cb16-175" aria-hidden="true" tabindex="-1"></a>  ie <span class="ot">&lt;-</span> <span class="fu">inEdges</span>(dag)</span>
-<span id="cb16-176"><a href="#cb16-176" aria-hidden="true" tabindex="-1"></a>  visited <span class="ot">&lt;-</span> <span class="fu">character</span>(<span class="dv">0</span>)</span>
-<span id="cb16-177"><a href="#cb16-177" aria-hidden="true" tabindex="-1"></a>  queue   <span class="ot">&lt;-</span> target</span>
-<span id="cb16-178"><a href="#cb16-178" aria-hidden="true" tabindex="-1"></a>  <span class="cf">while</span> (<span class="fu">length</span>(queue)) {</span>
-<span id="cb16-179"><a href="#cb16-179" aria-hidden="true" tabindex="-1"></a>    cur <span class="ot">&lt;-</span> queue[<span class="dv">1</span>]; queue <span class="ot">&lt;-</span> queue[<span class="sc">-</span><span class="dv">1</span>]</span>
-<span id="cb16-180"><a href="#cb16-180" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (cur <span class="sc">%in%</span> visited) <span class="cf">next</span></span>
-<span id="cb16-181"><a href="#cb16-181" aria-hidden="true" tabindex="-1"></a>    visited <span class="ot">&lt;-</span> <span class="fu">c</span>(visited, cur)</span>
-<span id="cb16-182"><a href="#cb16-182" aria-hidden="true" tabindex="-1"></a>    queue   <span class="ot">&lt;-</span> <span class="fu">c</span>(queue, ie[[cur]])</span>
-<span id="cb16-183"><a href="#cb16-183" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb16-184"><a href="#cb16-184" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setdiff</span>(visited, target)</span>
-<span id="cb16-185"><a href="#cb16-185" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-186"><a href="#cb16-186" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-187"><a href="#cb16-187" aria-hidden="true" tabindex="-1"></a><span class="co"># True MAG over observed nodes as a pcalg-encoded PAG amat:</span></span>
-<span id="cb16-188"><a href="#cb16-188" aria-hidden="true" tabindex="-1"></a><span class="co"># directed edges where one observed node is an ancestor of the other in the</span></span>
-<span id="cb16-189"><a href="#cb16-189" aria-hidden="true" tabindex="-1"></a><span class="co"># full DAG, bidirected edges where neither is an ancestor of the other.</span></span>
-<span id="cb16-190"><a href="#cb16-190" aria-hidden="true" tabindex="-1"></a>true_mag_amat <span class="ot">&lt;-</span> <span class="cf">function</span>(dag, observed_names) {</span>
-<span id="cb16-191"><a href="#cb16-191" aria-hidden="true" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">length</span>(observed_names)</span>
-<span id="cb16-192"><a href="#cb16-192" aria-hidden="true" tabindex="-1"></a>  amat <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>L, p, p, <span class="at">dimnames =</span> <span class="fu">list</span>(observed_names, observed_names))</span>
-<span id="cb16-193"><a href="#cb16-193" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(p <span class="sc">-</span> <span class="dv">1</span>)) <span class="cf">for</span> (j <span class="cf">in</span> <span class="fu">seq.int</span>(i <span class="sc">+</span> <span class="dv">1</span>, p)) {</span>
-<span id="cb16-194"><a href="#cb16-194" aria-hidden="true" tabindex="-1"></a>    u <span class="ot">&lt;-</span> observed_names[i]; v <span class="ot">&lt;-</span> observed_names[j]</span>
-<span id="cb16-195"><a href="#cb16-195" aria-hidden="true" tabindex="-1"></a>    others <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(observed_names, <span class="fu">c</span>(u, v))</span>
-<span id="cb16-196"><a href="#cb16-196" aria-hidden="true" tabindex="-1"></a>    sep <span class="ot">&lt;-</span> <span class="fu">any</span>(<span class="fu">vapply</span>(<span class="fu">all_subsets</span>(others),</span>
-<span id="cb16-197"><a href="#cb16-197" aria-hidden="true" tabindex="-1"></a>                      <span class="cf">function</span>(S) <span class="fu">dsep</span>(u, v, S, dag),</span>
-<span id="cb16-198"><a href="#cb16-198" aria-hidden="true" tabindex="-1"></a>                      <span class="fu">logical</span>(<span class="dv">1</span>)))</span>
-<span id="cb16-199"><a href="#cb16-199" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (sep) <span class="cf">next</span></span>
-<span id="cb16-200"><a href="#cb16-200" aria-hidden="true" tabindex="-1"></a>    anc_u <span class="ot">&lt;-</span> <span class="fu">ancestors_of</span>(dag, u)</span>
-<span id="cb16-201"><a href="#cb16-201" aria-hidden="true" tabindex="-1"></a>    anc_v <span class="ot">&lt;-</span> <span class="fu">ancestors_of</span>(dag, v)</span>
-<span id="cb16-202"><a href="#cb16-202" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>      (u <span class="sc">%in%</span> anc_v) { amat[i, j] <span class="ot">&lt;-</span> <span class="dv">3</span>L; amat[j, i] <span class="ot">&lt;-</span> <span class="dv">2</span>L }   <span class="co"># u -&gt; v</span></span>
-<span id="cb16-203"><a href="#cb16-203" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span> <span class="cf">if</span> (v <span class="sc">%in%</span> anc_u) { amat[i, j] <span class="ot">&lt;-</span> <span class="dv">2</span>L; amat[j, i] <span class="ot">&lt;-</span> <span class="dv">3</span>L }   <span class="co"># v -&gt; u</span></span>
-<span id="cb16-204"><a href="#cb16-204" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>                   { amat[i, j] <span class="ot">&lt;-</span> <span class="dv">2</span>L; amat[j, i] <span class="ot">&lt;-</span> <span class="dv">2</span>L }   <span class="co"># u &lt;-&gt; v</span></span>
-<span id="cb16-205"><a href="#cb16-205" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb16-206"><a href="#cb16-206" aria-hidden="true" tabindex="-1"></a>  amat</span>
-<span id="cb16-207"><a href="#cb16-207" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-208"><a href="#cb16-208" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-209"><a href="#cb16-209" aria-hidden="true" tabindex="-1"></a><span class="co"># Skeleton version (1 wherever an edge exists, ignoring direction) — used in</span></span>
-<span id="cb16-210"><a href="#cb16-210" aria-hidden="true" tabindex="-1"></a><span class="co"># the Monte Carlo F1 comparison below.</span></span>
-<span id="cb16-211"><a href="#cb16-211" aria-hidden="true" tabindex="-1"></a>true_mag_skel <span class="ot">&lt;-</span> <span class="cf">function</span>(dag, observed_names) {</span>
-<span id="cb16-212"><a href="#cb16-212" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> <span class="fu">true_mag_amat</span>(dag, observed_names)</span>
-<span id="cb16-213"><a href="#cb16-213" aria-hidden="true" tabindex="-1"></a>  (a <span class="sc">!=</span> <span class="dv">0</span>L) <span class="sc">*</span> <span class="dv">1</span>L</span>
-<span id="cb16-214"><a href="#cb16-214" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-215"><a href="#cb16-215" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-216"><a href="#cb16-216" aria-hidden="true" tabindex="-1"></a>amat_true_pag  <span class="ot">&lt;-</span> <span class="fu">true_mag_amat</span>(true_dag, obs_labels)</span>
-<span id="cb16-217"><a href="#cb16-217" aria-hidden="true" tabindex="-1"></a>amat_true_mag  <span class="ot">&lt;-</span> (amat_true_pag <span class="sc">!=</span> <span class="dv">0</span>L) <span class="sc">*</span> <span class="dv">1</span>L  <span class="co"># skeleton for F1 comparisons</span></span>
-<span id="cb16-218"><a href="#cb16-218" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-219"><a href="#cb16-219" aria-hidden="true" tabindex="-1"></a><span class="co"># igraph representations used for plotting</span></span>
-<span id="cb16-220"><a href="#cb16-220" aria-hidden="true" tabindex="-1"></a>ig_true_full <span class="ot">&lt;-</span> <span class="fu">graphnel_to_ig</span>(true_dag)   <span class="co"># full 8-node DAG</span></span>
-<span id="cb16-221"><a href="#cb16-221" aria-hidden="true" tabindex="-1"></a>ig_true_pag  <span class="ot">&lt;-</span> <span class="fu">pag_to_ig</span>(amat_true_pag, obs_labels)   <span class="co"># true MAG over obs nodes</span></span>
+<span id="cb16-164"><a href="#cb16-164" aria-hidden="true" tabindex="-1"></a>Two observed variables are adjacent in the MAG iff no subset of the *observed* variables d-separates them in the full DAG. We compute this with <span class="in">`pcalg::dsep`</span>.</span>
+<span id="cb16-165"><a href="#cb16-165" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-168"><a href="#cb16-168" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-169"><a href="#cb16-169" aria-hidden="true" tabindex="-1"></a>all_subsets <span class="ot">&lt;-</span> <span class="cf">function</span>(xs) {</span>
+<span id="cb16-170"><a href="#cb16-170" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="fu">character</span>(<span class="dv">0</span>))</span>
+<span id="cb16-171"><a href="#cb16-171" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (k <span class="cf">in</span> <span class="fu">seq_along</span>(xs)) out <span class="ot">&lt;-</span> <span class="fu">c</span>(out, <span class="fu">combn</span>(xs, k, <span class="at">simplify =</span> <span class="cn">FALSE</span>))</span>
+<span id="cb16-172"><a href="#cb16-172" aria-hidden="true" tabindex="-1"></a>  out</span>
+<span id="cb16-173"><a href="#cb16-173" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-174"><a href="#cb16-174" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-175"><a href="#cb16-175" aria-hidden="true" tabindex="-1"></a><span class="co"># Ancestors of a node in a graphNEL DAG (excluding the node itself).</span></span>
+<span id="cb16-176"><a href="#cb16-176" aria-hidden="true" tabindex="-1"></a>ancestors_of <span class="ot">&lt;-</span> <span class="cf">function</span>(dag, target) {</span>
+<span id="cb16-177"><a href="#cb16-177" aria-hidden="true" tabindex="-1"></a>  ie <span class="ot">&lt;-</span> <span class="fu">inEdges</span>(dag)</span>
+<span id="cb16-178"><a href="#cb16-178" aria-hidden="true" tabindex="-1"></a>  visited <span class="ot">&lt;-</span> <span class="fu">character</span>(<span class="dv">0</span>)</span>
+<span id="cb16-179"><a href="#cb16-179" aria-hidden="true" tabindex="-1"></a>  queue   <span class="ot">&lt;-</span> target</span>
+<span id="cb16-180"><a href="#cb16-180" aria-hidden="true" tabindex="-1"></a>  <span class="cf">while</span> (<span class="fu">length</span>(queue)) {</span>
+<span id="cb16-181"><a href="#cb16-181" aria-hidden="true" tabindex="-1"></a>    cur <span class="ot">&lt;-</span> queue[<span class="dv">1</span>]; queue <span class="ot">&lt;-</span> queue[<span class="sc">-</span><span class="dv">1</span>]</span>
+<span id="cb16-182"><a href="#cb16-182" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (cur <span class="sc">%in%</span> visited) <span class="cf">next</span></span>
+<span id="cb16-183"><a href="#cb16-183" aria-hidden="true" tabindex="-1"></a>    visited <span class="ot">&lt;-</span> <span class="fu">c</span>(visited, cur)</span>
+<span id="cb16-184"><a href="#cb16-184" aria-hidden="true" tabindex="-1"></a>    queue   <span class="ot">&lt;-</span> <span class="fu">c</span>(queue, ie[[cur]])</span>
+<span id="cb16-185"><a href="#cb16-185" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb16-186"><a href="#cb16-186" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setdiff</span>(visited, target)</span>
+<span id="cb16-187"><a href="#cb16-187" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-188"><a href="#cb16-188" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-189"><a href="#cb16-189" aria-hidden="true" tabindex="-1"></a><span class="co"># True MAG over observed nodes as a pcalg-encoded PAG amat:</span></span>
+<span id="cb16-190"><a href="#cb16-190" aria-hidden="true" tabindex="-1"></a><span class="co"># directed edges where one observed node is an ancestor of the other in the</span></span>
+<span id="cb16-191"><a href="#cb16-191" aria-hidden="true" tabindex="-1"></a><span class="co"># full DAG, bidirected edges where neither is an ancestor of the other.</span></span>
+<span id="cb16-192"><a href="#cb16-192" aria-hidden="true" tabindex="-1"></a>true_mag_amat <span class="ot">&lt;-</span> <span class="cf">function</span>(dag, observed_names) {</span>
+<span id="cb16-193"><a href="#cb16-193" aria-hidden="true" tabindex="-1"></a>  p <span class="ot">&lt;-</span> <span class="fu">length</span>(observed_names)</span>
+<span id="cb16-194"><a href="#cb16-194" aria-hidden="true" tabindex="-1"></a>  amat <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>L, p, p, <span class="at">dimnames =</span> <span class="fu">list</span>(observed_names, observed_names))</span>
+<span id="cb16-195"><a href="#cb16-195" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(p <span class="sc">-</span> <span class="dv">1</span>)) <span class="cf">for</span> (j <span class="cf">in</span> <span class="fu">seq.int</span>(i <span class="sc">+</span> <span class="dv">1</span>, p)) {</span>
+<span id="cb16-196"><a href="#cb16-196" aria-hidden="true" tabindex="-1"></a>    u <span class="ot">&lt;-</span> observed_names[i]; v <span class="ot">&lt;-</span> observed_names[j]</span>
+<span id="cb16-197"><a href="#cb16-197" aria-hidden="true" tabindex="-1"></a>    others <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(observed_names, <span class="fu">c</span>(u, v))</span>
+<span id="cb16-198"><a href="#cb16-198" aria-hidden="true" tabindex="-1"></a>    sep <span class="ot">&lt;-</span> <span class="fu">any</span>(<span class="fu">vapply</span>(<span class="fu">all_subsets</span>(others),</span>
+<span id="cb16-199"><a href="#cb16-199" aria-hidden="true" tabindex="-1"></a>                      <span class="cf">function</span>(S) <span class="fu">dsep</span>(u, v, S, dag),</span>
+<span id="cb16-200"><a href="#cb16-200" aria-hidden="true" tabindex="-1"></a>                      <span class="fu">logical</span>(<span class="dv">1</span>)))</span>
+<span id="cb16-201"><a href="#cb16-201" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (sep) <span class="cf">next</span></span>
+<span id="cb16-202"><a href="#cb16-202" aria-hidden="true" tabindex="-1"></a>    anc_u <span class="ot">&lt;-</span> <span class="fu">ancestors_of</span>(dag, u)</span>
+<span id="cb16-203"><a href="#cb16-203" aria-hidden="true" tabindex="-1"></a>    anc_v <span class="ot">&lt;-</span> <span class="fu">ancestors_of</span>(dag, v)</span>
+<span id="cb16-204"><a href="#cb16-204" aria-hidden="true" tabindex="-1"></a>    <span class="co"># pcalg amat.pag convention: amat[i, j] is the mark AT j</span></span>
+<span id="cb16-205"><a href="#cb16-205" aria-hidden="true" tabindex="-1"></a>    <span class="co"># (u -&gt; v means arrowhead (2) at v, tail (3) at u)</span></span>
+<span id="cb16-206"><a href="#cb16-206" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>      (u <span class="sc">%in%</span> anc_v) { amat[i, j] <span class="ot">&lt;-</span> <span class="dv">2</span>L; amat[j, i] <span class="ot">&lt;-</span> <span class="dv">3</span>L }   <span class="co"># u -&gt; v</span></span>
+<span id="cb16-207"><a href="#cb16-207" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span> <span class="cf">if</span> (v <span class="sc">%in%</span> anc_u) { amat[i, j] <span class="ot">&lt;-</span> <span class="dv">3</span>L; amat[j, i] <span class="ot">&lt;-</span> <span class="dv">2</span>L }   <span class="co"># v -&gt; u</span></span>
+<span id="cb16-208"><a href="#cb16-208" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>                   { amat[i, j] <span class="ot">&lt;-</span> <span class="dv">2</span>L; amat[j, i] <span class="ot">&lt;-</span> <span class="dv">2</span>L }   <span class="co"># u &lt;-&gt; v</span></span>
+<span id="cb16-209"><a href="#cb16-209" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb16-210"><a href="#cb16-210" aria-hidden="true" tabindex="-1"></a>  amat</span>
+<span id="cb16-211"><a href="#cb16-211" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-212"><a href="#cb16-212" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-213"><a href="#cb16-213" aria-hidden="true" tabindex="-1"></a><span class="co"># Skeleton version (1 wherever an edge exists, ignoring direction) — used in</span></span>
+<span id="cb16-214"><a href="#cb16-214" aria-hidden="true" tabindex="-1"></a><span class="co"># the Monte Carlo F1 comparison below.</span></span>
+<span id="cb16-215"><a href="#cb16-215" aria-hidden="true" tabindex="-1"></a>true_mag_skel <span class="ot">&lt;-</span> <span class="cf">function</span>(dag, observed_names) {</span>
+<span id="cb16-216"><a href="#cb16-216" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> <span class="fu">true_mag_amat</span>(dag, observed_names)</span>
+<span id="cb16-217"><a href="#cb16-217" aria-hidden="true" tabindex="-1"></a>  (a <span class="sc">!=</span> <span class="dv">0</span>L) <span class="sc">*</span> <span class="dv">1</span>L</span>
+<span id="cb16-218"><a href="#cb16-218" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-219"><a href="#cb16-219" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-220"><a href="#cb16-220" aria-hidden="true" tabindex="-1"></a>amat_true_pag  <span class="ot">&lt;-</span> <span class="fu">true_mag_amat</span>(true_dag, obs_labels)</span>
+<span id="cb16-221"><a href="#cb16-221" aria-hidden="true" tabindex="-1"></a>amat_true_mag  <span class="ot">&lt;-</span> (amat_true_pag <span class="sc">!=</span> <span class="dv">0</span>L) <span class="sc">*</span> <span class="dv">1</span>L  <span class="co"># skeleton for F1 comparisons</span></span>
 <span id="cb16-222"><a href="#cb16-222" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-223"><a href="#cb16-223" aria-hidden="true" tabindex="-1"></a><span class="co"># Shared layout: compute from full DAG, subset coords for observed-node plots</span></span>
-<span id="cb16-224"><a href="#cb16-224" aria-hidden="true" tabindex="-1"></a>full_layout  <span class="ot">&lt;-</span> igraph<span class="sc">::</span><span class="fu">layout_with_sugiyama</span>(ig_true_full)<span class="sc">$</span>layout</span>
-<span id="cb16-225"><a href="#cb16-225" aria-hidden="true" tabindex="-1"></a>obs_layout   <span class="ot">&lt;-</span> full_layout[obs_idx, ]     <span class="co"># positions of the observed nodes</span></span>
-<span id="cb16-226"><a href="#cb16-226" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(obs_layout) <span class="ot">&lt;-</span> obs_labels</span>
-<span id="cb16-227"><a href="#cb16-227" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-228"><a href="#cb16-228" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"True MAG skeleton edges (over %d observed nodes): %d"</span>,</span>
-<span id="cb16-229"><a href="#cb16-229" aria-hidden="true" tabindex="-1"></a>        n_obs, <span class="fu">sum</span>(amat_true_mag) <span class="sc">/</span> <span class="dv">2</span>)</span>
-<span id="cb16-230"><a href="#cb16-230" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-223"><a href="#cb16-223" aria-hidden="true" tabindex="-1"></a><span class="co"># igraph representations used for plotting</span></span>
+<span id="cb16-224"><a href="#cb16-224" aria-hidden="true" tabindex="-1"></a>ig_true_full <span class="ot">&lt;-</span> <span class="fu">graphnel_to_ig</span>(true_dag)   <span class="co"># full 8-node DAG</span></span>
+<span id="cb16-225"><a href="#cb16-225" aria-hidden="true" tabindex="-1"></a>ig_true_pag  <span class="ot">&lt;-</span> <span class="fu">pag_to_ig</span>(amat_true_pag, obs_labels)   <span class="co"># true MAG over obs nodes</span></span>
+<span id="cb16-226"><a href="#cb16-226" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-227"><a href="#cb16-227" aria-hidden="true" tabindex="-1"></a><span class="co"># Shared layout: compute from full DAG, subset coords for observed-node plots</span></span>
+<span id="cb16-228"><a href="#cb16-228" aria-hidden="true" tabindex="-1"></a>full_layout  <span class="ot">&lt;-</span> igraph<span class="sc">::</span><span class="fu">layout_with_sugiyama</span>(ig_true_full)<span class="sc">$</span>layout</span>
+<span id="cb16-229"><a href="#cb16-229" aria-hidden="true" tabindex="-1"></a>obs_layout   <span class="ot">&lt;-</span> full_layout[obs_idx, ]     <span class="co"># positions of the observed nodes</span></span>
+<span id="cb16-230"><a href="#cb16-230" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(obs_layout) <span class="ot">&lt;-</span> obs_labels</span>
 <span id="cb16-231"><a href="#cb16-231" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-234"><a href="#cb16-234" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb16-235"><a href="#cb16-235" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-latent-dag</span></span>
-<span id="cb16-236"><a href="#cb16-236" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Full DAG (all 8 nodes) and the true MAG skeleton over observed variables. The MAG skeleton includes both direct paths and paths through hidden nodes."</span></span>
-<span id="cb16-237"><a href="#cb16-237" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 11</span></span>
-<span id="cb16-238"><a href="#cb16-238" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4.5</span></span>
-<span id="cb16-239"><a href="#cb16-239" aria-hidden="true" tabindex="-1"></a>op <span class="ot">&lt;-</span> <span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">1</span>))</span>
-<span id="cb16-240"><a href="#cb16-240" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_true_full, <span class="at">layout =</span> full_layout, <span class="at">main =</span> <span class="st">"Full DAG (all 8 nodes)"</span>)</span>
-<span id="cb16-241"><a href="#cb16-241" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_true_pag,  <span class="at">layout =</span> obs_layout,  <span class="at">main =</span> <span class="st">"True MAG (observed nodes)"</span>)</span>
-<span id="cb16-242"><a href="#cb16-242" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(op)</span>
-<span id="cb16-243"><a href="#cb16-243" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb16-244"><a href="#cb16-244" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-245"><a href="#cb16-245" aria-hidden="true" tabindex="-1"></a><span class="fu">## FCI Algorithm</span></span>
-<span id="cb16-246"><a href="#cb16-246" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-247"><a href="#cb16-247" aria-hidden="true" tabindex="-1"></a>FCI is the extension of PC for latent variables. It starts from a complete</span>
-<span id="cb16-248"><a href="#cb16-248" aria-hidden="true" tabindex="-1"></a>graph, removes edges with CI tests, and then uses orientation rules that can</span>
-<span id="cb16-249"><a href="#cb16-249" aria-hidden="true" tabindex="-1"></a>produce bidirected edges for hidden common causes.</span>
+<span id="cb16-232"><a href="#cb16-232" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"True MAG skeleton edges (over %d observed nodes): %d"</span>,</span>
+<span id="cb16-233"><a href="#cb16-233" aria-hidden="true" tabindex="-1"></a>        n_obs, <span class="fu">sum</span>(amat_true_mag) <span class="sc">/</span> <span class="dv">2</span>)</span>
+<span id="cb16-234"><a href="#cb16-234" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-235"><a href="#cb16-235" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-238"><a href="#cb16-238" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-239"><a href="#cb16-239" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-latent-dag</span></span>
+<span id="cb16-240"><a href="#cb16-240" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Full DAG (all 8 nodes) and the true MAG skeleton over observed variables. The MAG skeleton includes both direct paths and paths through hidden nodes."</span></span>
+<span id="cb16-241"><a href="#cb16-241" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 11</span></span>
+<span id="cb16-242"><a href="#cb16-242" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4.5</span></span>
+<span id="cb16-243"><a href="#cb16-243" aria-hidden="true" tabindex="-1"></a>op <span class="ot">&lt;-</span> <span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">1</span>))</span>
+<span id="cb16-244"><a href="#cb16-244" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_true_full, <span class="at">layout =</span> full_layout, <span class="at">main =</span> <span class="st">"Full DAG (all 8 nodes)"</span>)</span>
+<span id="cb16-245"><a href="#cb16-245" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_true_pag,  <span class="at">layout =</span> obs_layout,  <span class="at">main =</span> <span class="st">"True MAG (observed nodes)"</span>)</span>
+<span id="cb16-246"><a href="#cb16-246" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(op)</span>
+<span id="cb16-247"><a href="#cb16-247" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-248"><a href="#cb16-248" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-249"><a href="#cb16-249" aria-hidden="true" tabindex="-1"></a><span class="fu">## FCI Algorithm</span></span>
 <span id="cb16-250"><a href="#cb16-250" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-251"><a href="#cb16-251" aria-hidden="true" tabindex="-1"></a>**How FCI extends PC:**</span>
-<span id="cb16-252"><a href="#cb16-252" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-253"><a href="#cb16-253" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Phase 1 (skeleton):** Same as PC — remove edges via CI tests with growing conditioning sets.</span>
-<span id="cb16-254"><a href="#cb16-254" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Phase 2 (initial orientation):** Mark all edge endpoints as $\circ$ (uncertain).</span>
-<span id="cb16-255"><a href="#cb16-255" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Phase 3 (collider detection):** For each unshielded triple $X \;\circ<span class="sc">\!</span>-<span class="sc">\!</span>\circ\; Z \;\circ<span class="sc">\!</span>-<span class="sc">\!</span>\circ\; Y$ with $X, Y$ non-adjacent: orient as $X \;\circ<span class="sc">\!\!\!</span>\to Z \leftarrow<span class="sc">\!\!\!</span>\circ\; Y$ if $Z$ is not in the separating set of $X$ and $Y$.</span>
-<span id="cb16-256"><a href="#cb16-256" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Phase 4 (rule propagation):** Apply 10 orientation rules that propagate known marks without creating contradictions, including rules that can produce definite $\to$ and $\leftrightarrow$ edges.</span>
-<span id="cb16-257"><a href="#cb16-257" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-258"><a href="#cb16-258" aria-hidden="true" tabindex="-1"></a>The extra marks let FCI say what is known and what remains uncertain, but the</span>
-<span id="cb16-259"><a href="#cb16-259" aria-hidden="true" tabindex="-1"></a>output is harder to read than a DAG.</span>
-<span id="cb16-260"><a href="#cb16-260" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-263"><a href="#cb16-263" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb16-264"><a href="#cb16-264" aria-hidden="true" tabindex="-1"></a>make_counted_ci <span class="ot">&lt;-</span> <span class="cf">function</span>(suff_stat) {</span>
-<span id="cb16-265"><a href="#cb16-265" aria-hidden="true" tabindex="-1"></a>  count <span class="ot">&lt;-</span> <span class="dv">0</span>L</span>
-<span id="cb16-266"><a href="#cb16-266" aria-hidden="true" tabindex="-1"></a>  ci <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y, S, suffStat) {</span>
-<span id="cb16-267"><a href="#cb16-267" aria-hidden="true" tabindex="-1"></a>    count <span class="ot">&lt;&lt;-</span> count <span class="sc">+</span> <span class="dv">1</span>L</span>
-<span id="cb16-268"><a href="#cb16-268" aria-hidden="true" tabindex="-1"></a>    <span class="fu">gaussCItest</span>(x, y, S, suffStat)</span>
-<span id="cb16-269"><a href="#cb16-269" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb16-270"><a href="#cb16-270" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">ci =</span> ci, <span class="at">count =</span> <span class="cf">function</span>() count)</span>
-<span id="cb16-271"><a href="#cb16-271" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-272"><a href="#cb16-272" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-273"><a href="#cb16-273" aria-hidden="true" tabindex="-1"></a>sig_level <span class="ot">&lt;-</span> <span class="fl">0.01</span></span>
-<span id="cb16-274"><a href="#cb16-274" aria-hidden="true" tabindex="-1"></a>suff_obs  <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">C =</span> <span class="fu">cor</span>(data_obs), <span class="at">n =</span> n_samples)</span>
-<span id="cb16-275"><a href="#cb16-275" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-276"><a href="#cb16-276" aria-hidden="true" tabindex="-1"></a>ci_fci   <span class="ot">&lt;-</span> <span class="fu">make_counted_ci</span>(suff_obs)</span>
-<span id="cb16-277"><a href="#cb16-277" aria-hidden="true" tabindex="-1"></a>fci_fit  <span class="ot">&lt;-</span> <span class="fu">fci</span>(suff_obs, ci_fci<span class="sc">$</span>ci, <span class="at">labels =</span> obs_labels,</span>
-<span id="cb16-278"><a href="#cb16-278" aria-hidden="true" tabindex="-1"></a>                <span class="at">alpha =</span> sig_level, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb16-279"><a href="#cb16-279" aria-hidden="true" tabindex="-1"></a>ci_tests_fci <span class="ot">&lt;-</span> ci_fci<span class="sc">$</span><span class="fu">count</span>()</span>
-<span id="cb16-280"><a href="#cb16-280" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb16-281"><a href="#cb16-281" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-284"><a href="#cb16-284" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb16-285"><a href="#cb16-285" aria-hidden="true" tabindex="-1"></a><span class="co"># pcalg PAG amat encoding: 0 = no edge, 1 = circle, 2 = arrowhead, 3 = tail.</span></span>
-<span id="cb16-286"><a href="#cb16-286" aria-hidden="true" tabindex="-1"></a><span class="co"># An edge between i and j is described by amat[i,j] (mark at i)</span></span>
-<span id="cb16-287"><a href="#cb16-287" aria-hidden="true" tabindex="-1"></a><span class="co"># and amat[j,i] (mark at j).</span></span>
-<span id="cb16-288"><a href="#cb16-288" aria-hidden="true" tabindex="-1"></a>pag_skeleton_amat <span class="ot">&lt;-</span> <span class="cf">function</span>(amat) {</span>
-<span id="cb16-289"><a href="#cb16-289" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> (amat <span class="sc">!=</span> <span class="dv">0</span> <span class="sc">|</span> <span class="fu">t</span>(amat) <span class="sc">!=</span> <span class="dv">0</span>) <span class="sc">*</span> <span class="dv">1</span>L</span>
-<span id="cb16-290"><a href="#cb16-290" aria-hidden="true" tabindex="-1"></a>  <span class="fu">diag</span>(out) <span class="ot">&lt;-</span> <span class="dv">0</span>L</span>
-<span id="cb16-291"><a href="#cb16-291" aria-hidden="true" tabindex="-1"></a>  out</span>
-<span id="cb16-292"><a href="#cb16-292" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-293"><a href="#cb16-293" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-294"><a href="#cb16-294" aria-hidden="true" tabindex="-1"></a>f1_skel <span class="ot">&lt;-</span> <span class="cf">function</span>(amat_true, amat_est) {</span>
-<span id="cb16-295"><a href="#cb16-295" aria-hidden="true" tabindex="-1"></a>  <span class="fu">diag</span>(amat_true) <span class="ot">&lt;-</span> <span class="fu">diag</span>(amat_est) <span class="ot">&lt;-</span> <span class="dv">0</span></span>
-<span id="cb16-296"><a href="#cb16-296" aria-hidden="true" tabindex="-1"></a>  tp <span class="ot">&lt;-</span> <span class="fu">sum</span>(amat_true <span class="sc">&amp;</span> amat_est) <span class="sc">/</span> <span class="dv">2</span></span>
-<span id="cb16-297"><a href="#cb16-297" aria-hidden="true" tabindex="-1"></a>  fp <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="sc">!</span>amat_true <span class="sc">&amp;</span> amat_est) <span class="sc">/</span> <span class="dv">2</span></span>
-<span id="cb16-298"><a href="#cb16-298" aria-hidden="true" tabindex="-1"></a>  fn <span class="ot">&lt;-</span> <span class="fu">sum</span>(amat_true <span class="sc">&amp;</span> <span class="sc">!</span>amat_est) <span class="sc">/</span> <span class="dv">2</span></span>
-<span id="cb16-299"><a href="#cb16-299" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (tp <span class="sc">==</span> <span class="dv">0</span>) <span class="dv">0</span> <span class="cf">else</span> <span class="dv">2</span> <span class="sc">*</span> tp <span class="sc">/</span> (<span class="dv">2</span> <span class="sc">*</span> tp <span class="sc">+</span> fp <span class="sc">+</span> fn)</span>
-<span id="cb16-300"><a href="#cb16-300" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-301"><a href="#cb16-301" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-302"><a href="#cb16-302" aria-hidden="true" tabindex="-1"></a>skel_fci  <span class="ot">&lt;-</span> <span class="fu">pag_skeleton_amat</span>(fci_fit<span class="sc">@</span>amat)</span>
-<span id="cb16-303"><a href="#cb16-303" aria-hidden="true" tabindex="-1"></a>f1_fci_v  <span class="ot">&lt;-</span> <span class="fu">f1_skel</span>(amat_true_mag, skel_fci)</span>
-<span id="cb16-304"><a href="#cb16-304" aria-hidden="true" tabindex="-1"></a>ig_fci    <span class="ot">&lt;-</span> <span class="fu">pag_to_ig</span>(fci_fit<span class="sc">@</span>amat, obs_labels)</span>
-<span id="cb16-305"><a href="#cb16-305" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"FCI:    skeleton F1 = %.3f   CI tests = %d"</span>, f1_fci_v, ci_tests_fci)</span>
-<span id="cb16-306"><a href="#cb16-306" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb16-307"><a href="#cb16-307" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-310"><a href="#cb16-310" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb16-311"><a href="#cb16-311" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-fci-pag</span></span>
-<span id="cb16-312"><a href="#cb16-312" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "PAG estimated by FCI. Dashed edges indicate endpoints with circle (○) marks — orientations the algorithm could not determine. Solid double-headed arrows (↔) flag definite hidden common causes."</span></span>
-<span id="cb16-313"><a href="#cb16-313" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 5.5</span></span>
-<span id="cb16-314"><a href="#cb16-314" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4.5</span></span>
-<span id="cb16-315"><a href="#cb16-315" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_fci, <span class="at">layout =</span> obs_layout)</span>
-<span id="cb16-316"><a href="#cb16-316" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb16-317"><a href="#cb16-317" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-318"><a href="#cb16-318" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
-<span id="cb16-319"><a href="#cb16-319" aria-hidden="true" tabindex="-1"></a>**Reading the PAG plot**</span>
-<span id="cb16-320"><a href="#cb16-320" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-321"><a href="#cb16-321" aria-hidden="true" tabindex="-1"></a>In <span class="in">`pcalg`</span>'s plot output:</span>
-<span id="cb16-322"><a href="#cb16-322" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-323"><a href="#cb16-323" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A **plain arrow** $X \to Y$ is a definite direct cause (in every equivalent MAG).</span>
-<span id="cb16-324"><a href="#cb16-324" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A **double-headed arrow** $X \leftrightarrow Y$ is a definite hidden common cause.</span>
-<span id="cb16-325"><a href="#cb16-325" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A **circle endpoint** is the $\circ$ mark — uncertain at that endpoint.</span>
+<span id="cb16-251"><a href="#cb16-251" aria-hidden="true" tabindex="-1"></a>FCI is the extension of PC for latent variables. It starts from a complete</span>
+<span id="cb16-252"><a href="#cb16-252" aria-hidden="true" tabindex="-1"></a>graph, removes edges with CI tests, and then uses orientation rules that can</span>
+<span id="cb16-253"><a href="#cb16-253" aria-hidden="true" tabindex="-1"></a>produce bidirected edges for hidden common causes.</span>
+<span id="cb16-254"><a href="#cb16-254" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-255"><a href="#cb16-255" aria-hidden="true" tabindex="-1"></a>**How FCI extends PC:**</span>
+<span id="cb16-256"><a href="#cb16-256" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-257"><a href="#cb16-257" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Phase 1 (skeleton):** Same as PC — remove edges via CI tests with growing conditioning sets.</span>
+<span id="cb16-258"><a href="#cb16-258" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Phase 2 (initial orientation):** Mark all edge endpoints as $\circ$ (uncertain); orient unshielded colliders as in PC.</span>
+<span id="cb16-259"><a href="#cb16-259" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Phase 3 (Possible-D-SEP pruning):** For each remaining edge $X - Y$, compute the **Possible-D-SEP** sets and run *additional* CI tests conditioning on their subsets, removing further edges. With latent variables, two non-adjacent nodes need not be separable by a subset of their neighbors — this stage is what makes FCI's skeleton differ from PC's, and it is the expensive part (the number of subsets can grow exponentially). Colliders are then re-oriented on the pruned skeleton.</span>
+<span id="cb16-260"><a href="#cb16-260" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Phase 4 (rule propagation):** Apply the 10 orientation rules of @zhang-2008-orientation-rules (as implemented in <span class="in">`pcalg`</span>) that propagate known marks without creating contradictions, including rules that can produce definite $\to$ and $\leftrightarrow$ edges. These rules perform no CI tests and are computationally cheap.</span>
+<span id="cb16-261"><a href="#cb16-261" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-262"><a href="#cb16-262" aria-hidden="true" tabindex="-1"></a>The extra marks let FCI say what is known and what remains uncertain, but the</span>
+<span id="cb16-263"><a href="#cb16-263" aria-hidden="true" tabindex="-1"></a>output is harder to read than a DAG.</span>
+<span id="cb16-264"><a href="#cb16-264" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-267"><a href="#cb16-267" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-268"><a href="#cb16-268" aria-hidden="true" tabindex="-1"></a>make_counted_ci <span class="ot">&lt;-</span> <span class="cf">function</span>(suff_stat) {</span>
+<span id="cb16-269"><a href="#cb16-269" aria-hidden="true" tabindex="-1"></a>  count <span class="ot">&lt;-</span> <span class="dv">0</span>L</span>
+<span id="cb16-270"><a href="#cb16-270" aria-hidden="true" tabindex="-1"></a>  ci <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y, S, suffStat) {</span>
+<span id="cb16-271"><a href="#cb16-271" aria-hidden="true" tabindex="-1"></a>    count <span class="ot">&lt;&lt;-</span> count <span class="sc">+</span> <span class="dv">1</span>L</span>
+<span id="cb16-272"><a href="#cb16-272" aria-hidden="true" tabindex="-1"></a>    <span class="fu">gaussCItest</span>(x, y, S, suffStat)</span>
+<span id="cb16-273"><a href="#cb16-273" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb16-274"><a href="#cb16-274" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">ci =</span> ci, <span class="at">count =</span> <span class="cf">function</span>() count)</span>
+<span id="cb16-275"><a href="#cb16-275" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-276"><a href="#cb16-276" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-277"><a href="#cb16-277" aria-hidden="true" tabindex="-1"></a>sig_level <span class="ot">&lt;-</span> <span class="fl">0.01</span></span>
+<span id="cb16-278"><a href="#cb16-278" aria-hidden="true" tabindex="-1"></a>suff_obs  <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">C =</span> <span class="fu">cor</span>(data_obs), <span class="at">n =</span> n_samples)</span>
+<span id="cb16-279"><a href="#cb16-279" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-280"><a href="#cb16-280" aria-hidden="true" tabindex="-1"></a>ci_fci   <span class="ot">&lt;-</span> <span class="fu">make_counted_ci</span>(suff_obs)</span>
+<span id="cb16-281"><a href="#cb16-281" aria-hidden="true" tabindex="-1"></a>fci_fit  <span class="ot">&lt;-</span> <span class="fu">fci</span>(suff_obs, ci_fci<span class="sc">$</span>ci, <span class="at">labels =</span> obs_labels,</span>
+<span id="cb16-282"><a href="#cb16-282" aria-hidden="true" tabindex="-1"></a>                <span class="at">alpha =</span> sig_level, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb16-283"><a href="#cb16-283" aria-hidden="true" tabindex="-1"></a>ci_tests_fci <span class="ot">&lt;-</span> ci_fci<span class="sc">$</span><span class="fu">count</span>()</span>
+<span id="cb16-284"><a href="#cb16-284" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-285"><a href="#cb16-285" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-288"><a href="#cb16-288" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-289"><a href="#cb16-289" aria-hidden="true" tabindex="-1"></a><span class="co"># pcalg PAG amat encoding: 0 = no edge, 1 = circle, 2 = arrowhead, 3 = tail.</span></span>
+<span id="cb16-290"><a href="#cb16-290" aria-hidden="true" tabindex="-1"></a><span class="co"># An edge between i and j is described by amat[i,j] (the mark AT j)</span></span>
+<span id="cb16-291"><a href="#cb16-291" aria-hidden="true" tabindex="-1"></a><span class="co"># and amat[j,i] (the mark AT i).</span></span>
+<span id="cb16-292"><a href="#cb16-292" aria-hidden="true" tabindex="-1"></a>pag_skeleton_amat <span class="ot">&lt;-</span> <span class="cf">function</span>(amat) {</span>
+<span id="cb16-293"><a href="#cb16-293" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> (amat <span class="sc">!=</span> <span class="dv">0</span> <span class="sc">|</span> <span class="fu">t</span>(amat) <span class="sc">!=</span> <span class="dv">0</span>) <span class="sc">*</span> <span class="dv">1</span>L</span>
+<span id="cb16-294"><a href="#cb16-294" aria-hidden="true" tabindex="-1"></a>  <span class="fu">diag</span>(out) <span class="ot">&lt;-</span> <span class="dv">0</span>L</span>
+<span id="cb16-295"><a href="#cb16-295" aria-hidden="true" tabindex="-1"></a>  out</span>
+<span id="cb16-296"><a href="#cb16-296" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-297"><a href="#cb16-297" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-298"><a href="#cb16-298" aria-hidden="true" tabindex="-1"></a>f1_skel <span class="ot">&lt;-</span> <span class="cf">function</span>(amat_true, amat_est) {</span>
+<span id="cb16-299"><a href="#cb16-299" aria-hidden="true" tabindex="-1"></a>  <span class="fu">diag</span>(amat_true) <span class="ot">&lt;-</span> <span class="fu">diag</span>(amat_est) <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb16-300"><a href="#cb16-300" aria-hidden="true" tabindex="-1"></a>  tp <span class="ot">&lt;-</span> <span class="fu">sum</span>(amat_true <span class="sc">&amp;</span> amat_est) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb16-301"><a href="#cb16-301" aria-hidden="true" tabindex="-1"></a>  fp <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="sc">!</span>amat_true <span class="sc">&amp;</span> amat_est) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb16-302"><a href="#cb16-302" aria-hidden="true" tabindex="-1"></a>  fn <span class="ot">&lt;-</span> <span class="fu">sum</span>(amat_true <span class="sc">&amp;</span> <span class="sc">!</span>amat_est) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb16-303"><a href="#cb16-303" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (tp <span class="sc">==</span> <span class="dv">0</span>) <span class="dv">0</span> <span class="cf">else</span> <span class="dv">2</span> <span class="sc">*</span> tp <span class="sc">/</span> (<span class="dv">2</span> <span class="sc">*</span> tp <span class="sc">+</span> fp <span class="sc">+</span> fn)</span>
+<span id="cb16-304"><a href="#cb16-304" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-305"><a href="#cb16-305" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-306"><a href="#cb16-306" aria-hidden="true" tabindex="-1"></a>skel_fci  <span class="ot">&lt;-</span> <span class="fu">pag_skeleton_amat</span>(fci_fit<span class="sc">@</span>amat)</span>
+<span id="cb16-307"><a href="#cb16-307" aria-hidden="true" tabindex="-1"></a>f1_fci_v  <span class="ot">&lt;-</span> <span class="fu">f1_skel</span>(amat_true_mag, skel_fci)</span>
+<span id="cb16-308"><a href="#cb16-308" aria-hidden="true" tabindex="-1"></a>ig_fci    <span class="ot">&lt;-</span> <span class="fu">pag_to_ig</span>(fci_fit<span class="sc">@</span>amat, obs_labels)</span>
+<span id="cb16-309"><a href="#cb16-309" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"FCI:    skeleton F1 = %.3f   CI tests = %d"</span>, f1_fci_v, ci_tests_fci)</span>
+<span id="cb16-310"><a href="#cb16-310" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-311"><a href="#cb16-311" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-314"><a href="#cb16-314" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-315"><a href="#cb16-315" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-fci-pag</span></span>
+<span id="cb16-316"><a href="#cb16-316" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "PAG estimated by FCI. Dashed edges indicate endpoints with circle (○) marks — orientations the algorithm could not determine. Solid double-headed arrows (↔) flag definite hidden common causes."</span></span>
+<span id="cb16-317"><a href="#cb16-317" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 5.5</span></span>
+<span id="cb16-318"><a href="#cb16-318" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4.5</span></span>
+<span id="cb16-319"><a href="#cb16-319" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_fci, <span class="at">layout =</span> obs_layout)</span>
+<span id="cb16-320"><a href="#cb16-320" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-321"><a href="#cb16-321" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-322"><a href="#cb16-322" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
+<span id="cb16-323"><a href="#cb16-323" aria-hidden="true" tabindex="-1"></a>**Reading the PAG plot**</span>
+<span id="cb16-324"><a href="#cb16-324" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-325"><a href="#cb16-325" aria-hidden="true" tabindex="-1"></a>In <span class="in">`pcalg`</span>'s plot output:</span>
 <span id="cb16-326"><a href="#cb16-326" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-327"><a href="#cb16-327" aria-hidden="true" tabindex="-1"></a>In practice for economic research: focus first on $\leftrightarrow$ edges — these flag definite confounding and tell you where IV or proxy strategies are needed. Then examine $\to$ edges — these are causal claims that survive across all statistically equivalent structures.</span>
-<span id="cb16-328"><a href="#cb16-328" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb16-329"><a href="#cb16-329" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-330"><a href="#cb16-330" aria-hidden="true" tabindex="-1"></a>**When FCI gives wrong answers:** FCI assumes the CI tests are perfectly accurate (no finite-sample error). In practice, with small $n$ or many variables, some false CI decisions propagate through the 10 orientation rules. The skeleton quality (F1) is generally more reliable than the orientation quality.</span>
-<span id="cb16-331"><a href="#cb16-331" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-332"><a href="#cb16-332" aria-hidden="true" tabindex="-1"></a><span class="fu">## RFCI Algorithm</span></span>
+<span id="cb16-327"><a href="#cb16-327" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A **plain arrow** $X \to Y$ is a definite cause — $X$ is an ancestor of $Y$ in every equivalent MAG. It need not be a *direct* effect: the path may run through latent mediators (the DAG $X \to L \to Y$ with $L$ hidden yields the MAG $X \to Y$).</span>
+<span id="cb16-328"><a href="#cb16-328" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A **double-headed arrow** $X \leftrightarrow Y$ is a definite hidden common cause.</span>
+<span id="cb16-329"><a href="#cb16-329" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A **circle endpoint** is the $\circ$ mark — uncertain at that endpoint.</span>
+<span id="cb16-330"><a href="#cb16-330" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-331"><a href="#cb16-331" aria-hidden="true" tabindex="-1"></a>In practice for economic research: focus first on $\leftrightarrow$ edges — these flag definite confounding and tell you where IV or proxy strategies are needed. Then examine $\to$ edges — these are causal claims that survive across all statistically equivalent structures.</span>
+<span id="cb16-332"><a href="#cb16-332" aria-hidden="true" tabindex="-1"></a>:::</span>
 <span id="cb16-333"><a href="#cb16-333" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-334"><a href="#cb16-334" aria-hidden="true" tabindex="-1"></a>**RFCI** (Really Fast Causal Inference; Colombo et al., 2012) replaces FCI's expensive Phase 4 with a leaner orientation phase that uses only a subset of the orientation rules — the ones whose validity does not require expensive *additional* CI tests on triples or quadruples.</span>
+<span id="cb16-334"><a href="#cb16-334" aria-hidden="true" tabindex="-1"></a>**When FCI gives wrong answers:** FCI assumes the CI tests are perfectly accurate (no finite-sample error). In practice, with small $n$ or many variables, some false CI decisions propagate through the 10 orientation rules. The skeleton quality (F1) is generally more reliable than the orientation quality.</span>
 <span id="cb16-335"><a href="#cb16-335" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-336"><a href="#cb16-336" aria-hidden="true" tabindex="-1"></a>**Key differences from FCI:**</span>
+<span id="cb16-336"><a href="#cb16-336" aria-hidden="true" tabindex="-1"></a><span class="fu">## RFCI Algorithm</span></span>
 <span id="cb16-337"><a href="#cb16-337" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-338"><a href="#cb16-338" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Skeleton phase:** identical to FCI.</span>
-<span id="cb16-339"><a href="#cb16-339" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Collider check:** before orienting an unshielded triple as a collider, RFCI runs *additional* CI tests to verify the orientation. This costs more in Phase 3 but means RFCI can safely *skip* the expensive Phase 4 rules.</span>
-<span id="cb16-340"><a href="#cb16-340" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Orientation output:** RFCI produces a *partial* PAG. Some edges that FCI orients are left as $\circ<span class="sc">\!</span>-<span class="sc">\!</span>\circ$ in RFCI; conversely, every edge RFCI does orient is guaranteed correct under the same asymptotic conditions.</span>
+<span id="cb16-338"><a href="#cb16-338" aria-hidden="true" tabindex="-1"></a>**RFCI** (Really Fast Causal Inference; Colombo et al., 2012) skips FCI's expensive **Possible-D-SEP pruning stage** entirely — the stage responsible for most of FCI's CI tests. To stay sound without it, RFCI adds a few extra CI tests of its own inside the collider and discriminating-path checks; the orientation-rule propagation is kept.</span>
+<span id="cb16-339"><a href="#cb16-339" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-340"><a href="#cb16-340" aria-hidden="true" tabindex="-1"></a>**Key differences from FCI:**</span>
 <span id="cb16-341"><a href="#cb16-341" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-342"><a href="#cb16-342" aria-hidden="true" tabindex="-1"></a>In practice, the skeleton is often the main output: it tells us which pairs</span>
-<span id="cb16-343"><a href="#cb16-343" aria-hidden="true" tabindex="-1"></a>need substantive attention. Full PAG orientations are useful, but they are</span>
-<span id="cb16-344"><a href="#cb16-344" aria-hidden="true" tabindex="-1"></a>harder to defend.</span>
+<span id="cb16-342"><a href="#cb16-342" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Skeleton phase:** the PC-style skeleton search is the same, but RFCI does **not** run the Possible-D-SEP removals — this is where the savings come from, and why its skeleton can retain extra edges (it converges to a supergraph of the PAG skeleton).</span>
+<span id="cb16-343"><a href="#cb16-343" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Collider check:** before orienting an unshielded triple as a collider, RFCI runs *additional* CI tests to verify the orientation — a modest extra cost that restores soundness without the Possible-D-SEP stage.</span>
+<span id="cb16-344"><a href="#cb16-344" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Orientation output:** RFCI produces a *partial* PAG. Some edges that FCI orients are left as $\circ<span class="sc">\!</span>-<span class="sc">\!</span>\circ$ in RFCI; conversely, every mark RFCI does output is asymptotically correct under the same conditions.</span>
 <span id="cb16-345"><a href="#cb16-345" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-348"><a href="#cb16-348" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb16-349"><a href="#cb16-349" aria-hidden="true" tabindex="-1"></a>ci_rfci    <span class="ot">&lt;-</span> <span class="fu">make_counted_ci</span>(suff_obs)</span>
-<span id="cb16-350"><a href="#cb16-350" aria-hidden="true" tabindex="-1"></a>rfci_fit   <span class="ot">&lt;-</span> <span class="fu">rfci</span>(suff_obs, ci_rfci<span class="sc">$</span>ci, <span class="at">labels =</span> obs_labels,</span>
-<span id="cb16-351"><a href="#cb16-351" aria-hidden="true" tabindex="-1"></a>                   <span class="at">alpha =</span> sig_level, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb16-352"><a href="#cb16-352" aria-hidden="true" tabindex="-1"></a>ci_tests_rfci <span class="ot">&lt;-</span> ci_rfci<span class="sc">$</span><span class="fu">count</span>()</span>
-<span id="cb16-353"><a href="#cb16-353" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-354"><a href="#cb16-354" aria-hidden="true" tabindex="-1"></a>skel_rfci  <span class="ot">&lt;-</span> <span class="fu">pag_skeleton_amat</span>(rfci_fit<span class="sc">@</span>amat)</span>
-<span id="cb16-355"><a href="#cb16-355" aria-hidden="true" tabindex="-1"></a>f1_rfci_v  <span class="ot">&lt;-</span> <span class="fu">f1_skel</span>(amat_true_mag, skel_rfci)</span>
-<span id="cb16-356"><a href="#cb16-356" aria-hidden="true" tabindex="-1"></a>ig_rfci    <span class="ot">&lt;-</span> <span class="fu">pag_to_ig</span>(rfci_fit<span class="sc">@</span>amat, obs_labels)</span>
-<span id="cb16-357"><a href="#cb16-357" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"RFCI:   skeleton F1 = %.3f   CI tests = %d"</span>, f1_rfci_v, ci_tests_rfci)</span>
-<span id="cb16-358"><a href="#cb16-358" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb16-359"><a href="#cb16-359" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-360"><a href="#cb16-360" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
-<span id="cb16-361"><a href="#cb16-361" aria-hidden="true" tabindex="-1"></a>**FCI vs. RFCI output: same plot type, fewer marks**</span>
-<span id="cb16-362"><a href="#cb16-362" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-363"><a href="#cb16-363" aria-hidden="true" tabindex="-1"></a>Both <span class="in">`fci()`</span> and <span class="in">`rfci()`</span> return <span class="in">`fciAlgo`</span> objects and plot with the same <span class="in">`plot()`</span> method. The visual difference is that RFCI's PAG typically has **more circle marks** — it has been more conservative about orientation. Edges that *do* receive an arrowhead or tail mark in RFCI are reliable.</span>
-<span id="cb16-364"><a href="#cb16-364" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-365"><a href="#cb16-365" aria-hidden="true" tabindex="-1"></a>If you only need the skeleton (the most common use case in large-$p$ screening problems), RFCI is the right default. If you need orientations to plan an IV strategy, run FCI on top.</span>
-<span id="cb16-366"><a href="#cb16-366" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb16-367"><a href="#cb16-367" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-368"><a href="#cb16-368" aria-hidden="true" tabindex="-1"></a><span class="fu">## Comparison</span></span>
-<span id="cb16-369"><a href="#cb16-369" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-372"><a href="#cb16-372" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb16-373"><a href="#cb16-373" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: tbl-latent-comparison</span></span>
-<span id="cb16-374"><a href="#cb16-374" aria-hidden="true" tabindex="-1"></a><span class="co">#| tbl-cap: "Algorithm comparison on the latent-variable scenario (2 hidden nodes, n = 2000)"</span></span>
-<span id="cb16-375"><a href="#cb16-375" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(<span class="fu">data.frame</span>(</span>
-<span id="cb16-376"><a href="#cb16-376" aria-hidden="true" tabindex="-1"></a>  <span class="at">Algorithm   =</span> <span class="fu">c</span>(<span class="st">"FCI"</span>, <span class="st">"RFCI"</span>),</span>
-<span id="cb16-377"><a href="#cb16-377" aria-hidden="true" tabindex="-1"></a>  <span class="at">Output      =</span> <span class="fu">c</span>(<span class="st">"Full PAG"</span>, <span class="st">"Skeleton + partial PAG"</span>),</span>
-<span id="cb16-378"><a href="#cb16-378" aria-hidden="true" tabindex="-1"></a>  <span class="at">Skeleton_F1 =</span> <span class="fu">round</span>(<span class="fu">c</span>(f1_fci_v, f1_rfci_v), <span class="dv">3</span>),</span>
-<span id="cb16-379"><a href="#cb16-379" aria-hidden="true" tabindex="-1"></a>  <span class="at">CI_Tests    =</span> <span class="fu">c</span>(ci_tests_fci, ci_tests_rfci)</span>
-<span id="cb16-380"><a href="#cb16-380" aria-hidden="true" tabindex="-1"></a>), <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb16-381"><a href="#cb16-381" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb16-382"><a href="#cb16-382" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-385"><a href="#cb16-385" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb16-386"><a href="#cb16-386" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-latent-skeletons</span></span>
-<span id="cb16-387"><a href="#cb16-387" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "True MAG vs. PAGs recovered by FCI and RFCI. Directed arrows are definite cause-to-effect; bidirected (↔) edges flag hidden common causes; circle (○) marks indicate orientations the algorithm could not resolve. RFCI typically leaves more circles than FCI because its orientation phase is deliberately more conservative."</span></span>
-<span id="cb16-388"><a href="#cb16-388" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 12</span></span>
-<span id="cb16-389"><a href="#cb16-389" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4.5</span></span>
-<span id="cb16-390"><a href="#cb16-390" aria-hidden="true" tabindex="-1"></a>op <span class="ot">&lt;-</span> <span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">3</span>), <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">1</span>))</span>
-<span id="cb16-391"><a href="#cb16-391" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_true_pag, <span class="at">layout =</span> obs_layout, <span class="at">main =</span> <span class="st">"True MAG"</span>)</span>
-<span id="cb16-392"><a href="#cb16-392" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_fci,      <span class="at">layout =</span> obs_layout, <span class="at">main =</span> <span class="st">"FCI — estimated PAG"</span>)</span>
-<span id="cb16-393"><a href="#cb16-393" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_rfci,     <span class="at">layout =</span> obs_layout, <span class="at">main =</span> <span class="st">"RFCI — estimated PAG"</span>)</span>
-<span id="cb16-394"><a href="#cb16-394" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(op)</span>
-<span id="cb16-395"><a href="#cb16-395" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb16-396"><a href="#cb16-396" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-397"><a href="#cb16-397" aria-hidden="true" tabindex="-1"></a><span class="fu">## Monte Carlo Evaluation</span></span>
-<span id="cb16-398"><a href="#cb16-398" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-401"><a href="#cb16-401" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb16-402"><a href="#cb16-402" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb16-403"><a href="#cb16-403" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
-<span id="cb16-404"><a href="#cb16-404" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
-<span id="cb16-405"><a href="#cb16-405" aria-hidden="true" tabindex="-1"></a>evaluate_latent <span class="ot">&lt;-</span> <span class="cf">function</span>(seed, <span class="at">n_vars =</span> <span class="dv">8</span>, <span class="at">n_samples =</span> <span class="dv">2000</span>,</span>
-<span id="cb16-406"><a href="#cb16-406" aria-hidden="true" tabindex="-1"></a>                            <span class="at">edge_prob =</span> <span class="fl">0.35</span>, <span class="at">n_latent =</span> <span class="dv">2</span>, <span class="at">sig =</span> <span class="fl">0.01</span>) {</span>
-<span id="cb16-407"><a href="#cb16-407" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set.seed</span>(seed)</span>
-<span id="cb16-408"><a href="#cb16-408" aria-hidden="true" tabindex="-1"></a>  labs <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"X"</span>, <span class="dv">1</span><span class="sc">:</span>n_vars)</span>
-<span id="cb16-409"><a href="#cb16-409" aria-hidden="true" tabindex="-1"></a>  dag  <span class="ot">&lt;-</span> <span class="fu">randomDAG</span>(n_vars, <span class="at">prob =</span> edge_prob, <span class="at">lB =</span> <span class="fl">0.25</span>, <span class="at">uB =</span> <span class="dv">1</span>)</span>
-<span id="cb16-410"><a href="#cb16-410" aria-hidden="true" tabindex="-1"></a>  <span class="fu">nodes</span>(dag) <span class="ot">&lt;-</span> labs</span>
-<span id="cb16-411"><a href="#cb16-411" aria-hidden="true" tabindex="-1"></a>  d    <span class="ot">&lt;-</span> <span class="fu">rmvDAG</span>(n_samples, dag, <span class="at">errDist =</span> <span class="st">"normal"</span>)</span>
-<span id="cb16-412"><a href="#cb16-412" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(d) <span class="ot">&lt;-</span> labs</span>
-<span id="cb16-413"><a href="#cb16-413" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-414"><a href="#cb16-414" aria-hidden="true" tabindex="-1"></a>  lat  <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">sample.int</span>(n_vars, n_latent))</span>
-<span id="cb16-415"><a href="#cb16-415" aria-hidden="true" tabindex="-1"></a>  obs  <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(<span class="fu">seq_len</span>(n_vars), lat)</span>
-<span id="cb16-416"><a href="#cb16-416" aria-hidden="true" tabindex="-1"></a>  obs_labs <span class="ot">&lt;-</span> labs[obs]</span>
-<span id="cb16-417"><a href="#cb16-417" aria-hidden="true" tabindex="-1"></a>  d_obs <span class="ot">&lt;-</span> d[, obs]</span>
-<span id="cb16-418"><a href="#cb16-418" aria-hidden="true" tabindex="-1"></a>  ss    <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">C =</span> <span class="fu">cor</span>(d_obs), <span class="at">n =</span> n_samples)</span>
-<span id="cb16-419"><a href="#cb16-419" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-420"><a href="#cb16-420" aria-hidden="true" tabindex="-1"></a>  true_skel <span class="ot">&lt;-</span> <span class="fu">true_mag_skel</span>(dag, obs_labs)</span>
-<span id="cb16-421"><a href="#cb16-421" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-422"><a href="#cb16-422" aria-hidden="true" tabindex="-1"></a>  ci_f <span class="ot">&lt;-</span> <span class="fu">make_counted_ci</span>(ss)</span>
-<span id="cb16-423"><a href="#cb16-423" aria-hidden="true" tabindex="-1"></a>  fci_r <span class="ot">&lt;-</span> <span class="fu">fci</span>(ss, ci_f<span class="sc">$</span>ci, <span class="at">labels =</span> obs_labs, <span class="at">alpha =</span> sig, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb16-424"><a href="#cb16-424" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-425"><a href="#cb16-425" aria-hidden="true" tabindex="-1"></a>  ci_r <span class="ot">&lt;-</span> <span class="fu">make_counted_ci</span>(ss)</span>
-<span id="cb16-426"><a href="#cb16-426" aria-hidden="true" tabindex="-1"></a>  rfci_r <span class="ot">&lt;-</span> <span class="fu">rfci</span>(ss, ci_r<span class="sc">$</span>ci, <span class="at">labels =</span> obs_labs, <span class="at">alpha =</span> sig, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb16-427"><a href="#cb16-427" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-428"><a href="#cb16-428" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">f1_fci  =</span> <span class="fu">f1_skel</span>(true_skel, <span class="fu">pag_skeleton_amat</span>(fci_r<span class="sc">@</span>amat)),</span>
-<span id="cb16-429"><a href="#cb16-429" aria-hidden="true" tabindex="-1"></a>    <span class="at">f1_rfci =</span> <span class="fu">f1_skel</span>(true_skel, <span class="fu">pag_skeleton_amat</span>(rfci_r<span class="sc">@</span>amat)),</span>
-<span id="cb16-430"><a href="#cb16-430" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_fci  =</span> ci_f<span class="sc">$</span><span class="fu">count</span>(),</span>
-<span id="cb16-431"><a href="#cb16-431" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_rfci =</span> ci_r<span class="sc">$</span><span class="fu">count</span>())</span>
-<span id="cb16-432"><a href="#cb16-432" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-433"><a href="#cb16-433" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-434"><a href="#cb16-434" aria-hidden="true" tabindex="-1"></a>mc <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">t</span>(<span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>, evaluate_latent)))</span>
-<span id="cb16-435"><a href="#cb16-435" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-436"><a href="#cb16-436" aria-hidden="true" tabindex="-1"></a>mc_summary <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb16-437"><a href="#cb16-437" aria-hidden="true" tabindex="-1"></a>  <span class="at">Method      =</span> <span class="fu">c</span>(<span class="st">"FCI"</span>, <span class="st">"RFCI"</span>),</span>
-<span id="cb16-438"><a href="#cb16-438" aria-hidden="true" tabindex="-1"></a>  <span class="at">Skeleton_F1 =</span> <span class="fu">round</span>(<span class="fu">c</span>(<span class="fu">mean</span>(mc<span class="sc">$</span>f1_fci),  <span class="fu">mean</span>(mc<span class="sc">$</span>f1_rfci)),  <span class="dv">3</span>),</span>
-<span id="cb16-439"><a href="#cb16-439" aria-hidden="true" tabindex="-1"></a>  <span class="at">CI_Tests    =</span> <span class="fu">round</span>(<span class="fu">c</span>(<span class="fu">mean</span>(mc<span class="sc">$</span>ci_fci),  <span class="fu">mean</span>(mc<span class="sc">$</span>ci_rfci)),  <span class="dv">1</span>)</span>
-<span id="cb16-440"><a href="#cb16-440" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-441"><a href="#cb16-441" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(mc_summary,</span>
-<span id="cb16-442"><a href="#cb16-442" aria-hidden="true" tabindex="-1"></a>      <span class="at">caption =</span> <span class="st">"Monte Carlo averages (100 replications, n = 2000, p = 8, 2 latent)"</span>,</span>
-<span id="cb16-443"><a href="#cb16-443" aria-hidden="true" tabindex="-1"></a>      <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb16-444"><a href="#cb16-444" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb16-445"><a href="#cb16-445" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-448"><a href="#cb16-448" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb16-449"><a href="#cb16-449" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-latent-mc</span></span>
-<span id="cb16-450"><a href="#cb16-450" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "CI-test count distributions across 100 replications. RFCI's lighter Phase 4 typically — though not always — runs fewer tests than FCI."</span></span>
-<span id="cb16-451"><a href="#cb16-451" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
-<span id="cb16-452"><a href="#cb16-452" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4</span></span>
-<span id="cb16-453"><a href="#cb16-453" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
-<span id="cb16-454"><a href="#cb16-454" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
-<span id="cb16-455"><a href="#cb16-455" aria-hidden="true" tabindex="-1"></a>mc_long <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb16-456"><a href="#cb16-456" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">"FCI"</span>, <span class="st">"RFCI"</span>), <span class="at">each =</span> <span class="fu">nrow</span>(mc)),</span>
-<span id="cb16-457"><a href="#cb16-457" aria-hidden="true" tabindex="-1"></a>  <span class="at">ci     =</span> <span class="fu">c</span>(mc<span class="sc">$</span>ci_fci, mc<span class="sc">$</span>ci_rfci)</span>
-<span id="cb16-458"><a href="#cb16-458" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-459"><a href="#cb16-459" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(mc_long, <span class="fu">aes</span>(<span class="at">x =</span> ci, <span class="at">fill =</span> method)) <span class="sc">+</span></span>
-<span id="cb16-460"><a href="#cb16-460" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">bins =</span> <span class="dv">20</span>, <span class="at">position =</span> <span class="st">"identity"</span>, <span class="at">alpha =</span> <span class="fl">0.55</span>, <span class="at">color =</span> <span class="st">"white"</span>) <span class="sc">+</span></span>
-<span id="cb16-461"><a href="#cb16-461" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="at">FCI =</span> <span class="st">"steelblue"</span>, <span class="at">RFCI =</span> <span class="st">"tomato"</span>)) <span class="sc">+</span></span>
-<span id="cb16-462"><a href="#cb16-462" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"CI tests"</span>, <span class="at">y =</span> <span class="st">"Frequency"</span>,</span>
-<span id="cb16-463"><a href="#cb16-463" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"CI Test Counts: FCI vs RFCI (100 replications)"</span>) <span class="sc">+</span></span>
-<span id="cb16-464"><a href="#cb16-464" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb16-465"><a href="#cb16-465" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb16-466"><a href="#cb16-466" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-467"><a href="#cb16-467" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
-<span id="cb16-468"><a href="#cb16-468" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-469"><a href="#cb16-469" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Property <span class="pp">|</span> PC / GES <span class="pp">|</span> FCI <span class="pp">|</span> RFCI <span class="pp">|</span></span>
-<span id="cb16-470"><a href="#cb16-470" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|---|</span></span>
-<span id="cb16-471"><a href="#cb16-471" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Latent confounders <span class="pp">|</span> ✗ assumes none <span class="pp">|</span> ✓ handles <span class="pp">|</span> ✓ handles <span class="pp">|</span></span>
-<span id="cb16-472"><a href="#cb16-472" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Output <span class="pp">|</span> CPDAG <span class="pp">|</span> Full PAG <span class="pp">|</span> Skeleton + partial PAG <span class="pp">|</span></span>
-<span id="cb16-473"><a href="#cb16-473" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Skeleton consistency <span class="pp">|</span> ✓ <span class="pp">|</span> ✓ <span class="pp">|</span> ✓ <span class="pp">|</span></span>
-<span id="cb16-474"><a href="#cb16-474" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Orientation coverage <span class="pp">|</span> full <span class="pp">|</span> full (under faithfulness) <span class="pp">|</span> partial (conservative) <span class="pp">|</span></span>
-<span id="cb16-475"><a href="#cb16-475" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> CI cost <span class="pp">|</span> PC: PC's cost; GES: none <span class="pp">|</span> FCI's full Phase 4 <span class="pp">|</span> reduced Phase 4 <span class="pp">|</span></span>
-<span id="cb16-476"><a href="#cb16-476" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-477"><a href="#cb16-477" aria-hidden="true" tabindex="-1"></a>FCI and RFCI serve different purposes. Use FCI when orientations matter. Use</span>
-<span id="cb16-478"><a href="#cb16-478" aria-hidden="true" tabindex="-1"></a>RFCI when the goal is a faster skeleton screen.</span>
-<span id="cb16-479"><a href="#cb16-479" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-480"><a href="#cb16-480" aria-hidden="true" tabindex="-1"></a><span class="fu">### Practical decision guide</span></span>
-<span id="cb16-481"><a href="#cb16-481" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-482"><a href="#cb16-482" aria-hidden="true" tabindex="-1"></a>**Use PC or GES when:**</span>
+<span id="cb16-346"><a href="#cb16-346" aria-hidden="true" tabindex="-1"></a>In practice, the skeleton is often the main output: it tells us which pairs</span>
+<span id="cb16-347"><a href="#cb16-347" aria-hidden="true" tabindex="-1"></a>need substantive attention. Full PAG orientations are useful, but they are</span>
+<span id="cb16-348"><a href="#cb16-348" aria-hidden="true" tabindex="-1"></a>harder to defend.</span>
+<span id="cb16-349"><a href="#cb16-349" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-352"><a href="#cb16-352" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-353"><a href="#cb16-353" aria-hidden="true" tabindex="-1"></a>ci_rfci    <span class="ot">&lt;-</span> <span class="fu">make_counted_ci</span>(suff_obs)</span>
+<span id="cb16-354"><a href="#cb16-354" aria-hidden="true" tabindex="-1"></a>rfci_fit   <span class="ot">&lt;-</span> <span class="fu">rfci</span>(suff_obs, ci_rfci<span class="sc">$</span>ci, <span class="at">labels =</span> obs_labels,</span>
+<span id="cb16-355"><a href="#cb16-355" aria-hidden="true" tabindex="-1"></a>                   <span class="at">alpha =</span> sig_level, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb16-356"><a href="#cb16-356" aria-hidden="true" tabindex="-1"></a>ci_tests_rfci <span class="ot">&lt;-</span> ci_rfci<span class="sc">$</span><span class="fu">count</span>()</span>
+<span id="cb16-357"><a href="#cb16-357" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-358"><a href="#cb16-358" aria-hidden="true" tabindex="-1"></a>skel_rfci  <span class="ot">&lt;-</span> <span class="fu">pag_skeleton_amat</span>(rfci_fit<span class="sc">@</span>amat)</span>
+<span id="cb16-359"><a href="#cb16-359" aria-hidden="true" tabindex="-1"></a>f1_rfci_v  <span class="ot">&lt;-</span> <span class="fu">f1_skel</span>(amat_true_mag, skel_rfci)</span>
+<span id="cb16-360"><a href="#cb16-360" aria-hidden="true" tabindex="-1"></a>ig_rfci    <span class="ot">&lt;-</span> <span class="fu">pag_to_ig</span>(rfci_fit<span class="sc">@</span>amat, obs_labels)</span>
+<span id="cb16-361"><a href="#cb16-361" aria-hidden="true" tabindex="-1"></a><span class="fu">sprintf</span>(<span class="st">"RFCI:   skeleton F1 = %.3f   CI tests = %d"</span>, f1_rfci_v, ci_tests_rfci)</span>
+<span id="cb16-362"><a href="#cb16-362" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-363"><a href="#cb16-363" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-364"><a href="#cb16-364" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
+<span id="cb16-365"><a href="#cb16-365" aria-hidden="true" tabindex="-1"></a>**FCI vs. RFCI output: same plot type, fewer marks**</span>
+<span id="cb16-366"><a href="#cb16-366" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-367"><a href="#cb16-367" aria-hidden="true" tabindex="-1"></a>Both <span class="in">`fci()`</span> and <span class="in">`rfci()`</span> return <span class="in">`fciAlgo`</span> objects and plot with the same <span class="in">`plot()`</span> method. The visual difference is that RFCI's PAG typically has **more circle marks** — it has been more conservative about orientation. Edges that *do* receive an arrowhead or tail mark in RFCI are reliable.</span>
+<span id="cb16-368"><a href="#cb16-368" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-369"><a href="#cb16-369" aria-hidden="true" tabindex="-1"></a>If you only need the skeleton (the most common use case in large-$p$ screening problems), RFCI is the right default. If you need orientations to plan an IV strategy, run FCI on top.</span>
+<span id="cb16-370"><a href="#cb16-370" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb16-371"><a href="#cb16-371" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-372"><a href="#cb16-372" aria-hidden="true" tabindex="-1"></a><span class="fu">## Comparison</span></span>
+<span id="cb16-373"><a href="#cb16-373" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-376"><a href="#cb16-376" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-377"><a href="#cb16-377" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: tbl-latent-comparison</span></span>
+<span id="cb16-378"><a href="#cb16-378" aria-hidden="true" tabindex="-1"></a><span class="co">#| tbl-cap: "Algorithm comparison on the latent-variable scenario (2 hidden nodes, n = 2000)"</span></span>
+<span id="cb16-379"><a href="#cb16-379" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(<span class="fu">data.frame</span>(</span>
+<span id="cb16-380"><a href="#cb16-380" aria-hidden="true" tabindex="-1"></a>  <span class="at">Algorithm   =</span> <span class="fu">c</span>(<span class="st">"FCI"</span>, <span class="st">"RFCI"</span>),</span>
+<span id="cb16-381"><a href="#cb16-381" aria-hidden="true" tabindex="-1"></a>  <span class="at">Output      =</span> <span class="fu">c</span>(<span class="st">"Full PAG"</span>, <span class="st">"Skeleton + partial PAG"</span>),</span>
+<span id="cb16-382"><a href="#cb16-382" aria-hidden="true" tabindex="-1"></a>  <span class="at">Skeleton_F1 =</span> <span class="fu">round</span>(<span class="fu">c</span>(f1_fci_v, f1_rfci_v), <span class="dv">3</span>),</span>
+<span id="cb16-383"><a href="#cb16-383" aria-hidden="true" tabindex="-1"></a>  <span class="at">CI_Tests    =</span> <span class="fu">c</span>(ci_tests_fci, ci_tests_rfci)</span>
+<span id="cb16-384"><a href="#cb16-384" aria-hidden="true" tabindex="-1"></a>), <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb16-385"><a href="#cb16-385" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-386"><a href="#cb16-386" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-389"><a href="#cb16-389" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-390"><a href="#cb16-390" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-latent-skeletons</span></span>
+<span id="cb16-391"><a href="#cb16-391" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "True MAG vs. PAGs recovered by FCI and RFCI. Directed arrows are definite cause-to-effect; bidirected (↔) edges flag hidden common causes; circle (○) marks indicate orientations the algorithm could not resolve. RFCI typically leaves more circles than FCI because its orientation phase is deliberately more conservative."</span></span>
+<span id="cb16-392"><a href="#cb16-392" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 12</span></span>
+<span id="cb16-393"><a href="#cb16-393" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4.5</span></span>
+<span id="cb16-394"><a href="#cb16-394" aria-hidden="true" tabindex="-1"></a>op <span class="ot">&lt;-</span> <span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">3</span>), <span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">1</span>))</span>
+<span id="cb16-395"><a href="#cb16-395" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_true_pag, <span class="at">layout =</span> obs_layout, <span class="at">main =</span> <span class="st">"True MAG"</span>)</span>
+<span id="cb16-396"><a href="#cb16-396" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_fci,      <span class="at">layout =</span> obs_layout, <span class="at">main =</span> <span class="st">"FCI — estimated PAG"</span>)</span>
+<span id="cb16-397"><a href="#cb16-397" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_rfci,     <span class="at">layout =</span> obs_layout, <span class="at">main =</span> <span class="st">"RFCI — estimated PAG"</span>)</span>
+<span id="cb16-398"><a href="#cb16-398" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(op)</span>
+<span id="cb16-399"><a href="#cb16-399" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-400"><a href="#cb16-400" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-401"><a href="#cb16-401" aria-hidden="true" tabindex="-1"></a><span class="fu">## Monte Carlo Evaluation</span></span>
+<span id="cb16-402"><a href="#cb16-402" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-405"><a href="#cb16-405" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-406"><a href="#cb16-406" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb16-407"><a href="#cb16-407" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb16-408"><a href="#cb16-408" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
+<span id="cb16-409"><a href="#cb16-409" aria-hidden="true" tabindex="-1"></a>evaluate_latent <span class="ot">&lt;-</span> <span class="cf">function</span>(seed, <span class="at">n_vars =</span> <span class="dv">8</span>, <span class="at">n_samples =</span> <span class="dv">2000</span>,</span>
+<span id="cb16-410"><a href="#cb16-410" aria-hidden="true" tabindex="-1"></a>                            <span class="at">edge_prob =</span> <span class="fl">0.35</span>, <span class="at">n_latent =</span> <span class="dv">2</span>, <span class="at">sig =</span> <span class="fl">0.01</span>) {</span>
+<span id="cb16-411"><a href="#cb16-411" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set.seed</span>(seed)</span>
+<span id="cb16-412"><a href="#cb16-412" aria-hidden="true" tabindex="-1"></a>  labs <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"X"</span>, <span class="dv">1</span><span class="sc">:</span>n_vars)</span>
+<span id="cb16-413"><a href="#cb16-413" aria-hidden="true" tabindex="-1"></a>  dag  <span class="ot">&lt;-</span> <span class="fu">randomDAG</span>(n_vars, <span class="at">prob =</span> edge_prob, <span class="at">lB =</span> <span class="fl">0.25</span>, <span class="at">uB =</span> <span class="dv">1</span>)</span>
+<span id="cb16-414"><a href="#cb16-414" aria-hidden="true" tabindex="-1"></a>  <span class="fu">nodes</span>(dag) <span class="ot">&lt;-</span> labs</span>
+<span id="cb16-415"><a href="#cb16-415" aria-hidden="true" tabindex="-1"></a>  d    <span class="ot">&lt;-</span> <span class="fu">rmvDAG</span>(n_samples, dag, <span class="at">errDist =</span> <span class="st">"normal"</span>)</span>
+<span id="cb16-416"><a href="#cb16-416" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(d) <span class="ot">&lt;-</span> labs</span>
+<span id="cb16-417"><a href="#cb16-417" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-418"><a href="#cb16-418" aria-hidden="true" tabindex="-1"></a>  lat  <span class="ot">&lt;-</span> <span class="fu">sort</span>(<span class="fu">sample.int</span>(n_vars, n_latent))</span>
+<span id="cb16-419"><a href="#cb16-419" aria-hidden="true" tabindex="-1"></a>  obs  <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(<span class="fu">seq_len</span>(n_vars), lat)</span>
+<span id="cb16-420"><a href="#cb16-420" aria-hidden="true" tabindex="-1"></a>  obs_labs <span class="ot">&lt;-</span> labs[obs]</span>
+<span id="cb16-421"><a href="#cb16-421" aria-hidden="true" tabindex="-1"></a>  d_obs <span class="ot">&lt;-</span> d[, obs]</span>
+<span id="cb16-422"><a href="#cb16-422" aria-hidden="true" tabindex="-1"></a>  ss    <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">C =</span> <span class="fu">cor</span>(d_obs), <span class="at">n =</span> n_samples)</span>
+<span id="cb16-423"><a href="#cb16-423" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-424"><a href="#cb16-424" aria-hidden="true" tabindex="-1"></a>  true_skel <span class="ot">&lt;-</span> <span class="fu">true_mag_skel</span>(dag, obs_labs)</span>
+<span id="cb16-425"><a href="#cb16-425" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-426"><a href="#cb16-426" aria-hidden="true" tabindex="-1"></a>  ci_f <span class="ot">&lt;-</span> <span class="fu">make_counted_ci</span>(ss)</span>
+<span id="cb16-427"><a href="#cb16-427" aria-hidden="true" tabindex="-1"></a>  fci_r <span class="ot">&lt;-</span> <span class="fu">fci</span>(ss, ci_f<span class="sc">$</span>ci, <span class="at">labels =</span> obs_labs, <span class="at">alpha =</span> sig, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb16-428"><a href="#cb16-428" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-429"><a href="#cb16-429" aria-hidden="true" tabindex="-1"></a>  ci_r <span class="ot">&lt;-</span> <span class="fu">make_counted_ci</span>(ss)</span>
+<span id="cb16-430"><a href="#cb16-430" aria-hidden="true" tabindex="-1"></a>  rfci_r <span class="ot">&lt;-</span> <span class="fu">rfci</span>(ss, ci_r<span class="sc">$</span>ci, <span class="at">labels =</span> obs_labs, <span class="at">alpha =</span> sig, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb16-431"><a href="#cb16-431" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-432"><a href="#cb16-432" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">f1_fci  =</span> <span class="fu">f1_skel</span>(true_skel, <span class="fu">pag_skeleton_amat</span>(fci_r<span class="sc">@</span>amat)),</span>
+<span id="cb16-433"><a href="#cb16-433" aria-hidden="true" tabindex="-1"></a>    <span class="at">f1_rfci =</span> <span class="fu">f1_skel</span>(true_skel, <span class="fu">pag_skeleton_amat</span>(rfci_r<span class="sc">@</span>amat)),</span>
+<span id="cb16-434"><a href="#cb16-434" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_fci  =</span> ci_f<span class="sc">$</span><span class="fu">count</span>(),</span>
+<span id="cb16-435"><a href="#cb16-435" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci_rfci =</span> ci_r<span class="sc">$</span><span class="fu">count</span>())</span>
+<span id="cb16-436"><a href="#cb16-436" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-437"><a href="#cb16-437" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-438"><a href="#cb16-438" aria-hidden="true" tabindex="-1"></a>mc <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">t</span>(<span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>, evaluate_latent)))</span>
+<span id="cb16-439"><a href="#cb16-439" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-440"><a href="#cb16-440" aria-hidden="true" tabindex="-1"></a>mc_summary <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb16-441"><a href="#cb16-441" aria-hidden="true" tabindex="-1"></a>  <span class="at">Method      =</span> <span class="fu">c</span>(<span class="st">"FCI"</span>, <span class="st">"RFCI"</span>),</span>
+<span id="cb16-442"><a href="#cb16-442" aria-hidden="true" tabindex="-1"></a>  <span class="at">Skeleton_F1 =</span> <span class="fu">round</span>(<span class="fu">c</span>(<span class="fu">mean</span>(mc<span class="sc">$</span>f1_fci),  <span class="fu">mean</span>(mc<span class="sc">$</span>f1_rfci)),  <span class="dv">3</span>),</span>
+<span id="cb16-443"><a href="#cb16-443" aria-hidden="true" tabindex="-1"></a>  <span class="at">CI_Tests    =</span> <span class="fu">round</span>(<span class="fu">c</span>(<span class="fu">mean</span>(mc<span class="sc">$</span>ci_fci),  <span class="fu">mean</span>(mc<span class="sc">$</span>ci_rfci)),  <span class="dv">1</span>)</span>
+<span id="cb16-444"><a href="#cb16-444" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-445"><a href="#cb16-445" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(mc_summary,</span>
+<span id="cb16-446"><a href="#cb16-446" aria-hidden="true" tabindex="-1"></a>      <span class="at">caption =</span> <span class="st">"Monte Carlo averages (100 replications, n = 2000, p = 8, 2 latent)"</span>,</span>
+<span id="cb16-447"><a href="#cb16-447" aria-hidden="true" tabindex="-1"></a>      <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb16-448"><a href="#cb16-448" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-449"><a href="#cb16-449" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-452"><a href="#cb16-452" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-453"><a href="#cb16-453" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-latent-mc</span></span>
+<span id="cb16-454"><a href="#cb16-454" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "CI-test count distributions across 100 replications. By skipping the Possible-D-SEP tests, RFCI typically — though not always — runs fewer tests than FCI."</span></span>
+<span id="cb16-455"><a href="#cb16-455" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
+<span id="cb16-456"><a href="#cb16-456" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4</span></span>
+<span id="cb16-457"><a href="#cb16-457" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb16-458"><a href="#cb16-458" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
+<span id="cb16-459"><a href="#cb16-459" aria-hidden="true" tabindex="-1"></a>mc_long <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb16-460"><a href="#cb16-460" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">"FCI"</span>, <span class="st">"RFCI"</span>), <span class="at">each =</span> <span class="fu">nrow</span>(mc)),</span>
+<span id="cb16-461"><a href="#cb16-461" aria-hidden="true" tabindex="-1"></a>  <span class="at">ci     =</span> <span class="fu">c</span>(mc<span class="sc">$</span>ci_fci, mc<span class="sc">$</span>ci_rfci)</span>
+<span id="cb16-462"><a href="#cb16-462" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-463"><a href="#cb16-463" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(mc_long, <span class="fu">aes</span>(<span class="at">x =</span> ci, <span class="at">fill =</span> method)) <span class="sc">+</span></span>
+<span id="cb16-464"><a href="#cb16-464" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">bins =</span> <span class="dv">20</span>, <span class="at">position =</span> <span class="st">"identity"</span>, <span class="at">alpha =</span> <span class="fl">0.55</span>, <span class="at">color =</span> <span class="st">"white"</span>) <span class="sc">+</span></span>
+<span id="cb16-465"><a href="#cb16-465" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="at">FCI =</span> <span class="st">"steelblue"</span>, <span class="at">RFCI =</span> <span class="st">"tomato"</span>)) <span class="sc">+</span></span>
+<span id="cb16-466"><a href="#cb16-466" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"CI tests"</span>, <span class="at">y =</span> <span class="st">"Frequency"</span>,</span>
+<span id="cb16-467"><a href="#cb16-467" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"CI Test Counts: FCI vs RFCI (100 replications)"</span>) <span class="sc">+</span></span>
+<span id="cb16-468"><a href="#cb16-468" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb16-469"><a href="#cb16-469" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-470"><a href="#cb16-470" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-471"><a href="#cb16-471" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb16-472"><a href="#cb16-472" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-473"><a href="#cb16-473" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Property <span class="pp">|</span> PC / GES <span class="pp">|</span> FCI <span class="pp">|</span> RFCI <span class="pp">|</span></span>
+<span id="cb16-474"><a href="#cb16-474" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|---|</span></span>
+<span id="cb16-475"><a href="#cb16-475" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Latent confounders <span class="pp">|</span> ✗ assumes none <span class="pp">|</span> ✓ handles <span class="pp">|</span> ✓ handles <span class="pp">|</span></span>
+<span id="cb16-476"><a href="#cb16-476" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Output <span class="pp">|</span> CPDAG <span class="pp">|</span> Full PAG <span class="pp">|</span> Skeleton + partial PAG <span class="pp">|</span></span>
+<span id="cb16-477"><a href="#cb16-477" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Skeleton consistency <span class="pp">|</span> ✓ <span class="pp">|</span> ✓ <span class="pp">|</span> converges to a slight supergraph <span class="pp">|</span></span>
+<span id="cb16-478"><a href="#cb16-478" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Orientation coverage <span class="pp">|</span> full <span class="pp">|</span> full (under faithfulness) <span class="pp">|</span> partial (conservative) <span class="pp">|</span></span>
+<span id="cb16-479"><a href="#cb16-479" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> CI cost <span class="pp">|</span> PC: PC's cost; GES: none <span class="pp">|</span> skeleton + Possible-D-SEP tests <span class="pp">|</span> skeleton only (no Possible-D-SEP) <span class="pp">|</span></span>
+<span id="cb16-480"><a href="#cb16-480" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-481"><a href="#cb16-481" aria-hidden="true" tabindex="-1"></a>FCI and RFCI serve different purposes. Use FCI when orientations matter. Use</span>
+<span id="cb16-482"><a href="#cb16-482" aria-hidden="true" tabindex="-1"></a>RFCI when the goal is a faster skeleton screen.</span>
 <span id="cb16-483"><a href="#cb16-483" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-484"><a href="#cb16-484" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>You are confident in causal sufficiency (all relevant variables are measured)</span>
-<span id="cb16-485"><a href="#cb16-485" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>You want a CPDAG that you can orient further with background knowledge</span>
-<span id="cb16-486"><a href="#cb16-486" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-487"><a href="#cb16-487" aria-hidden="true" tabindex="-1"></a>**Use FCI when:**</span>
-<span id="cb16-488"><a href="#cb16-488" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-489"><a href="#cb16-489" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>You suspect hidden confounders but don't know where</span>
-<span id="cb16-490"><a href="#cb16-490" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>You need edge orientations and $\leftrightarrow$ marks to guide IV or proxy strategies</span>
-<span id="cb16-491"><a href="#cb16-491" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Sample size is large enough that CI-test errors don't cascade badly through orientation rules</span>
+<span id="cb16-484"><a href="#cb16-484" aria-hidden="true" tabindex="-1"></a><span class="fu">### Practical decision guide</span></span>
+<span id="cb16-485"><a href="#cb16-485" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-486"><a href="#cb16-486" aria-hidden="true" tabindex="-1"></a>**Use PC or GES when:**</span>
+<span id="cb16-487"><a href="#cb16-487" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-488"><a href="#cb16-488" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>You are confident in causal sufficiency (all relevant variables are measured)</span>
+<span id="cb16-489"><a href="#cb16-489" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>You want a CPDAG that you can orient further with background knowledge</span>
+<span id="cb16-490"><a href="#cb16-490" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-491"><a href="#cb16-491" aria-hidden="true" tabindex="-1"></a>**Use FCI when:**</span>
 <span id="cb16-492"><a href="#cb16-492" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-493"><a href="#cb16-493" aria-hidden="true" tabindex="-1"></a>**Use RFCI when:**</span>
-<span id="cb16-494"><a href="#cb16-494" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-495"><a href="#cb16-495" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>You suspect latent confounders and have many variables ($p &gt; 20$)</span>
-<span id="cb16-496"><a href="#cb16-496" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The goal is to prune the adjacency graph before applying domain knowledge or estimation</span>
-<span id="cb16-497"><a href="#cb16-497" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>You want a fast first pass — promote candidates to FCI later</span>
+<span id="cb16-493"><a href="#cb16-493" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>You suspect hidden confounders but don't know where</span>
+<span id="cb16-494"><a href="#cb16-494" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>You need edge orientations and $\leftrightarrow$ marks to guide IV or proxy strategies</span>
+<span id="cb16-495"><a href="#cb16-495" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Sample size is large enough that CI-test errors don't cascade badly through orientation rules</span>
+<span id="cb16-496"><a href="#cb16-496" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-497"><a href="#cb16-497" aria-hidden="true" tabindex="-1"></a>**Use RFCI when:**</span>
 <span id="cb16-498"><a href="#cb16-498" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-499"><a href="#cb16-499" aria-hidden="true" tabindex="-1"></a><span class="fu">### From discovery to estimation</span></span>
-<span id="cb16-500"><a href="#cb16-500" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-501"><a href="#cb16-501" aria-hidden="true" tabindex="-1"></a>Causal discovery is a first step, not a final answer. A reasonable workflow</span>
-<span id="cb16-502"><a href="#cb16-502" aria-hidden="true" tabindex="-1"></a>is:</span>
-<span id="cb16-503"><a href="#cb16-503" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-504"><a href="#cb16-504" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Discover** — run FCI or RFCI to get candidate adjacencies and, if using FCI, some edge marks</span>
-<span id="cb16-505"><a href="#cb16-505" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Refine** — apply temporal ordering, institutional knowledge, and exclusion restrictions to orient remaining edges</span>
-<span id="cb16-506"><a href="#cb16-506" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Identify** — check whether the effect of interest is identified given the refined graph (backdoor, front-door, ID algorithm)</span>
-<span id="cb16-507"><a href="#cb16-507" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Estimate** — use TMLE, AIPW, or the estimators in earlier chapters</span>
-<span id="cb16-508"><a href="#cb16-508" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-509"><a href="#cb16-509" aria-hidden="true" tabindex="-1"></a>Causal discovery narrows the space of possible structures. Domain knowledge</span>
-<span id="cb16-510"><a href="#cb16-510" aria-hidden="true" tabindex="-1"></a>still does the hard work.</span>
-<span id="cb16-511"><a href="#cb16-511" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-512"><a href="#cb16-512" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
-<span id="cb16-513"><a href="#cb16-513" aria-hidden="true" tabindex="-1"></a>**Going further: orientation in the latent case**</span>
-<span id="cb16-514"><a href="#cb16-514" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-515"><a href="#cb16-515" aria-hidden="true" tabindex="-1"></a>FCI's PAG output distinguishes definite causes ($\to$), definite hidden common causes ($\leftrightarrow$), and uncertain cases ($\circ$). The PAG can be combined with background knowledge such as temporal ordering to further orient edges before estimation.</span>
-<span id="cb16-516"><a href="#cb16-516" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb16-517"><a href="#cb16-517" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-518"><a href="#cb16-518" aria-hidden="true" tabindex="-1"></a><span class="fu">## How Much Does Causal Discovery Help in Economics?</span></span>
-<span id="cb16-519"><a href="#cb16-519" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-520"><a href="#cb16-520" aria-hidden="true" tabindex="-1"></a>Recovering the MAG skeleton is still far from recovering the full DAG. Much</span>
-<span id="cb16-521"><a href="#cb16-521" aria-hidden="true" tabindex="-1"></a>is still missing:</span>
-<span id="cb16-522"><a href="#cb16-522" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-523"><a href="#cb16-523" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> What is recovered <span class="pp">|</span> What is still missing <span class="pp">|</span></span>
-<span id="cb16-524"><a href="#cb16-524" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
-<span id="cb16-525"><a href="#cb16-525" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> RFCI skeleton <span class="pp">|</span> Edge directions; direct cause vs. hidden common cause; latent nodes <span class="pp">|</span></span>
-<span id="cb16-526"><a href="#cb16-526" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> FCI PAG <span class="pp">|</span> Unique MAG; latent nodes; most edges still carry $\circ$ marks <span class="pp">|</span></span>
-<span id="cb16-527"><a href="#cb16-527" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> True MAG <span class="pp">|</span> Latent nodes and their connections <span class="pp">|</span></span>
-<span id="cb16-528"><a href="#cb16-528" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Full DAG <span class="pp">|</span> Nothing — this is the goal <span class="pp">|</span></span>
-<span id="cb16-529"><a href="#cb16-529" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-530"><a href="#cb16-530" aria-hidden="true" tabindex="-1"></a>The core econometric question is almost always "what is the causal effect of $X$ on $Y$?" Causal discovery with latent variables does not answer this directly. A definite $X \leftrightarrow Y$ in a PAG tells you confounding exists — but not how to remove it. Without oriented edges you cannot even check whether the effect is identified, let alone estimate it.</span>
-<span id="cb16-531"><a href="#cb16-531" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-532"><a href="#cb16-532" aria-hidden="true" tabindex="-1"></a>**Where these methods do add value in economics:**</span>
+<span id="cb16-499"><a href="#cb16-499" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>You suspect latent confounders and have many variables ($p &gt; 20$)</span>
+<span id="cb16-500"><a href="#cb16-500" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The goal is to prune the adjacency graph before applying domain knowledge or estimation</span>
+<span id="cb16-501"><a href="#cb16-501" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>You want a fast first pass — promote candidates to FCI later</span>
+<span id="cb16-502"><a href="#cb16-502" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-503"><a href="#cb16-503" aria-hidden="true" tabindex="-1"></a><span class="fu">### From discovery to estimation</span></span>
+<span id="cb16-504"><a href="#cb16-504" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-505"><a href="#cb16-505" aria-hidden="true" tabindex="-1"></a>Causal discovery is a first step, not a final answer. A reasonable workflow</span>
+<span id="cb16-506"><a href="#cb16-506" aria-hidden="true" tabindex="-1"></a>is:</span>
+<span id="cb16-507"><a href="#cb16-507" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-508"><a href="#cb16-508" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Discover** — run FCI or RFCI to get candidate adjacencies and, if using FCI, some edge marks</span>
+<span id="cb16-509"><a href="#cb16-509" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Refine** — apply temporal ordering, institutional knowledge, and exclusion restrictions to orient remaining edges</span>
+<span id="cb16-510"><a href="#cb16-510" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Identify** — check whether the effect of interest is identified given the refined graph (backdoor, front-door, ID algorithm)</span>
+<span id="cb16-511"><a href="#cb16-511" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Estimate** — use TMLE, AIPW, or the estimators in earlier chapters</span>
+<span id="cb16-512"><a href="#cb16-512" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-513"><a href="#cb16-513" aria-hidden="true" tabindex="-1"></a>Causal discovery narrows the space of possible structures. Domain knowledge</span>
+<span id="cb16-514"><a href="#cb16-514" aria-hidden="true" tabindex="-1"></a>still does the hard work.</span>
+<span id="cb16-515"><a href="#cb16-515" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-516"><a href="#cb16-516" aria-hidden="true" tabindex="-1"></a>::: {.callout-note}</span>
+<span id="cb16-517"><a href="#cb16-517" aria-hidden="true" tabindex="-1"></a>**Going further: orientation in the latent case**</span>
+<span id="cb16-518"><a href="#cb16-518" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-519"><a href="#cb16-519" aria-hidden="true" tabindex="-1"></a>FCI's PAG output distinguishes definite causes ($\to$), definite hidden common causes ($\leftrightarrow$), and uncertain cases ($\circ$). The PAG can be combined with background knowledge such as temporal ordering to further orient edges before estimation.</span>
+<span id="cb16-520"><a href="#cb16-520" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb16-521"><a href="#cb16-521" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-522"><a href="#cb16-522" aria-hidden="true" tabindex="-1"></a><span class="fu">## How Much Does Causal Discovery Help in Economics?</span></span>
+<span id="cb16-523"><a href="#cb16-523" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-524"><a href="#cb16-524" aria-hidden="true" tabindex="-1"></a>Recovering the MAG skeleton is still far from recovering the full DAG. Much</span>
+<span id="cb16-525"><a href="#cb16-525" aria-hidden="true" tabindex="-1"></a>is still missing:</span>
+<span id="cb16-526"><a href="#cb16-526" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-527"><a href="#cb16-527" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> What is recovered <span class="pp">|</span> What is still missing <span class="pp">|</span></span>
+<span id="cb16-528"><a href="#cb16-528" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
+<span id="cb16-529"><a href="#cb16-529" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> RFCI skeleton <span class="pp">|</span> Edge directions; direct cause vs. hidden common cause; latent nodes <span class="pp">|</span></span>
+<span id="cb16-530"><a href="#cb16-530" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> FCI PAG <span class="pp">|</span> Unique MAG; latent nodes; most edges still carry $\circ$ marks <span class="pp">|</span></span>
+<span id="cb16-531"><a href="#cb16-531" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> True MAG <span class="pp">|</span> Latent nodes and their connections <span class="pp">|</span></span>
+<span id="cb16-532"><a href="#cb16-532" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Full DAG <span class="pp">|</span> Nothing — this is the goal <span class="pp">|</span></span>
 <span id="cb16-533"><a href="#cb16-533" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-534"><a href="#cb16-534" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Falsifying structural models.** If your model implies $X \perp<span class="sc">\!\!\!</span>\perp Z \mid W$, test it. A rejection means the model's independence assumptions are inconsistent with the data — discovery tells you *which* assumptions fail before you commit to a full structural estimation.</span>
+<span id="cb16-534"><a href="#cb16-534" aria-hidden="true" tabindex="-1"></a>The core econometric question is almost always "what is the causal effect of $X$ on $Y$?" Causal discovery with latent variables does not answer this directly. A definite $X \leftrightarrow Y$ in a PAG tells you confounding exists — but not how to remove it. Without oriented edges you cannot even check whether the effect is identified, let alone estimate it.</span>
 <span id="cb16-535"><a href="#cb16-535" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-536"><a href="#cb16-536" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Flagging where instruments are needed.** A definite $X \leftrightarrow Y$ in the PAG is a data-driven diagnostic: OLS of $Y$ on $X$ is biased, and you need an instrument, proxy, or natural experiment. Discovery does not supply the instrument but tells you where to look for one.</span>
+<span id="cb16-536"><a href="#cb16-536" aria-hidden="true" tabindex="-1"></a>**Where these methods do add value in economics:**</span>
 <span id="cb16-537"><a href="#cb16-537" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-538"><a href="#cb16-538" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**High-dimensional variable selection.** With many candidate controls, knowing which pairs are conditionally independent prunes the problem before applying identification strategies. This is most useful in settings with $p &gt; 20$ variables where theory does not specify the full graph.</span>
+<span id="cb16-538"><a href="#cb16-538" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Falsifying structural models.** If your model implies $X \perp<span class="sc">\!\!\!</span>\perp Z \mid W$, test it. A rejection means the model's independence assumptions are inconsistent with the data — discovery tells you *which* assumptions fail before you commit to a full structural estimation.</span>
 <span id="cb16-539"><a href="#cb16-539" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-540"><a href="#cb16-540" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Hypothesis generation when theory is silent.** For new economic phenomena — platform markets, fintech, peer effects in novel settings — where theory does not give a strong causal ordering, discovery algorithms generate hypotheses worth investigating with better-powered research designs.</span>
+<span id="cb16-540"><a href="#cb16-540" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Flagging where instruments are needed.** A definite $X \leftrightarrow Y$ in the PAG is a data-driven diagnostic: OLS of $Y$ on $X$ is biased, and you need an instrument, proxy, or natural experiment. Discovery does not supply the instrument but tells you where to look for one.</span>
 <span id="cb16-541"><a href="#cb16-541" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-542"><a href="#cb16-542" aria-hidden="true" tabindex="-1"></a>Causal discovery is a complement to IV, RD, DiD, and synthetic control, not a</span>
-<span id="cb16-543"><a href="#cb16-543" aria-hidden="true" tabindex="-1"></a>substitute. It is most useful early in a project, as a diagnostic and</span>
-<span id="cb16-544"><a href="#cb16-544" aria-hidden="true" tabindex="-1"></a>hypothesis-generating tool.</span>
+<span id="cb16-542"><a href="#cb16-542" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**High-dimensional variable selection.** With many candidate controls, knowing which pairs are conditionally independent prunes the problem before applying identification strategies. This is most useful in settings with $p &gt; 20$ variables where theory does not specify the full graph.</span>
+<span id="cb16-543"><a href="#cb16-543" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-544"><a href="#cb16-544" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Hypothesis generation when theory is silent.** For new economic phenomena — platform markets, fintech, peer effects in novel settings — where theory does not give a strong causal ordering, discovery algorithms generate hypotheses worth investigating with better-powered research designs.</span>
+<span id="cb16-545"><a href="#cb16-545" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-546"><a href="#cb16-546" aria-hidden="true" tabindex="-1"></a>Causal discovery is a complement to IV, RD, DiD, and synthetic control, not a</span>
+<span id="cb16-547"><a href="#cb16-547" aria-hidden="true" tabindex="-1"></a>substitute. It is most useful early in a project, as a diagnostic and</span>
+<span id="cb16-548"><a href="#cb16-548" aria-hidden="true" tabindex="-1"></a>hypothesis-generating tool.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

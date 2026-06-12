@@ -54,12 +54,19 @@ Consider a two-period example:
 
 The DAG:
 
-```
-L0 → A0 → L1 → A1 → Y
-      ↘   ↑    ↑    ↑
-       ↘ /     |    |
-       ↘×      |    |
-        L1 ← ⌣ ↩     (L1 affects A1, both affect Y)
+```{r tv-dag, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}
+library(ggdag)
+g_tv <- dagify(
+  A0 ~ L0,
+  L1 ~ L0 + A0,
+  A1 ~ L1,
+  Y  ~ A0 + A1 + L0 + L1,
+  exposure = "A0",
+  outcome  = "Y",
+  coords = list(x = c(L0 = 0, A0 = 1, L1 = 2, A1 = 3, Y = 4),
+                y = c(L0 = 2, A0 = 1, L1 = 2, A1 = 1, Y = 1.5))
+)
+ggdag(g_tv)
 ```
 
 $L_1$ is the problem variable. It confounds the effect of $A_1$ on $Y$, so
@@ -192,11 +199,13 @@ IPTW reweights observations by the inverse probability of their observed
 treatment history. The stabilized weight is:
 
 $$
-SW_i = \prod_{t=0}^{K} \frac{f(A_t \mid \bar A_{t-1})}{f(A_t \mid \bar A_{t-1}, \bar L_{t-1})}.
+SW_i = \prod_{t=0}^{K} \frac{f(A_t \mid \bar A_{t-1})}{f(A_t \mid \bar A_{t-1}, \bar L_{t})}.
 $$
 
 The numerator uses treatment history only. The denominator also conditions
-on covariate history. Stabilized weights usually have lower variance than
+on the covariate history up to and including $L_t$ --- the covariates
+measured just before $A_t$. (Skipping $L_t$ would leave the $L_t \to A_t$
+confounding intact in the pseudo-population.) Stabilized weights usually have lower variance than
 unstabilized weights.
 
 ```{r}
@@ -252,15 +261,29 @@ tidy(msm_fit) |> knitr::kable(digits = 3,
 
 cat(sprintf("\nMSM total effect (always vs never): %.3f  (true = 1.5)\n",
             coef(msm_fit)["A0"] + coef(msm_fit)["A1"]))
+
+# For comparison: the untrimmed weights
+df$sw_u <- sw
+msm_untrimmed <- svyglm(Y ~ A0 + A1,
+                        design = svydesign(ids = ~1, weights = ~sw_u, data = df))
+cat(sprintf("Untrimmed MSM total effect: %.3f\n",
+            coef(msm_untrimmed)["A0"] + coef(msm_untrimmed)["A1"]))
 ```
 
 The weighted population is constructed so treatment is no longer associated
-with past covariates. That is why the MSM targets the total effect.
+with past covariates. That is why the MSM targets the total effect. Note the
+trimmed estimate sits a little above the truth while the untrimmed one is
+closer: the weight models here are correctly specified, so the untrimmed
+weights are consistent, and capping the top 1% of weights reintroduces a
+bit of confounding bias in exchange for lower variance. Trimming is a
+bias--variance trade, not a free lunch.
 
 ## Longitudinal TMLE
 
 The `ltmle` package implements longitudinal TMLE. It combines outcome models
-and treatment models and reports TMLE, IPTW, and g-computation estimates.
+and treatment models; `summary()` reports the TMLE estimate by default (the
+IPTW estimate is available via `summary(fit, estimator = "iptw")`, and
+g-computation by calling `ltmle()` with `gcomp = TRUE`).
 
 ```{r}
 #| label: ltmle
@@ -282,8 +305,9 @@ ltmle_fit <- ltmle(
 summary(ltmle_fit)
 ```
 
-`ltmle` returns several estimates of $\mathbb{E}[Y(\bar a=1)]$ side by side,
-which is useful for checking how much the answer depends on the model.
+Comparing the TMLE estimate with its IPTW and g-computation counterparts
+(via the options above) is a useful check on how much the answer depends on
+the modeling choices.
 
 To estimate a *contrast* — the always-treated vs never-treated effect —
 specify both regimes:
@@ -308,7 +332,7 @@ summary(ltmle_contrast)
 The contrast output gives the effect of always treating versus never
 treating. In this simulation it should be close to 1.5.
 
-## Choosing among the four
+## Choosing among the approaches
 
 | Estimator | Strengths | Weaknesses |
 |---|---|---|

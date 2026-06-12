@@ -45,7 +45,7 @@ reported as:
 
 - **Hazard ratio (HR)**: $HR = h_1(t) / h_0(t)$ (the ratio of hazards
   under treatment vs control). Easy to estimate but hard to interpret
-  causally (Hernán 2010).
+  causally [@hernan-2010-hazards].
 - **Restricted mean survival difference (RMST)**: $\int_0^\tau [S_1(t) - S_0(t)] dt$
   — the difference in mean survival up to time $\tau$. Causally
   interpretable as a "years gained" quantity.
@@ -143,7 +143,7 @@ rmst_arm <- function(time, event, tau) {
                   extend = TRUE)
   surv_at_t <- s$surv
   t_at_t    <- s$time
-  # Trapezoidal integration of S(t) from 0 to tau
+  # Exact integral of the KM step function (left rectangle sum)
   use      <- t_at_t <= tau
   t_vals   <- c(t_at_t[use], tau)
   s_vals   <- c(surv_at_t[use], surv_at_t[max(which(use))])
@@ -248,9 +248,15 @@ ate_surv <- ate(
 )
 
 summary(ate_surv)
+
+# The summary displays one estimator; put all three side by side
+ate_tab <- as.data.frame(data.table::as.data.table(ate_surv, type = "diffRisk"))
+knitr::kable(ate_tab[, c("estimator", "estimate", "se", "lower", "upper")],
+             digits = 3,
+             caption = "Risk difference at t = 5 under each estimator.")
 ```
 
-The output reports three estimators side-by-side:
+The object contains three estimators, shown side-by-side in the table:
 
 - **Gformula** — parametric g-computation using the Cox model only.
 - **IPTW** — inverse probability of treatment weighting.
@@ -286,9 +292,9 @@ In practice, report at least:
   methods extend to survival via causal survival forests
   (`grf::causal_survival_forest`).
 - The [Bayesian Causal Inference chapter](bayesian-causal.qmd) extends
-  to survival via Bayesian additive regression trees with a Weibull or
-  piecewise-exponential likelihood (`BART::wbart` with the appropriate
-  configuration).
+  to survival via Bayesian additive regression trees for time-to-event
+  outcomes (`BART::surv.bart` for discrete-time survival, or `BART::abart`
+  for an accelerated-failure-time model with right-censoring).
 
 ## Summary
 

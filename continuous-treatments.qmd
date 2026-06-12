@@ -32,9 +32,9 @@ I use three approaches:
 
 1. **Generalized propensity score** (GPS; Hirano-Imbens 2004), which models
    the conditional density of treatment given covariates.
-2. **Doubly-robust dose-response estimation** (Kennedy 2017), which combines
-   a GPS with an outcome model.
-3. **Longitudinal modified treatment policies** (LMTP; Diaz-Hejazi 2020),
+2. **Doubly-robust dose-response estimation** [in the spirit of
+   @kennedy-2017-continuous], which combines a GPS with an outcome model.
+3. **Longitudinal modified treatment policies** [LMTP; @diaz-2023-lmtp],
    which are useful when treatments are time-varying or when fixed treatment
    levels create positivity problems.
 
@@ -156,6 +156,9 @@ df$gps <- gps
 
 # IPW-style weights for continuous treatment: 1 / GPS
 # Stabilise by multiplying by the marginal density f_D(D)
+# NOTE: sw_cont is computed only as an overlap/positivity diagnostic.
+# The Hirano-Imbens estimator below does NOT weight by it: the GPS
+# enters as a regressor in the outcome model.
 marginal_D <- density(df$D)
 fD <- approx(marginal_D$x, marginal_D$y, xout = df$D)$y
 df$sw_cont <- pmin(fD / gps, quantile(fD / gps, 0.99))
@@ -201,10 +204,12 @@ ggplot() +
 In this example the GPS estimator tracks the nonlinear curve much better
 than the naive linear regression.
 
-## Doubly-robust dose-response (Kennedy 2017)
+## Doubly-robust dose-response estimation
 
-Kennedy's estimator is the continuous-treatment analogue of AIPW. It
-combines:
+A kernel-localized AIPW estimator — in the spirit of
+@kennedy-2017-continuous, who develop a more elaborate pseudo-outcome
+version with formal guarantees — is the continuous-treatment analogue of
+AIPW. It combines:
 
 - An outcome model $\hat\mu(d, x) = \mathbb{E}[Y \mid D = d, X = x]$
 - A generalised propensity score $\hat r(d \mid x)$
@@ -216,7 +221,9 @@ $$
 $$
 
 where $K_h$ is a kernel around dose $d$. The bandwidth $h$ controls how much
-nearby observed doses contribute to the estimate.
+nearby observed doses contribute to the estimate. (The code below uses the
+weight-normalized — Hájek — version of the correction term, dividing the
+weights by their mean; the population limit is unchanged.)
 
 Using the GPS already estimated above, the implementation is short:
 
@@ -244,7 +251,7 @@ dr_estimate <- function(d, h = 0.5) {
 ds <- seq(0, 10, by = 0.5)
 dr_dose <- sapply(ds, dr_estimate)
 
-df_drf <- tibble(d = ds, mu = dr_dose, method = "DR (Kennedy 2017)")
+df_drf <- tibble(d = ds, mu = dr_dose, method = "DR (kernel AIPW)")
 
 ggplot() +
   geom_line(data = df_hi,  aes(d, mu, colour = method), linewidth = 1.0) +
@@ -289,7 +296,12 @@ lmtp_data <- data.frame(L_1, A_1, L_2, A_2, Y)
 head(lmtp_data)
 ```
 
-Here is a simple policy that sets each treatment to zero:
+For simplicity the worked example uses *static* policies (set every
+treatment to 0, then to 1) on a binary treatment — `lmtp` handles these in
+the same framework. A genuinely *modified* policy on a continuous dose
+would instead return a shift of the observed value, e.g.
+`function(data, trt) data[[trt]] - 1`, which is what keeps the
+counterfactual on the observed support. Here is the set-to-zero policy:
 
 ```{r}
 #| label: shift-fn
@@ -323,12 +335,14 @@ lmtp_fit <- lmtp_tmle(
   folds = 2
 )
 
-lmtp_fit
+# tidy() gives the estimate, SE, and CI as a data frame
+# (the styled console print does not render cleanly in the book)
+tidy(lmtp_fit)
 ```
 
 The useful part of `lmtp` is that it handles the time-ordering of
-covariates, treatments, and outcomes. The output gives the TMLE estimate,
-an IPW estimate, and confidence intervals.
+covariates, treatments, and outcomes. The output gives the TMLE estimate
+with its standard error and confidence interval.
 
 ### Contrasts between policies
 
@@ -358,7 +372,7 @@ lmtp_one <- lmtp_tmle(
 )
 
 contrast <- lmtp_contrast(lmtp_one, ref = lmtp_fit)
-contrast
+as.data.frame(contrast$estimates)
 ```
 
 The contrast is the difference between the two policy-specific mean
@@ -368,8 +382,8 @@ outcomes.
 
 | Method | Strengths | Weaknesses |
 |---|---|---|
-| **GPS (Hirano-Imbens)** | Conceptually transparent; widely understood | Parametric assumptions on GPS; sensitive to bandwidth |
-| **Doubly-robust** (Kennedy 2017) | Robust to misspecification; asymptotically efficient | More complex; nuisance models need careful tuning |
+| **GPS (Hirano-Imbens)** | Conceptually transparent; widely understood | Parametric assumptions on the GPS and the outcome-GPS regression; sensitive to their misspecification |
+| **Doubly-robust** (kernel AIPW) | Robust to misspecification of one nuisance; attains nonparametric oracle rates | More complex; nuisance models need careful tuning; sensitive to bandwidth |
 | **LMTP** | Handles continuous + multivalued + time-varying uniformly; respects positivity | More setup; requires defining a shift function |
 
 In practice:

@@ -35,7 +35,7 @@ Considerations:
 
 ## Influence Function Based Estimators
 
-Estimators based on efficient influence function are often $\sqrt n$ consistent, meaning they converge to the truth as fast as $\sqrt n$ rate. This means the bias not only goes to 0 with $n$ goes to infinity, but also as fast as $1/ \sqrt n$ goes to 0. Why does this matter? Because we have limited sample size, when we are based on asymptotics, the faster the bias goes to 0 the smaller sample size we need.
+Estimators based on efficient influence function are often $\sqrt n$ consistent, meaning they converge to the truth at the $1/\sqrt n$ rate. This means the estimation error not only goes to 0 as $n$ goes to infinity, but does so as fast as $1/ \sqrt n$ goes to 0. Why does this matter? Because we have limited sample size, when we are based on asymptotics, the faster the bias goes to 0 the smaller sample size we need.
 
 If we have an estimator such that $$ \sqrt n (\hat \psi - \psi) = \sqrt n P_n(\phi) + o_P(1) \rightarrow N(0, var(\phi))$$
 
@@ -47,9 +47,9 @@ Take the mean potential outcome under treatment, $\psi_1 = E \{ E(Y | X, A=1) \}
 
 For example, an IF-based bias-corrected estimator $$\hat \psi = P_n [ \frac{A}{\hat \pi (X)} \{ Y - \hat \mu (X) \} + \hat \mu(X) ]$$ where $P_n$ means sample mean. This is the familiar AIPW estimator. It is known to be doubly robust.
 
-Since we know the influence function, we can calculate its variance. This variance is the same as variance of $\hat \psi_1$ since they differ by a constant $\psi_1$. We can use any estimators to estimate the nuisance parameters, then get $\hat \psi_1$. Then the sample variance is the variance of the influence function; and the sample mean is $\hat\psi_1$ (differencing the two arms gives the ATE).
+Since we know the influence function, we can estimate the asymptotic variance. The uncentered summand $\frac{A}{\hat\pi(X)}\{Y-\hat\mu(X)\}+\hat\mu(X)$ differs from $\phi$ only by the constant $\psi_1$, so the two have the same variance. We can use any estimators for the nuisance parameters; the sample mean of the summand is then $\hat\psi_1$, its sample variance estimates $var(\phi)$, and the standard error of $\hat\psi_1$ is $sd(\hat\phi)/\sqrt{n}$ (differencing the two arms gives the ATE).
 
-In this estimator, both $\hat \mu$ and $\hat \pi$ can be done using any estimator, such as machine learning.
+In this estimator, both $\hat \mu$ and $\hat \pi$ can be done using any estimator, such as machine learning. One caveat: $\sqrt n$ inference with flexible ML nuisances requires either Donsker-type complexity restrictions or sample splitting (cross-fitting), where the nuisance models are fit on one fold and evaluated on another. The manual estimators below use in-sample predictions for simplicity; the `npcausal` calls cross-fit with `nsplits=2`, and the DoubleML section below returns to sample splitting as a key ingredient.
 
 ### Simulation Setup
 
@@ -80,7 +80,6 @@ SL.library <- c("SL.earth","SL.gam","SL.glmnet","SL.glm.interaction", "SL.mean",
 set.seed(1)
 mufit <- SuperLearner(Y=data$Y, X=data %>% dplyr::select(w1,w2,w3,w4,A),
                                      SL.library=SL.library, family="binomial")
-muhat <- predict(mufit, X=data %>% dplyr::select(w1,w2,w3,w4,A))$pred
 # predict the PO Y^1
 mu1hat<- predict(mufit, newdata=data %>% dplyr::select(w1,w2,w3,w4,A) %>% mutate(A=1))$pred
 mu0hat<- predict(mufit, newdata=data %>% dplyr::select(w1,w2,w3,w4,A) %>% mutate(A=0))$pred
@@ -110,26 +109,45 @@ res.manual.aipw
 
 ```{r npcausal7, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 library(npcausal)
-aipw<- ate(y=Y, a=A, x=W, nsplits=1, sl.lib=SL.library)
+set.seed(1)
+aipw<- ate(y=Y, a=A, x=W, nsplits=2, sl.lib=SL.library)
 ```
 
 ### AIPW ATT
 
-```{r npcausal8, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+The ATT has its own efficient influence function. With
+$p = P(A=1)$ and $\mu_0(X)=E[Y|X,A=0]$,
+
+$$\phi_{ATT}(Z) = \frac{1}{p}\left\{ A(Y-\mu_0(X)) - (1-A)\frac{\pi(X)}{1-\pi(X)}(Y-\mu_0(X)) \right\} - \frac{A}{p}\,\psi_{ATT}.$$
+
+Treated units contribute their outcome-model residual; control units
+enter with the odds weight $\pi(X)/(1-\pi(X))$, which reweights them to
+the covariate distribution of the treated. Note the correction term
+uses the CONTROL units — an estimator computed on the treated
+subsample alone would silently reduce to regression adjustment.
+
+```{r npcausal8b, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+# npcausal (attached above) exports its own SL.ranger, whose fit object is
+# incompatible with SuperLearner's predict method; pin SuperLearner's wrapper
+SL.ranger <- SuperLearner::SL.ranger
 data2 <- data %>%
   dplyr::mutate(pi0hat=as.numeric(pi0hat), pi1hat=as.numeric(pi1hat))
 set.seed(1)
 data0 <- data2 %>% dplyr::filter(A==0)
-data1 <- data2 %>% dplyr::filter(A==1)
 mufit <- SuperLearner(Y=data0$Y, X=data0 %>% dplyr::select(w1,w2,w3,w4),
                                      SL.library=SL.library, family="binomial")
-
-mu0hat<- as.numeric(predict(mufit, newdata=data1 %>% dplyr::select(w1,w2,w3,w4))$pred)
-IF.0<-(((1-data1$A)/data1$pi0hat)*(data1$Y-mu0hat)+mu0hat)
-IF<-data1$Y-IF.0
-aipw.manual.att <- mean(IF)
-ci.lb<-mean(IF)-qnorm(.975)*sd(IF)/sqrt(length(IF))
-ci.ub<-mean(IF)+qnorm(.975)*sd(IF)/sqrt(length(IF))
+# predict mu0 for ALL units, treated and control
+mu0hat_all <- as.numeric(predict(mufit, newdata=data2 %>% dplyr::select(w1,w2,w3,w4))$pred)
+p1 <- mean(data2$A)
+resid0 <- data2$Y - mu0hat_all
+# uncentered IF-based ATT estimator
+phi <- (data2$A*resid0 -
+        (1-data2$A)*(data2$pi1hat/data2$pi0hat)*resid0)/p1
+aipw.manual.att <- mean(phi)
+# centered EIF for the variance
+phi_c <- phi - (data2$A/p1)*aipw.manual.att
+ci.lb<-aipw.manual.att-qnorm(.975)*sd(phi_c)/sqrt(length(phi_c))
+ci.ub<-aipw.manual.att+qnorm(.975)*sd(phi_c)/sqrt(length(phi_c))
 res.manual.aipw.att<-c(aipw.manual.att,ci.lb, ci.ub)
 res.manual.aipw.att
 ```
@@ -138,7 +156,8 @@ res.manual.aipw.att
 
 ```{r npcausal10, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 library(npcausal)
-aipw<- att(y=Y, a=A, x=W, nsplits=1, sl.lib=SL.library)
+set.seed(1)
+aipw<- att(y=Y, a=A, x=W, nsplits=2, sl.lib=SL.library)
 ```
 
 ## TMLE
@@ -166,17 +185,17 @@ $$ d_i = m_0(x_i) + v_i $$
 
 This model is quite general, except it does not allow interaction of $d$ and $x$; therefore no heterogeneous treatment effect across $x$. But "DoubleML" implements more than partially linear model, it actually allows for heterogeneous treatment effects, in models such as interactive regression model.
 
-The basic idea of doubleML is to use any machine learning algorithm to estimate outcome equation ($l_0(X) = E(Y | X)$) and treatment equation ($m_0(X) = E(D | X)$). Then get the residuals, namely $\hat W=Y-\hat l_0(X)$ and $\hat V = D - \hat m_0(X)$.
+The basic idea of doubleML is to use any machine learning algorithm to estimate outcome equation ($l_0(X) = E(Y | X)$) and treatment equation ($m_0(X) = E(D | X)$). Then get the residuals, namely $\tilde Y=Y-\hat l_0(X)$ and $\tilde D = D - \hat m_0(X)$.
 
-Then regress $\hat W$ on $\hat V$. Based on FWL theorem, you get $\hat \theta$.
+Then regress $\tilde Y$ on $\tilde D$. Based on FWL theorem, you get $\hat \theta$.
 
-An important component here is to specify a Neyman-orthogonal score function. In the case of PLR, it can be the product of the two residuals:
+An important component here is to specify a Neyman-orthogonal score function. In the case of PLR, the "partialling-out" score (the DoubleML default, matching the residual-on-residual regression above) is
 
-$$\psi (W; \theta, \eta) = (Y-D\theta -g(X))(D-m(X)) $$
+$$\psi (Z; \theta, \eta) = \big(Y- l(X) - \theta (D-m(X))\big)\big(D-m(X)\big) $$
 
-The estimator $\hat \theta$ is to solve the equation that the sample mean of this score function being 0.
+The estimator $\hat \theta$ solves the equation that the sample mean of this score function is 0.
 
-And the variance of this score function is used as the variance of the doubleML estimator's variance.
+The estimator's variance comes from the usual sandwich formula built on the score, $\hat\sigma^2 = \hat J^{-1}\, \widehat{E[\psi^2]}\, \hat J^{-1}$ with $\hat J = -\frac{1}{n}\sum_i (D_i-\hat m(X_i))^2$.
 
 ```{r doubleml1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 library(DoubleML)

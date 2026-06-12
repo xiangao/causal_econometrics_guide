@@ -145,14 +145,23 @@ $$T = \sqrt{n - |Z| - 3} \cdot \operatorname{atanh}(\hat\rho_{XY \mid Z}) \;\sim
 
 **Choosing the significance level** $\alpha$ involves a bias–variance tradeoff on the skeleton:
 
-- **Low $\alpha$ (e.g., 0.001)**: conservative, keeps more edges. Fewer false removals but may retain spurious edges. Denser skeleton.
-- **High $\alpha$ (e.g., 0.05)**: liberal, removes more edges. Fewer spurious edges but may discard real ones. Sparser skeleton.
+An edge is *removed* whenever a CI test fails to reject independence
+($p \ge \alpha$), so $\alpha$ controls how easily edges are deleted:
+
+- **Low $\alpha$ (e.g., 0.001)**: independence is rarely rejected, so more
+  tests "find" independence and more edges are removed. Sparser skeleton;
+  risks discarding real but weak edges.
+- **High $\alpha$ (e.g., 0.05)**: independence is rejected more often, so
+  fewer edges are removed. Denser skeleton; risks retaining spurious edges.
 
 With $n = 2000$ and $p = 8$ we use $\alpha = 0.01$, a common default.
 
-GES does not use a significance level. It maximizes the **Gaussian BIC** score
-$$\text{BIC}(G) = -2 \,\ell(\hat\theta; G) + |G| \log n,$$
-which penalizes graph complexity directly. Implemented in `pcalg` as `GaussL0penObsScore`.
+GES does not use a significance level. It selects the graph that *minimizes*
+the **Gaussian BIC**
+$$\text{BIC}(G) = -2 \,\ell(\hat\theta; G) + |G| \log n$$
+(equivalently, maximizes the penalized log-likelihood
+$\ell - \tfrac{|G|}{2}\log n$), which penalizes graph complexity directly.
+Implemented in `pcalg` as `GaussL0penObsScore`.
 
 We wrap `gaussCItest` in a counter to track exactly how many CI tests PC calls:
 
@@ -203,7 +212,7 @@ The **F1 score** is the harmonic mean of precision and recall, ranging from 0 (w
 - **Skeleton F1** measures whether the algorithm found the right edges regardless of direction. An edge is a true positive if it exists in both the estimated skeleton and the true one.
 - **CPDAG F1** is stricter: a directed edge $X \to Y$ is only a true positive if the true DAG also has $X \to Y$; an undirected edge $X - Y$ counts as correct if the true DAG has *either* direction.
 
-A high skeleton F1 with lower CPDAG F1 means the algorithm found the right adjacencies but left some edges unoriented — the typical case when the MEC contains many equivalent DAGs.
+A high skeleton F1 with lower CPDAG F1 means the algorithm found the right adjacencies but oriented some of them incorrectly (under this scoring, leaving an edge undirected is never penalized — only wrong directions are).
 :::
 
 ```{r}
@@ -344,10 +353,10 @@ par(op)
 **Interpreting the comparison table**
 
 - **Skeleton F1** is the primary metric for comparing algorithms: it measures edge recovery independent of orientation, since orientation accuracy is bounded by the MEC.
-- **CPDAG F1** rewards correctly oriented edges and penalizes leaving orientable edges undirected.
+- **CPDAG F1** additionally rewards correctly oriented edges and penalizes wrongly oriented ones (leaving an edge undirected is not penalized under our scoring).
 - **CI tests** is reported only for PC — GES is score-based and does not perform CI tests.
 
-On this dataset PC and GES typically achieve similar skeleton F1. GES often pulls ahead on CPDAG F1 because the BIC score gives it a directional signal that PC's CI tests do not — score-based methods can break some ties that constraint-based methods leave as undirected edges.
+On this dataset PC comes out ahead on both metrics: GES's backward phase prunes or merges a few true adjacencies, which costs it skeleton F1 and, through the lost edges, CPDAG F1 as well. There is no general ranking — both algorithms target the *same* CPDAG, and the BIC score carries no orientation information beyond the conditional-independence structure (all DAGs in one Markov equivalence class receive the same score). Which one gets closer in finite samples depends on the DGP, the sample size, and the tuning ($\alpha$ vs. the BIC penalty).
 :::
 
 ## Monte Carlo Evaluation
@@ -524,9 +533,12 @@ par(op)
 ::: {.callout-important}
 **Read the disagreement, not just the agreement.** A purely data-driven score
 may orient an edge as `MATH → HISEI` — a child's test score causing their
-parent's occupational status. That is causally backwards, and no CI test can
-rule it out, because `HISEI → MATH` and `MATH → HISEI` are Markov-equivalent.
-This is exactly why background knowledge is not optional.
+parent's occupational status (GES does exactly this in the right panel). That
+is causally backwards, and the data cannot protect us: which direction this
+edge takes is not identifiable from observational data alone, so the
+orientation the algorithm prints reflects its (possibly mistaken) v-structure
+and score decisions under misspecification, not evidence about the true
+direction. This is exactly why background knowledge is not optional.
 :::
 
 ### Orienting with background knowledge
@@ -566,11 +578,15 @@ igraph::E(ig_orient)$undirected <- undir_flag
 ```
 
 ::: {.callout-warning}
-**Where data-driven orientation disagreed with us.** Left to itself, PC oriented
-`IMMIG–GRADE` as `GRADE → IMMIG` — schooling causing immigration status, which
-is impossible. No CI test could have prevented it: the two orientations are
-Markov-equivalent. Imposing the tier order overrides it. The lesson: **never
-ship a discovered orientation you have prior reason to disbelieve**.
+**Where data-driven orientation disagreed with us.** Left to itself, PC
+oriented `HISEI → IMMIG` and `HOMEPOS → IMMIG` — parental status and home
+possessions causing immigration background, which our tier ordering puts the
+other way round. GES did something worse with a different edge: it oriented
+`GRADE → IMMIG`, schooling causing immigration status (PC got that one
+right). These mistakes come from v-structure and score decisions made under
+misspecification; the data is not informative about these directions.
+Imposing the tier order overrides them. The lesson: **never ship a
+discovered orientation you have prior reason to disbelieve**.
 :::
 
 ```{r}
@@ -583,8 +599,9 @@ plot_ig(ig_orient, layout = lay_or, main = "PC skeleton + tier ordering")
 ```
 
 Every edge into `MATH` is now a candidate causal parent of achievement — the
-bridge from discovery to estimation (back-door adjustment on the parents of the
-outcome). The only edge the ordering leaves undirected, `HISEI – HOMEPOS`, is
+bridge from discovery to estimation (back-door adjustment, e.g. on the parents
+of the chosen treatment variable). The only edge the ordering leaves
+undirected, `HISEI – HOMEPOS`, is
 two same-tier measures of family background that temporal logic cannot separate.
 
 ### Stability: does the skeleton survive resampling?

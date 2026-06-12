@@ -490,23 +490,23 @@ window.Quarto = {
 <p>where <span class="math inline">\(\rho= P(W=1)\)</span>.</p>
 </section><section id="identification-from-potential-outcome-to-observed" class="level2" data-number="1.6"><h2 data-number="1.6" class="anchored" data-anchor-id="identification-from-potential-outcome-to-observed">
 <span class="header-section-number">1.6</span> Identification: From Potential Outcome to Observed</h2>
-<p>We focus on <span class="math inline">\(\tau_{ATT}\)</span>. To identify it, we need: <span class="math display">\[ E[Y(1) | W=1)]\]</span> which is easy, because we observe it.</p>
+<p>We focus on <span class="math inline">\(\tau_{ATT}\)</span>. To identify it, we need: <span class="math display">\[ E[Y(1) | W=1]\]</span> which is easy, because we observe it.</p>
 <p>And we need <span class="math display">\[ E[Y(0) | W=1]\]</span></p>
-<p>To identify this, we’ll need unconfoundedness: <span class="math display">\[ E[Y(0) | W, X] = E[Y(0)| X] \]</span> and overlap: <span class="math display">\[ 0 &lt; \pi(X)= P(W=1 | X=x) &lt; 1\]</span></p>
-<p>Under unconfoundedness:</p>
-<p><span class="math display">\[ E[Y(0)| W=1] = E[Y(0) | W=0] \]</span></p>
+<p>To identify this, we’ll need unconfoundedness: <span class="math display">\[ E[Y(0) | W, X] = E[Y(0)| X] \]</span> and overlap: <span class="math display">\[ \pi(x)= P(W=1 | X=x) &lt; 1\]</span> (for the ATT only <span class="math inline">\(\pi(x)&lt;1\)</span> is needed; the ATE requires <span class="math inline">\(0&lt;\pi(x)&lt;1\)</span>).</p>
+<p>Unconfoundedness says that within each subgroup <span class="math inline">\(X=x\)</span>, treated and control units have the same mean of <span class="math inline">\(Y(0)\)</span>: <span class="math inline">\(E[Y(0)|W=1,X=x]=E[Y(0)|W=0,X=x]=E[Y|W=0,X=x]\)</span>. Averaging over the covariate distribution of the treated,</p>
+<p><span class="math display">\[ E[Y(0)| W=1] = E\big[ E[Y | W=0, X] \mid W=1 \big], \]</span></p>
+<p>which involves only observed data. Therefore ATT is identified:</p>
 <p><span class="math display">\[ \small \begin{align}
 \tau_{ATT} &amp;=  E[Y(1) - Y(0) | W=1] \\
-&amp;= E[Y(1)|W=1] - E[Y(0)|W=0] \\
-&amp;= E[Y|W=1] - E[Y|W=0]
+&amp;= E[Y|W=1] - E\big[ E[Y | W=0, X] \mid W=1 \big]
 \end{align}
 \]</span></p>
-<p>Therefore ATT is identified. In randomised experiments, we can assume unconfoundedness. A difference-in-means estimator is consistent.</p>
-<p><span class="math display">\[ \hat{\tau_{ATT}} = \bar Y_1 - \bar Y_0 \]</span></p>
+<p>Note the conditional-on-<span class="math inline">\(X\)</span> assumption does NOT imply the marginal equality <span class="math inline">\(E[Y(0)|W=1]=E[Y(0)|W=0]\)</span>: treated and control units have different covariate distributions, so the adjustment over <span class="math inline">\(X\)</span> is essential. In a randomised experiment, unconfoundedness holds without conditioning on <span class="math inline">\(X\)</span> (i.e.&nbsp;<span class="math inline">\(E[Y(0)|W]=E[Y(0)]\)</span>); then <span class="math inline">\(E[Y(0)|W=1]=E[Y(0)|W=0]=E[Y|W=0]\)</span>, the formula collapses to <span class="math inline">\(E[Y|W=1]-E[Y|W=0]\)</span>, and a difference-in-means estimator is consistent.</p>
+<p><span class="math display">\[ \hat{\tau}_{ATT} = \bar Y_1 - \bar Y_0 \]</span></p>
 <p>But in observational studies, most cases we cannot assume unconfoundedness. What can we do to justify unconfoundedness better?</p>
 </section><section id="unconfoundedness-and-overlap" class="level2" data-number="1.7"><h2 data-number="1.7" class="anchored" data-anchor-id="unconfoundedness-and-overlap">
 <span class="header-section-number">1.7</span> Unconfoundedness and Overlap</h2>
-<p>Weaker Assumptions: Unconfoundedness (conditional independence, or ignorability): <span class="math display">\[ E[Y(0) | W, X] = E[Y(0)| X] \]</span> Overlap: <span class="math display">\[ 0 &lt; \pi(X)= P(W=1 | X=x) &lt; 1\]</span> SUTVA (stable unit treatment value assumption): 1. No interference between units. No spillovers. 2. Consistency. No hidden versions of treatment or control. Treatment is clearly defined.</p>
+<p>Weaker Assumptions: Unconfoundedness (conditional independence, or ignorability): <span class="math display">\[ E[Y(0) | W, X] = E[Y(0)| X] \]</span> Overlap: <span class="math display">\[ 0 &lt; \pi(x)= P(W=1 | X=x) &lt; 1\]</span> SUTVA (stable unit treatment value assumption): 1. No interference between units. No spillovers. 2. Consistency. No hidden versions of treatment or control. Treatment is clearly defined.</p>
 <p>Within each subgroup of <span class="math inline">\(X=x\)</span>, W is independent of <span class="math inline">\(Y(0)\)</span>. With the overlap assumption, we ensure there is a comparable control unit for each treated unit.</p>
 <p>However, these two criteria are often contradictory: we may need more covariates to satisfy conditional independence; meanwhile, if the dimension of covariates goes high, then it’s likely in some partition we don’t have control units.</p>
 <p>We need four assumptions for identification:</p>
@@ -1107,68 +1107,79 @@ window.Quarto = {
 <span id="cb1-95"><a href="#cb1-95" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-96"><a href="#cb1-96" aria-hidden="true" tabindex="-1"></a><span class="fu">## Identification: From Potential Outcome to Observed</span></span>
 <span id="cb1-97"><a href="#cb1-97" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-98"><a href="#cb1-98" aria-hidden="true" tabindex="-1"></a>We focus on $\tau_{ATT}$. To identify it, we need: $$ E<span class="co">[</span><span class="ot">Y(1) | W=1)</span><span class="co">]</span>$$ which is easy, because we observe it.</span>
+<span id="cb1-98"><a href="#cb1-98" aria-hidden="true" tabindex="-1"></a>We focus on $\tau_{ATT}$. To identify it, we need: $$ E<span class="co">[</span><span class="ot">Y(1) | W=1</span><span class="co">]</span>$$ which is easy, because we observe it.</span>
 <span id="cb1-99"><a href="#cb1-99" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-100"><a href="#cb1-100" aria-hidden="true" tabindex="-1"></a>And we need $$ E<span class="co">[</span><span class="ot">Y(0) | W=1</span><span class="co">]</span>$$</span>
 <span id="cb1-101"><a href="#cb1-101" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-102"><a href="#cb1-102" aria-hidden="true" tabindex="-1"></a>To identify this, we'll need unconfoundedness: $$ E<span class="co">[</span><span class="ot">Y(0) | W, X</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">Y(0)| X</span><span class="co">]</span> $$ and overlap: $$ 0 &lt; \pi(X)= P(W=1 | X=x) &lt; 1$$</span>
+<span id="cb1-102"><a href="#cb1-102" aria-hidden="true" tabindex="-1"></a>To identify this, we'll need unconfoundedness: $$ E<span class="co">[</span><span class="ot">Y(0) | W, X</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">Y(0)| X</span><span class="co">]</span> $$ and overlap: $$ \pi(x)= P(W=1 | X=x) &lt; 1$$ (for the ATT only $\pi(x)&lt;1$ is needed; the ATE requires $0&lt;\pi(x)&lt;1$).</span>
 <span id="cb1-103"><a href="#cb1-103" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-104"><a href="#cb1-104" aria-hidden="true" tabindex="-1"></a>Under unconfoundedness:</span>
-<span id="cb1-105"><a href="#cb1-105" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-106"><a href="#cb1-106" aria-hidden="true" tabindex="-1"></a>$$ E<span class="co">[</span><span class="ot">Y(0)| W=1</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">Y(0) | W=0</span><span class="co">]</span> $$</span>
-<span id="cb1-107"><a href="#cb1-107" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-108"><a href="#cb1-108" aria-hidden="true" tabindex="-1"></a>$$ \small \begin{align}</span>
-<span id="cb1-109"><a href="#cb1-109" aria-hidden="true" tabindex="-1"></a>\tau_{ATT} &amp;=  E<span class="co">[</span><span class="ot">Y(1) - Y(0) | W=1</span><span class="co">]</span> <span class="sc">\\</span></span>
-<span id="cb1-110"><a href="#cb1-110" aria-hidden="true" tabindex="-1"></a>&amp;= E<span class="co">[</span><span class="ot">Y(1)|W=1</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y(0)|W=0</span><span class="co">]</span> <span class="sc">\\</span></span>
-<span id="cb1-111"><a href="#cb1-111" aria-hidden="true" tabindex="-1"></a>&amp;= E<span class="co">[</span><span class="ot">Y|W=1</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y|W=0</span><span class="co">]</span></span>
-<span id="cb1-112"><a href="#cb1-112" aria-hidden="true" tabindex="-1"></a>\end{align}</span>
-<span id="cb1-113"><a href="#cb1-113" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a>Therefore ATT is identified. In randomised experiments, we can assume unconfoundedness. A difference-in-means estimator is consistent.</span>
-<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a>$$ \hat{\tau_{ATT}} = \bar Y_1 - \bar Y_0 $$</span>
+<span id="cb1-104"><a href="#cb1-104" aria-hidden="true" tabindex="-1"></a>Unconfoundedness says that within each subgroup $X=x$, treated and</span>
+<span id="cb1-105"><a href="#cb1-105" aria-hidden="true" tabindex="-1"></a>control units have the same mean of $Y(0)$:</span>
+<span id="cb1-106"><a href="#cb1-106" aria-hidden="true" tabindex="-1"></a>$E<span class="co">[</span><span class="ot">Y(0)|W=1,X=x</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y(0)|W=0,X=x</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y|W=0,X=x</span><span class="co">]</span>$. Averaging over the</span>
+<span id="cb1-107"><a href="#cb1-107" aria-hidden="true" tabindex="-1"></a>covariate distribution of the treated,</span>
+<span id="cb1-108"><a href="#cb1-108" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-109"><a href="#cb1-109" aria-hidden="true" tabindex="-1"></a>$$ E<span class="co">[</span><span class="ot">Y(0)| W=1</span><span class="co">]</span> = E\big<span class="co">[</span><span class="ot"> E[Y | W=0, X] \mid W=1 \big</span><span class="co">]</span>, $$</span>
+<span id="cb1-110"><a href="#cb1-110" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-111"><a href="#cb1-111" aria-hidden="true" tabindex="-1"></a>which involves only observed data. Therefore ATT is identified:</span>
+<span id="cb1-112"><a href="#cb1-112" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-113"><a href="#cb1-113" aria-hidden="true" tabindex="-1"></a>$$ \small \begin{align}</span>
+<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a>\tau_{ATT} &amp;=  E<span class="co">[</span><span class="ot">Y(1) - Y(0) | W=1</span><span class="co">]</span> <span class="sc">\\</span></span>
+<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a>&amp;= E<span class="co">[</span><span class="ot">Y|W=1</span><span class="co">]</span> - E\big<span class="co">[</span><span class="ot"> E[Y | W=0, X] \mid W=1 \big</span><span class="co">]</span></span>
+<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a>\end{align}</span>
+<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb1-118"><a href="#cb1-118" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a>But in observational studies, most cases we cannot assume unconfoundedness. What can we do to justify unconfoundedness better?</span>
-<span id="cb1-120"><a href="#cb1-120" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a><span class="fu">## Unconfoundedness and Overlap</span></span>
-<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a>Weaker Assumptions: Unconfoundedness (conditional independence, or ignorability): $$ E<span class="co">[</span><span class="ot">Y(0) | W, X</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">Y(0)| X</span><span class="co">]</span> $$ Overlap: $$ 0 &lt; \pi(X)= P(W=1 | X=x) &lt; 1$$ SUTVA (stable unit treatment value assumption): 1. No interference between units. No spillovers. 2. Consistency. No hidden versions of treatment or control. Treatment is clearly defined.</span>
-<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a>Within each subgroup of $X=x$, W is independent of $Y(0)$. With the overlap assumption, we ensure there is a comparable control unit for each treated unit.</span>
-<span id="cb1-126"><a href="#cb1-126" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a>However, these two criteria are often contradictory: we may need more covariates to satisfy conditional independence; meanwhile, if the dimension of covariates goes high, then it's likely in some partition we don't have control units.</span>
-<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-129"><a href="#cb1-129" aria-hidden="true" tabindex="-1"></a>We need four assumptions for identification:</span>
-<span id="cb1-130"><a href="#cb1-130" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Unconfoundedness (conditional independence, or ignorability)</span>
-<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Overlap (positivity, common support)</span>
-<span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>No interference</span>
-<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Consistency</span>
+<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a>Note the conditional-on-$X$ assumption does NOT imply the marginal</span>
+<span id="cb1-120"><a href="#cb1-120" aria-hidden="true" tabindex="-1"></a>equality $E<span class="co">[</span><span class="ot">Y(0)|W=1</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y(0)|W=0</span><span class="co">]</span>$: treated and control units have</span>
+<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a>different covariate distributions, so the adjustment over $X$ is</span>
+<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a>essential. In a randomised experiment, unconfoundedness holds without</span>
+<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a>conditioning on $X$ (i.e. $E<span class="co">[</span><span class="ot">Y(0)|W</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y(0)</span><span class="co">]</span>$); then</span>
+<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a>$E<span class="co">[</span><span class="ot">Y(0)|W=1</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y(0)|W=0</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y|W=0</span><span class="co">]</span>$, the formula collapses to</span>
+<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a>$E<span class="co">[</span><span class="ot">Y|W=1</span><span class="co">]</span>-E<span class="co">[</span><span class="ot">Y|W=0</span><span class="co">]</span>$, and a difference-in-means estimator is</span>
+<span id="cb1-126"><a href="#cb1-126" aria-hidden="true" tabindex="-1"></a>consistent.</span>
+<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a>$$ \hat{\tau}_{ATT} = \bar Y_1 - \bar Y_0 $$</span>
+<span id="cb1-129"><a href="#cb1-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-130"><a href="#cb1-130" aria-hidden="true" tabindex="-1"></a>But in observational studies, most cases we cannot assume unconfoundedness. What can we do to justify unconfoundedness better?</span>
+<span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a><span class="fu">## Unconfoundedness and Overlap</span></span>
+<span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a>Weaker Assumptions: Unconfoundedness (conditional independence, or ignorability): $$ E<span class="co">[</span><span class="ot">Y(0) | W, X</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">Y(0)| X</span><span class="co">]</span> $$ Overlap: $$ 0 &lt; \pi(x)= P(W=1 | X=x) &lt; 1$$ SUTVA (stable unit treatment value assumption): 1. No interference between units. No spillovers. 2. Consistency. No hidden versions of treatment or control. Treatment is clearly defined.</span>
 <span id="cb1-135"><a href="#cb1-135" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a><span class="fu">## Observational Data Flowchart</span></span>
+<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a>Within each subgroup of $X=x$, W is independent of $Y(0)$. With the overlap assumption, we ensure there is a comparable control unit for each treated unit.</span>
 <span id="cb1-137"><a href="#cb1-137" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a>In observational studies, I summarise the decision what method to use for identification of causal effect:</span>
+<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a>However, these two criteria are often contradictory: we may need more covariates to satisfy conditional independence; meanwhile, if the dimension of covariates goes high, then it's likely in some partition we don't have control units.</span>
 <span id="cb1-139"><a href="#cb1-139" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-142"><a href="#cb1-142" aria-hidden="true" tabindex="-1"></a><span class="in">```{mermaid}</span></span>
-<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a>flowchart LR</span>
-<span id="cb1-144"><a href="#cb1-144" aria-hidden="true" tabindex="-1"></a>  A[Observational data Y,W,X] --&gt; B{Unconfoundedness?}</span>
-<span id="cb1-145"><a href="#cb1-145" aria-hidden="true" tabindex="-1"></a>  B --&gt; | Yes | C{Parametric?}</span>
-<span id="cb1-146"><a href="#cb1-146" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Yes | D(RA)</span>
-<span id="cb1-147"><a href="#cb1-147" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Yes | E(IPW)</span>
-<span id="cb1-148"><a href="#cb1-148" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Yes | F(AIPW)</span>
-<span id="cb1-149"><a href="#cb1-149" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Yes | G(IPWRA)</span>
-<span id="cb1-150"><a href="#cb1-150" aria-hidden="true" tabindex="-1"></a>  C --&gt; | No | H(IF based estimators)</span>
-<span id="cb1-151"><a href="#cb1-151" aria-hidden="true" tabindex="-1"></a>  C --&gt; | No | I(TMLE)</span>
-<span id="cb1-152"><a href="#cb1-152" aria-hidden="true" tabindex="-1"></a>  C --&gt; | No | J(DoubleML)</span>
-<span id="cb1-153"><a href="#cb1-153" aria-hidden="true" tabindex="-1"></a>  B --&gt; | No | K{Panel data?}</span>
-<span id="cb1-154"><a href="#cb1-154" aria-hidden="true" tabindex="-1"></a>  K --&gt; | Yes | L{Parallel Trend?}</span>
-<span id="cb1-155"><a href="#cb1-155" aria-hidden="true" tabindex="-1"></a>  L --&gt; | Yes | M(DID)</span>
-<span id="cb1-156"><a href="#cb1-156" aria-hidden="true" tabindex="-1"></a>  L --&gt; | No | N(Synthetic Control)</span>
-<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a>  L --&gt; | No | O(Synthetic DID)</span>
-<span id="cb1-158"><a href="#cb1-158" aria-hidden="true" tabindex="-1"></a>  K --&gt; | No | P{Instrument?}</span>
-<span id="cb1-159"><a href="#cb1-159" aria-hidden="true" tabindex="-1"></a>  P --&gt; | Yes | Q(IV <span class="ot">or</span> RDD)</span>
-<span id="cb1-160"><a href="#cb1-160" aria-hidden="true" tabindex="-1"></a>  P --&gt; | No | R(You are stuck!)</span>
-<span id="cb1-161"><a href="#cb1-161" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb1-140"><a href="#cb1-140" aria-hidden="true" tabindex="-1"></a>We need four assumptions for identification:</span>
+<span id="cb1-141"><a href="#cb1-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-142"><a href="#cb1-142" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Unconfoundedness (conditional independence, or ignorability)</span>
+<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Overlap (positivity, common support)</span>
+<span id="cb1-144"><a href="#cb1-144" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>No interference</span>
+<span id="cb1-145"><a href="#cb1-145" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Consistency</span>
+<span id="cb1-146"><a href="#cb1-146" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-147"><a href="#cb1-147" aria-hidden="true" tabindex="-1"></a><span class="fu">## Observational Data Flowchart</span></span>
+<span id="cb1-148"><a href="#cb1-148" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-149"><a href="#cb1-149" aria-hidden="true" tabindex="-1"></a>In observational studies, I summarise the decision what method to use for identification of causal effect:</span>
+<span id="cb1-150"><a href="#cb1-150" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-153"><a href="#cb1-153" aria-hidden="true" tabindex="-1"></a><span class="in">```{mermaid}</span></span>
+<span id="cb1-154"><a href="#cb1-154" aria-hidden="true" tabindex="-1"></a>flowchart LR</span>
+<span id="cb1-155"><a href="#cb1-155" aria-hidden="true" tabindex="-1"></a>  A[Observational data Y,W,X] --&gt; B{Unconfoundedness?}</span>
+<span id="cb1-156"><a href="#cb1-156" aria-hidden="true" tabindex="-1"></a>  B --&gt; | Yes | C{Parametric?}</span>
+<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Yes | D(RA)</span>
+<span id="cb1-158"><a href="#cb1-158" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Yes | E(IPW)</span>
+<span id="cb1-159"><a href="#cb1-159" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Yes | F(AIPW)</span>
+<span id="cb1-160"><a href="#cb1-160" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Yes | G(IPWRA)</span>
+<span id="cb1-161"><a href="#cb1-161" aria-hidden="true" tabindex="-1"></a>  C --&gt; | No | H(IF based estimators)</span>
+<span id="cb1-162"><a href="#cb1-162" aria-hidden="true" tabindex="-1"></a>  C --&gt; | No | I(TMLE)</span>
+<span id="cb1-163"><a href="#cb1-163" aria-hidden="true" tabindex="-1"></a>  C --&gt; | No | J(DoubleML)</span>
+<span id="cb1-164"><a href="#cb1-164" aria-hidden="true" tabindex="-1"></a>  B --&gt; | No | K{Panel data?}</span>
+<span id="cb1-165"><a href="#cb1-165" aria-hidden="true" tabindex="-1"></a>  K --&gt; | Yes | L{Parallel Trend?}</span>
+<span id="cb1-166"><a href="#cb1-166" aria-hidden="true" tabindex="-1"></a>  L --&gt; | Yes | M(DID)</span>
+<span id="cb1-167"><a href="#cb1-167" aria-hidden="true" tabindex="-1"></a>  L --&gt; | No | N(Synthetic Control)</span>
+<span id="cb1-168"><a href="#cb1-168" aria-hidden="true" tabindex="-1"></a>  L --&gt; | No | O(Synthetic DID)</span>
+<span id="cb1-169"><a href="#cb1-169" aria-hidden="true" tabindex="-1"></a>  K --&gt; | No | P{Instrument?}</span>
+<span id="cb1-170"><a href="#cb1-170" aria-hidden="true" tabindex="-1"></a>  P --&gt; | Yes | Q(IV <span class="ot">or</span> RDD)</span>
+<span id="cb1-171"><a href="#cb1-171" aria-hidden="true" tabindex="-1"></a>  P --&gt; | No | R(You are stuck!)</span>
+<span id="cb1-172"><a href="#cb1-172" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

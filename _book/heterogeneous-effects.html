@@ -978,7 +978,7 @@ $ Y    &lt;dbl&gt; 3.99219997, 3.99833174, 1.50594149, 2.51156617, 2.37409880, 0
 <pre><code>Clustered panel CF ATE: 1.741  (SE = 0.163)</code></pre>
 </div>
 </div>
-<p>What removes the confounding is the fixed-effect style adjustment: demean <span class="math inline">\(Y\)</span>, <span class="math inline">\(W\)</span>, and <span class="math inline">\(V_1\)</span> by firm before fitting, which sweeps out <code>unit_fe</code>:</p>
+<p>What removes the confounding is the fixed-effect style adjustment: demean <span class="math inline">\(Y\)</span>, <span class="math inline">\(W\)</span>, and <span class="math inline">\(V_1\)</span> by firm before fitting, which sweeps out <code>unit_fe</code>. A caveat on interpretation: with a demeaned binary treatment <span class="math inline">\(W_{dm}\)</span>, the GRF target is <em>not</em> generally <span class="math inline">\(\text{mean}(\tau_{panel})\)</span>. It is a within-unit, partialled-out contrast whose implicit weighting depends on the distribution of demeaned treatment values. Read the number below as a within-firm residualized treatment effect, not as a drop-in fixed-effect estimate of the same CATE/ATE target as the cross-sectional forest:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb42"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">df_dm</span> <span class="op">&lt;-</span> <span class="va">df_panel</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html">group_by</a></span><span class="op">(</span><span class="va">firm</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -999,7 +999,7 @@ $ Y    &lt;dbl&gt; 3.99219997, 3.99833174, 1.50594149, 2.51156617, 2.37409880, 0
 <pre><code>Within-transform CF ATE: 0.577  (SE = 0.103)</code></pre>
 </div>
 </div>
-<p>The clustered, within-transformed causal forest is the closest analogue to a fixed-effect regression with heterogeneous effects. See the <a href="https://xiangao.github.io/blog_book/causal-forest-panel.html">companion blog chapter on causal forests in panel data</a> for an extended simulation study comparing the panel CF to fixed-effect regression and random-effect regression under linear and nonlinear DGPs.</p>
+<p>The clustered, within-transformed causal forest is a heuristic analogue to a fixed-effect regression with heterogeneous effects, but it does not target the same estimand as a textbook within estimator: properly identified heterogeneous panel effects need stronger assumptions or a dedicated panel/DML construction with an orthogonal score. See the <a href="https://xiangao.github.io/blog_book/causal-forest-panel.html">companion blog chapter on causal forests in panel data</a> for an extended simulation study comparing the panel CF to fixed-effect regression and random-effect regression under linear and nonlinear DGPs.</p>
 </section><section id="summary" class="level2" data-number="9.9"><h2 data-number="9.9" class="anchored" data-anchor-id="summary">
 <span class="header-section-number">9.9</span> Summary</h2>
 <ul>
@@ -2014,44 +2014,54 @@ Nie, Xinkun, and Stefan Wager. 2021. <span>“Quasi-Oracle Estimation of Heterog
 <span id="cb44-558"><a href="#cb44-558" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb44-559"><a href="#cb44-559" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb44-560"><a href="#cb44-560" aria-hidden="true" tabindex="-1"></a>What removes the confounding is the fixed-effect style adjustment: demean</span>
-<span id="cb44-561"><a href="#cb44-561" aria-hidden="true" tabindex="-1"></a>$Y$, $W$, and $V_1$ by firm before fitting, which sweeps out <span class="in">`unit_fe`</span>:</span>
-<span id="cb44-562"><a href="#cb44-562" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-565"><a href="#cb44-565" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb44-566"><a href="#cb44-566" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: cf-demean</span></span>
-<span id="cb44-567"><a href="#cb44-567" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb44-568"><a href="#cb44-568" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-569"><a href="#cb44-569" aria-hidden="true" tabindex="-1"></a>df_dm <span class="ot">&lt;-</span> df_panel <span class="sc">|&gt;</span></span>
-<span id="cb44-570"><a href="#cb44-570" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(firm) <span class="sc">|&gt;</span></span>
-<span id="cb44-571"><a href="#cb44-571" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Y_dm =</span> Y <span class="sc">-</span> <span class="fu">mean</span>(Y),</span>
-<span id="cb44-572"><a href="#cb44-572" aria-hidden="true" tabindex="-1"></a>         <span class="at">W_dm =</span> W <span class="sc">-</span> <span class="fu">mean</span>(W),</span>
-<span id="cb44-573"><a href="#cb44-573" aria-hidden="true" tabindex="-1"></a>         <span class="at">V1_dm =</span> V1 <span class="sc">-</span> <span class="fu">mean</span>(V1)) <span class="sc">|&gt;</span></span>
-<span id="cb44-574"><a href="#cb44-574" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb44-561"><a href="#cb44-561" aria-hidden="true" tabindex="-1"></a>$Y$, $W$, and $V_1$ by firm before fitting, which sweeps out <span class="in">`unit_fe`</span>.</span>
+<span id="cb44-562"><a href="#cb44-562" aria-hidden="true" tabindex="-1"></a>A caveat on interpretation: with a demeaned binary treatment $W_{dm}$,</span>
+<span id="cb44-563"><a href="#cb44-563" aria-hidden="true" tabindex="-1"></a>the GRF target is *not* generally $\text{mean}(\tau_{panel})$. It is a</span>
+<span id="cb44-564"><a href="#cb44-564" aria-hidden="true" tabindex="-1"></a>within-unit, partialled-out contrast whose implicit weighting depends</span>
+<span id="cb44-565"><a href="#cb44-565" aria-hidden="true" tabindex="-1"></a>on the distribution of demeaned treatment values. Read the number</span>
+<span id="cb44-566"><a href="#cb44-566" aria-hidden="true" tabindex="-1"></a>below as a within-firm residualized treatment effect, not as a drop-in</span>
+<span id="cb44-567"><a href="#cb44-567" aria-hidden="true" tabindex="-1"></a>fixed-effect estimate of the same CATE/ATE target as the cross-sectional</span>
+<span id="cb44-568"><a href="#cb44-568" aria-hidden="true" tabindex="-1"></a>forest:</span>
+<span id="cb44-569"><a href="#cb44-569" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-572"><a href="#cb44-572" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb44-573"><a href="#cb44-573" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: cf-demean</span></span>
+<span id="cb44-574"><a href="#cb44-574" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
 <span id="cb44-575"><a href="#cb44-575" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-576"><a href="#cb44-576" aria-hidden="true" tabindex="-1"></a>cf_fe <span class="ot">&lt;-</span> <span class="fu">causal_forest</span>(<span class="at">X =</span> <span class="fu">as.matrix</span>(df_dm[, <span class="st">"V1_dm"</span>]),</span>
-<span id="cb44-577"><a href="#cb44-577" aria-hidden="true" tabindex="-1"></a>                       <span class="at">Y =</span> df_dm<span class="sc">$</span>Y_dm,</span>
-<span id="cb44-578"><a href="#cb44-578" aria-hidden="true" tabindex="-1"></a>                       <span class="at">W =</span> df_dm<span class="sc">$</span>W_dm,</span>
-<span id="cb44-579"><a href="#cb44-579" aria-hidden="true" tabindex="-1"></a>                       <span class="at">clusters =</span> df_dm<span class="sc">$</span>firm,</span>
-<span id="cb44-580"><a href="#cb44-580" aria-hidden="true" tabindex="-1"></a>                       <span class="at">num.trees =</span> <span class="dv">1000</span>)</span>
-<span id="cb44-581"><a href="#cb44-581" aria-hidden="true" tabindex="-1"></a>ate_fe <span class="ot">&lt;-</span> <span class="fu">average_treatment_effect</span>(cf_fe)</span>
-<span id="cb44-582"><a href="#cb44-582" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Within-transform CF ATE: %.3f  (SE = %.3f)</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb44-583"><a href="#cb44-583" aria-hidden="true" tabindex="-1"></a>            ate_fe[<span class="st">"estimate"</span>], ate_fe[<span class="st">"std.err"</span>]))</span>
-<span id="cb44-584"><a href="#cb44-584" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb44-585"><a href="#cb44-585" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-586"><a href="#cb44-586" aria-hidden="true" tabindex="-1"></a>The clustered, within-transformed causal forest is the closest analogue to a</span>
-<span id="cb44-587"><a href="#cb44-587" aria-hidden="true" tabindex="-1"></a>fixed-effect regression with heterogeneous effects.</span>
-<span id="cb44-588"><a href="#cb44-588" aria-hidden="true" tabindex="-1"></a>See the <span class="co">[</span><span class="ot">companion blog chapter on causal forests in panel data</span><span class="co">](https://xiangao.github.io/blog_book/causal-forest-panel.html)</span></span>
-<span id="cb44-589"><a href="#cb44-589" aria-hidden="true" tabindex="-1"></a>for an extended simulation study comparing the panel CF to fixed-effect</span>
-<span id="cb44-590"><a href="#cb44-590" aria-hidden="true" tabindex="-1"></a>regression and random-effect regression under linear and nonlinear DGPs.</span>
-<span id="cb44-591"><a href="#cb44-591" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-592"><a href="#cb44-592" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
-<span id="cb44-593"><a href="#cb44-593" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-594"><a href="#cb44-594" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Meta-learners turn outcome-regression tools into CATE estimators.</span>
-<span id="cb44-595"><a href="#cb44-595" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Causal forests are the main <span class="in">`grf`</span> estimator for heterogeneous effects.</span>
-<span id="cb44-596"><a href="#cb44-596" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>BLP and GATES are useful because they summarize heterogeneity in a way</span>
-<span id="cb44-597"><a href="#cb44-597" aria-hidden="true" tabindex="-1"></a>  that looks like familiar regression output.</span>
-<span id="cb44-598"><a href="#cb44-598" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Policy trees translate CATE estimates into treatment rules.</span>
-<span id="cb44-599"><a href="#cb44-599" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>In applied work, compare at least two CATE estimators and always report</span>
-<span id="cb44-600"><a href="#cb44-600" aria-hidden="true" tabindex="-1"></a>  simple heterogeneity summaries, not only a CATE scatterplot.</span>
+<span id="cb44-576"><a href="#cb44-576" aria-hidden="true" tabindex="-1"></a>df_dm <span class="ot">&lt;-</span> df_panel <span class="sc">|&gt;</span></span>
+<span id="cb44-577"><a href="#cb44-577" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(firm) <span class="sc">|&gt;</span></span>
+<span id="cb44-578"><a href="#cb44-578" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Y_dm =</span> Y <span class="sc">-</span> <span class="fu">mean</span>(Y),</span>
+<span id="cb44-579"><a href="#cb44-579" aria-hidden="true" tabindex="-1"></a>         <span class="at">W_dm =</span> W <span class="sc">-</span> <span class="fu">mean</span>(W),</span>
+<span id="cb44-580"><a href="#cb44-580" aria-hidden="true" tabindex="-1"></a>         <span class="at">V1_dm =</span> V1 <span class="sc">-</span> <span class="fu">mean</span>(V1)) <span class="sc">|&gt;</span></span>
+<span id="cb44-581"><a href="#cb44-581" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb44-582"><a href="#cb44-582" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-583"><a href="#cb44-583" aria-hidden="true" tabindex="-1"></a>cf_fe <span class="ot">&lt;-</span> <span class="fu">causal_forest</span>(<span class="at">X =</span> <span class="fu">as.matrix</span>(df_dm[, <span class="st">"V1_dm"</span>]),</span>
+<span id="cb44-584"><a href="#cb44-584" aria-hidden="true" tabindex="-1"></a>                       <span class="at">Y =</span> df_dm<span class="sc">$</span>Y_dm,</span>
+<span id="cb44-585"><a href="#cb44-585" aria-hidden="true" tabindex="-1"></a>                       <span class="at">W =</span> df_dm<span class="sc">$</span>W_dm,</span>
+<span id="cb44-586"><a href="#cb44-586" aria-hidden="true" tabindex="-1"></a>                       <span class="at">clusters =</span> df_dm<span class="sc">$</span>firm,</span>
+<span id="cb44-587"><a href="#cb44-587" aria-hidden="true" tabindex="-1"></a>                       <span class="at">num.trees =</span> <span class="dv">1000</span>)</span>
+<span id="cb44-588"><a href="#cb44-588" aria-hidden="true" tabindex="-1"></a>ate_fe <span class="ot">&lt;-</span> <span class="fu">average_treatment_effect</span>(cf_fe)</span>
+<span id="cb44-589"><a href="#cb44-589" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Within-transform CF ATE: %.3f  (SE = %.3f)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb44-590"><a href="#cb44-590" aria-hidden="true" tabindex="-1"></a>            ate_fe[<span class="st">"estimate"</span>], ate_fe[<span class="st">"std.err"</span>]))</span>
+<span id="cb44-591"><a href="#cb44-591" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb44-592"><a href="#cb44-592" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-593"><a href="#cb44-593" aria-hidden="true" tabindex="-1"></a>The clustered, within-transformed causal forest is a heuristic analogue to a</span>
+<span id="cb44-594"><a href="#cb44-594" aria-hidden="true" tabindex="-1"></a>fixed-effect regression with heterogeneous effects, but it does not target</span>
+<span id="cb44-595"><a href="#cb44-595" aria-hidden="true" tabindex="-1"></a>the same estimand as a textbook within estimator: properly identified</span>
+<span id="cb44-596"><a href="#cb44-596" aria-hidden="true" tabindex="-1"></a>heterogeneous panel effects need stronger assumptions or a dedicated panel/DML</span>
+<span id="cb44-597"><a href="#cb44-597" aria-hidden="true" tabindex="-1"></a>construction with an orthogonal score.</span>
+<span id="cb44-598"><a href="#cb44-598" aria-hidden="true" tabindex="-1"></a>See the <span class="co">[</span><span class="ot">companion blog chapter on causal forests in panel data</span><span class="co">](https://xiangao.github.io/blog_book/causal-forest-panel.html)</span></span>
+<span id="cb44-599"><a href="#cb44-599" aria-hidden="true" tabindex="-1"></a>for an extended simulation study comparing the panel CF to fixed-effect</span>
+<span id="cb44-600"><a href="#cb44-600" aria-hidden="true" tabindex="-1"></a>regression and random-effect regression under linear and nonlinear DGPs.</span>
+<span id="cb44-601"><a href="#cb44-601" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-602"><a href="#cb44-602" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb44-603"><a href="#cb44-603" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-604"><a href="#cb44-604" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Meta-learners turn outcome-regression tools into CATE estimators.</span>
+<span id="cb44-605"><a href="#cb44-605" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Causal forests are the main <span class="in">`grf`</span> estimator for heterogeneous effects.</span>
+<span id="cb44-606"><a href="#cb44-606" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>BLP and GATES are useful because they summarize heterogeneity in a way</span>
+<span id="cb44-607"><a href="#cb44-607" aria-hidden="true" tabindex="-1"></a>  that looks like familiar regression output.</span>
+<span id="cb44-608"><a href="#cb44-608" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Policy trees translate CATE estimates into treatment rules.</span>
+<span id="cb44-609"><a href="#cb44-609" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>In applied work, compare at least two CATE estimators and always report</span>
+<span id="cb44-610"><a href="#cb44-610" aria-hidden="true" tabindex="-1"></a>  simple heterogeneity summaries, not only a CATE scatterplot.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

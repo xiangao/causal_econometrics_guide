@@ -251,9 +251,11 @@ regression of $Y$ on treatment history:
 #| label: msm
 #| cache: true
 
-# MSM: linear in cumulative treatment
-df$sw <- sw_trimmed
-design <- svydesign(ids = ~1, weights = ~sw, data = df)
+# MSM: linear in cumulative treatment.
+# Use self-documenting column names so the trimmed vs untrimmed weights
+# are never confused in the survey design formulas below.
+df$sw_trimmed <- sw_trimmed
+design <- svydesign(ids = ~1, weights = ~sw_trimmed, data = df)
 msm_fit <- svyglm(Y ~ A0 + A1, design = design)
 
 tidy(msm_fit) |> knitr::kable(digits = 3,
@@ -263,9 +265,9 @@ cat(sprintf("\nMSM total effect (always vs never): %.3f  (true = 1.5)\n",
             coef(msm_fit)["A0"] + coef(msm_fit)["A1"]))
 
 # For comparison: the untrimmed weights
-df$sw_u <- sw
+df$sw_untrimmed <- sw
 msm_untrimmed <- svyglm(Y ~ A0 + A1,
-                        design = svydesign(ids = ~1, weights = ~sw_u, data = df))
+                        design = svydesign(ids = ~1, weights = ~sw_untrimmed, data = df))
 cat(sprintf("Untrimmed MSM total effect: %.3f\n",
             coef(msm_untrimmed)["A0"] + coef(msm_untrimmed)["A1"]))
 ```

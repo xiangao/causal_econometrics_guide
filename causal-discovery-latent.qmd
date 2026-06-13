@@ -180,9 +180,16 @@ ancestors_of <- function(dag, target) {
   setdiff(visited, target)
 }
 
-# True MAG over observed nodes as a pcalg-encoded PAG amat:
+# Simplified "true MAG" over observed nodes as a pcalg-encoded PAG amat:
 # directed edges where one observed node is an ancestor of the other in the
 # full DAG, bidirected edges where neither is an ancestor of the other.
+#
+# NOTE: this is a SIMPLIFIED oracle for the skeleton/F1 comparison below,
+# not a full authoritative MAG. A true MAG projection can carry more
+# subtle endpoint marks when directed and confounding paths coexist
+# (e.g. an edge that is both a causal ancestor and confounded). Use this
+# as an observed-variable adjacency oracle, not as a definitive
+# MAG/PAG endpoint ground truth.
 true_mag_amat <- function(dag, observed_names) {
   p <- length(observed_names)
   amat <- matrix(0L, p, p, dimnames = list(observed_names, observed_names))

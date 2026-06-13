@@ -128,6 +128,18 @@ aipw_backdoor(df_dag, "A", "Y", adjust = "X") |> kable()
 
 The graph chose the adjustment set; the estimator used that set. The point estimate recovers the true ACE of 1.5 within sampling noise.
 
+::: {.callout-note}
+The standard error here, `sd(psi) / sqrt(n)`, is the influence-function
+standard error of the AIPW estimator. It is asymptotically valid when
+the nuisance functions ($\mu$ and $\pi$) are regular parametric fits,
+as they are here. With flexible machine-learning nuisances it is **not**
+valid as written: you then need cross-fitting (sample splitting) so the
+nuisance estimates are independent of the fold being evaluated, and the
+variance should still be computed from the efficient influence function
+(or by bootstrap). Treating a full-sample ML AIPW estimate with this
+plug-in SE will generally understate uncertainty.
+:::
+
 ## An ADMG: Front-Door Identification
 
 Now suppose treatment and outcome share an unobserved common cause. A simple adjustment argument no longer works. The front-door ADMG has a mediator `M` that transmits the effect of `A` to `Y`, while `A` and `Y` are hidden-confounded:

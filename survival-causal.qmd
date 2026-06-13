@@ -136,18 +136,24 @@ It also does not require proportional hazards.
 # Use survRM2 via riskRegression / manually computing from KM
 tau <- 5  # restrict to 5 years
 
-# Manual RMST: integrate the KM curve up to tau
+# Manual RMST: integrate the KM curve up to tau.
+# (For production use, prefer a tested implementation such as
+#  survRM2::rmst2; the helper below is for transparency.)
+# Read the step function directly from fit$time / fit$surv, anchor
+# S(0) = 1 explicitly, and integrate as a left-endpoint rectangle sum
+# over the grid (0, event times <= tau, tau). This avoids relying on
+# how summary.survfit emits a row at time 0 and never duplicates tau in
+# a way that drops the final [last event, tau] interval.
 rmst_arm <- function(time, event, tau) {
-  fit <- survfit(Surv(time, event) ~ 1)
-  s    <- summary(fit, times = c(0, sort(unique(time[event == 1])), tau),
-                  extend = TRUE)
-  surv_at_t <- s$surv
-  t_at_t    <- s$time
-  # Exact integral of the KM step function (left rectangle sum)
-  use      <- t_at_t <= tau
-  t_vals   <- c(t_at_t[use], tau)
-  s_vals   <- c(surv_at_t[use], surv_at_t[max(which(use))])
-  sum(diff(t_vals) * head(s_vals, -1))
+  fit  <- survfit(Surv(time, event) ~ 1)
+  keep <- fit$time <= tau
+  t_grid <- c(0, fit$time[keep], tau)
+  # Survival height on each interval [t_j, t_{j+1}): S(0) = 1, then the
+  # KM value just after each event; the trailing value is a placeholder
+  # dropped by head(., -1) below.
+  last_s <- if (any(keep)) fit$surv[keep][sum(keep)] else 1
+  s_grid <- c(1, fit$surv[keep], last_s)
+  sum(diff(t_grid) * head(s_grid, -1))
 }
 
 rmst_trt  <- rmst_arm(df$time[df$trt == 1], df$event[df$trt == 1], tau)

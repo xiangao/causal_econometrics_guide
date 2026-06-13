@@ -644,9 +644,11 @@ SW_i = \prod_{t=0}^{K} \frac{f(A_t \mid \bar A_{t-1})}{f(A_t \mid \bar A_{t-1}, 
 <span class="header-section-number">16.4</span> Marginal structural models</h2>
 <p>With the stabilized weights, the marginal structural model is a weighted regression of <span class="math inline">\(Y\)</span> on treatment history:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># MSM: linear in cumulative treatment</span></span>
-<span><span class="va">df</span><span class="op">$</span><span class="va">sw</span> <span class="op">&lt;-</span> <span class="va">sw_trimmed</span></span>
-<span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survey/man/svydesign.html">svydesign</a></span><span class="op">(</span>ids <span class="op">=</span> <span class="op">~</span><span class="fl">1</span>, weights <span class="op">=</span> <span class="op">~</span><span class="va">sw</span>, data <span class="op">=</span> <span class="va">df</span><span class="op">)</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># MSM: linear in cumulative treatment.</span></span>
+<span><span class="co"># Use self-documenting column names so the trimmed vs untrimmed weights</span></span>
+<span><span class="co"># are never confused in the survey design formulas below.</span></span>
+<span><span class="va">df</span><span class="op">$</span><span class="va">sw_trimmed</span> <span class="op">&lt;-</span> <span class="va">sw_trimmed</span></span>
+<span><span class="va">design</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survey/man/svydesign.html">svydesign</a></span><span class="op">(</span>ids <span class="op">=</span> <span class="op">~</span><span class="fl">1</span>, weights <span class="op">=</span> <span class="op">~</span><span class="va">sw_trimmed</span>, data <span class="op">=</span> <span class="va">df</span><span class="op">)</span></span>
 <span><span class="va">msm_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyglm.html">svyglm</a></span><span class="op">(</span><span class="va">Y</span> <span class="op">~</span> <span class="va">A0</span> <span class="op">+</span> <span class="va">A1</span>, design <span class="op">=</span> <span class="va">design</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://generics.r-lib.org/reference/tidy.html">tidy</a></span><span class="op">(</span><span class="va">msm_fit</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span>digits <span class="op">=</span> <span class="fl">3</span>,</span>
@@ -693,9 +695,9 @@ SW_i = \prod_{t=0}^{K} \frac{f(A_t \mid \bar A_{t-1})}{f(A_t \mid \bar A_{t-1}, 
 MSM total effect (always vs never): 1.652  (true = 1.5)</code></pre>
 </div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># For comparison: the untrimmed weights</span></span>
-<span><span class="va">df</span><span class="op">$</span><span class="va">sw_u</span> <span class="op">&lt;-</span> <span class="va">sw</span></span>
+<span><span class="va">df</span><span class="op">$</span><span class="va">sw_untrimmed</span> <span class="op">&lt;-</span> <span class="va">sw</span></span>
 <span><span class="va">msm_untrimmed</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survey/man/svyglm.html">svyglm</a></span><span class="op">(</span><span class="va">Y</span> <span class="op">~</span> <span class="va">A0</span> <span class="op">+</span> <span class="va">A1</span>,</span>
-<span>                        design <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/survey/man/svydesign.html">svydesign</a></span><span class="op">(</span>ids <span class="op">=</span> <span class="op">~</span><span class="fl">1</span>, weights <span class="op">=</span> <span class="op">~</span><span class="va">sw_u</span>, data <span class="op">=</span> <span class="va">df</span><span class="op">)</span><span class="op">)</span></span>
+<span>                        design <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/survey/man/svydesign.html">svydesign</a></span><span class="op">(</span>ids <span class="op">=</span> <span class="op">~</span><span class="fl">1</span>, weights <span class="op">=</span> <span class="op">~</span><span class="va">sw_untrimmed</span>, data <span class="op">=</span> <span class="va">df</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"Untrimmed MSM total effect: %.3f\n"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/stats/coef.html">coef</a></span><span class="op">(</span><span class="va">msm_untrimmed</span><span class="op">)</span><span class="op">[</span><span class="st">"A0"</span><span class="op">]</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html">coef</a></span><span class="op">(</span><span class="va">msm_untrimmed</span><span class="op">)</span><span class="op">[</span><span class="st">"A1"</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -1545,127 +1547,129 @@ Additive Treatment Effect:
 <span id="cb26-265"><a href="#cb26-265" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: msm</span></span>
 <span id="cb26-266"><a href="#cb26-266" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
 <span id="cb26-267"><a href="#cb26-267" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-268"><a href="#cb26-268" aria-hidden="true" tabindex="-1"></a><span class="co"># MSM: linear in cumulative treatment</span></span>
-<span id="cb26-269"><a href="#cb26-269" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>sw <span class="ot">&lt;-</span> sw_trimmed</span>
-<span id="cb26-270"><a href="#cb26-270" aria-hidden="true" tabindex="-1"></a>design <span class="ot">&lt;-</span> <span class="fu">svydesign</span>(<span class="at">ids =</span> <span class="sc">~</span><span class="dv">1</span>, <span class="at">weights =</span> <span class="sc">~</span>sw, <span class="at">data =</span> df)</span>
-<span id="cb26-271"><a href="#cb26-271" aria-hidden="true" tabindex="-1"></a>msm_fit <span class="ot">&lt;-</span> <span class="fu">svyglm</span>(Y <span class="sc">~</span> A0 <span class="sc">+</span> A1, <span class="at">design =</span> design)</span>
-<span id="cb26-272"><a href="#cb26-272" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-273"><a href="#cb26-273" aria-hidden="true" tabindex="-1"></a><span class="fu">tidy</span>(msm_fit) <span class="sc">|&gt;</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>,</span>
-<span id="cb26-274"><a href="#cb26-274" aria-hidden="true" tabindex="-1"></a>                              <span class="at">caption =</span> <span class="st">"MSM coefficients with stabilized weights"</span>)</span>
-<span id="cb26-275"><a href="#cb26-275" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-276"><a href="#cb26-276" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">MSM total effect (always vs never): %.3f  (true = 1.5)</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb26-277"><a href="#cb26-277" aria-hidden="true" tabindex="-1"></a>            <span class="fu">coef</span>(msm_fit)[<span class="st">"A0"</span>] <span class="sc">+</span> <span class="fu">coef</span>(msm_fit)[<span class="st">"A1"</span>]))</span>
-<span id="cb26-278"><a href="#cb26-278" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-279"><a href="#cb26-279" aria-hidden="true" tabindex="-1"></a><span class="co"># For comparison: the untrimmed weights</span></span>
-<span id="cb26-280"><a href="#cb26-280" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>sw_u <span class="ot">&lt;-</span> sw</span>
-<span id="cb26-281"><a href="#cb26-281" aria-hidden="true" tabindex="-1"></a>msm_untrimmed <span class="ot">&lt;-</span> <span class="fu">svyglm</span>(Y <span class="sc">~</span> A0 <span class="sc">+</span> A1,</span>
-<span id="cb26-282"><a href="#cb26-282" aria-hidden="true" tabindex="-1"></a>                        <span class="at">design =</span> <span class="fu">svydesign</span>(<span class="at">ids =</span> <span class="sc">~</span><span class="dv">1</span>, <span class="at">weights =</span> <span class="sc">~</span>sw_u, <span class="at">data =</span> df))</span>
-<span id="cb26-283"><a href="#cb26-283" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Untrimmed MSM total effect: %.3f</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb26-284"><a href="#cb26-284" aria-hidden="true" tabindex="-1"></a>            <span class="fu">coef</span>(msm_untrimmed)[<span class="st">"A0"</span>] <span class="sc">+</span> <span class="fu">coef</span>(msm_untrimmed)[<span class="st">"A1"</span>]))</span>
-<span id="cb26-285"><a href="#cb26-285" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-286"><a href="#cb26-286" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-287"><a href="#cb26-287" aria-hidden="true" tabindex="-1"></a>The weighted population is constructed so treatment is no longer associated</span>
-<span id="cb26-288"><a href="#cb26-288" aria-hidden="true" tabindex="-1"></a>with past covariates. That is why the MSM targets the total effect. Note the</span>
-<span id="cb26-289"><a href="#cb26-289" aria-hidden="true" tabindex="-1"></a>trimmed estimate sits a little above the truth while the untrimmed one is</span>
-<span id="cb26-290"><a href="#cb26-290" aria-hidden="true" tabindex="-1"></a>closer: the weight models here are correctly specified, so the untrimmed</span>
-<span id="cb26-291"><a href="#cb26-291" aria-hidden="true" tabindex="-1"></a>weights are consistent, and capping the top 1% of weights reintroduces a</span>
-<span id="cb26-292"><a href="#cb26-292" aria-hidden="true" tabindex="-1"></a>bit of confounding bias in exchange for lower variance. Trimming is a</span>
-<span id="cb26-293"><a href="#cb26-293" aria-hidden="true" tabindex="-1"></a>bias--variance trade, not a free lunch.</span>
-<span id="cb26-294"><a href="#cb26-294" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-295"><a href="#cb26-295" aria-hidden="true" tabindex="-1"></a><span class="fu">## Longitudinal TMLE</span></span>
+<span id="cb26-268"><a href="#cb26-268" aria-hidden="true" tabindex="-1"></a><span class="co"># MSM: linear in cumulative treatment.</span></span>
+<span id="cb26-269"><a href="#cb26-269" aria-hidden="true" tabindex="-1"></a><span class="co"># Use self-documenting column names so the trimmed vs untrimmed weights</span></span>
+<span id="cb26-270"><a href="#cb26-270" aria-hidden="true" tabindex="-1"></a><span class="co"># are never confused in the survey design formulas below.</span></span>
+<span id="cb26-271"><a href="#cb26-271" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>sw_trimmed <span class="ot">&lt;-</span> sw_trimmed</span>
+<span id="cb26-272"><a href="#cb26-272" aria-hidden="true" tabindex="-1"></a>design <span class="ot">&lt;-</span> <span class="fu">svydesign</span>(<span class="at">ids =</span> <span class="sc">~</span><span class="dv">1</span>, <span class="at">weights =</span> <span class="sc">~</span>sw_trimmed, <span class="at">data =</span> df)</span>
+<span id="cb26-273"><a href="#cb26-273" aria-hidden="true" tabindex="-1"></a>msm_fit <span class="ot">&lt;-</span> <span class="fu">svyglm</span>(Y <span class="sc">~</span> A0 <span class="sc">+</span> A1, <span class="at">design =</span> design)</span>
+<span id="cb26-274"><a href="#cb26-274" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-275"><a href="#cb26-275" aria-hidden="true" tabindex="-1"></a><span class="fu">tidy</span>(msm_fit) <span class="sc">|&gt;</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>,</span>
+<span id="cb26-276"><a href="#cb26-276" aria-hidden="true" tabindex="-1"></a>                              <span class="at">caption =</span> <span class="st">"MSM coefficients with stabilized weights"</span>)</span>
+<span id="cb26-277"><a href="#cb26-277" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-278"><a href="#cb26-278" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">MSM total effect (always vs never): %.3f  (true = 1.5)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb26-279"><a href="#cb26-279" aria-hidden="true" tabindex="-1"></a>            <span class="fu">coef</span>(msm_fit)[<span class="st">"A0"</span>] <span class="sc">+</span> <span class="fu">coef</span>(msm_fit)[<span class="st">"A1"</span>]))</span>
+<span id="cb26-280"><a href="#cb26-280" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-281"><a href="#cb26-281" aria-hidden="true" tabindex="-1"></a><span class="co"># For comparison: the untrimmed weights</span></span>
+<span id="cb26-282"><a href="#cb26-282" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>sw_untrimmed <span class="ot">&lt;-</span> sw</span>
+<span id="cb26-283"><a href="#cb26-283" aria-hidden="true" tabindex="-1"></a>msm_untrimmed <span class="ot">&lt;-</span> <span class="fu">svyglm</span>(Y <span class="sc">~</span> A0 <span class="sc">+</span> A1,</span>
+<span id="cb26-284"><a href="#cb26-284" aria-hidden="true" tabindex="-1"></a>                        <span class="at">design =</span> <span class="fu">svydesign</span>(<span class="at">ids =</span> <span class="sc">~</span><span class="dv">1</span>, <span class="at">weights =</span> <span class="sc">~</span>sw_untrimmed, <span class="at">data =</span> df))</span>
+<span id="cb26-285"><a href="#cb26-285" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Untrimmed MSM total effect: %.3f</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb26-286"><a href="#cb26-286" aria-hidden="true" tabindex="-1"></a>            <span class="fu">coef</span>(msm_untrimmed)[<span class="st">"A0"</span>] <span class="sc">+</span> <span class="fu">coef</span>(msm_untrimmed)[<span class="st">"A1"</span>]))</span>
+<span id="cb26-287"><a href="#cb26-287" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-288"><a href="#cb26-288" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-289"><a href="#cb26-289" aria-hidden="true" tabindex="-1"></a>The weighted population is constructed so treatment is no longer associated</span>
+<span id="cb26-290"><a href="#cb26-290" aria-hidden="true" tabindex="-1"></a>with past covariates. That is why the MSM targets the total effect. Note the</span>
+<span id="cb26-291"><a href="#cb26-291" aria-hidden="true" tabindex="-1"></a>trimmed estimate sits a little above the truth while the untrimmed one is</span>
+<span id="cb26-292"><a href="#cb26-292" aria-hidden="true" tabindex="-1"></a>closer: the weight models here are correctly specified, so the untrimmed</span>
+<span id="cb26-293"><a href="#cb26-293" aria-hidden="true" tabindex="-1"></a>weights are consistent, and capping the top 1% of weights reintroduces a</span>
+<span id="cb26-294"><a href="#cb26-294" aria-hidden="true" tabindex="-1"></a>bit of confounding bias in exchange for lower variance. Trimming is a</span>
+<span id="cb26-295"><a href="#cb26-295" aria-hidden="true" tabindex="-1"></a>bias--variance trade, not a free lunch.</span>
 <span id="cb26-296"><a href="#cb26-296" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-297"><a href="#cb26-297" aria-hidden="true" tabindex="-1"></a>The <span class="in">`ltmle`</span> package implements longitudinal TMLE. It combines outcome models</span>
-<span id="cb26-298"><a href="#cb26-298" aria-hidden="true" tabindex="-1"></a>and treatment models; <span class="in">`summary()`</span> reports the TMLE estimate by default (the</span>
-<span id="cb26-299"><a href="#cb26-299" aria-hidden="true" tabindex="-1"></a>IPTW estimate is available via <span class="in">`summary(fit, estimator = "iptw")`</span>, and</span>
-<span id="cb26-300"><a href="#cb26-300" aria-hidden="true" tabindex="-1"></a>g-computation by calling <span class="in">`ltmle()`</span> with <span class="in">`gcomp = TRUE`</span>).</span>
-<span id="cb26-301"><a href="#cb26-301" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-304"><a href="#cb26-304" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-305"><a href="#cb26-305" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: ltmle</span></span>
-<span id="cb26-306"><a href="#cb26-306" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb26-307"><a href="#cb26-307" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
-<span id="cb26-308"><a href="#cb26-308" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-309"><a href="#cb26-309" aria-hidden="true" tabindex="-1"></a><span class="co"># ltmle expects a specific column order: covariates, treatments, outcome</span></span>
-<span id="cb26-310"><a href="#cb26-310" aria-hidden="true" tabindex="-1"></a>ltmle_data <span class="ot">&lt;-</span> df[, <span class="fu">c</span>(<span class="st">"L0"</span>, <span class="st">"A0"</span>, <span class="st">"L1"</span>, <span class="st">"A1"</span>, <span class="st">"Y"</span>)]</span>
-<span id="cb26-311"><a href="#cb26-311" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-312"><a href="#cb26-312" aria-hidden="true" tabindex="-1"></a>ltmle_fit <span class="ot">&lt;-</span> <span class="fu">ltmle</span>(</span>
-<span id="cb26-313"><a href="#cb26-313" aria-hidden="true" tabindex="-1"></a>  <span class="at">data    =</span> ltmle_data,</span>
-<span id="cb26-314"><a href="#cb26-314" aria-hidden="true" tabindex="-1"></a>  <span class="at">Anodes  =</span> <span class="fu">c</span>(<span class="st">"A0"</span>, <span class="st">"A1"</span>),</span>
-<span id="cb26-315"><a href="#cb26-315" aria-hidden="true" tabindex="-1"></a>  <span class="at">Lnodes  =</span> <span class="fu">c</span>(<span class="st">"L0"</span>, <span class="st">"L1"</span>),</span>
-<span id="cb26-316"><a href="#cb26-316" aria-hidden="true" tabindex="-1"></a>  <span class="at">Ynodes  =</span> <span class="st">"Y"</span>,</span>
-<span id="cb26-317"><a href="#cb26-317" aria-hidden="true" tabindex="-1"></a>  <span class="at">abar    =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>),       <span class="co"># the regime: always treated</span></span>
-<span id="cb26-318"><a href="#cb26-318" aria-hidden="true" tabindex="-1"></a>  <span class="at">estimate.time =</span> <span class="cn">FALSE</span></span>
-<span id="cb26-319"><a href="#cb26-319" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb26-320"><a href="#cb26-320" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-321"><a href="#cb26-321" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(ltmle_fit)</span>
-<span id="cb26-322"><a href="#cb26-322" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-323"><a href="#cb26-323" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-324"><a href="#cb26-324" aria-hidden="true" tabindex="-1"></a>Comparing the TMLE estimate with its IPTW and g-computation counterparts</span>
-<span id="cb26-325"><a href="#cb26-325" aria-hidden="true" tabindex="-1"></a>(via the options above) is a useful check on how much the answer depends on</span>
-<span id="cb26-326"><a href="#cb26-326" aria-hidden="true" tabindex="-1"></a>the modeling choices.</span>
-<span id="cb26-327"><a href="#cb26-327" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-328"><a href="#cb26-328" aria-hidden="true" tabindex="-1"></a>To estimate a *contrast* — the always-treated vs never-treated effect —</span>
-<span id="cb26-329"><a href="#cb26-329" aria-hidden="true" tabindex="-1"></a>specify both regimes:</span>
-<span id="cb26-330"><a href="#cb26-330" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-333"><a href="#cb26-333" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb26-334"><a href="#cb26-334" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: ltmle-contrast</span></span>
-<span id="cb26-335"><a href="#cb26-335" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb26-336"><a href="#cb26-336" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
-<span id="cb26-337"><a href="#cb26-337" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-338"><a href="#cb26-338" aria-hidden="true" tabindex="-1"></a>ltmle_contrast <span class="ot">&lt;-</span> <span class="fu">ltmle</span>(</span>
-<span id="cb26-339"><a href="#cb26-339" aria-hidden="true" tabindex="-1"></a>  <span class="at">data    =</span> ltmle_data,</span>
-<span id="cb26-340"><a href="#cb26-340" aria-hidden="true" tabindex="-1"></a>  <span class="at">Anodes  =</span> <span class="fu">c</span>(<span class="st">"A0"</span>, <span class="st">"A1"</span>),</span>
-<span id="cb26-341"><a href="#cb26-341" aria-hidden="true" tabindex="-1"></a>  <span class="at">Lnodes  =</span> <span class="fu">c</span>(<span class="st">"L0"</span>, <span class="st">"L1"</span>),</span>
-<span id="cb26-342"><a href="#cb26-342" aria-hidden="true" tabindex="-1"></a>  <span class="at">Ynodes  =</span> <span class="st">"Y"</span>,</span>
-<span id="cb26-343"><a href="#cb26-343" aria-hidden="true" tabindex="-1"></a>  <span class="at">abar    =</span> <span class="fu">list</span>(<span class="at">treatment =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>), <span class="at">control =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>)),</span>
-<span id="cb26-344"><a href="#cb26-344" aria-hidden="true" tabindex="-1"></a>  <span class="at">estimate.time =</span> <span class="cn">FALSE</span></span>
-<span id="cb26-345"><a href="#cb26-345" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb26-346"><a href="#cb26-346" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-347"><a href="#cb26-347" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(ltmle_contrast)</span>
-<span id="cb26-348"><a href="#cb26-348" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb26-349"><a href="#cb26-349" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-350"><a href="#cb26-350" aria-hidden="true" tabindex="-1"></a>The contrast output gives the effect of always treating versus never</span>
-<span id="cb26-351"><a href="#cb26-351" aria-hidden="true" tabindex="-1"></a>treating. In this simulation it should be close to 1.5.</span>
-<span id="cb26-352"><a href="#cb26-352" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-353"><a href="#cb26-353" aria-hidden="true" tabindex="-1"></a><span class="fu">## Choosing among the approaches</span></span>
+<span id="cb26-297"><a href="#cb26-297" aria-hidden="true" tabindex="-1"></a><span class="fu">## Longitudinal TMLE</span></span>
+<span id="cb26-298"><a href="#cb26-298" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-299"><a href="#cb26-299" aria-hidden="true" tabindex="-1"></a>The <span class="in">`ltmle`</span> package implements longitudinal TMLE. It combines outcome models</span>
+<span id="cb26-300"><a href="#cb26-300" aria-hidden="true" tabindex="-1"></a>and treatment models; <span class="in">`summary()`</span> reports the TMLE estimate by default (the</span>
+<span id="cb26-301"><a href="#cb26-301" aria-hidden="true" tabindex="-1"></a>IPTW estimate is available via <span class="in">`summary(fit, estimator = "iptw")`</span>, and</span>
+<span id="cb26-302"><a href="#cb26-302" aria-hidden="true" tabindex="-1"></a>g-computation by calling <span class="in">`ltmle()`</span> with <span class="in">`gcomp = TRUE`</span>).</span>
+<span id="cb26-303"><a href="#cb26-303" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-306"><a href="#cb26-306" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-307"><a href="#cb26-307" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: ltmle</span></span>
+<span id="cb26-308"><a href="#cb26-308" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb26-309"><a href="#cb26-309" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb26-310"><a href="#cb26-310" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-311"><a href="#cb26-311" aria-hidden="true" tabindex="-1"></a><span class="co"># ltmle expects a specific column order: covariates, treatments, outcome</span></span>
+<span id="cb26-312"><a href="#cb26-312" aria-hidden="true" tabindex="-1"></a>ltmle_data <span class="ot">&lt;-</span> df[, <span class="fu">c</span>(<span class="st">"L0"</span>, <span class="st">"A0"</span>, <span class="st">"L1"</span>, <span class="st">"A1"</span>, <span class="st">"Y"</span>)]</span>
+<span id="cb26-313"><a href="#cb26-313" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-314"><a href="#cb26-314" aria-hidden="true" tabindex="-1"></a>ltmle_fit <span class="ot">&lt;-</span> <span class="fu">ltmle</span>(</span>
+<span id="cb26-315"><a href="#cb26-315" aria-hidden="true" tabindex="-1"></a>  <span class="at">data    =</span> ltmle_data,</span>
+<span id="cb26-316"><a href="#cb26-316" aria-hidden="true" tabindex="-1"></a>  <span class="at">Anodes  =</span> <span class="fu">c</span>(<span class="st">"A0"</span>, <span class="st">"A1"</span>),</span>
+<span id="cb26-317"><a href="#cb26-317" aria-hidden="true" tabindex="-1"></a>  <span class="at">Lnodes  =</span> <span class="fu">c</span>(<span class="st">"L0"</span>, <span class="st">"L1"</span>),</span>
+<span id="cb26-318"><a href="#cb26-318" aria-hidden="true" tabindex="-1"></a>  <span class="at">Ynodes  =</span> <span class="st">"Y"</span>,</span>
+<span id="cb26-319"><a href="#cb26-319" aria-hidden="true" tabindex="-1"></a>  <span class="at">abar    =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>),       <span class="co"># the regime: always treated</span></span>
+<span id="cb26-320"><a href="#cb26-320" aria-hidden="true" tabindex="-1"></a>  <span class="at">estimate.time =</span> <span class="cn">FALSE</span></span>
+<span id="cb26-321"><a href="#cb26-321" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb26-322"><a href="#cb26-322" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-323"><a href="#cb26-323" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(ltmle_fit)</span>
+<span id="cb26-324"><a href="#cb26-324" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-325"><a href="#cb26-325" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-326"><a href="#cb26-326" aria-hidden="true" tabindex="-1"></a>Comparing the TMLE estimate with its IPTW and g-computation counterparts</span>
+<span id="cb26-327"><a href="#cb26-327" aria-hidden="true" tabindex="-1"></a>(via the options above) is a useful check on how much the answer depends on</span>
+<span id="cb26-328"><a href="#cb26-328" aria-hidden="true" tabindex="-1"></a>the modeling choices.</span>
+<span id="cb26-329"><a href="#cb26-329" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-330"><a href="#cb26-330" aria-hidden="true" tabindex="-1"></a>To estimate a *contrast* — the always-treated vs never-treated effect —</span>
+<span id="cb26-331"><a href="#cb26-331" aria-hidden="true" tabindex="-1"></a>specify both regimes:</span>
+<span id="cb26-332"><a href="#cb26-332" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-335"><a href="#cb26-335" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb26-336"><a href="#cb26-336" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: ltmle-contrast</span></span>
+<span id="cb26-337"><a href="#cb26-337" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb26-338"><a href="#cb26-338" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb26-339"><a href="#cb26-339" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-340"><a href="#cb26-340" aria-hidden="true" tabindex="-1"></a>ltmle_contrast <span class="ot">&lt;-</span> <span class="fu">ltmle</span>(</span>
+<span id="cb26-341"><a href="#cb26-341" aria-hidden="true" tabindex="-1"></a>  <span class="at">data    =</span> ltmle_data,</span>
+<span id="cb26-342"><a href="#cb26-342" aria-hidden="true" tabindex="-1"></a>  <span class="at">Anodes  =</span> <span class="fu">c</span>(<span class="st">"A0"</span>, <span class="st">"A1"</span>),</span>
+<span id="cb26-343"><a href="#cb26-343" aria-hidden="true" tabindex="-1"></a>  <span class="at">Lnodes  =</span> <span class="fu">c</span>(<span class="st">"L0"</span>, <span class="st">"L1"</span>),</span>
+<span id="cb26-344"><a href="#cb26-344" aria-hidden="true" tabindex="-1"></a>  <span class="at">Ynodes  =</span> <span class="st">"Y"</span>,</span>
+<span id="cb26-345"><a href="#cb26-345" aria-hidden="true" tabindex="-1"></a>  <span class="at">abar    =</span> <span class="fu">list</span>(<span class="at">treatment =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>), <span class="at">control =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>)),</span>
+<span id="cb26-346"><a href="#cb26-346" aria-hidden="true" tabindex="-1"></a>  <span class="at">estimate.time =</span> <span class="cn">FALSE</span></span>
+<span id="cb26-347"><a href="#cb26-347" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb26-348"><a href="#cb26-348" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-349"><a href="#cb26-349" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(ltmle_contrast)</span>
+<span id="cb26-350"><a href="#cb26-350" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb26-351"><a href="#cb26-351" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-352"><a href="#cb26-352" aria-hidden="true" tabindex="-1"></a>The contrast output gives the effect of always treating versus never</span>
+<span id="cb26-353"><a href="#cb26-353" aria-hidden="true" tabindex="-1"></a>treating. In this simulation it should be close to 1.5.</span>
 <span id="cb26-354"><a href="#cb26-354" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-355"><a href="#cb26-355" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Estimator <span class="pp">|</span> Strengths <span class="pp">|</span> Weaknesses <span class="pp">|</span></span>
-<span id="cb26-356"><a href="#cb26-356" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
-<span id="cb26-357"><a href="#cb26-357" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **G-formula** <span class="pp">|</span> Handles arbitrary regimes; transparent <span class="pp">|</span> Sensitive to model misspecification on $L_t$ and $Y$ <span class="pp">|</span></span>
-<span id="cb26-358"><a href="#cb26-358" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **IPTW + MSM** <span class="pp">|</span> Simple, intuitive; valid with correct propensity model <span class="pp">|</span> Variance can be large with extreme weights <span class="pp">|</span></span>
-<span id="cb26-359"><a href="#cb26-359" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **LTMLE** <span class="pp">|</span> Doubly robust; efficient <span class="pp">|</span> More complex; needs care with super-learners <span class="pp">|</span></span>
-<span id="cb26-360"><a href="#cb26-360" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-361"><a href="#cb26-361" aria-hidden="true" tabindex="-1"></a>In practice:</span>
+<span id="cb26-355"><a href="#cb26-355" aria-hidden="true" tabindex="-1"></a><span class="fu">## Choosing among the approaches</span></span>
+<span id="cb26-356"><a href="#cb26-356" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-357"><a href="#cb26-357" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Estimator <span class="pp">|</span> Strengths <span class="pp">|</span> Weaknesses <span class="pp">|</span></span>
+<span id="cb26-358"><a href="#cb26-358" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
+<span id="cb26-359"><a href="#cb26-359" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **G-formula** <span class="pp">|</span> Handles arbitrary regimes; transparent <span class="pp">|</span> Sensitive to model misspecification on $L_t$ and $Y$ <span class="pp">|</span></span>
+<span id="cb26-360"><a href="#cb26-360" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **IPTW + MSM** <span class="pp">|</span> Simple, intuitive; valid with correct propensity model <span class="pp">|</span> Variance can be large with extreme weights <span class="pp">|</span></span>
+<span id="cb26-361"><a href="#cb26-361" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **LTMLE** <span class="pp">|</span> Doubly robust; efficient <span class="pp">|</span> More complex; needs care with super-learners <span class="pp">|</span></span>
 <span id="cb26-362"><a href="#cb26-362" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-363"><a href="#cb26-363" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Use the g-formula when the covariate and outcome models are credible.</span>
-<span id="cb26-364"><a href="#cb26-364" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Use IPTW + MSM when the treatment-history model is more credible.</span>
-<span id="cb26-365"><a href="#cb26-365" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Use LTMLE when available and when the extra modeling work is justified.</span>
-<span id="cb26-366"><a href="#cb26-366" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-367"><a href="#cb26-367" aria-hidden="true" tabindex="-1"></a><span class="fu">## When to reach for these methods</span></span>
+<span id="cb26-363"><a href="#cb26-363" aria-hidden="true" tabindex="-1"></a>In practice:</span>
+<span id="cb26-364"><a href="#cb26-364" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-365"><a href="#cb26-365" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Use the g-formula when the covariate and outcome models are credible.</span>
+<span id="cb26-366"><a href="#cb26-366" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Use IPTW + MSM when the treatment-history model is more credible.</span>
+<span id="cb26-367"><a href="#cb26-367" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Use LTMLE when available and when the extra modeling work is justified.</span>
 <span id="cb26-368"><a href="#cb26-368" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-369"><a href="#cb26-369" aria-hidden="true" tabindex="-1"></a>Use g-methods when:</span>
+<span id="cb26-369"><a href="#cb26-369" aria-hidden="true" tabindex="-1"></a><span class="fu">## When to reach for these methods</span></span>
 <span id="cb26-370"><a href="#cb26-370" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-371"><a href="#cb26-371" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>There is a time-varying confounder $L_t$ that is affected by past</span>
-<span id="cb26-372"><a href="#cb26-372" aria-hidden="true" tabindex="-1"></a>   treatment $A_{t-1}$ and itself affects subsequent treatment $A_t$.</span>
-<span id="cb26-373"><a href="#cb26-373" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>The research question concerns a *sustained* or *dynamic* treatment</span>
-<span id="cb26-374"><a href="#cb26-374" aria-hidden="true" tabindex="-1"></a>   regime, not a single decision at a single time.</span>
-<span id="cb26-375"><a href="#cb26-375" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-376"><a href="#cb26-376" aria-hidden="true" tabindex="-1"></a>This includes many clinical follow-up studies and longitudinal studies of</span>
-<span id="cb26-377"><a href="#cb26-377" aria-hidden="true" tabindex="-1"></a>education or labor-market policies.</span>
-<span id="cb26-378"><a href="#cb26-378" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-379"><a href="#cb26-379" aria-hidden="true" tabindex="-1"></a>For a one-shot treatment, the methods from the <span class="co">[</span><span class="ot">Estimation</span><span class="co">](estimation.qmd)</span></span>
-<span id="cb26-380"><a href="#cb26-380" aria-hidden="true" tabindex="-1"></a>and <span class="co">[</span><span class="ot">Nonparametric Causal Methods</span><span class="co">](nonparametric.qmd)</span> chapters are</span>
-<span id="cb26-381"><a href="#cb26-381" aria-hidden="true" tabindex="-1"></a>sufficient. The added complexity of g-methods is only justified when the</span>
-<span id="cb26-382"><a href="#cb26-382" aria-hidden="true" tabindex="-1"></a>time-varying confounder problem is present.</span>
-<span id="cb26-383"><a href="#cb26-383" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-384"><a href="#cb26-384" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb26-371"><a href="#cb26-371" aria-hidden="true" tabindex="-1"></a>Use g-methods when:</span>
+<span id="cb26-372"><a href="#cb26-372" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-373"><a href="#cb26-373" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>There is a time-varying confounder $L_t$ that is affected by past</span>
+<span id="cb26-374"><a href="#cb26-374" aria-hidden="true" tabindex="-1"></a>   treatment $A_{t-1}$ and itself affects subsequent treatment $A_t$.</span>
+<span id="cb26-375"><a href="#cb26-375" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>The research question concerns a *sustained* or *dynamic* treatment</span>
+<span id="cb26-376"><a href="#cb26-376" aria-hidden="true" tabindex="-1"></a>   regime, not a single decision at a single time.</span>
+<span id="cb26-377"><a href="#cb26-377" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-378"><a href="#cb26-378" aria-hidden="true" tabindex="-1"></a>This includes many clinical follow-up studies and longitudinal studies of</span>
+<span id="cb26-379"><a href="#cb26-379" aria-hidden="true" tabindex="-1"></a>education or labor-market policies.</span>
+<span id="cb26-380"><a href="#cb26-380" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-381"><a href="#cb26-381" aria-hidden="true" tabindex="-1"></a>For a one-shot treatment, the methods from the <span class="co">[</span><span class="ot">Estimation</span><span class="co">](estimation.qmd)</span></span>
+<span id="cb26-382"><a href="#cb26-382" aria-hidden="true" tabindex="-1"></a>and <span class="co">[</span><span class="ot">Nonparametric Causal Methods</span><span class="co">](nonparametric.qmd)</span> chapters are</span>
+<span id="cb26-383"><a href="#cb26-383" aria-hidden="true" tabindex="-1"></a>sufficient. The added complexity of g-methods is only justified when the</span>
+<span id="cb26-384"><a href="#cb26-384" aria-hidden="true" tabindex="-1"></a>time-varying confounder problem is present.</span>
 <span id="cb26-385"><a href="#cb26-385" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-386"><a href="#cb26-386" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Standard regression fails when a time-varying confounder is itself</span>
-<span id="cb26-387"><a href="#cb26-387" aria-hidden="true" tabindex="-1"></a>  affected by past treatment.</span>
-<span id="cb26-388"><a href="#cb26-388" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>G-formula simulates outcomes under treatment regimes.</span>
-<span id="cb26-389"><a href="#cb26-389" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>IPTW + MSM reweights the population and then fits a weighted treatment</span>
-<span id="cb26-390"><a href="#cb26-390" aria-hidden="true" tabindex="-1"></a>  history model.</span>
-<span id="cb26-391"><a href="#cb26-391" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>LTMLE combines the outcome and treatment-model approaches.</span>
-<span id="cb26-392"><a href="#cb26-392" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Disagreement across estimators is useful information, not just a nuisance.</span>
+<span id="cb26-386"><a href="#cb26-386" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb26-387"><a href="#cb26-387" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-388"><a href="#cb26-388" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Standard regression fails when a time-varying confounder is itself</span>
+<span id="cb26-389"><a href="#cb26-389" aria-hidden="true" tabindex="-1"></a>  affected by past treatment.</span>
+<span id="cb26-390"><a href="#cb26-390" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>G-formula simulates outcomes under treatment regimes.</span>
+<span id="cb26-391"><a href="#cb26-391" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>IPTW + MSM reweights the population and then fits a weighted treatment</span>
+<span id="cb26-392"><a href="#cb26-392" aria-hidden="true" tabindex="-1"></a>  history model.</span>
+<span id="cb26-393"><a href="#cb26-393" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>LTMLE combines the outcome and treatment-model approaches.</span>
+<span id="cb26-394"><a href="#cb26-394" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Disagreement across estimators is useful information, not just a nuisance.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

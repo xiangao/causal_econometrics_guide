@@ -181,19 +181,31 @@ piHat  <- predict(ps_fit, type = "response")
 
 # BCF prints MCMC progress in a way that conflicts with knitr's encoding;
 # fork the call into a separate R session so its stdout/stderr don't poison
-# the parent locale.
-tmp_rds <- tempfile(fileext = ".rds")
-saveRDS(list(Y = df$Y, D = df$D, X = X, piHat = piHat), tmp_rds)
-system(paste0("Rscript -e '",
-  "args <- readRDS(\"", tmp_rds, "\"); ",
+# the parent locale. Use SEPARATE input and output files so a failed
+# subprocess can never leave the input list sitting where we expect the
+# result, and check the exit status and object names before trusting it.
+tmp_in  <- tempfile(fileext = ".rds")
+tmp_out <- tempfile(fileext = ".rds")
+tmp_err <- tempfile(fileext = ".log")
+saveRDS(list(Y = df$Y, D = df$D, X = X, piHat = piHat), tmp_in)
+status <- system(paste0("Rscript -e '",
+  "args <- readRDS(\"", tmp_in, "\"); ",
   "suppressMessages(library(bcf)); ",
   "f <- bcf(y=args$Y, z=args$D, x_control=args$X, x_moderate=args$X, ",
   "pihat=args$piHat, nburn=200, nsim=1000, n_chains=1, no_output=TRUE, ",
   "verbose=FALSE); ",
-  "saveRDS(list(tau=f$tau), \"", tmp_rds, "\")'"),
-  ignore.stdout = TRUE, ignore.stderr = TRUE)
-bcf_fit <- readRDS(tmp_rds)
-unlink(tmp_rds)
+  "saveRDS(list(tau=f$tau), \"", tmp_out, "\")'"),
+  ignore.stdout = TRUE, ignore.stderr = FALSE)
+# Surface the real cause instead of failing far downstream on a missing field.
+if (status != 0L || !file.exists(tmp_out)) {
+  stop("BCF subprocess failed (exit status ", status, "). ",
+       "Check that the 'bcf' package is installed in the worker session.")
+}
+bcf_fit <- readRDS(tmp_out)
+if (is.null(bcf_fit$tau)) {
+  stop("BCF subprocess produced no 'tau' draws; aborting.")
+}
+unlink(c(tmp_in, tmp_out, tmp_err))
 ```
 
 Now extract the posterior treatment effects:

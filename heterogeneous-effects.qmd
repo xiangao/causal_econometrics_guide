@@ -524,7 +524,14 @@ cat(sprintf("Clustered panel CF ATE: %.3f  (SE = %.3f)\n",
 ```
 
 What removes the confounding is the fixed-effect style adjustment: demean
-$Y$, $W$, and $V_1$ by firm before fitting, which sweeps out `unit_fe`:
+$Y$, $W$, and $V_1$ by firm before fitting, which sweeps out `unit_fe`.
+A caveat on interpretation: with a demeaned binary treatment $W_{dm}$,
+the GRF target is *not* generally $\text{mean}(\tau_{panel})$. It is a
+within-unit, partialled-out contrast whose implicit weighting depends
+on the distribution of demeaned treatment values. Read the number
+below as a within-firm residualized treatment effect, not as a drop-in
+fixed-effect estimate of the same CATE/ATE target as the cross-sectional
+forest:
 
 ```{r}
 #| label: cf-demean
@@ -547,8 +554,11 @@ cat(sprintf("Within-transform CF ATE: %.3f  (SE = %.3f)\n",
             ate_fe["estimate"], ate_fe["std.err"]))
 ```
 
-The clustered, within-transformed causal forest is the closest analogue to a
-fixed-effect regression with heterogeneous effects.
+The clustered, within-transformed causal forest is a heuristic analogue to a
+fixed-effect regression with heterogeneous effects, but it does not target
+the same estimand as a textbook within estimator: properly identified
+heterogeneous panel effects need stronger assumptions or a dedicated panel/DML
+construction with an orthogonal score.
 See the [companion blog chapter on causal forests in panel data](https://xiangao.github.io/blog_book/causal-forest-panel.html)
 for an extended simulation study comparing the panel CF to fixed-effect
 regression and random-effect regression under linear and nonlinear DGPs.

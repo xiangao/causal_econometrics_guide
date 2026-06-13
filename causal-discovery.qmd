@@ -212,7 +212,7 @@ The **F1 score** is the harmonic mean of precision and recall, ranging from 0 (w
 - **Skeleton F1** measures whether the algorithm found the right edges regardless of direction. An edge is a true positive if it exists in both the estimated skeleton and the true one.
 - **CPDAG F1** is stricter: a directed edge $X \to Y$ is only a true positive if the true DAG also has $X \to Y$; an undirected edge $X - Y$ counts as correct if the true DAG has *either* direction.
 
-A high skeleton F1 with lower CPDAG F1 means the algorithm found the right adjacencies but oriented some of them incorrectly (under this scoring, leaving an edge undirected is never penalized — only wrong directions are).
+A high skeleton F1 with lower CPDAG F1 means the algorithm found the right adjacencies but oriented some of them incorrectly. **Caveat:** this is an *orientation-error-only* score -- leaving a truly directed edge undirected is never penalized, only actively wrong directions are. It is therefore not a standard CPDAG accuracy metric (which would also penalize unresolved/uncompelled orientations), and it can flatter an algorithm that simply declines to orient edges. Read it as "of the orientations made, how many are right," not "how much of the true CPDAG was recovered."
 :::
 
 ```{r}
@@ -491,6 +491,14 @@ $n_{\text{eff}}$ rows whose empirical covariance equals the design-weighted
 $\Sigma_w$ exactly (a Cholesky recolour) — a device to feed the *same* second
 moments into a score that expects raw data, adding no information beyond
 $\Sigma_w$.
+
+This is a **moment-based approximation to the PISA design, not
+design-exact causal discovery.** The weighted covariance plus Kish's
+$n_{\text{eff}}$ captures the final weights but not the full
+stratification and clustering of the design, and it ignores
+plausible-value (imputation) uncertainty in the achievement scores.
+Treat the recovered graph as a weighted-moment exploration, and do not
+read the effective-$n$ CI tests as exact design-based inference.
 
 ```{r}
 # Synthetic matrix with covariance == Sigp exactly, neff rows

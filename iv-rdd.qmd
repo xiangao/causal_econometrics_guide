@@ -112,7 +112,16 @@ $$
 \end{aligned}
 $$
 
-Why do covariates help? Because we hope even if we don't have exogeneity or exclusion assumption held, we would have those assumptions held within each level of $X$.
+Why do covariates help? It is important to separate two assumptions
+here. Conditioning on covariates $X$ can make the *as-if-random*
+(conditional independence) assumption more credible: the instrument
+may be unconfounded only within levels of $X$. But the *exclusion
+restriction* -- that the instrument has no direct effect on the
+outcome -- is a substantive structural assumption that covariates do
+not generally repair. Adding $X$ removes a direct $Z \to Y$ path only
+if that path runs entirely through $X$, or if exclusion is conditional
+by design. So covariates help with conditional independence, not with
+exclusion per se.
 
 ### Example
 
@@ -384,7 +393,9 @@ In words, the treatment effect is the difference in the outcome from the right s
 
 ```{r rdd2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 GPA <- runif(1000, 0, 4)
-future_success <- 10 + 1.5 * GPA + 2 * (GPA <= 3) + rnorm(1000)
+# Treatment is W = 1(GPA > 3), so the +2 jump must sit on the right
+# (above-cutoff) side to match the right-minus-left estimand above.
+future_success <- 10 + 1.5 * GPA + 2 * (GPA > 3) + rnorm(1000)
 rdplot(x=GPA, y=future_success, c=3)
 ```
 
@@ -397,7 +408,7 @@ summary(rdd_gpa)
 ### Nonparametric Estimation
 
 ```{r rdd4, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
-rdd_house <- rdrobust(x=rdrobust_RDsenate$margin, y=rdrobust_RDsenate$vote, c=0, all=TRUE)
+rdd_house <- rdrobust(x=rdrobust_RDsenate$margin, y=rdrobust_RDsenate$vote, c=0)
 summary(rdd_house)
 ```
 
@@ -423,11 +434,17 @@ vet <- causaldata::mortgages
 vet <- vet %>% mutate(above = qob_minus_kw > 0)
 # Impose a bandwidth of 12 quarters on either side
 vet <- vet %>%  filter(abs(qob_minus_kw) < 12)
+# Note: the running variable qob_minus_kw is exogenous, so it goes in the
+# control block (not the endogenous block). Listing it in both the
+# endogenous and instrument sets makes newer fixest error ("endogenous
+# variable fully explained"). The endogenous regressors are veteran status
+# and its interaction with the running variable, instrumented by being above
+# the cutoff and that interaction.
 m <- feols(home_ownership ~
-    nonwhite  | # Control for race
+    nonwhite + qob_minus_kw | # exogenous controls incl. the running variable
     bpl + qob | # fixed effect controls
-    qob_minus_kw*vet_wwko ~ # Instrument our standard RDD
-    qob_minus_kw*above, # with being above the cutoff
+    vet_wwko + qob_minus_kw:vet_wwko ~ # endogenous: treatment and its RDD slope interaction
+    above + qob_minus_kw:above, # instruments: above-cutoff and its interaction
     se = 'hetero', # heteroskedasticity-robust SEs
     data = vet)
 summary(m)

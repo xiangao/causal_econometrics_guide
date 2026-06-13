@@ -597,15 +597,15 @@ CDE_G(m) &amp;=&amp; \sum_x [ E[Y \mid W=1, M=m, X=x] - \\
 \]</span></p>
 </section><section id="ipw" class="level3" data-number="18.2.5"><h3 data-number="18.2.5" class="anchored" data-anchor-id="ipw">
 <span class="header-section-number">18.2.5</span> IPW</h3>
-<p>IPW is to model the treatment assignment equation and the mediator assignment equation:</p>
+<p>IPW is to model the treatment assignment equation and the mediator assignment equation. The joint denominator factorizes <em>sequentially</em> – treatment given covariates, then mediator given treatment and covariates – which is the structure the estimator below relies on:</p>
 <p><span class="math display">\[ \small
-E[Y(w,m)] = E[{\frac{I(W=w, M=m)}{P(W=w, M=m | X)}} Y]
+E[Y(w,m)] = E\!\left[{\frac{I(W=w)\,I(M=m)}{g_W(w|X)\,g_M(m|w,X)}}\, Y\right]
 \]</span></p>
 <p>Therefore,</p>
 <p><span class="math display">\[ \small
 CDE_{ipw}(m) = E\left[\frac{I(W=1,M=m)}{g_M(m|1,X)\,g_W(1|X)}\, Y - \frac{I(W=0,M=m)}{g_M(m|0,X)\,g_W(0|X)}\, Y\right]
 \]</span></p>
-<p>where <span class="math inline">\(g_M\)</span> is the probability of mediator, <span class="math inline">\(g_W\)</span> is the probability of treatment.</p>
+<p>where <span class="math inline">\(g_M\)</span> is the probability of the mediator and <span class="math inline">\(g_W\)</span> the probability of treatment. <strong>This indicator-based form is for a discrete (here binary) mediator.</strong> For a continuous mediator the indicator <span class="math inline">\(I(M=m)\)</span> and the probability <span class="math inline">\(g_M\)</span> must be replaced by a conditional density (or a kernel/stochastic-intervention formulation); the estimator above does not apply as written.</p>
 </section><section id="aipw" class="level3" data-number="18.2.6"><h3 data-number="18.2.6" class="anchored" data-anchor-id="aipw">
 <span class="header-section-number">18.2.6</span> AIPW</h3>
 <p><span class="math display">\[ CDE_{AIPW} = CDE_G(m) + B(\bar Q, g_M, g_W) \]</span> where <span class="math inline">\(\bar Q\)</span> is the mean outcome function.</p>
@@ -695,11 +695,20 @@ ATE &amp;=&amp; NIE + NDE \\
 \end{eqnarray*}
 \]</span></p>
 <p>The advantage of NDE and NIE comparing to CDE is that it’s more “natural”; that is, you don’t set the level of mediator deterministically. And it can decompose the ATE into direct and indirect effects.</p>
-<p>However, there is an additional assumption for NDE and NIE identified.</p>
+<p>However, there is an additional assumption needed to identify NDE and NIE.</p>
 <section id="additional-assumption" class="level3" data-number="18.3.1"><h3 data-number="18.3.1" class="anchored" data-anchor-id="additional-assumption">
 <span class="header-section-number">18.3.1</span> Additional Assumption</h3>
 <p><span class="math display">\[ Y(w, m) \perp M(w^*) | X\]</span></p>
-<p>This is the “cross-world” condition: the outcome under <span class="math inline">\((w,m)\)</span> is independent of <span class="math inline">\(M\)</span> under <span class="math inline">\(w^*\)</span>. These two situations cannot happen in the same world; you cannot set <span class="math inline">\(W\)</span> to both <span class="math inline">\(w\)</span> and <span class="math inline">\(w^*\)</span>. There is no experiment can implement it.</p>
+<p>This is the “cross-world” condition: the outcome under <span class="math inline">\((w,m)\)</span> is independent of <span class="math inline">\(M\)</span> under <span class="math inline">\(w^*\)</span>. These two situations cannot happen in the same world; you cannot set <span class="math inline">\(W\)</span> to both <span class="math inline">\(w\)</span> and <span class="math inline">\(w^*\)</span>. No experiment can implement it.</p>
+<p>This cross-world independence is <em>additional to</em>, not a replacement for, the usual identifying assumptions. The standard mediation formula for natural effects also requires:</p>
+<ul>
+<li>treatment ignorability (no unmeasured treatment-outcome confounding) given <span class="math inline">\(X\)</span>;</li>
+<li>mediator ignorability (no unmeasured mediator-outcome confounding) given <span class="math inline">\(W\)</span> and <span class="math inline">\(X\)</span>;</li>
+<li>positivity for both the treatment and the mediator; and</li>
+<li>
+<strong>no treatment-induced confounding</strong> of the mediator-outcome relationship – there must be no variable affected by <span class="math inline">\(W\)</span> that confounds <span class="math inline">\(M\)</span> and <span class="math inline">\(Y\)</span>. (When such a confounder exists, natural effects are not identified by this formula and interventional direct/indirect effects are used instead.)</li>
+</ul>
+<p>The cross-world condition by itself is not sufficient.</p>
 </section><section id="estimation-1" class="level3" data-number="18.3.2"><h3 data-number="18.3.2" class="anchored" data-anchor-id="estimation-1">
 <span class="header-section-number">18.3.2</span> Estimation</h3>
 <div class="cell">
@@ -1451,10 +1460,10 @@ Vansteelandt, Stijn, and Rhian M. Daniel. 2017. <span>“Interventional Effects 
 <span id="cb19-108"><a href="#cb19-108" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-109"><a href="#cb19-109" aria-hidden="true" tabindex="-1"></a><span class="fu">### IPW</span></span>
 <span id="cb19-110"><a href="#cb19-110" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-111"><a href="#cb19-111" aria-hidden="true" tabindex="-1"></a>IPW is to model the treatment assignment equation and the mediator assignment equation:</span>
+<span id="cb19-111"><a href="#cb19-111" aria-hidden="true" tabindex="-1"></a>IPW is to model the treatment assignment equation and the mediator assignment equation. The joint denominator factorizes *sequentially* -- treatment given covariates, then mediator given treatment and covariates -- which is the structure the estimator below relies on:</span>
 <span id="cb19-112"><a href="#cb19-112" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-113"><a href="#cb19-113" aria-hidden="true" tabindex="-1"></a>$$ \small</span>
-<span id="cb19-114"><a href="#cb19-114" aria-hidden="true" tabindex="-1"></a>E<span class="co">[</span><span class="ot">Y(w,m)</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">{\frac{I(W=w, M=m)}{P(W=w, M=m | X)}} Y</span><span class="co">]</span></span>
+<span id="cb19-114"><a href="#cb19-114" aria-hidden="true" tabindex="-1"></a>E<span class="co">[</span><span class="ot">Y(w,m)</span><span class="co">]</span> = E<span class="sc">\!</span>\left<span class="co">[</span><span class="ot">{\frac{I(W=w)\,I(M=m)}{g_W(w|X)\,g_M(m|w,X)}}\, Y\right</span><span class="co">]</span></span>
 <span id="cb19-115"><a href="#cb19-115" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb19-116"><a href="#cb19-116" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-117"><a href="#cb19-117" aria-hidden="true" tabindex="-1"></a>Therefore,</span>
@@ -1463,7 +1472,7 @@ Vansteelandt, Stijn, and Rhian M. Daniel. 2017. <span>“Interventional Effects 
 <span id="cb19-120"><a href="#cb19-120" aria-hidden="true" tabindex="-1"></a>CDE_{ipw}(m) = E\left<span class="co">[</span><span class="ot">\frac{I(W=1,M=m)}{g_M(m|1,X)\,g_W(1|X)}\, Y - \frac{I(W=0,M=m)}{g_M(m|0,X)\,g_W(0|X)}\, Y\right</span><span class="co">]</span></span>
 <span id="cb19-121"><a href="#cb19-121" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb19-122"><a href="#cb19-122" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-123"><a href="#cb19-123" aria-hidden="true" tabindex="-1"></a>where $g_M$ is the probability of mediator, $g_W$ is the probability of treatment.</span>
+<span id="cb19-123"><a href="#cb19-123" aria-hidden="true" tabindex="-1"></a>where $g_M$ is the probability of the mediator and $g_W$ the probability of treatment. **This indicator-based form is for a discrete (here binary) mediator.** For a continuous mediator the indicator $I(M=m)$ and the probability $g_M$ must be replaced by a conditional density (or a kernel/stochastic-intervention formulation); the estimator above does not apply as written.</span>
 <span id="cb19-124"><a href="#cb19-124" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-125"><a href="#cb19-125" aria-hidden="true" tabindex="-1"></a><span class="fu">### AIPW</span></span>
 <span id="cb19-126"><a href="#cb19-126" aria-hidden="true" tabindex="-1"></a></span>
@@ -1553,166 +1562,181 @@ Vansteelandt, Stijn, and Rhian M. Daniel. 2017. <span>“Interventional Effects 
 <span id="cb19-210"><a href="#cb19-210" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-211"><a href="#cb19-211" aria-hidden="true" tabindex="-1"></a>The advantage of NDE and NIE comparing to CDE is that it's more "natural"; that is, you don't set the level of mediator deterministically. And it can decompose the ATE into direct and indirect effects.</span>
 <span id="cb19-212"><a href="#cb19-212" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-213"><a href="#cb19-213" aria-hidden="true" tabindex="-1"></a>However, there is an additional assumption for NDE and NIE identified.</span>
+<span id="cb19-213"><a href="#cb19-213" aria-hidden="true" tabindex="-1"></a>However, there is an additional assumption needed to identify NDE and NIE.</span>
 <span id="cb19-214"><a href="#cb19-214" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-215"><a href="#cb19-215" aria-hidden="true" tabindex="-1"></a><span class="fu">### Additional Assumption</span></span>
 <span id="cb19-216"><a href="#cb19-216" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-217"><a href="#cb19-217" aria-hidden="true" tabindex="-1"></a>$$ Y(w, m) \perp M(w^*) | X$$</span>
 <span id="cb19-218"><a href="#cb19-218" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-219"><a href="#cb19-219" aria-hidden="true" tabindex="-1"></a>This is the "cross-world" condition: the outcome under $(w,m)$ is independent of $M$ under $w^*$. These two situations cannot happen in the same world; you cannot set $W$ to both $w$ and $w^*$. There is no experiment can implement it.</span>
+<span id="cb19-219"><a href="#cb19-219" aria-hidden="true" tabindex="-1"></a>This is the "cross-world" condition: the outcome under $(w,m)$ is independent of $M$ under $w^*$. These two situations cannot happen in the same world; you cannot set $W$ to both $w$ and $w^*$. No experiment can implement it.</span>
 <span id="cb19-220"><a href="#cb19-220" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-221"><a href="#cb19-221" aria-hidden="true" tabindex="-1"></a><span class="fu">### Estimation</span></span>
-<span id="cb19-222"><a href="#cb19-222" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-223"><a href="#cb19-223" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med6, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb19-224"><a href="#cb19-224" aria-hidden="true" tabindex="-1"></a><span class="co"># fit outcome regression (include interaction because we can)</span></span>
-<span id="cb19-225"><a href="#cb19-225" aria-hidden="true" tabindex="-1"></a>or_fit <span class="ot">&lt;-</span> <span class="fu">glm</span>(Y <span class="sc">~</span> A <span class="sc">+</span> M <span class="sc">+</span> W1 <span class="sc">+</span> W2 <span class="sc">+</span> A<span class="sc">*</span>M <span class="sc">+</span> M<span class="sc">*</span>W1,</span>
-<span id="cb19-226"><a href="#cb19-226" aria-hidden="true" tabindex="-1"></a><span class="at">family =</span> <span class="fu">binomial</span>(), <span class="at">data =</span> full_data)</span>
-<span id="cb19-227"><a href="#cb19-227" aria-hidden="true" tabindex="-1"></a><span class="co"># need E(Y | A = 0/1, M = 0/1, W1 = W1i, W2 = W2i)</span></span>
-<span id="cb19-228"><a href="#cb19-228" aria-hidden="true" tabindex="-1"></a>get_EY_a_m_Wi <span class="ot">&lt;-</span> <span class="cf">function</span>(full_data, or_fit, a, m){</span>
-<span id="cb19-229"><a href="#cb19-229" aria-hidden="true" tabindex="-1"></a>data_Aa_Mm_Wi <span class="ot">&lt;-</span> full_data</span>
-<span id="cb19-230"><a href="#cb19-230" aria-hidden="true" tabindex="-1"></a>data_Aa_Mm_Wi<span class="sc">$</span>A <span class="ot">&lt;-</span> a; data_Aa_Mm_Wi<span class="sc">$</span>M <span class="ot">&lt;-</span> m</span>
-<span id="cb19-231"><a href="#cb19-231" aria-hidden="true" tabindex="-1"></a><span class="fu">predict</span>(or_fit, <span class="at">newdata =</span> data_Aa_Mm_Wi, <span class="at">type =</span> <span class="st">"response"</span>)</span>
-<span id="cb19-232"><a href="#cb19-232" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb19-233"><a href="#cb19-233" aria-hidden="true" tabindex="-1"></a>EY_A0_M0_Wi <span class="ot">&lt;-</span> <span class="fu">get_EY_a_m_Wi</span>(full_data, or_fit, <span class="at">a =</span> <span class="dv">0</span>, <span class="at">m =</span> <span class="dv">0</span>)</span>
-<span id="cb19-234"><a href="#cb19-234" aria-hidden="true" tabindex="-1"></a>EY_A0_M1_Wi <span class="ot">&lt;-</span> <span class="fu">get_EY_a_m_Wi</span>(full_data, or_fit, <span class="at">a =</span> <span class="dv">0</span>, <span class="at">m =</span> <span class="dv">1</span>)</span>
-<span id="cb19-235"><a href="#cb19-235" aria-hidden="true" tabindex="-1"></a>EY_A1_M0_Wi <span class="ot">&lt;-</span> <span class="fu">get_EY_a_m_Wi</span>(full_data, or_fit, <span class="at">a =</span> <span class="dv">1</span>, <span class="at">m =</span> <span class="dv">0</span>)</span>
-<span id="cb19-236"><a href="#cb19-236" aria-hidden="true" tabindex="-1"></a>EY_A1_M1_Wi <span class="ot">&lt;-</span> <span class="fu">get_EY_a_m_Wi</span>(full_data, or_fit, <span class="at">a =</span> <span class="dv">1</span>, <span class="at">m =</span> <span class="dv">1</span>)</span>
+<span id="cb19-221"><a href="#cb19-221" aria-hidden="true" tabindex="-1"></a>This cross-world independence is *additional to*, not a replacement</span>
+<span id="cb19-222"><a href="#cb19-222" aria-hidden="true" tabindex="-1"></a>for, the usual identifying assumptions. The standard mediation formula</span>
+<span id="cb19-223"><a href="#cb19-223" aria-hidden="true" tabindex="-1"></a>for natural effects also requires:</span>
+<span id="cb19-224"><a href="#cb19-224" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-225"><a href="#cb19-225" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>treatment ignorability (no unmeasured treatment-outcome confounding) given $X$;</span>
+<span id="cb19-226"><a href="#cb19-226" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>mediator ignorability (no unmeasured mediator-outcome confounding) given $W$ and $X$;</span>
+<span id="cb19-227"><a href="#cb19-227" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>positivity for both the treatment and the mediator; and</span>
+<span id="cb19-228"><a href="#cb19-228" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**no treatment-induced confounding** of the mediator-outcome</span>
+<span id="cb19-229"><a href="#cb19-229" aria-hidden="true" tabindex="-1"></a>  relationship -- there must be no variable affected by $W$ that</span>
+<span id="cb19-230"><a href="#cb19-230" aria-hidden="true" tabindex="-1"></a>  confounds $M$ and $Y$. (When such a confounder exists, natural</span>
+<span id="cb19-231"><a href="#cb19-231" aria-hidden="true" tabindex="-1"></a>  effects are not identified by this formula and interventional</span>
+<span id="cb19-232"><a href="#cb19-232" aria-hidden="true" tabindex="-1"></a>  direct/indirect effects are used instead.)</span>
+<span id="cb19-233"><a href="#cb19-233" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-234"><a href="#cb19-234" aria-hidden="true" tabindex="-1"></a>The cross-world condition by itself is not sufficient.</span>
+<span id="cb19-235"><a href="#cb19-235" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-236"><a href="#cb19-236" aria-hidden="true" tabindex="-1"></a><span class="fu">### Estimation</span></span>
 <span id="cb19-237"><a href="#cb19-237" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-238"><a href="#cb19-238" aria-hidden="true" tabindex="-1"></a><span class="co"># include interactions -- why not?</span></span>
-<span id="cb19-239"><a href="#cb19-239" aria-hidden="true" tabindex="-1"></a>med_fit <span class="ot">&lt;-</span> <span class="fu">glm</span>(M <span class="sc">~</span> A<span class="sc">*</span>W1 <span class="sc">+</span> W1<span class="sc">*</span>W2, <span class="at">family =</span> <span class="fu">binomial</span>(), <span class="at">data =</span> full_data)</span>
-<span id="cb19-240"><a href="#cb19-240" aria-hidden="true" tabindex="-1"></a><span class="co"># estimates of P(M = m | A = a, W = W_i)</span></span>
-<span id="cb19-241"><a href="#cb19-241" aria-hidden="true" tabindex="-1"></a>get_Pm_a_Wi <span class="ot">&lt;-</span> <span class="cf">function</span>(full_data, med_fit, a, m){</span>
-<span id="cb19-242"><a href="#cb19-242" aria-hidden="true" tabindex="-1"></a>data_Aa_Wi <span class="ot">&lt;-</span> full_data; data_Aa_Wi<span class="sc">$</span>A <span class="ot">&lt;-</span> a</span>
-<span id="cb19-243"><a href="#cb19-243" aria-hidden="true" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fu">predict</span>(med_fit, <span class="at">newdata =</span> data_Aa_Wi, <span class="at">type =</span> <span class="st">"response"</span>)</span>
-<span id="cb19-244"><a href="#cb19-244" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(m <span class="sc">==</span> <span class="dv">1</span>){</span>
-<span id="cb19-245"><a href="#cb19-245" aria-hidden="true" tabindex="-1"></a>p</span>
-<span id="cb19-246"><a href="#cb19-246" aria-hidden="true" tabindex="-1"></a>}<span class="cf">else</span>{</span>
-<span id="cb19-247"><a href="#cb19-247" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span> <span class="sc">-</span> p</span>
-<span id="cb19-248"><a href="#cb19-248" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb19-249"><a href="#cb19-249" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb19-250"><a href="#cb19-250" aria-hidden="true" tabindex="-1"></a>PM0_A0_Wi <span class="ot">&lt;-</span> <span class="fu">get_Pm_a_Wi</span>(full_data, med_fit, <span class="at">a =</span> <span class="dv">0</span>, <span class="at">m =</span> <span class="dv">0</span>)</span>
-<span id="cb19-251"><a href="#cb19-251" aria-hidden="true" tabindex="-1"></a>PM1_A0_Wi <span class="ot">&lt;-</span> <span class="fu">get_Pm_a_Wi</span>(full_data, med_fit, <span class="at">a =</span> <span class="dv">0</span>, <span class="at">m =</span> <span class="dv">1</span>)</span>
-<span id="cb19-252"><a href="#cb19-252" aria-hidden="true" tabindex="-1"></a>PM0_A1_Wi <span class="ot">&lt;-</span> <span class="fu">get_Pm_a_Wi</span>(full_data, med_fit, <span class="at">a =</span> <span class="dv">1</span>, <span class="at">m =</span> <span class="dv">0</span>)</span>
-<span id="cb19-253"><a href="#cb19-253" aria-hidden="true" tabindex="-1"></a>PM1_A1_Wi <span class="ot">&lt;-</span> <span class="fu">get_Pm_a_Wi</span>(full_data, med_fit, <span class="at">a =</span> <span class="dv">1</span>, <span class="at">m =</span> <span class="dv">1</span>)</span>
-<span id="cb19-254"><a href="#cb19-254" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-255"><a href="#cb19-255" aria-hidden="true" tabindex="-1"></a><span class="co"># E(E(Y | A = 1, M, W) | A = 1, W)</span></span>
-<span id="cb19-256"><a href="#cb19-256" aria-hidden="true" tabindex="-1"></a>EY1M1_Wi <span class="ot">&lt;-</span> EY_A1_M1_Wi <span class="sc">*</span> PM1_A1_Wi <span class="sc">+</span> EY_A1_M0_Wi <span class="sc">*</span> PM0_A1_Wi</span>
-<span id="cb19-257"><a href="#cb19-257" aria-hidden="true" tabindex="-1"></a><span class="co"># E(E(Y | A = 0, M, W) | A = 1, W)</span></span>
-<span id="cb19-258"><a href="#cb19-258" aria-hidden="true" tabindex="-1"></a>EY0M1_Wi <span class="ot">&lt;-</span> EY_A0_M1_Wi <span class="sc">*</span> PM1_A1_Wi <span class="sc">+</span> EY_A0_M0_Wi <span class="sc">*</span> PM0_A1_Wi</span>
-<span id="cb19-259"><a href="#cb19-259" aria-hidden="true" tabindex="-1"></a><span class="co"># E(E(Y | A = 1, M, W) | A = 0, W)</span></span>
-<span id="cb19-260"><a href="#cb19-260" aria-hidden="true" tabindex="-1"></a>EY1M0_Wi <span class="ot">&lt;-</span> EY_A1_M1_Wi <span class="sc">*</span> PM1_A0_Wi <span class="sc">+</span> EY_A1_M0_Wi <span class="sc">*</span> PM0_A0_Wi</span>
-<span id="cb19-261"><a href="#cb19-261" aria-hidden="true" tabindex="-1"></a><span class="co"># E(E(Y | A = 0, M, W) | A = 0, W)</span></span>
-<span id="cb19-262"><a href="#cb19-262" aria-hidden="true" tabindex="-1"></a>EY0M0_Wi <span class="ot">&lt;-</span> EY_A0_M1_Wi <span class="sc">*</span> PM1_A0_Wi <span class="sc">+</span> EY_A0_M0_Wi <span class="sc">*</span> PM0_A0_Wi</span>
-<span id="cb19-263"><a href="#cb19-263" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-264"><a href="#cb19-264" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate of E[Y(1, M(1))]</span></span>
-<span id="cb19-265"><a href="#cb19-265" aria-hidden="true" tabindex="-1"></a>E_Y1M1 <span class="ot">&lt;-</span> <span class="fu">mean</span>(EY1M1_Wi)</span>
-<span id="cb19-266"><a href="#cb19-266" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate of E[Y(0, M(1))]</span></span>
-<span id="cb19-267"><a href="#cb19-267" aria-hidden="true" tabindex="-1"></a>E_Y0M1 <span class="ot">&lt;-</span> <span class="fu">mean</span>(EY0M1_Wi)</span>
-<span id="cb19-268"><a href="#cb19-268" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate of E[Y(1, M(0))]</span></span>
-<span id="cb19-269"><a href="#cb19-269" aria-hidden="true" tabindex="-1"></a>E_Y1M0 <span class="ot">&lt;-</span> <span class="fu">mean</span>(EY1M0_Wi)</span>
-<span id="cb19-270"><a href="#cb19-270" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate of E[Y(0, M(0))]</span></span>
-<span id="cb19-271"><a href="#cb19-271" aria-hidden="true" tabindex="-1"></a>E_Y0M0 <span class="ot">&lt;-</span> <span class="fu">mean</span>(EY0M0_Wi)</span>
-<span id="cb19-272"><a href="#cb19-272" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-273"><a href="#cb19-273" aria-hidden="true" tabindex="-1"></a><span class="co"># Decomposition: ATE = NIE + NDE</span></span>
-<span id="cb19-274"><a href="#cb19-274" aria-hidden="true" tabindex="-1"></a>NIE <span class="ot">&lt;-</span> E_Y1M1 <span class="sc">-</span> E_Y1M0   <span class="co"># natural indirect effect</span></span>
-<span id="cb19-275"><a href="#cb19-275" aria-hidden="true" tabindex="-1"></a>NDE <span class="ot">&lt;-</span> E_Y1M0 <span class="sc">-</span> E_Y0M0   <span class="co"># natural direct effect</span></span>
-<span id="cb19-276"><a href="#cb19-276" aria-hidden="true" tabindex="-1"></a>ATE <span class="ot">&lt;-</span> E_Y1M1 <span class="sc">-</span> E_Y0M0   <span class="co"># total effect</span></span>
-<span id="cb19-277"><a href="#cb19-277" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"NDE = %.3f</span><span class="sc">\n</span><span class="st">NIE = %.3f</span><span class="sc">\n</span><span class="st">ATE = NDE + NIE = %.3f</span><span class="sc">\n</span><span class="st">"</span>, NDE, NIE, ATE))</span>
-<span id="cb19-278"><a href="#cb19-278" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb19-279"><a href="#cb19-279" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-280"><a href="#cb19-280" aria-hidden="true" tabindex="-1"></a><span class="fu">## IIE and IDE: Interventional Direct and Indirect Effects</span></span>
-<span id="cb19-281"><a href="#cb19-281" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-282"><a href="#cb19-282" aria-hidden="true" tabindex="-1"></a>People are not happy with the cross-world assumption in general. Interventional direct and indirect effects avoid it. The device is a random draw: let $M^*_w$ denote a draw from the distribution of $M(w)$ given $X=x$, rather than the unit's own $M(w)$. The standard definitions <span class="co">[</span><span class="ot">@vansteelandt-daniel-2017; @diaz-hejazi-rudolph-vanderlaan-2021</span><span class="co">]</span> use such a draw in every term:</span>
-<span id="cb19-283"><a href="#cb19-283" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-284"><a href="#cb19-284" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb19-285"><a href="#cb19-285" aria-hidden="true" tabindex="-1"></a>\begin{eqnarray*}</span>
-<span id="cb19-286"><a href="#cb19-286" aria-hidden="true" tabindex="-1"></a>IDE &amp;=&amp; E<span class="co">[</span><span class="ot">Y(1,M^*_0)</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y(0,M^*_0)</span><span class="co">]</span> <span class="sc">\\</span></span>
-<span id="cb19-287"><a href="#cb19-287" aria-hidden="true" tabindex="-1"></a>IIE &amp;=&amp; E<span class="co">[</span><span class="ot">Y(1,M^*_1)</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y(1,M^*_0)</span><span class="co">]</span></span>
-<span id="cb19-288"><a href="#cb19-288" aria-hidden="true" tabindex="-1"></a>\end{eqnarray*}</span>
-<span id="cb19-289"><a href="#cb19-289" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb19-290"><a href="#cb19-290" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-291"><a href="#cb19-291" aria-hidden="true" tabindex="-1"></a>The direct effect holds the mediator draw fixed at its untreated distribution; the indirect effect moves only that distribution. The two add up to</span>
-<span id="cb19-292"><a href="#cb19-292" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-293"><a href="#cb19-293" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb19-294"><a href="#cb19-294" aria-hidden="true" tabindex="-1"></a>IDE + IIE = E<span class="co">[</span><span class="ot">Y(1,M^*_1)</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y(0,M^*_0)</span><span class="co">]</span>,</span>
-<span id="cb19-295"><a href="#cb19-295" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb19-238"><a href="#cb19-238" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med6, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb19-239"><a href="#cb19-239" aria-hidden="true" tabindex="-1"></a><span class="co"># fit outcome regression (include interaction because we can)</span></span>
+<span id="cb19-240"><a href="#cb19-240" aria-hidden="true" tabindex="-1"></a>or_fit <span class="ot">&lt;-</span> <span class="fu">glm</span>(Y <span class="sc">~</span> A <span class="sc">+</span> M <span class="sc">+</span> W1 <span class="sc">+</span> W2 <span class="sc">+</span> A<span class="sc">*</span>M <span class="sc">+</span> M<span class="sc">*</span>W1,</span>
+<span id="cb19-241"><a href="#cb19-241" aria-hidden="true" tabindex="-1"></a><span class="at">family =</span> <span class="fu">binomial</span>(), <span class="at">data =</span> full_data)</span>
+<span id="cb19-242"><a href="#cb19-242" aria-hidden="true" tabindex="-1"></a><span class="co"># need E(Y | A = 0/1, M = 0/1, W1 = W1i, W2 = W2i)</span></span>
+<span id="cb19-243"><a href="#cb19-243" aria-hidden="true" tabindex="-1"></a>get_EY_a_m_Wi <span class="ot">&lt;-</span> <span class="cf">function</span>(full_data, or_fit, a, m){</span>
+<span id="cb19-244"><a href="#cb19-244" aria-hidden="true" tabindex="-1"></a>data_Aa_Mm_Wi <span class="ot">&lt;-</span> full_data</span>
+<span id="cb19-245"><a href="#cb19-245" aria-hidden="true" tabindex="-1"></a>data_Aa_Mm_Wi<span class="sc">$</span>A <span class="ot">&lt;-</span> a; data_Aa_Mm_Wi<span class="sc">$</span>M <span class="ot">&lt;-</span> m</span>
+<span id="cb19-246"><a href="#cb19-246" aria-hidden="true" tabindex="-1"></a><span class="fu">predict</span>(or_fit, <span class="at">newdata =</span> data_Aa_Mm_Wi, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb19-247"><a href="#cb19-247" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb19-248"><a href="#cb19-248" aria-hidden="true" tabindex="-1"></a>EY_A0_M0_Wi <span class="ot">&lt;-</span> <span class="fu">get_EY_a_m_Wi</span>(full_data, or_fit, <span class="at">a =</span> <span class="dv">0</span>, <span class="at">m =</span> <span class="dv">0</span>)</span>
+<span id="cb19-249"><a href="#cb19-249" aria-hidden="true" tabindex="-1"></a>EY_A0_M1_Wi <span class="ot">&lt;-</span> <span class="fu">get_EY_a_m_Wi</span>(full_data, or_fit, <span class="at">a =</span> <span class="dv">0</span>, <span class="at">m =</span> <span class="dv">1</span>)</span>
+<span id="cb19-250"><a href="#cb19-250" aria-hidden="true" tabindex="-1"></a>EY_A1_M0_Wi <span class="ot">&lt;-</span> <span class="fu">get_EY_a_m_Wi</span>(full_data, or_fit, <span class="at">a =</span> <span class="dv">1</span>, <span class="at">m =</span> <span class="dv">0</span>)</span>
+<span id="cb19-251"><a href="#cb19-251" aria-hidden="true" tabindex="-1"></a>EY_A1_M1_Wi <span class="ot">&lt;-</span> <span class="fu">get_EY_a_m_Wi</span>(full_data, or_fit, <span class="at">a =</span> <span class="dv">1</span>, <span class="at">m =</span> <span class="dv">1</span>)</span>
+<span id="cb19-252"><a href="#cb19-252" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-253"><a href="#cb19-253" aria-hidden="true" tabindex="-1"></a><span class="co"># include interactions -- why not?</span></span>
+<span id="cb19-254"><a href="#cb19-254" aria-hidden="true" tabindex="-1"></a>med_fit <span class="ot">&lt;-</span> <span class="fu">glm</span>(M <span class="sc">~</span> A<span class="sc">*</span>W1 <span class="sc">+</span> W1<span class="sc">*</span>W2, <span class="at">family =</span> <span class="fu">binomial</span>(), <span class="at">data =</span> full_data)</span>
+<span id="cb19-255"><a href="#cb19-255" aria-hidden="true" tabindex="-1"></a><span class="co"># estimates of P(M = m | A = a, W = W_i)</span></span>
+<span id="cb19-256"><a href="#cb19-256" aria-hidden="true" tabindex="-1"></a>get_Pm_a_Wi <span class="ot">&lt;-</span> <span class="cf">function</span>(full_data, med_fit, a, m){</span>
+<span id="cb19-257"><a href="#cb19-257" aria-hidden="true" tabindex="-1"></a>data_Aa_Wi <span class="ot">&lt;-</span> full_data; data_Aa_Wi<span class="sc">$</span>A <span class="ot">&lt;-</span> a</span>
+<span id="cb19-258"><a href="#cb19-258" aria-hidden="true" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fu">predict</span>(med_fit, <span class="at">newdata =</span> data_Aa_Wi, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb19-259"><a href="#cb19-259" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span>(m <span class="sc">==</span> <span class="dv">1</span>){</span>
+<span id="cb19-260"><a href="#cb19-260" aria-hidden="true" tabindex="-1"></a>p</span>
+<span id="cb19-261"><a href="#cb19-261" aria-hidden="true" tabindex="-1"></a>}<span class="cf">else</span>{</span>
+<span id="cb19-262"><a href="#cb19-262" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span> <span class="sc">-</span> p</span>
+<span id="cb19-263"><a href="#cb19-263" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb19-264"><a href="#cb19-264" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb19-265"><a href="#cb19-265" aria-hidden="true" tabindex="-1"></a>PM0_A0_Wi <span class="ot">&lt;-</span> <span class="fu">get_Pm_a_Wi</span>(full_data, med_fit, <span class="at">a =</span> <span class="dv">0</span>, <span class="at">m =</span> <span class="dv">0</span>)</span>
+<span id="cb19-266"><a href="#cb19-266" aria-hidden="true" tabindex="-1"></a>PM1_A0_Wi <span class="ot">&lt;-</span> <span class="fu">get_Pm_a_Wi</span>(full_data, med_fit, <span class="at">a =</span> <span class="dv">0</span>, <span class="at">m =</span> <span class="dv">1</span>)</span>
+<span id="cb19-267"><a href="#cb19-267" aria-hidden="true" tabindex="-1"></a>PM0_A1_Wi <span class="ot">&lt;-</span> <span class="fu">get_Pm_a_Wi</span>(full_data, med_fit, <span class="at">a =</span> <span class="dv">1</span>, <span class="at">m =</span> <span class="dv">0</span>)</span>
+<span id="cb19-268"><a href="#cb19-268" aria-hidden="true" tabindex="-1"></a>PM1_A1_Wi <span class="ot">&lt;-</span> <span class="fu">get_Pm_a_Wi</span>(full_data, med_fit, <span class="at">a =</span> <span class="dv">1</span>, <span class="at">m =</span> <span class="dv">1</span>)</span>
+<span id="cb19-269"><a href="#cb19-269" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-270"><a href="#cb19-270" aria-hidden="true" tabindex="-1"></a><span class="co"># E(E(Y | A = 1, M, W) | A = 1, W)</span></span>
+<span id="cb19-271"><a href="#cb19-271" aria-hidden="true" tabindex="-1"></a>EY1M1_Wi <span class="ot">&lt;-</span> EY_A1_M1_Wi <span class="sc">*</span> PM1_A1_Wi <span class="sc">+</span> EY_A1_M0_Wi <span class="sc">*</span> PM0_A1_Wi</span>
+<span id="cb19-272"><a href="#cb19-272" aria-hidden="true" tabindex="-1"></a><span class="co"># E(E(Y | A = 0, M, W) | A = 1, W)</span></span>
+<span id="cb19-273"><a href="#cb19-273" aria-hidden="true" tabindex="-1"></a>EY0M1_Wi <span class="ot">&lt;-</span> EY_A0_M1_Wi <span class="sc">*</span> PM1_A1_Wi <span class="sc">+</span> EY_A0_M0_Wi <span class="sc">*</span> PM0_A1_Wi</span>
+<span id="cb19-274"><a href="#cb19-274" aria-hidden="true" tabindex="-1"></a><span class="co"># E(E(Y | A = 1, M, W) | A = 0, W)</span></span>
+<span id="cb19-275"><a href="#cb19-275" aria-hidden="true" tabindex="-1"></a>EY1M0_Wi <span class="ot">&lt;-</span> EY_A1_M1_Wi <span class="sc">*</span> PM1_A0_Wi <span class="sc">+</span> EY_A1_M0_Wi <span class="sc">*</span> PM0_A0_Wi</span>
+<span id="cb19-276"><a href="#cb19-276" aria-hidden="true" tabindex="-1"></a><span class="co"># E(E(Y | A = 0, M, W) | A = 0, W)</span></span>
+<span id="cb19-277"><a href="#cb19-277" aria-hidden="true" tabindex="-1"></a>EY0M0_Wi <span class="ot">&lt;-</span> EY_A0_M1_Wi <span class="sc">*</span> PM1_A0_Wi <span class="sc">+</span> EY_A0_M0_Wi <span class="sc">*</span> PM0_A0_Wi</span>
+<span id="cb19-278"><a href="#cb19-278" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-279"><a href="#cb19-279" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate of E[Y(1, M(1))]</span></span>
+<span id="cb19-280"><a href="#cb19-280" aria-hidden="true" tabindex="-1"></a>E_Y1M1 <span class="ot">&lt;-</span> <span class="fu">mean</span>(EY1M1_Wi)</span>
+<span id="cb19-281"><a href="#cb19-281" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate of E[Y(0, M(1))]</span></span>
+<span id="cb19-282"><a href="#cb19-282" aria-hidden="true" tabindex="-1"></a>E_Y0M1 <span class="ot">&lt;-</span> <span class="fu">mean</span>(EY0M1_Wi)</span>
+<span id="cb19-283"><a href="#cb19-283" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate of E[Y(1, M(0))]</span></span>
+<span id="cb19-284"><a href="#cb19-284" aria-hidden="true" tabindex="-1"></a>E_Y1M0 <span class="ot">&lt;-</span> <span class="fu">mean</span>(EY1M0_Wi)</span>
+<span id="cb19-285"><a href="#cb19-285" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate of E[Y(0, M(0))]</span></span>
+<span id="cb19-286"><a href="#cb19-286" aria-hidden="true" tabindex="-1"></a>E_Y0M0 <span class="ot">&lt;-</span> <span class="fu">mean</span>(EY0M0_Wi)</span>
+<span id="cb19-287"><a href="#cb19-287" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-288"><a href="#cb19-288" aria-hidden="true" tabindex="-1"></a><span class="co"># Decomposition: ATE = NIE + NDE</span></span>
+<span id="cb19-289"><a href="#cb19-289" aria-hidden="true" tabindex="-1"></a>NIE <span class="ot">&lt;-</span> E_Y1M1 <span class="sc">-</span> E_Y1M0   <span class="co"># natural indirect effect</span></span>
+<span id="cb19-290"><a href="#cb19-290" aria-hidden="true" tabindex="-1"></a>NDE <span class="ot">&lt;-</span> E_Y1M0 <span class="sc">-</span> E_Y0M0   <span class="co"># natural direct effect</span></span>
+<span id="cb19-291"><a href="#cb19-291" aria-hidden="true" tabindex="-1"></a>ATE <span class="ot">&lt;-</span> E_Y1M1 <span class="sc">-</span> E_Y0M0   <span class="co"># total effect</span></span>
+<span id="cb19-292"><a href="#cb19-292" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"NDE = %.3f</span><span class="sc">\n</span><span class="st">NIE = %.3f</span><span class="sc">\n</span><span class="st">ATE = NDE + NIE = %.3f</span><span class="sc">\n</span><span class="st">"</span>, NDE, NIE, ATE))</span>
+<span id="cb19-293"><a href="#cb19-293" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb19-294"><a href="#cb19-294" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-295"><a href="#cb19-295" aria-hidden="true" tabindex="-1"></a><span class="fu">## IIE and IDE: Interventional Direct and Indirect Effects</span></span>
 <span id="cb19-296"><a href="#cb19-296" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-297"><a href="#cb19-297" aria-hidden="true" tabindex="-1"></a>the *overall interventional effect*. It need not equal the $ATE$: replacing the unit's own $M(w)$ by a random draw breaks the within-unit dependence between $M(w)$ and $Y(w,\cdot)$, and that dependence matters exactly when a treatment-induced confounder $Z$ sits between the treatment and the mediator --- the situation in the example below. The payoff is identification without the cross-world assumption, even in the presence of such a $Z$. These interventional effects are the estimands the <span class="in">`medoutcon`</span> package implements.</span>
+<span id="cb19-297"><a href="#cb19-297" aria-hidden="true" tabindex="-1"></a>People are not happy with the cross-world assumption in general. Interventional direct and indirect effects avoid it. The device is a random draw: let $M^*_w$ denote a draw from the distribution of $M(w)$ given $X=x$, rather than the unit's own $M(w)$. The standard definitions <span class="co">[</span><span class="ot">@vansteelandt-daniel-2017; @diaz-hejazi-rudolph-vanderlaan-2021</span><span class="co">]</span> use such a draw in every term:</span>
 <span id="cb19-298"><a href="#cb19-298" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-299"><a href="#cb19-299" aria-hidden="true" tabindex="-1"></a><span class="fu">### Example</span></span>
-<span id="cb19-300"><a href="#cb19-300" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-301"><a href="#cb19-301" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med7, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb19-302"><a href="#cb19-302" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
-<span id="cb19-303"><a href="#cb19-303" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb19-304"><a href="#cb19-304" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(medoutcon)</span>
-<span id="cb19-305"><a href="#cb19-305" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1584</span>)</span>
-<span id="cb19-306"><a href="#cb19-306" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-307"><a href="#cb19-307" aria-hidden="true" tabindex="-1"></a><span class="co"># produces a simple data set based on ca causal model with mediation</span></span>
-<span id="cb19-308"><a href="#cb19-308" aria-hidden="true" tabindex="-1"></a>make_example_data <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">n_obs =</span> <span class="dv">1000</span>) {</span>
-<span id="cb19-309"><a href="#cb19-309" aria-hidden="true" tabindex="-1"></a>  <span class="do">## baseline covariates</span></span>
-<span id="cb19-310"><a href="#cb19-310" aria-hidden="true" tabindex="-1"></a>  w_1 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fl">0.6</span>)</span>
-<span id="cb19-311"><a href="#cb19-311" aria-hidden="true" tabindex="-1"></a>  w_2 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fl">0.3</span>)</span>
-<span id="cb19-312"><a href="#cb19-312" aria-hidden="true" tabindex="-1"></a>  w_3 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fu">pmin</span>(<span class="fl">0.2</span> <span class="sc">+</span> (w_1 <span class="sc">+</span> w_2) <span class="sc">/</span> <span class="dv">3</span>, <span class="dv">1</span>))</span>
-<span id="cb19-313"><a href="#cb19-313" aria-hidden="true" tabindex="-1"></a>  w <span class="ot">&lt;-</span> <span class="fu">cbind</span>(w_1, w_2, w_3)</span>
-<span id="cb19-314"><a href="#cb19-314" aria-hidden="true" tabindex="-1"></a>  w_names <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="st">"W"</span>, <span class="fu">seq_len</span>(<span class="fu">ncol</span>(w)), <span class="at">sep =</span> <span class="st">"_"</span>)</span>
+<span id="cb19-299"><a href="#cb19-299" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb19-300"><a href="#cb19-300" aria-hidden="true" tabindex="-1"></a>\begin{eqnarray*}</span>
+<span id="cb19-301"><a href="#cb19-301" aria-hidden="true" tabindex="-1"></a>IDE &amp;=&amp; E<span class="co">[</span><span class="ot">Y(1,M^*_0)</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y(0,M^*_0)</span><span class="co">]</span> <span class="sc">\\</span></span>
+<span id="cb19-302"><a href="#cb19-302" aria-hidden="true" tabindex="-1"></a>IIE &amp;=&amp; E<span class="co">[</span><span class="ot">Y(1,M^*_1)</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y(1,M^*_0)</span><span class="co">]</span></span>
+<span id="cb19-303"><a href="#cb19-303" aria-hidden="true" tabindex="-1"></a>\end{eqnarray*}</span>
+<span id="cb19-304"><a href="#cb19-304" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb19-305"><a href="#cb19-305" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-306"><a href="#cb19-306" aria-hidden="true" tabindex="-1"></a>The direct effect holds the mediator draw fixed at its untreated distribution; the indirect effect moves only that distribution. The two add up to</span>
+<span id="cb19-307"><a href="#cb19-307" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-308"><a href="#cb19-308" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb19-309"><a href="#cb19-309" aria-hidden="true" tabindex="-1"></a>IDE + IIE = E<span class="co">[</span><span class="ot">Y(1,M^*_1)</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y(0,M^*_0)</span><span class="co">]</span>,</span>
+<span id="cb19-310"><a href="#cb19-310" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb19-311"><a href="#cb19-311" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-312"><a href="#cb19-312" aria-hidden="true" tabindex="-1"></a>the *overall interventional effect*. It need not equal the $ATE$: replacing the unit's own $M(w)$ by a random draw breaks the within-unit dependence between $M(w)$ and $Y(w,\cdot)$, and that dependence matters exactly when a treatment-induced confounder $Z$ sits between the treatment and the mediator --- the situation in the example below. The payoff is identification without the cross-world assumption, even in the presence of such a $Z$. These interventional effects are the estimands the <span class="in">`medoutcon`</span> package implements.</span>
+<span id="cb19-313"><a href="#cb19-313" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-314"><a href="#cb19-314" aria-hidden="true" tabindex="-1"></a><span class="fu">### Example</span></span>
 <span id="cb19-315"><a href="#cb19-315" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-316"><a href="#cb19-316" aria-hidden="true" tabindex="-1"></a>  <span class="do">## exposure</span></span>
-<span id="cb19-317"><a href="#cb19-317" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fu">rowSums</span>(w) <span class="sc">-</span> <span class="dv">2</span>)))</span>
-<span id="cb19-318"><a href="#cb19-318" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-319"><a href="#cb19-319" aria-hidden="true" tabindex="-1"></a>  <span class="do">## mediator-outcome confounder affected by treatment</span></span>
-<span id="cb19-320"><a href="#cb19-320" aria-hidden="true" tabindex="-1"></a>  z <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fu">rowMeans</span>(<span class="sc">-</span><span class="fu">log</span>(<span class="dv">2</span>) <span class="sc">+</span> w <span class="sc">-</span> a) <span class="sc">+</span> <span class="fl">0.2</span>))</span>
+<span id="cb19-316"><a href="#cb19-316" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med7, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb19-317"><a href="#cb19-317" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
+<span id="cb19-318"><a href="#cb19-318" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb19-319"><a href="#cb19-319" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(medoutcon)</span>
+<span id="cb19-320"><a href="#cb19-320" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1584</span>)</span>
 <span id="cb19-321"><a href="#cb19-321" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-322"><a href="#cb19-322" aria-hidden="true" tabindex="-1"></a>  <span class="do">## mediator -- could be multivariate</span></span>
-<span id="cb19-323"><a href="#cb19-323" aria-hidden="true" tabindex="-1"></a>  m <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fu">rowSums</span>(<span class="fu">log</span>(<span class="dv">3</span>) <span class="sc">*</span> w[, <span class="sc">-</span><span class="dv">3</span>] <span class="sc">+</span> a <span class="sc">-</span> z)))</span>
-<span id="cb19-324"><a href="#cb19-324" aria-hidden="true" tabindex="-1"></a>  m_names <span class="ot">&lt;-</span> <span class="st">"M"</span></span>
-<span id="cb19-325"><a href="#cb19-325" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-326"><a href="#cb19-326" aria-hidden="true" tabindex="-1"></a>  <span class="do">## outcome</span></span>
-<span id="cb19-327"><a href="#cb19-327" aria-hidden="true" tabindex="-1"></a>  <span class="do">## (the reciprocal inside plogis is an idiosyncrasy of the medoutcon</span></span>
-<span id="cb19-328"><a href="#cb19-328" aria-hidden="true" tabindex="-1"></a>  <span class="do">##  vignette DGP, not a standard logistic model; a zero denominator</span></span>
-<span id="cb19-329"><a href="#cb19-329" aria-hidden="true" tabindex="-1"></a>  <span class="do">##  gives plogis(Inf) = 1, which R handles without error)</span></span>
-<span id="cb19-330"><a href="#cb19-330" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="dv">1</span> <span class="sc">/</span> (<span class="fu">rowSums</span>(w) <span class="sc">-</span> z <span class="sc">+</span> a <span class="sc">+</span> m)))</span>
-<span id="cb19-331"><a href="#cb19-331" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-332"><a href="#cb19-332" aria-hidden="true" tabindex="-1"></a>  <span class="do">## construct output</span></span>
-<span id="cb19-333"><a href="#cb19-333" aria-hidden="true" tabindex="-1"></a>  dat <span class="ot">&lt;-</span> <span class="fu">as.data.table</span>(<span class="fu">cbind</span>(<span class="at">w =</span> w, <span class="at">a =</span> a, <span class="at">z =</span> z, <span class="at">m =</span> m, <span class="at">y =</span> y))</span>
-<span id="cb19-334"><a href="#cb19-334" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setnames</span>(dat, <span class="fu">c</span>(w_names, <span class="st">"A"</span>, <span class="st">"Z"</span>, m_names, <span class="st">"Y"</span>))</span>
-<span id="cb19-335"><a href="#cb19-335" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(dat)</span>
-<span id="cb19-336"><a href="#cb19-336" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb19-337"><a href="#cb19-337" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb19-338"><a href="#cb19-338" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-339"><a href="#cb19-339" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med8, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb19-340"><a href="#cb19-340" aria-hidden="true" tabindex="-1"></a><span class="co"># set seed and simulate example data</span></span>
-<span id="cb19-341"><a href="#cb19-341" aria-hidden="true" tabindex="-1"></a>example_data <span class="ot">&lt;-</span> <span class="fu">make_example_data</span>()</span>
-<span id="cb19-342"><a href="#cb19-342" aria-hidden="true" tabindex="-1"></a>w_names <span class="ot">&lt;-</span> <span class="fu">str_subset</span>(<span class="fu">colnames</span>(example_data), <span class="st">"W"</span>)</span>
-<span id="cb19-343"><a href="#cb19-343" aria-hidden="true" tabindex="-1"></a>m_names <span class="ot">&lt;-</span> <span class="fu">str_subset</span>(<span class="fu">colnames</span>(example_data), <span class="st">"M"</span>)</span>
-<span id="cb19-344"><a href="#cb19-344" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-345"><a href="#cb19-345" aria-hidden="true" tabindex="-1"></a><span class="co"># quick look at the data</span></span>
-<span id="cb19-346"><a href="#cb19-346" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(example_data)</span>
-<span id="cb19-347"><a href="#cb19-347" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb19-348"><a href="#cb19-348" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-349"><a href="#cb19-349" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med9, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb19-350"><a href="#cb19-350" aria-hidden="true" tabindex="-1"></a><span class="co"># compute one-step estimate of the interventional direct effect</span></span>
-<span id="cb19-351"><a href="#cb19-351" aria-hidden="true" tabindex="-1"></a>os_de <span class="ot">&lt;-</span> <span class="fu">medoutcon</span>(<span class="at">W =</span> example_data[, ..w_names],</span>
-<span id="cb19-352"><a href="#cb19-352" aria-hidden="true" tabindex="-1"></a>                   <span class="at">A =</span> example_data<span class="sc">$</span>A,</span>
-<span id="cb19-353"><a href="#cb19-353" aria-hidden="true" tabindex="-1"></a>                   <span class="at">Z =</span> example_data<span class="sc">$</span>Z,</span>
-<span id="cb19-354"><a href="#cb19-354" aria-hidden="true" tabindex="-1"></a>                   <span class="at">M =</span> example_data[, ..m_names],</span>
-<span id="cb19-355"><a href="#cb19-355" aria-hidden="true" tabindex="-1"></a>                   <span class="at">Y =</span> example_data<span class="sc">$</span>Y,</span>
-<span id="cb19-356"><a href="#cb19-356" aria-hidden="true" tabindex="-1"></a>                   <span class="at">effect =</span> <span class="st">"direct"</span>,</span>
-<span id="cb19-357"><a href="#cb19-357" aria-hidden="true" tabindex="-1"></a>                   <span class="at">estimator =</span> <span class="st">"onestep"</span>)</span>
-<span id="cb19-358"><a href="#cb19-358" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(os_de)</span>
-<span id="cb19-359"><a href="#cb19-359" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb19-360"><a href="#cb19-360" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-361"><a href="#cb19-361" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med10, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb19-362"><a href="#cb19-362" aria-hidden="true" tabindex="-1"></a><span class="co"># compute targeted minimum loss estimate of the interventional direct effect</span></span>
-<span id="cb19-363"><a href="#cb19-363" aria-hidden="true" tabindex="-1"></a>tmle_de <span class="ot">&lt;-</span> <span class="fu">medoutcon</span>(<span class="at">W =</span> example_data[, ..w_names],</span>
-<span id="cb19-364"><a href="#cb19-364" aria-hidden="true" tabindex="-1"></a>                     <span class="at">A =</span> example_data<span class="sc">$</span>A,</span>
-<span id="cb19-365"><a href="#cb19-365" aria-hidden="true" tabindex="-1"></a>                     <span class="at">Z =</span> example_data<span class="sc">$</span>Z,</span>
-<span id="cb19-366"><a href="#cb19-366" aria-hidden="true" tabindex="-1"></a>                     <span class="at">M =</span> example_data[, ..m_names],</span>
-<span id="cb19-367"><a href="#cb19-367" aria-hidden="true" tabindex="-1"></a>                     <span class="at">Y =</span> example_data<span class="sc">$</span>Y,</span>
-<span id="cb19-368"><a href="#cb19-368" aria-hidden="true" tabindex="-1"></a>                     <span class="at">effect =</span> <span class="st">"direct"</span>,</span>
-<span id="cb19-369"><a href="#cb19-369" aria-hidden="true" tabindex="-1"></a>                     <span class="at">estimator =</span> <span class="st">"tmle"</span>)</span>
-<span id="cb19-370"><a href="#cb19-370" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-371"><a href="#cb19-371" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(tmle_de)</span>
-<span id="cb19-372"><a href="#cb19-372" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb19-322"><a href="#cb19-322" aria-hidden="true" tabindex="-1"></a><span class="co"># produces a simple data set based on ca causal model with mediation</span></span>
+<span id="cb19-323"><a href="#cb19-323" aria-hidden="true" tabindex="-1"></a>make_example_data <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">n_obs =</span> <span class="dv">1000</span>) {</span>
+<span id="cb19-324"><a href="#cb19-324" aria-hidden="true" tabindex="-1"></a>  <span class="do">## baseline covariates</span></span>
+<span id="cb19-325"><a href="#cb19-325" aria-hidden="true" tabindex="-1"></a>  w_1 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fl">0.6</span>)</span>
+<span id="cb19-326"><a href="#cb19-326" aria-hidden="true" tabindex="-1"></a>  w_2 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fl">0.3</span>)</span>
+<span id="cb19-327"><a href="#cb19-327" aria-hidden="true" tabindex="-1"></a>  w_3 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fu">pmin</span>(<span class="fl">0.2</span> <span class="sc">+</span> (w_1 <span class="sc">+</span> w_2) <span class="sc">/</span> <span class="dv">3</span>, <span class="dv">1</span>))</span>
+<span id="cb19-328"><a href="#cb19-328" aria-hidden="true" tabindex="-1"></a>  w <span class="ot">&lt;-</span> <span class="fu">cbind</span>(w_1, w_2, w_3)</span>
+<span id="cb19-329"><a href="#cb19-329" aria-hidden="true" tabindex="-1"></a>  w_names <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="st">"W"</span>, <span class="fu">seq_len</span>(<span class="fu">ncol</span>(w)), <span class="at">sep =</span> <span class="st">"_"</span>)</span>
+<span id="cb19-330"><a href="#cb19-330" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-331"><a href="#cb19-331" aria-hidden="true" tabindex="-1"></a>  <span class="do">## exposure</span></span>
+<span id="cb19-332"><a href="#cb19-332" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fu">rowSums</span>(w) <span class="sc">-</span> <span class="dv">2</span>)))</span>
+<span id="cb19-333"><a href="#cb19-333" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-334"><a href="#cb19-334" aria-hidden="true" tabindex="-1"></a>  <span class="do">## mediator-outcome confounder affected by treatment</span></span>
+<span id="cb19-335"><a href="#cb19-335" aria-hidden="true" tabindex="-1"></a>  z <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fu">rowMeans</span>(<span class="sc">-</span><span class="fu">log</span>(<span class="dv">2</span>) <span class="sc">+</span> w <span class="sc">-</span> a) <span class="sc">+</span> <span class="fl">0.2</span>))</span>
+<span id="cb19-336"><a href="#cb19-336" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-337"><a href="#cb19-337" aria-hidden="true" tabindex="-1"></a>  <span class="do">## mediator -- could be multivariate</span></span>
+<span id="cb19-338"><a href="#cb19-338" aria-hidden="true" tabindex="-1"></a>  m <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fu">rowSums</span>(<span class="fu">log</span>(<span class="dv">3</span>) <span class="sc">*</span> w[, <span class="sc">-</span><span class="dv">3</span>] <span class="sc">+</span> a <span class="sc">-</span> z)))</span>
+<span id="cb19-339"><a href="#cb19-339" aria-hidden="true" tabindex="-1"></a>  m_names <span class="ot">&lt;-</span> <span class="st">"M"</span></span>
+<span id="cb19-340"><a href="#cb19-340" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-341"><a href="#cb19-341" aria-hidden="true" tabindex="-1"></a>  <span class="do">## outcome</span></span>
+<span id="cb19-342"><a href="#cb19-342" aria-hidden="true" tabindex="-1"></a>  <span class="do">## (the reciprocal inside plogis is an idiosyncrasy of the medoutcon</span></span>
+<span id="cb19-343"><a href="#cb19-343" aria-hidden="true" tabindex="-1"></a>  <span class="do">##  vignette DGP, not a standard logistic model; a zero denominator</span></span>
+<span id="cb19-344"><a href="#cb19-344" aria-hidden="true" tabindex="-1"></a>  <span class="do">##  gives plogis(Inf) = 1, which R handles without error)</span></span>
+<span id="cb19-345"><a href="#cb19-345" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="dv">1</span> <span class="sc">/</span> (<span class="fu">rowSums</span>(w) <span class="sc">-</span> z <span class="sc">+</span> a <span class="sc">+</span> m)))</span>
+<span id="cb19-346"><a href="#cb19-346" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-347"><a href="#cb19-347" aria-hidden="true" tabindex="-1"></a>  <span class="do">## construct output</span></span>
+<span id="cb19-348"><a href="#cb19-348" aria-hidden="true" tabindex="-1"></a>  dat <span class="ot">&lt;-</span> <span class="fu">as.data.table</span>(<span class="fu">cbind</span>(<span class="at">w =</span> w, <span class="at">a =</span> a, <span class="at">z =</span> z, <span class="at">m =</span> m, <span class="at">y =</span> y))</span>
+<span id="cb19-349"><a href="#cb19-349" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setnames</span>(dat, <span class="fu">c</span>(w_names, <span class="st">"A"</span>, <span class="st">"Z"</span>, m_names, <span class="st">"Y"</span>))</span>
+<span id="cb19-350"><a href="#cb19-350" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(dat)</span>
+<span id="cb19-351"><a href="#cb19-351" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb19-352"><a href="#cb19-352" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb19-353"><a href="#cb19-353" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-354"><a href="#cb19-354" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med8, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb19-355"><a href="#cb19-355" aria-hidden="true" tabindex="-1"></a><span class="co"># set seed and simulate example data</span></span>
+<span id="cb19-356"><a href="#cb19-356" aria-hidden="true" tabindex="-1"></a>example_data <span class="ot">&lt;-</span> <span class="fu">make_example_data</span>()</span>
+<span id="cb19-357"><a href="#cb19-357" aria-hidden="true" tabindex="-1"></a>w_names <span class="ot">&lt;-</span> <span class="fu">str_subset</span>(<span class="fu">colnames</span>(example_data), <span class="st">"W"</span>)</span>
+<span id="cb19-358"><a href="#cb19-358" aria-hidden="true" tabindex="-1"></a>m_names <span class="ot">&lt;-</span> <span class="fu">str_subset</span>(<span class="fu">colnames</span>(example_data), <span class="st">"M"</span>)</span>
+<span id="cb19-359"><a href="#cb19-359" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-360"><a href="#cb19-360" aria-hidden="true" tabindex="-1"></a><span class="co"># quick look at the data</span></span>
+<span id="cb19-361"><a href="#cb19-361" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(example_data)</span>
+<span id="cb19-362"><a href="#cb19-362" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb19-363"><a href="#cb19-363" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-364"><a href="#cb19-364" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med9, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb19-365"><a href="#cb19-365" aria-hidden="true" tabindex="-1"></a><span class="co"># compute one-step estimate of the interventional direct effect</span></span>
+<span id="cb19-366"><a href="#cb19-366" aria-hidden="true" tabindex="-1"></a>os_de <span class="ot">&lt;-</span> <span class="fu">medoutcon</span>(<span class="at">W =</span> example_data[, ..w_names],</span>
+<span id="cb19-367"><a href="#cb19-367" aria-hidden="true" tabindex="-1"></a>                   <span class="at">A =</span> example_data<span class="sc">$</span>A,</span>
+<span id="cb19-368"><a href="#cb19-368" aria-hidden="true" tabindex="-1"></a>                   <span class="at">Z =</span> example_data<span class="sc">$</span>Z,</span>
+<span id="cb19-369"><a href="#cb19-369" aria-hidden="true" tabindex="-1"></a>                   <span class="at">M =</span> example_data[, ..m_names],</span>
+<span id="cb19-370"><a href="#cb19-370" aria-hidden="true" tabindex="-1"></a>                   <span class="at">Y =</span> example_data<span class="sc">$</span>Y,</span>
+<span id="cb19-371"><a href="#cb19-371" aria-hidden="true" tabindex="-1"></a>                   <span class="at">effect =</span> <span class="st">"direct"</span>,</span>
+<span id="cb19-372"><a href="#cb19-372" aria-hidden="true" tabindex="-1"></a>                   <span class="at">estimator =</span> <span class="st">"onestep"</span>)</span>
+<span id="cb19-373"><a href="#cb19-373" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(os_de)</span>
+<span id="cb19-374"><a href="#cb19-374" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb19-375"><a href="#cb19-375" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-376"><a href="#cb19-376" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med10, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb19-377"><a href="#cb19-377" aria-hidden="true" tabindex="-1"></a><span class="co"># compute targeted minimum loss estimate of the interventional direct effect</span></span>
+<span id="cb19-378"><a href="#cb19-378" aria-hidden="true" tabindex="-1"></a>tmle_de <span class="ot">&lt;-</span> <span class="fu">medoutcon</span>(<span class="at">W =</span> example_data[, ..w_names],</span>
+<span id="cb19-379"><a href="#cb19-379" aria-hidden="true" tabindex="-1"></a>                     <span class="at">A =</span> example_data<span class="sc">$</span>A,</span>
+<span id="cb19-380"><a href="#cb19-380" aria-hidden="true" tabindex="-1"></a>                     <span class="at">Z =</span> example_data<span class="sc">$</span>Z,</span>
+<span id="cb19-381"><a href="#cb19-381" aria-hidden="true" tabindex="-1"></a>                     <span class="at">M =</span> example_data[, ..m_names],</span>
+<span id="cb19-382"><a href="#cb19-382" aria-hidden="true" tabindex="-1"></a>                     <span class="at">Y =</span> example_data<span class="sc">$</span>Y,</span>
+<span id="cb19-383"><a href="#cb19-383" aria-hidden="true" tabindex="-1"></a>                     <span class="at">effect =</span> <span class="st">"direct"</span>,</span>
+<span id="cb19-384"><a href="#cb19-384" aria-hidden="true" tabindex="-1"></a>                     <span class="at">estimator =</span> <span class="st">"tmle"</span>)</span>
+<span id="cb19-385"><a href="#cb19-385" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-386"><a href="#cb19-386" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(tmle_de)</span>
+<span id="cb19-387"><a href="#cb19-387" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

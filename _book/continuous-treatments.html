@@ -677,7 +677,7 @@ r(d, x) = f_{D \mid X}(d \mid x).
 </div>
 </div>
 </div>
-<p>The DR estimator is consistent if either the outcome model or the GPS is correctly specified. As usual, the bandwidth trades bias against variance.</p>
+<p>Read this as an illustrative kernel-AIPW construction rather than a turnkey doubly robust theorem. For continuous treatments, a formal doubly robust dose-response result – consistency if either the outcome model or the GPS is correct – requires additional bandwidth, nuisance-convergence-rate, smoothness, and orthogonalization conditions (see Kennedy et al.&nbsp;on continuous-treatment DR estimators). The self-normalized kernel correction shown here conveys the intuition but does not by itself establish those guarantees. As usual, the bandwidth trades bias against variance.</p>
 <p>The <code>causaldrf</code> package provides ready-made versions of these estimators, including <code>hi_est</code>, <code>iptw_est</code>, <code>aipwee_est</code>, <code>gam_est</code>, <code>nw_est</code>, and <code>bart_est</code>.</p>
 </section><section id="longitudinal-modified-treatment-policies-lmtp" class="level2" data-number="10.5"><h2 data-number="10.5" class="anchored" data-anchor-id="longitudinal-modified-treatment-policies-lmtp">
 <span class="header-section-number">10.5</span> Longitudinal Modified Treatment Policies (LMTP)</h2>
@@ -1563,159 +1563,166 @@ Kennedy, Edward H., Zongming Ma, Matthew D. McHugh, and Dylan S. Small. 2017. <s
 <span id="cb19-279"><a href="#cb19-279" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
 <span id="cb19-280"><a href="#cb19-280" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb19-281"><a href="#cb19-281" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-282"><a href="#cb19-282" aria-hidden="true" tabindex="-1"></a>The DR estimator is consistent if either the outcome model or the GPS is</span>
-<span id="cb19-283"><a href="#cb19-283" aria-hidden="true" tabindex="-1"></a>correctly specified. As usual, the bandwidth trades bias against variance.</span>
-<span id="cb19-284"><a href="#cb19-284" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-285"><a href="#cb19-285" aria-hidden="true" tabindex="-1"></a>The <span class="in">`causaldrf`</span> package provides ready-made versions of these estimators,</span>
-<span id="cb19-286"><a href="#cb19-286" aria-hidden="true" tabindex="-1"></a>including <span class="in">`hi_est`</span>, <span class="in">`iptw_est`</span>, <span class="in">`aipwee_est`</span>, <span class="in">`gam_est`</span>, <span class="in">`nw_est`</span>, and</span>
-<span id="cb19-287"><a href="#cb19-287" aria-hidden="true" tabindex="-1"></a><span class="in">`bart_est`</span>.</span>
-<span id="cb19-288"><a href="#cb19-288" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-289"><a href="#cb19-289" aria-hidden="true" tabindex="-1"></a><span class="fu">## Longitudinal Modified Treatment Policies (LMTP)</span></span>
-<span id="cb19-290"><a href="#cb19-290" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-291"><a href="#cb19-291" aria-hidden="true" tabindex="-1"></a>Fixed-dose interventions can be unrealistic. For example, there may be</span>
-<span id="cb19-292"><a href="#cb19-292" aria-hidden="true" tabindex="-1"></a>almost no observations near $D=10$, so estimating $Y(10)$ requires</span>
-<span id="cb19-293"><a href="#cb19-293" aria-hidden="true" tabindex="-1"></a>extrapolation. LMTP avoids this by defining interventions as changes to the</span>
-<span id="cb19-294"><a href="#cb19-294" aria-hidden="true" tabindex="-1"></a>observed treatment, such as "shift everyone's dose down by one unit." This</span>
-<span id="cb19-295"><a href="#cb19-295" aria-hidden="true" tabindex="-1"></a>keeps the counterfactual treatment closer to the observed support.</span>
-<span id="cb19-296"><a href="#cb19-296" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-297"><a href="#cb19-297" aria-hidden="true" tabindex="-1"></a><span class="fu">### A two-period example</span></span>
-<span id="cb19-298"><a href="#cb19-298" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-301"><a href="#cb19-301" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb19-302"><a href="#cb19-302" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: lmtp-sim</span></span>
-<span id="cb19-303"><a href="#cb19-303" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb19-304"><a href="#cb19-304" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-305"><a href="#cb19-305" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
-<span id="cb19-306"><a href="#cb19-306" aria-hidden="true" tabindex="-1"></a>N    <span class="ot">&lt;-</span> <span class="dv">1500</span></span>
-<span id="cb19-307"><a href="#cb19-307" aria-hidden="true" tabindex="-1"></a>L_1  <span class="ot">&lt;-</span> <span class="fu">runif</span>(N, <span class="dv">0</span>, <span class="dv">1</span>)</span>
-<span id="cb19-308"><a href="#cb19-308" aria-hidden="true" tabindex="-1"></a>A_1  <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(N, <span class="dv">1</span>, <span class="fl">0.5</span>)</span>
-<span id="cb19-309"><a href="#cb19-309" aria-hidden="true" tabindex="-1"></a>L_2  <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(N, <span class="fl">0.25</span> <span class="sc">*</span> L_1, <span class="fl">0.5</span>)</span>
-<span id="cb19-310"><a href="#cb19-310" aria-hidden="true" tabindex="-1"></a>A_2  <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(N, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fl">0.5</span> <span class="sc">-</span> <span class="fl">0.2</span> <span class="sc">*</span> A_1 <span class="sc">+</span> <span class="fl">0.1</span> <span class="sc">*</span> L_2))</span>
-<span id="cb19-311"><a href="#cb19-311" aria-hidden="true" tabindex="-1"></a>Y    <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(N, A_2 <span class="sc">+</span> L_2, <span class="fl">0.3</span>)</span>
-<span id="cb19-312"><a href="#cb19-312" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-313"><a href="#cb19-313" aria-hidden="true" tabindex="-1"></a>lmtp_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(L_1, A_1, L_2, A_2, Y)</span>
-<span id="cb19-314"><a href="#cb19-314" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(lmtp_data)</span>
-<span id="cb19-315"><a href="#cb19-315" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb19-316"><a href="#cb19-316" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-317"><a href="#cb19-317" aria-hidden="true" tabindex="-1"></a>For simplicity the worked example uses *static* policies (set every</span>
-<span id="cb19-318"><a href="#cb19-318" aria-hidden="true" tabindex="-1"></a>treatment to 0, then to 1) on a binary treatment — <span class="in">`lmtp`</span> handles these in</span>
-<span id="cb19-319"><a href="#cb19-319" aria-hidden="true" tabindex="-1"></a>the same framework. A genuinely *modified* policy on a continuous dose</span>
-<span id="cb19-320"><a href="#cb19-320" aria-hidden="true" tabindex="-1"></a>would instead return a shift of the observed value, e.g.</span>
-<span id="cb19-321"><a href="#cb19-321" aria-hidden="true" tabindex="-1"></a><span class="in">`function(data, trt) data[[trt]] - 1`</span>, which is what keeps the</span>
-<span id="cb19-322"><a href="#cb19-322" aria-hidden="true" tabindex="-1"></a>counterfactual on the observed support. Here is the set-to-zero policy:</span>
+<span id="cb19-282"><a href="#cb19-282" aria-hidden="true" tabindex="-1"></a>Read this as an illustrative kernel-AIPW construction rather than a</span>
+<span id="cb19-283"><a href="#cb19-283" aria-hidden="true" tabindex="-1"></a>turnkey doubly robust theorem. For continuous treatments, a formal</span>
+<span id="cb19-284"><a href="#cb19-284" aria-hidden="true" tabindex="-1"></a>doubly robust dose-response result -- consistency if either the</span>
+<span id="cb19-285"><a href="#cb19-285" aria-hidden="true" tabindex="-1"></a>outcome model or the GPS is correct -- requires additional bandwidth,</span>
+<span id="cb19-286"><a href="#cb19-286" aria-hidden="true" tabindex="-1"></a>nuisance-convergence-rate, smoothness, and orthogonalization conditions</span>
+<span id="cb19-287"><a href="#cb19-287" aria-hidden="true" tabindex="-1"></a>(see Kennedy et al. on continuous-treatment DR estimators). The</span>
+<span id="cb19-288"><a href="#cb19-288" aria-hidden="true" tabindex="-1"></a>self-normalized kernel correction shown here conveys the intuition but</span>
+<span id="cb19-289"><a href="#cb19-289" aria-hidden="true" tabindex="-1"></a>does not by itself establish those guarantees. As usual, the bandwidth</span>
+<span id="cb19-290"><a href="#cb19-290" aria-hidden="true" tabindex="-1"></a>trades bias against variance.</span>
+<span id="cb19-291"><a href="#cb19-291" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-292"><a href="#cb19-292" aria-hidden="true" tabindex="-1"></a>The <span class="in">`causaldrf`</span> package provides ready-made versions of these estimators,</span>
+<span id="cb19-293"><a href="#cb19-293" aria-hidden="true" tabindex="-1"></a>including <span class="in">`hi_est`</span>, <span class="in">`iptw_est`</span>, <span class="in">`aipwee_est`</span>, <span class="in">`gam_est`</span>, <span class="in">`nw_est`</span>, and</span>
+<span id="cb19-294"><a href="#cb19-294" aria-hidden="true" tabindex="-1"></a><span class="in">`bart_est`</span>.</span>
+<span id="cb19-295"><a href="#cb19-295" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-296"><a href="#cb19-296" aria-hidden="true" tabindex="-1"></a><span class="fu">## Longitudinal Modified Treatment Policies (LMTP)</span></span>
+<span id="cb19-297"><a href="#cb19-297" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-298"><a href="#cb19-298" aria-hidden="true" tabindex="-1"></a>Fixed-dose interventions can be unrealistic. For example, there may be</span>
+<span id="cb19-299"><a href="#cb19-299" aria-hidden="true" tabindex="-1"></a>almost no observations near $D=10$, so estimating $Y(10)$ requires</span>
+<span id="cb19-300"><a href="#cb19-300" aria-hidden="true" tabindex="-1"></a>extrapolation. LMTP avoids this by defining interventions as changes to the</span>
+<span id="cb19-301"><a href="#cb19-301" aria-hidden="true" tabindex="-1"></a>observed treatment, such as "shift everyone's dose down by one unit." This</span>
+<span id="cb19-302"><a href="#cb19-302" aria-hidden="true" tabindex="-1"></a>keeps the counterfactual treatment closer to the observed support.</span>
+<span id="cb19-303"><a href="#cb19-303" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-304"><a href="#cb19-304" aria-hidden="true" tabindex="-1"></a><span class="fu">### A two-period example</span></span>
+<span id="cb19-305"><a href="#cb19-305" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-308"><a href="#cb19-308" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb19-309"><a href="#cb19-309" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: lmtp-sim</span></span>
+<span id="cb19-310"><a href="#cb19-310" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb19-311"><a href="#cb19-311" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-312"><a href="#cb19-312" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb19-313"><a href="#cb19-313" aria-hidden="true" tabindex="-1"></a>N    <span class="ot">&lt;-</span> <span class="dv">1500</span></span>
+<span id="cb19-314"><a href="#cb19-314" aria-hidden="true" tabindex="-1"></a>L_1  <span class="ot">&lt;-</span> <span class="fu">runif</span>(N, <span class="dv">0</span>, <span class="dv">1</span>)</span>
+<span id="cb19-315"><a href="#cb19-315" aria-hidden="true" tabindex="-1"></a>A_1  <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(N, <span class="dv">1</span>, <span class="fl">0.5</span>)</span>
+<span id="cb19-316"><a href="#cb19-316" aria-hidden="true" tabindex="-1"></a>L_2  <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(N, <span class="fl">0.25</span> <span class="sc">*</span> L_1, <span class="fl">0.5</span>)</span>
+<span id="cb19-317"><a href="#cb19-317" aria-hidden="true" tabindex="-1"></a>A_2  <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(N, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fl">0.5</span> <span class="sc">-</span> <span class="fl">0.2</span> <span class="sc">*</span> A_1 <span class="sc">+</span> <span class="fl">0.1</span> <span class="sc">*</span> L_2))</span>
+<span id="cb19-318"><a href="#cb19-318" aria-hidden="true" tabindex="-1"></a>Y    <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(N, A_2 <span class="sc">+</span> L_2, <span class="fl">0.3</span>)</span>
+<span id="cb19-319"><a href="#cb19-319" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-320"><a href="#cb19-320" aria-hidden="true" tabindex="-1"></a>lmtp_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(L_1, A_1, L_2, A_2, Y)</span>
+<span id="cb19-321"><a href="#cb19-321" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(lmtp_data)</span>
+<span id="cb19-322"><a href="#cb19-322" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb19-323"><a href="#cb19-323" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-326"><a href="#cb19-326" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb19-327"><a href="#cb19-327" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: shift-fn</span></span>
-<span id="cb19-328"><a href="#cb19-328" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-329"><a href="#cb19-329" aria-hidden="true" tabindex="-1"></a>shift_zero <span class="ot">&lt;-</span> <span class="cf">function</span>(data, trt) {</span>
-<span id="cb19-330"><a href="#cb19-330" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Set treatment to 0 everywhere — for comparison to "never treat"</span></span>
-<span id="cb19-331"><a href="#cb19-331" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> data[[trt]]</span>
-<span id="cb19-332"><a href="#cb19-332" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rep</span>(<span class="dv">0</span>, <span class="fu">length</span>(a))</span>
-<span id="cb19-333"><a href="#cb19-333" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb19-334"><a href="#cb19-334" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb19-324"><a href="#cb19-324" aria-hidden="true" tabindex="-1"></a>For simplicity the worked example uses *static* policies (set every</span>
+<span id="cb19-325"><a href="#cb19-325" aria-hidden="true" tabindex="-1"></a>treatment to 0, then to 1) on a binary treatment — <span class="in">`lmtp`</span> handles these in</span>
+<span id="cb19-326"><a href="#cb19-326" aria-hidden="true" tabindex="-1"></a>the same framework. A genuinely *modified* policy on a continuous dose</span>
+<span id="cb19-327"><a href="#cb19-327" aria-hidden="true" tabindex="-1"></a>would instead return a shift of the observed value, e.g.</span>
+<span id="cb19-328"><a href="#cb19-328" aria-hidden="true" tabindex="-1"></a><span class="in">`function(data, trt) data[[trt]] - 1`</span>, which is what keeps the</span>
+<span id="cb19-329"><a href="#cb19-329" aria-hidden="true" tabindex="-1"></a>counterfactual on the observed support. Here is the set-to-zero policy:</span>
+<span id="cb19-330"><a href="#cb19-330" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-333"><a href="#cb19-333" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb19-334"><a href="#cb19-334" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: shift-fn</span></span>
 <span id="cb19-335"><a href="#cb19-335" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-336"><a href="#cb19-336" aria-hidden="true" tabindex="-1"></a>Then fit the LMTP estimator with <span class="in">`lmtp::lmtp_tmle`</span>:</span>
-<span id="cb19-337"><a href="#cb19-337" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-340"><a href="#cb19-340" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb19-341"><a href="#cb19-341" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: lmtp-fit</span></span>
-<span id="cb19-342"><a href="#cb19-342" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb19-343"><a href="#cb19-343" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb19-336"><a href="#cb19-336" aria-hidden="true" tabindex="-1"></a>shift_zero <span class="ot">&lt;-</span> <span class="cf">function</span>(data, trt) {</span>
+<span id="cb19-337"><a href="#cb19-337" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Set treatment to 0 everywhere — for comparison to "never treat"</span></span>
+<span id="cb19-338"><a href="#cb19-338" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> data[[trt]]</span>
+<span id="cb19-339"><a href="#cb19-339" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rep</span>(<span class="dv">0</span>, <span class="fu">length</span>(a))</span>
+<span id="cb19-340"><a href="#cb19-340" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb19-341"><a href="#cb19-341" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb19-342"><a href="#cb19-342" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-343"><a href="#cb19-343" aria-hidden="true" tabindex="-1"></a>Then fit the LMTP estimator with <span class="in">`lmtp::lmtp_tmle`</span>:</span>
 <span id="cb19-344"><a href="#cb19-344" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-345"><a href="#cb19-345" aria-hidden="true" tabindex="-1"></a><span class="co"># TMLE-based LMTP estimator with super-learners for nuisance functions</span></span>
-<span id="cb19-346"><a href="#cb19-346" aria-hidden="true" tabindex="-1"></a><span class="co"># (using SL.glm to keep it fast; in practice use richer SL libraries)</span></span>
-<span id="cb19-347"><a href="#cb19-347" aria-hidden="true" tabindex="-1"></a>lmtp_fit <span class="ot">&lt;-</span> <span class="fu">lmtp_tmle</span>(</span>
-<span id="cb19-348"><a href="#cb19-348" aria-hidden="true" tabindex="-1"></a>  <span class="at">data       =</span> lmtp_data,</span>
-<span id="cb19-349"><a href="#cb19-349" aria-hidden="true" tabindex="-1"></a>  <span class="at">trt        =</span> <span class="fu">c</span>(<span class="st">"A_1"</span>, <span class="st">"A_2"</span>),</span>
-<span id="cb19-350"><a href="#cb19-350" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome    =</span> <span class="st">"Y"</span>,</span>
-<span id="cb19-351"><a href="#cb19-351" aria-hidden="true" tabindex="-1"></a>  <span class="at">baseline   =</span> <span class="cn">NULL</span>,</span>
-<span id="cb19-352"><a href="#cb19-352" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_vary  =</span> <span class="fu">list</span>(<span class="fu">c</span>(<span class="st">"L_1"</span>), <span class="fu">c</span>(<span class="st">"L_2"</span>)),</span>
-<span id="cb19-353"><a href="#cb19-353" aria-hidden="true" tabindex="-1"></a>  <span class="at">shift      =</span> shift_zero,</span>
-<span id="cb19-354"><a href="#cb19-354" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome_type =</span> <span class="st">"continuous"</span>,</span>
-<span id="cb19-355"><a href="#cb19-355" aria-hidden="true" tabindex="-1"></a>  <span class="at">learners_outcome =</span> <span class="fu">c</span>(<span class="st">"SL.glm"</span>),</span>
-<span id="cb19-356"><a href="#cb19-356" aria-hidden="true" tabindex="-1"></a>  <span class="at">learners_trt     =</span> <span class="fu">c</span>(<span class="st">"SL.glm"</span>),</span>
-<span id="cb19-357"><a href="#cb19-357" aria-hidden="true" tabindex="-1"></a>  <span class="at">folds =</span> <span class="dv">2</span></span>
-<span id="cb19-358"><a href="#cb19-358" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb19-359"><a href="#cb19-359" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-360"><a href="#cb19-360" aria-hidden="true" tabindex="-1"></a><span class="co"># tidy() gives the estimate, SE, and CI as a data frame</span></span>
-<span id="cb19-361"><a href="#cb19-361" aria-hidden="true" tabindex="-1"></a><span class="co"># (the styled console print does not render cleanly in the book)</span></span>
-<span id="cb19-362"><a href="#cb19-362" aria-hidden="true" tabindex="-1"></a><span class="fu">tidy</span>(lmtp_fit)</span>
-<span id="cb19-363"><a href="#cb19-363" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb19-364"><a href="#cb19-364" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-365"><a href="#cb19-365" aria-hidden="true" tabindex="-1"></a>The useful part of <span class="in">`lmtp`</span> is that it handles the time-ordering of</span>
-<span id="cb19-366"><a href="#cb19-366" aria-hidden="true" tabindex="-1"></a>covariates, treatments, and outcomes. The output gives the TMLE estimate</span>
-<span id="cb19-367"><a href="#cb19-367" aria-hidden="true" tabindex="-1"></a>with its standard error and confidence interval.</span>
-<span id="cb19-368"><a href="#cb19-368" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-369"><a href="#cb19-369" aria-hidden="true" tabindex="-1"></a><span class="fu">### Contrasts between policies</span></span>
-<span id="cb19-370"><a href="#cb19-370" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-371"><a href="#cb19-371" aria-hidden="true" tabindex="-1"></a>We can also compare two policies, such as "set to 0" versus "set to 1":</span>
-<span id="cb19-372"><a href="#cb19-372" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-375"><a href="#cb19-375" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb19-376"><a href="#cb19-376" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: lmtp-contrast</span></span>
-<span id="cb19-377"><a href="#cb19-377" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb19-378"><a href="#cb19-378" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb19-347"><a href="#cb19-347" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb19-348"><a href="#cb19-348" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: lmtp-fit</span></span>
+<span id="cb19-349"><a href="#cb19-349" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb19-350"><a href="#cb19-350" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb19-351"><a href="#cb19-351" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-352"><a href="#cb19-352" aria-hidden="true" tabindex="-1"></a><span class="co"># TMLE-based LMTP estimator with super-learners for nuisance functions</span></span>
+<span id="cb19-353"><a href="#cb19-353" aria-hidden="true" tabindex="-1"></a><span class="co"># (using SL.glm to keep it fast; in practice use richer SL libraries)</span></span>
+<span id="cb19-354"><a href="#cb19-354" aria-hidden="true" tabindex="-1"></a>lmtp_fit <span class="ot">&lt;-</span> <span class="fu">lmtp_tmle</span>(</span>
+<span id="cb19-355"><a href="#cb19-355" aria-hidden="true" tabindex="-1"></a>  <span class="at">data       =</span> lmtp_data,</span>
+<span id="cb19-356"><a href="#cb19-356" aria-hidden="true" tabindex="-1"></a>  <span class="at">trt        =</span> <span class="fu">c</span>(<span class="st">"A_1"</span>, <span class="st">"A_2"</span>),</span>
+<span id="cb19-357"><a href="#cb19-357" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome    =</span> <span class="st">"Y"</span>,</span>
+<span id="cb19-358"><a href="#cb19-358" aria-hidden="true" tabindex="-1"></a>  <span class="at">baseline   =</span> <span class="cn">NULL</span>,</span>
+<span id="cb19-359"><a href="#cb19-359" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_vary  =</span> <span class="fu">list</span>(<span class="fu">c</span>(<span class="st">"L_1"</span>), <span class="fu">c</span>(<span class="st">"L_2"</span>)),</span>
+<span id="cb19-360"><a href="#cb19-360" aria-hidden="true" tabindex="-1"></a>  <span class="at">shift      =</span> shift_zero,</span>
+<span id="cb19-361"><a href="#cb19-361" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome_type =</span> <span class="st">"continuous"</span>,</span>
+<span id="cb19-362"><a href="#cb19-362" aria-hidden="true" tabindex="-1"></a>  <span class="at">learners_outcome =</span> <span class="fu">c</span>(<span class="st">"SL.glm"</span>),</span>
+<span id="cb19-363"><a href="#cb19-363" aria-hidden="true" tabindex="-1"></a>  <span class="at">learners_trt     =</span> <span class="fu">c</span>(<span class="st">"SL.glm"</span>),</span>
+<span id="cb19-364"><a href="#cb19-364" aria-hidden="true" tabindex="-1"></a>  <span class="at">folds =</span> <span class="dv">2</span></span>
+<span id="cb19-365"><a href="#cb19-365" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-366"><a href="#cb19-366" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-367"><a href="#cb19-367" aria-hidden="true" tabindex="-1"></a><span class="co"># tidy() gives the estimate, SE, and CI as a data frame</span></span>
+<span id="cb19-368"><a href="#cb19-368" aria-hidden="true" tabindex="-1"></a><span class="co"># (the styled console print does not render cleanly in the book)</span></span>
+<span id="cb19-369"><a href="#cb19-369" aria-hidden="true" tabindex="-1"></a><span class="fu">tidy</span>(lmtp_fit)</span>
+<span id="cb19-370"><a href="#cb19-370" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb19-371"><a href="#cb19-371" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-372"><a href="#cb19-372" aria-hidden="true" tabindex="-1"></a>The useful part of <span class="in">`lmtp`</span> is that it handles the time-ordering of</span>
+<span id="cb19-373"><a href="#cb19-373" aria-hidden="true" tabindex="-1"></a>covariates, treatments, and outcomes. The output gives the TMLE estimate</span>
+<span id="cb19-374"><a href="#cb19-374" aria-hidden="true" tabindex="-1"></a>with its standard error and confidence interval.</span>
+<span id="cb19-375"><a href="#cb19-375" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-376"><a href="#cb19-376" aria-hidden="true" tabindex="-1"></a><span class="fu">### Contrasts between policies</span></span>
+<span id="cb19-377"><a href="#cb19-377" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-378"><a href="#cb19-378" aria-hidden="true" tabindex="-1"></a>We can also compare two policies, such as "set to 0" versus "set to 1":</span>
 <span id="cb19-379"><a href="#cb19-379" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-380"><a href="#cb19-380" aria-hidden="true" tabindex="-1"></a>shift_one <span class="ot">&lt;-</span> <span class="cf">function</span>(data, trt) {</span>
-<span id="cb19-381"><a href="#cb19-381" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> data[[trt]]</span>
-<span id="cb19-382"><a href="#cb19-382" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rep</span>(<span class="dv">1</span>, <span class="fu">length</span>(a))</span>
-<span id="cb19-383"><a href="#cb19-383" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb19-384"><a href="#cb19-384" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-385"><a href="#cb19-385" aria-hidden="true" tabindex="-1"></a>lmtp_one <span class="ot">&lt;-</span> <span class="fu">lmtp_tmle</span>(</span>
-<span id="cb19-386"><a href="#cb19-386" aria-hidden="true" tabindex="-1"></a>  <span class="at">data       =</span> lmtp_data,</span>
-<span id="cb19-387"><a href="#cb19-387" aria-hidden="true" tabindex="-1"></a>  <span class="at">trt        =</span> <span class="fu">c</span>(<span class="st">"A_1"</span>, <span class="st">"A_2"</span>),</span>
-<span id="cb19-388"><a href="#cb19-388" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome    =</span> <span class="st">"Y"</span>,</span>
-<span id="cb19-389"><a href="#cb19-389" aria-hidden="true" tabindex="-1"></a>  <span class="at">baseline   =</span> <span class="cn">NULL</span>,</span>
-<span id="cb19-390"><a href="#cb19-390" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_vary  =</span> <span class="fu">list</span>(<span class="fu">c</span>(<span class="st">"L_1"</span>), <span class="fu">c</span>(<span class="st">"L_2"</span>)),</span>
-<span id="cb19-391"><a href="#cb19-391" aria-hidden="true" tabindex="-1"></a>  <span class="at">shift      =</span> shift_one,</span>
-<span id="cb19-392"><a href="#cb19-392" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome_type =</span> <span class="st">"continuous"</span>,</span>
-<span id="cb19-393"><a href="#cb19-393" aria-hidden="true" tabindex="-1"></a>  <span class="at">learners_outcome =</span> <span class="fu">c</span>(<span class="st">"SL.glm"</span>),</span>
-<span id="cb19-394"><a href="#cb19-394" aria-hidden="true" tabindex="-1"></a>  <span class="at">learners_trt     =</span> <span class="fu">c</span>(<span class="st">"SL.glm"</span>),</span>
-<span id="cb19-395"><a href="#cb19-395" aria-hidden="true" tabindex="-1"></a>  <span class="at">folds =</span> <span class="dv">2</span></span>
-<span id="cb19-396"><a href="#cb19-396" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb19-397"><a href="#cb19-397" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-398"><a href="#cb19-398" aria-hidden="true" tabindex="-1"></a>contrast <span class="ot">&lt;-</span> <span class="fu">lmtp_contrast</span>(lmtp_one, <span class="at">ref =</span> lmtp_fit)</span>
-<span id="cb19-399"><a href="#cb19-399" aria-hidden="true" tabindex="-1"></a><span class="fu">as.data.frame</span>(contrast<span class="sc">$</span>estimates)</span>
-<span id="cb19-400"><a href="#cb19-400" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb19-401"><a href="#cb19-401" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-402"><a href="#cb19-402" aria-hidden="true" tabindex="-1"></a>The contrast is the difference between the two policy-specific mean</span>
-<span id="cb19-403"><a href="#cb19-403" aria-hidden="true" tabindex="-1"></a>outcomes.</span>
+<span id="cb19-382"><a href="#cb19-382" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb19-383"><a href="#cb19-383" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: lmtp-contrast</span></span>
+<span id="cb19-384"><a href="#cb19-384" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb19-385"><a href="#cb19-385" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb19-386"><a href="#cb19-386" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-387"><a href="#cb19-387" aria-hidden="true" tabindex="-1"></a>shift_one <span class="ot">&lt;-</span> <span class="cf">function</span>(data, trt) {</span>
+<span id="cb19-388"><a href="#cb19-388" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> data[[trt]]</span>
+<span id="cb19-389"><a href="#cb19-389" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rep</span>(<span class="dv">1</span>, <span class="fu">length</span>(a))</span>
+<span id="cb19-390"><a href="#cb19-390" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb19-391"><a href="#cb19-391" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-392"><a href="#cb19-392" aria-hidden="true" tabindex="-1"></a>lmtp_one <span class="ot">&lt;-</span> <span class="fu">lmtp_tmle</span>(</span>
+<span id="cb19-393"><a href="#cb19-393" aria-hidden="true" tabindex="-1"></a>  <span class="at">data       =</span> lmtp_data,</span>
+<span id="cb19-394"><a href="#cb19-394" aria-hidden="true" tabindex="-1"></a>  <span class="at">trt        =</span> <span class="fu">c</span>(<span class="st">"A_1"</span>, <span class="st">"A_2"</span>),</span>
+<span id="cb19-395"><a href="#cb19-395" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome    =</span> <span class="st">"Y"</span>,</span>
+<span id="cb19-396"><a href="#cb19-396" aria-hidden="true" tabindex="-1"></a>  <span class="at">baseline   =</span> <span class="cn">NULL</span>,</span>
+<span id="cb19-397"><a href="#cb19-397" aria-hidden="true" tabindex="-1"></a>  <span class="at">time_vary  =</span> <span class="fu">list</span>(<span class="fu">c</span>(<span class="st">"L_1"</span>), <span class="fu">c</span>(<span class="st">"L_2"</span>)),</span>
+<span id="cb19-398"><a href="#cb19-398" aria-hidden="true" tabindex="-1"></a>  <span class="at">shift      =</span> shift_one,</span>
+<span id="cb19-399"><a href="#cb19-399" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome_type =</span> <span class="st">"continuous"</span>,</span>
+<span id="cb19-400"><a href="#cb19-400" aria-hidden="true" tabindex="-1"></a>  <span class="at">learners_outcome =</span> <span class="fu">c</span>(<span class="st">"SL.glm"</span>),</span>
+<span id="cb19-401"><a href="#cb19-401" aria-hidden="true" tabindex="-1"></a>  <span class="at">learners_trt     =</span> <span class="fu">c</span>(<span class="st">"SL.glm"</span>),</span>
+<span id="cb19-402"><a href="#cb19-402" aria-hidden="true" tabindex="-1"></a>  <span class="at">folds =</span> <span class="dv">2</span></span>
+<span id="cb19-403"><a href="#cb19-403" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb19-404"><a href="#cb19-404" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-405"><a href="#cb19-405" aria-hidden="true" tabindex="-1"></a><span class="fu">## Choosing among the three</span></span>
-<span id="cb19-406"><a href="#cb19-406" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-407"><a href="#cb19-407" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Method <span class="pp">|</span> Strengths <span class="pp">|</span> Weaknesses <span class="pp">|</span></span>
-<span id="cb19-408"><a href="#cb19-408" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
-<span id="cb19-409"><a href="#cb19-409" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **GPS (Hirano-Imbens)** <span class="pp">|</span> Conceptually transparent; widely understood <span class="pp">|</span> Parametric assumptions on the GPS and the outcome-GPS regression; sensitive to their misspecification <span class="pp">|</span></span>
-<span id="cb19-410"><a href="#cb19-410" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Doubly-robust** (kernel AIPW) <span class="pp">|</span> Robust to misspecification of one nuisance; attains nonparametric oracle rates <span class="pp">|</span> More complex; nuisance models need careful tuning; sensitive to bandwidth <span class="pp">|</span></span>
-<span id="cb19-411"><a href="#cb19-411" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **LMTP** <span class="pp">|</span> Handles continuous + multivalued + time-varying uniformly; respects positivity <span class="pp">|</span> More setup; requires defining a shift function <span class="pp">|</span></span>
-<span id="cb19-412"><a href="#cb19-412" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-413"><a href="#cb19-413" aria-hidden="true" tabindex="-1"></a>In practice:</span>
-<span id="cb19-414"><a href="#cb19-414" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-415"><a href="#cb19-415" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>For a simple cross-sectional continuous treatment with good overlap, GPS</span>
-<span id="cb19-416"><a href="#cb19-416" aria-hidden="true" tabindex="-1"></a>  or the Kennedy DR estimator is a natural start.</span>
-<span id="cb19-417"><a href="#cb19-417" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>For time-varying treatments or policy shifts, use LMTP.</span>
-<span id="cb19-418"><a href="#cb19-418" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>For multivalued treatments, use a multinomial propensity model and the</span>
-<span id="cb19-419"><a href="#cb19-419" aria-hidden="true" tabindex="-1"></a>  same adjustment logic.</span>
-<span id="cb19-420"><a href="#cb19-420" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-421"><a href="#cb19-421" aria-hidden="true" tabindex="-1"></a><span class="fu">## When to use these methods</span></span>
-<span id="cb19-422"><a href="#cb19-422" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-423"><a href="#cb19-423" aria-hidden="true" tabindex="-1"></a>These methods are useful when:</span>
-<span id="cb19-424"><a href="#cb19-424" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-425"><a href="#cb19-425" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Treatment has more than two values.</span>
-<span id="cb19-426"><a href="#cb19-426" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>The research question is about the shape of the dose-response curve.</span>
-<span id="cb19-427"><a href="#cb19-427" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>The intervention is better described as shifting treatment than setting</span>
-<span id="cb19-428"><a href="#cb19-428" aria-hidden="true" tabindex="-1"></a>   treatment to a fixed value.</span>
+<span id="cb19-405"><a href="#cb19-405" aria-hidden="true" tabindex="-1"></a>contrast <span class="ot">&lt;-</span> <span class="fu">lmtp_contrast</span>(lmtp_one, <span class="at">ref =</span> lmtp_fit)</span>
+<span id="cb19-406"><a href="#cb19-406" aria-hidden="true" tabindex="-1"></a><span class="fu">as.data.frame</span>(contrast<span class="sc">$</span>estimates)</span>
+<span id="cb19-407"><a href="#cb19-407" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb19-408"><a href="#cb19-408" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-409"><a href="#cb19-409" aria-hidden="true" tabindex="-1"></a>The contrast is the difference between the two policy-specific mean</span>
+<span id="cb19-410"><a href="#cb19-410" aria-hidden="true" tabindex="-1"></a>outcomes.</span>
+<span id="cb19-411"><a href="#cb19-411" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-412"><a href="#cb19-412" aria-hidden="true" tabindex="-1"></a><span class="fu">## Choosing among the three</span></span>
+<span id="cb19-413"><a href="#cb19-413" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-414"><a href="#cb19-414" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Method <span class="pp">|</span> Strengths <span class="pp">|</span> Weaknesses <span class="pp">|</span></span>
+<span id="cb19-415"><a href="#cb19-415" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
+<span id="cb19-416"><a href="#cb19-416" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **GPS (Hirano-Imbens)** <span class="pp">|</span> Conceptually transparent; widely understood <span class="pp">|</span> Parametric assumptions on the GPS and the outcome-GPS regression; sensitive to their misspecification <span class="pp">|</span></span>
+<span id="cb19-417"><a href="#cb19-417" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Doubly-robust** (kernel AIPW) <span class="pp">|</span> Robust to misspecification of one nuisance; attains nonparametric oracle rates <span class="pp">|</span> More complex; nuisance models need careful tuning; sensitive to bandwidth <span class="pp">|</span></span>
+<span id="cb19-418"><a href="#cb19-418" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **LMTP** <span class="pp">|</span> Handles continuous + multivalued + time-varying uniformly; respects positivity <span class="pp">|</span> More setup; requires defining a shift function <span class="pp">|</span></span>
+<span id="cb19-419"><a href="#cb19-419" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-420"><a href="#cb19-420" aria-hidden="true" tabindex="-1"></a>In practice:</span>
+<span id="cb19-421"><a href="#cb19-421" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-422"><a href="#cb19-422" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>For a simple cross-sectional continuous treatment with good overlap, GPS</span>
+<span id="cb19-423"><a href="#cb19-423" aria-hidden="true" tabindex="-1"></a>  or the Kennedy DR estimator is a natural start.</span>
+<span id="cb19-424"><a href="#cb19-424" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>For time-varying treatments or policy shifts, use LMTP.</span>
+<span id="cb19-425"><a href="#cb19-425" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>For multivalued treatments, use a multinomial propensity model and the</span>
+<span id="cb19-426"><a href="#cb19-426" aria-hidden="true" tabindex="-1"></a>  same adjustment logic.</span>
+<span id="cb19-427"><a href="#cb19-427" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-428"><a href="#cb19-428" aria-hidden="true" tabindex="-1"></a><span class="fu">## When to use these methods</span></span>
 <span id="cb19-429"><a href="#cb19-429" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-430"><a href="#cb19-430" aria-hidden="true" tabindex="-1"></a>For strictly binary, single-time-period problems, the standard</span>
-<span id="cb19-431"><a href="#cb19-431" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Estimation</span><span class="co">](estimation.qmd)</span> and <span class="co">[</span><span class="ot">Heterogeneous Effects</span><span class="co">](heterogeneous-effects.qmd)</span></span>
-<span id="cb19-432"><a href="#cb19-432" aria-hidden="true" tabindex="-1"></a>methods are sufficient.</span>
-<span id="cb19-433"><a href="#cb19-433" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-434"><a href="#cb19-434" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
-<span id="cb19-435"><a href="#cb19-435" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-436"><a href="#cb19-436" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Continuous and multivalued treatments usually require a dose-response</span>
-<span id="cb19-437"><a href="#cb19-437" aria-hidden="true" tabindex="-1"></a>  curve, not a single coefficient.</span>
-<span id="cb19-438"><a href="#cb19-438" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>GPS extends propensity-score logic to continuous treatments by modeling</span>
-<span id="cb19-439"><a href="#cb19-439" aria-hidden="true" tabindex="-1"></a>  the density of treatment given covariates.</span>
-<span id="cb19-440"><a href="#cb19-440" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Kennedy's DR estimator adds an outcome model to the GPS.</span>
-<span id="cb19-441"><a href="#cb19-441" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>LMTP is useful when the intervention is a policy shift or when treatment is</span>
-<span id="cb19-442"><a href="#cb19-442" aria-hidden="true" tabindex="-1"></a>  time-varying.</span>
+<span id="cb19-430"><a href="#cb19-430" aria-hidden="true" tabindex="-1"></a>These methods are useful when:</span>
+<span id="cb19-431"><a href="#cb19-431" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-432"><a href="#cb19-432" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Treatment has more than two values.</span>
+<span id="cb19-433"><a href="#cb19-433" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>The research question is about the shape of the dose-response curve.</span>
+<span id="cb19-434"><a href="#cb19-434" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>The intervention is better described as shifting treatment than setting</span>
+<span id="cb19-435"><a href="#cb19-435" aria-hidden="true" tabindex="-1"></a>   treatment to a fixed value.</span>
+<span id="cb19-436"><a href="#cb19-436" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-437"><a href="#cb19-437" aria-hidden="true" tabindex="-1"></a>For strictly binary, single-time-period problems, the standard</span>
+<span id="cb19-438"><a href="#cb19-438" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Estimation</span><span class="co">](estimation.qmd)</span> and <span class="co">[</span><span class="ot">Heterogeneous Effects</span><span class="co">](heterogeneous-effects.qmd)</span></span>
+<span id="cb19-439"><a href="#cb19-439" aria-hidden="true" tabindex="-1"></a>methods are sufficient.</span>
+<span id="cb19-440"><a href="#cb19-440" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-441"><a href="#cb19-441" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb19-442"><a href="#cb19-442" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-443"><a href="#cb19-443" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Continuous and multivalued treatments usually require a dose-response</span>
+<span id="cb19-444"><a href="#cb19-444" aria-hidden="true" tabindex="-1"></a>  curve, not a single coefficient.</span>
+<span id="cb19-445"><a href="#cb19-445" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>GPS extends propensity-score logic to continuous treatments by modeling</span>
+<span id="cb19-446"><a href="#cb19-446" aria-hidden="true" tabindex="-1"></a>  the density of treatment given covariates.</span>
+<span id="cb19-447"><a href="#cb19-447" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Kennedy's DR estimator adds an outcome model to the GPS.</span>
+<span id="cb19-448"><a href="#cb19-448" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>LMTP is useful when the intervention is a policy shift or when treatment is</span>
+<span id="cb19-449"><a href="#cb19-449" aria-hidden="true" tabindex="-1"></a>  time-varying.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

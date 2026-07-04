@@ -209,7 +209,20 @@ times_at_risk <- df_sub$time
 # G(t | X): probability of being uncensored at time t given X
 # Use survfit on cens_fit to get S_C(t | X)
 sc_fit <- survfit(cens_fit, newdata = df_sub)
-sc_at_t <- diag(summary(sc_fit, times = df_sub$time, extend = TRUE)$surv)
+# We only need each subject's OWN survival at their OWN event time, not the
+# full cross product of all N subjects' curves at all N event times.
+# summary(sc_fit, times=df_sub$time, extend=TRUE)$surv followed by diag()
+# builds that full N x N matrix just to throw away everything off the
+# diagonal -- for N in the tens of thousands this is a multi-GB allocation
+# and can OOM. Look each subject's own time up in sc_fit's existing
+# per-subject step function instead (sc_fit$surv is already an
+# n_times x N matrix that survfit(newdata=) computes regardless; this just
+# avoids building a second, larger one on top of it). For very large N,
+# packages like `riskRegression`/`pec` avoid materializing even that
+# per-subject curve matrix and would scale further.
+sc_idx  <- findInterval(df_sub$time, sc_fit$time)
+sc_at_t <- sc_fit$surv[cbind(pmax(sc_idx, 1), seq_len(nrow(df_sub)))]
+sc_at_t[sc_idx == 0] <- 1  # before the first censoring event, S_C = 1
 
 # IPCW weight: 1 / P(C > T_i | X_i) for event times, 0 for censoring times
 df_sub$ipcw <- ifelse(df_sub$event == 1, 1 / pmax(sc_at_t, 0.01), 0)

@@ -255,6 +255,11 @@ cat(sprintf("Mean paired difference (matched ATT): %.3f kg\n",
 # under each Gamma. We compute this directly rather than using a package
 # to keep the dependency footprint small.
 rosenbaum_pvalue <- function(diffs, gamma) {
+  # The Wilcoxon signed-rank protocol discards exact-zero paired differences
+  # before ranking (a zero carries no information about the sign) and
+  # reduces the effective sample size accordingly; including them would
+  # skew both the rank sum and its null variance.
+  diffs <- diffs[diffs != 0]
   abs_d <- abs(diffs)
   signs <- sign(diffs)
   ranks <- rank(abs_d)
@@ -288,9 +293,13 @@ overturn the conclusion.
 #| label: critical-gamma
 #| cache: true
 
-critical_gamma <- result$Gamma[min(which(result$p_value_upper > 0.05))]
-cat(sprintf("Critical Gamma (p > 0.05): %.2f\n",
-            critical_gamma))
+sig_idx <- which(result$p_value_upper > 0.05)
+critical_gamma <- if (length(sig_idx) > 0) result$Gamma[min(sig_idx)] else NA
+if (is.na(critical_gamma)) {
+  cat(sprintf("No Gamma up to %.2f pushed the p-value above 0.05 -- the result is robust across the whole grid tested; extend `gammas` to find the true crossing.\n", max(result$Gamma)))
+} else {
+  cat(sprintf("Critical Gamma (p > 0.05): %.2f\n", critical_gamma))
+}
 ```
 
 This reports the first value *on the 0.25 grid* at which significance is

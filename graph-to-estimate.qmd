@@ -124,9 +124,15 @@ print(adjustmentSets(g_fd, exposure = "A", outcome = "Y"))
 
 # causaleffect for ID algorithm: bidirected A <-> Y = two directed edges + description "U"
 g_fd_ig <- graph_from_literal(A -+ M, M -+ Y, A -+ Y, Y -+ A)
-# igraph sorts edges by source vertex: A-edges come before M-edges before Y-edges.
-# Resulting order: A->M(1), A->Y(2), M->Y(3), Y->A(4). Bidirected pair = edges 2 & 4.
-g_fd_ig <- set_edge_attr(g_fd_ig, "description", index = c(2, 4), value = "U")
+# Mark the A<->Y bidirected edge by endpoint name rather than a hardcoded
+# edge index: igraph happens to sort edges by source vertex today (giving
+# order A->M(1), A->Y(2), M->Y(3), Y->A(4)), but that ordering isn't part of
+# igraph's documented contract, so indices like c(2,4) can silently break if
+# igraph's internals or this graph's construction ever changes.
+edge_ends <- ends(g_fd_ig, E(g_fd_ig))
+confounded <- (edge_ends[, 1] == "A" & edge_ends[, 2] == "Y") |
+              (edge_ends[, 1] == "Y" & edge_ends[, 2] == "A")
+g_fd_ig <- set_edge_attr(g_fd_ig, "description", index = which(confounded), value = "U")
 
 expr_fd <- causal.effect(y = "Y", x = "A", G = g_fd_ig, simp = TRUE)
 cat("\nIdentifying expression:\n")
@@ -216,8 +222,17 @@ cause and there is no front-door variable, the effect is not identified.
 # graph_from_literal() silently collapses a duplicated A -+ Y, so we
 # build the multigraph with make_graph().
 g_unident_ig <- make_graph(c("A","Y",  "A","Y",  "Y","A"), directed = TRUE)
+# make_graph() preserves the literal edge order given above (unlike
+# graph_from_literal(), which re-sorts), so index 2:3 is reliable as long as
+# the c(...) vector above isn't reordered -- mark by endpoint pair anyway so
+# a future edit to that vector can't silently mismark the real A->Y edge.
+edge_ends <- ends(g_unident_ig, E(g_unident_ig))
+# The first A->Y edge is the real causal edge; the second (a duplicate,
+# per `duplicated()`) together with Y->A forms the bidirected U pair.
+u_edges <- which(((edge_ends[,1]=="A" & edge_ends[,2]=="Y") & duplicated(edge_ends)) |
+                  (edge_ends[,1]=="Y" & edge_ends[,2]=="A"))
 g_unident_ig <- set_edge_attr(g_unident_ig, "description",
-                               index = 2:3, value = "U")
+                               index = u_edges, value = "U")
 
 result <- tryCatch(
   causal.effect(y = "Y", x = "A", G = g_unident_ig, simp = TRUE),

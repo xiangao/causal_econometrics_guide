@@ -234,6 +234,12 @@ amat_to_skel <- function(amat) (amat | t(amat)) * 1L
 # F1 scores: skeleton F1 (ignore direction) and CPDAG F1
 # (directed edge in estimate must match a directed edge in the truth;
 #  undirected in estimate matches either direction in truth).
+# CAUTION if reusing this function elsewhere: the CPDAG-F1 component is
+# orientation-error-only -- it never penalizes leaving a truly directed edge
+# undirected, only actively wrong orientations. It is not a standard CPDAG
+# accuracy metric and can flatter an algorithm that declines to orient
+# edges. See the discussion above this function for what it does and does
+# not measure.
 f1_scores <- function(amat_true, amat_est) {
   skel_t <- amat_to_skel(amat_true)
   skel_e <- amat_to_skel(amat_est)

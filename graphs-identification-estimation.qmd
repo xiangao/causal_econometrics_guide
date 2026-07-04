@@ -174,9 +174,16 @@ But the effect is still identified by the front-door criterion (Pearl, 1995). I 
 
 ```{r}
 g_fd_ig <- graph_from_literal(A -+ M, M -+ Y, A -+ Y, Y -+ A)
-g_fd_ig <- set_edge_attr(g_fd_ig, "description",
-                         index = c(2, 4),  # A->Y and Y->A
-                         value = "U")
+# Mark the A<->Y bidirected edge (encoded as the two directed edges A->Y and
+# Y->A) by endpoint name rather than by hardcoded edge index -- igraph's
+# internal edge ordering after graph_from_literal() is not part of its
+# documented contract, so indices like c(2, 4) can silently point at the
+# wrong edges if igraph's internals, the vertex/edge creation order, or the
+# package version ever changes.
+edge_ends <- ends(g_fd_ig, E(g_fd_ig))
+confounded <- (edge_ends[, 1] == "A" & edge_ends[, 2] == "Y") |
+              (edge_ends[, 1] == "Y" & edge_ends[, 2] == "A")
+E(g_fd_ig)$description[confounded] <- "U"
 expr_fd <- causal.effect(y = "Y", x = "A", G = g_fd_ig, simp = TRUE)
 cat(expr_fd, "\n")
 ```

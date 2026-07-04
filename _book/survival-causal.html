@@ -673,7 +673,20 @@ trt=1     461 1494    897   4.40    0.0317   7.73    6.94    8.85
 <span><span class="co"># G(t | X): probability of being uncensored at time t given X</span></span>
 <span><span class="co"># Use survfit on cens_fit to get S_C(t | X)</span></span>
 <span><span class="va">sc_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/survfit.html">survfit</a></span><span class="op">(</span><span class="va">cens_fit</span>, newdata <span class="op">=</span> <span class="va">df_sub</span><span class="op">)</span></span>
-<span><span class="va">sc_at_t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/diag.html">diag</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/summary.html">summary</a></span><span class="op">(</span><span class="va">sc_fit</span>, times <span class="op">=</span> <span class="va">df_sub</span><span class="op">$</span><span class="va">time</span>, extend <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">surv</span><span class="op">)</span></span>
+<span><span class="co"># We only need each subject's OWN survival at their OWN event time, not the</span></span>
+<span><span class="co"># full cross product of all N subjects' curves at all N event times.</span></span>
+<span><span class="co"># summary(sc_fit, times=df_sub$time, extend=TRUE)$surv followed by diag()</span></span>
+<span><span class="co"># builds that full N x N matrix just to throw away everything off the</span></span>
+<span><span class="co"># diagonal -- for N in the tens of thousands this is a multi-GB allocation</span></span>
+<span><span class="co"># and can OOM. Look each subject's own time up in sc_fit's existing</span></span>
+<span><span class="co"># per-subject step function instead (sc_fit$surv is already an</span></span>
+<span><span class="co"># n_times x N matrix that survfit(newdata=) computes regardless; this just</span></span>
+<span><span class="co"># avoids building a second, larger one on top of it). For very large N,</span></span>
+<span><span class="co"># packages like `riskRegression`/`pec` avoid materializing even that</span></span>
+<span><span class="co"># per-subject curve matrix and would scale further.</span></span>
+<span><span class="va">sc_idx</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/findInterval.html">findInterval</a></span><span class="op">(</span><span class="va">df_sub</span><span class="op">$</span><span class="va">time</span>, <span class="va">sc_fit</span><span class="op">$</span><span class="va">time</span><span class="op">)</span></span>
+<span><span class="va">sc_at_t</span> <span class="op">&lt;-</span> <span class="va">sc_fit</span><span class="op">$</span><span class="va">surv</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmax</a></span><span class="op">(</span><span class="va">sc_idx</span>, <span class="fl">1</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">df_sub</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">sc_at_t</span><span class="op">[</span><span class="va">sc_idx</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">1</span>  <span class="co"># before the first censoring event, S_C = 1</span></span>
 <span></span>
 <span><span class="co"># IPCW weight: 1 / P(C &gt; T_i | X_i) for event times, 0 for censoring times</span></span>
 <span><span class="va">df_sub</span><span class="op">$</span><span class="va">ipcw</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html">ifelse</a></span><span class="op">(</span><span class="va">df_sub</span><span class="op">$</span><span class="va">event</span> <span class="op">==</span> <span class="fl">1</span>, <span class="fl">1</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">pmax</a></span><span class="op">(</span><span class="va">sc_at_t</span>, <span class="fl">0.01</span><span class="op">)</span>, <span class="fl">0</span><span class="op">)</span></span>
@@ -1534,107 +1547,120 @@ Hernán, Miguel A. 2010. <span>“The Hazards of Hazard Ratios.”</span> <em>Ep
 <span id="cb19-225"><a href="#cb19-225" aria-hidden="true" tabindex="-1"></a><span class="co"># G(t | X): probability of being uncensored at time t given X</span></span>
 <span id="cb19-226"><a href="#cb19-226" aria-hidden="true" tabindex="-1"></a><span class="co"># Use survfit on cens_fit to get S_C(t | X)</span></span>
 <span id="cb19-227"><a href="#cb19-227" aria-hidden="true" tabindex="-1"></a>sc_fit <span class="ot">&lt;-</span> <span class="fu">survfit</span>(cens_fit, <span class="at">newdata =</span> df_sub)</span>
-<span id="cb19-228"><a href="#cb19-228" aria-hidden="true" tabindex="-1"></a>sc_at_t <span class="ot">&lt;-</span> <span class="fu">diag</span>(<span class="fu">summary</span>(sc_fit, <span class="at">times =</span> df_sub<span class="sc">$</span>time, <span class="at">extend =</span> <span class="cn">TRUE</span>)<span class="sc">$</span>surv)</span>
-<span id="cb19-229"><a href="#cb19-229" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-230"><a href="#cb19-230" aria-hidden="true" tabindex="-1"></a><span class="co"># IPCW weight: 1 / P(C &gt; T_i | X_i) for event times, 0 for censoring times</span></span>
-<span id="cb19-231"><a href="#cb19-231" aria-hidden="true" tabindex="-1"></a>df_sub<span class="sc">$</span>ipcw <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(df_sub<span class="sc">$</span>event <span class="sc">==</span> <span class="dv">1</span>, <span class="dv">1</span> <span class="sc">/</span> <span class="fu">pmax</span>(sc_at_t, <span class="fl">0.01</span>), <span class="dv">0</span>)</span>
-<span id="cb19-232"><a href="#cb19-232" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(df_sub<span class="sc">$</span>ipcw[df_sub<span class="sc">$</span>event <span class="sc">==</span> <span class="dv">1</span>])</span>
-<span id="cb19-233"><a href="#cb19-233" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb19-234"><a href="#cb19-234" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-235"><a href="#cb19-235" aria-hidden="true" tabindex="-1"></a>IPCW upweights observations that remain uncensored despite having a high</span>
-<span id="cb19-236"><a href="#cb19-236" aria-hidden="true" tabindex="-1"></a>predicted chance of censoring.</span>
-<span id="cb19-237"><a href="#cb19-237" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-238"><a href="#cb19-238" aria-hidden="true" tabindex="-1"></a><span class="fu">## Doubly-robust survival estimation</span></span>
-<span id="cb19-239"><a href="#cb19-239" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-240"><a href="#cb19-240" aria-hidden="true" tabindex="-1"></a>The <span class="in">`riskRegression`</span> package combines the outcome model, propensity score,</span>
-<span id="cb19-241"><a href="#cb19-241" aria-hidden="true" tabindex="-1"></a>and censoring model:</span>
+<span id="cb19-228"><a href="#cb19-228" aria-hidden="true" tabindex="-1"></a><span class="co"># We only need each subject's OWN survival at their OWN event time, not the</span></span>
+<span id="cb19-229"><a href="#cb19-229" aria-hidden="true" tabindex="-1"></a><span class="co"># full cross product of all N subjects' curves at all N event times.</span></span>
+<span id="cb19-230"><a href="#cb19-230" aria-hidden="true" tabindex="-1"></a><span class="co"># summary(sc_fit, times=df_sub$time, extend=TRUE)$surv followed by diag()</span></span>
+<span id="cb19-231"><a href="#cb19-231" aria-hidden="true" tabindex="-1"></a><span class="co"># builds that full N x N matrix just to throw away everything off the</span></span>
+<span id="cb19-232"><a href="#cb19-232" aria-hidden="true" tabindex="-1"></a><span class="co"># diagonal -- for N in the tens of thousands this is a multi-GB allocation</span></span>
+<span id="cb19-233"><a href="#cb19-233" aria-hidden="true" tabindex="-1"></a><span class="co"># and can OOM. Look each subject's own time up in sc_fit's existing</span></span>
+<span id="cb19-234"><a href="#cb19-234" aria-hidden="true" tabindex="-1"></a><span class="co"># per-subject step function instead (sc_fit$surv is already an</span></span>
+<span id="cb19-235"><a href="#cb19-235" aria-hidden="true" tabindex="-1"></a><span class="co"># n_times x N matrix that survfit(newdata=) computes regardless; this just</span></span>
+<span id="cb19-236"><a href="#cb19-236" aria-hidden="true" tabindex="-1"></a><span class="co"># avoids building a second, larger one on top of it). For very large N,</span></span>
+<span id="cb19-237"><a href="#cb19-237" aria-hidden="true" tabindex="-1"></a><span class="co"># packages like `riskRegression`/`pec` avoid materializing even that</span></span>
+<span id="cb19-238"><a href="#cb19-238" aria-hidden="true" tabindex="-1"></a><span class="co"># per-subject curve matrix and would scale further.</span></span>
+<span id="cb19-239"><a href="#cb19-239" aria-hidden="true" tabindex="-1"></a>sc_idx  <span class="ot">&lt;-</span> <span class="fu">findInterval</span>(df_sub<span class="sc">$</span>time, sc_fit<span class="sc">$</span>time)</span>
+<span id="cb19-240"><a href="#cb19-240" aria-hidden="true" tabindex="-1"></a>sc_at_t <span class="ot">&lt;-</span> sc_fit<span class="sc">$</span>surv[<span class="fu">cbind</span>(<span class="fu">pmax</span>(sc_idx, <span class="dv">1</span>), <span class="fu">seq_len</span>(<span class="fu">nrow</span>(df_sub)))]</span>
+<span id="cb19-241"><a href="#cb19-241" aria-hidden="true" tabindex="-1"></a>sc_at_t[sc_idx <span class="sc">==</span> <span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">1</span>  <span class="co"># before the first censoring event, S_C = 1</span></span>
 <span id="cb19-242"><a href="#cb19-242" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-245"><a href="#cb19-245" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb19-246"><a href="#cb19-246" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: dr-survival</span></span>
-<span id="cb19-247"><a href="#cb19-247" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb19-248"><a href="#cb19-248" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
-<span id="cb19-249"><a href="#cb19-249" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-250"><a href="#cb19-250" aria-hidden="true" tabindex="-1"></a><span class="co"># Average treatment effect on survival probability at t = 5</span></span>
-<span id="cb19-251"><a href="#cb19-251" aria-hidden="true" tabindex="-1"></a><span class="co"># ATE(t) = P(T(1) &gt; t) - P(T(0) &gt; t)</span></span>
-<span id="cb19-252"><a href="#cb19-252" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>trt_f <span class="ot">&lt;-</span> <span class="fu">factor</span>(df<span class="sc">$</span>trt)</span>
-<span id="cb19-253"><a href="#cb19-253" aria-hidden="true" tabindex="-1"></a>cox_for_ate <span class="ot">&lt;-</span> <span class="fu">coxph</span>(<span class="fu">Surv</span>(time, event) <span class="sc">~</span> trt_f <span class="sc">+</span> age <span class="sc">+</span> sex, <span class="at">data =</span> df,</span>
-<span id="cb19-254"><a href="#cb19-254" aria-hidden="true" tabindex="-1"></a>                     <span class="at">x =</span> <span class="cn">TRUE</span>, <span class="at">y =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb19-255"><a href="#cb19-255" aria-hidden="true" tabindex="-1"></a>ps_for_ate  <span class="ot">&lt;-</span> <span class="fu">glm</span>(trt_f <span class="sc">~</span> age <span class="sc">+</span> sex, <span class="at">data =</span> df, <span class="at">family =</span> binomial, <span class="at">x =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb19-256"><a href="#cb19-256" aria-hidden="true" tabindex="-1"></a><span class="co"># With right-censoring, the IPTW/AIPTW survival estimator needs a model for</span></span>
-<span id="cb19-257"><a href="#cb19-257" aria-hidden="true" tabindex="-1"></a><span class="co"># the censoring mechanism (a Cox model for time-to-censoring).</span></span>
-<span id="cb19-258"><a href="#cb19-258" aria-hidden="true" tabindex="-1"></a>cens_for_ate <span class="ot">&lt;-</span> <span class="fu">coxph</span>(<span class="fu">Surv</span>(time, event <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">~</span> age <span class="sc">+</span> sex, <span class="at">data =</span> df,</span>
-<span id="cb19-259"><a href="#cb19-259" aria-hidden="true" tabindex="-1"></a>                      <span class="at">x =</span> <span class="cn">TRUE</span>, <span class="at">y =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb19-260"><a href="#cb19-260" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-261"><a href="#cb19-261" aria-hidden="true" tabindex="-1"></a>ate_surv <span class="ot">&lt;-</span> <span class="fu">ate</span>(</span>
-<span id="cb19-262"><a href="#cb19-262" aria-hidden="true" tabindex="-1"></a>  <span class="at">event       =</span> cox_for_ate,</span>
-<span id="cb19-263"><a href="#cb19-263" aria-hidden="true" tabindex="-1"></a>  <span class="at">treatment   =</span> ps_for_ate,</span>
-<span id="cb19-264"><a href="#cb19-264" aria-hidden="true" tabindex="-1"></a>  <span class="at">censor      =</span> cens_for_ate,</span>
-<span id="cb19-265"><a href="#cb19-265" aria-hidden="true" tabindex="-1"></a>  <span class="at">data        =</span> df,</span>
-<span id="cb19-266"><a href="#cb19-266" aria-hidden="true" tabindex="-1"></a>  <span class="at">times       =</span> <span class="dv">5</span>,</span>
-<span id="cb19-267"><a href="#cb19-267" aria-hidden="true" tabindex="-1"></a>  <span class="at">estimator   =</span> <span class="fu">c</span>(<span class="st">"Gformula"</span>, <span class="st">"IPTW"</span>, <span class="st">"AIPTW"</span>),</span>
-<span id="cb19-268"><a href="#cb19-268" aria-hidden="true" tabindex="-1"></a>  <span class="at">cause       =</span> <span class="dv">1</span>,</span>
-<span id="cb19-269"><a href="#cb19-269" aria-hidden="true" tabindex="-1"></a>  <span class="at">se          =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb19-270"><a href="#cb19-270" aria-hidden="true" tabindex="-1"></a>  <span class="at">B           =</span> <span class="dv">0</span>,</span>
-<span id="cb19-271"><a href="#cb19-271" aria-hidden="true" tabindex="-1"></a>  <span class="at">verbose     =</span> <span class="cn">FALSE</span></span>
-<span id="cb19-272"><a href="#cb19-272" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-243"><a href="#cb19-243" aria-hidden="true" tabindex="-1"></a><span class="co"># IPCW weight: 1 / P(C &gt; T_i | X_i) for event times, 0 for censoring times</span></span>
+<span id="cb19-244"><a href="#cb19-244" aria-hidden="true" tabindex="-1"></a>df_sub<span class="sc">$</span>ipcw <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(df_sub<span class="sc">$</span>event <span class="sc">==</span> <span class="dv">1</span>, <span class="dv">1</span> <span class="sc">/</span> <span class="fu">pmax</span>(sc_at_t, <span class="fl">0.01</span>), <span class="dv">0</span>)</span>
+<span id="cb19-245"><a href="#cb19-245" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(df_sub<span class="sc">$</span>ipcw[df_sub<span class="sc">$</span>event <span class="sc">==</span> <span class="dv">1</span>])</span>
+<span id="cb19-246"><a href="#cb19-246" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb19-247"><a href="#cb19-247" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-248"><a href="#cb19-248" aria-hidden="true" tabindex="-1"></a>IPCW upweights observations that remain uncensored despite having a high</span>
+<span id="cb19-249"><a href="#cb19-249" aria-hidden="true" tabindex="-1"></a>predicted chance of censoring.</span>
+<span id="cb19-250"><a href="#cb19-250" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-251"><a href="#cb19-251" aria-hidden="true" tabindex="-1"></a><span class="fu">## Doubly-robust survival estimation</span></span>
+<span id="cb19-252"><a href="#cb19-252" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-253"><a href="#cb19-253" aria-hidden="true" tabindex="-1"></a>The <span class="in">`riskRegression`</span> package combines the outcome model, propensity score,</span>
+<span id="cb19-254"><a href="#cb19-254" aria-hidden="true" tabindex="-1"></a>and censoring model:</span>
+<span id="cb19-255"><a href="#cb19-255" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-258"><a href="#cb19-258" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb19-259"><a href="#cb19-259" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: dr-survival</span></span>
+<span id="cb19-260"><a href="#cb19-260" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb19-261"><a href="#cb19-261" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb19-262"><a href="#cb19-262" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-263"><a href="#cb19-263" aria-hidden="true" tabindex="-1"></a><span class="co"># Average treatment effect on survival probability at t = 5</span></span>
+<span id="cb19-264"><a href="#cb19-264" aria-hidden="true" tabindex="-1"></a><span class="co"># ATE(t) = P(T(1) &gt; t) - P(T(0) &gt; t)</span></span>
+<span id="cb19-265"><a href="#cb19-265" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>trt_f <span class="ot">&lt;-</span> <span class="fu">factor</span>(df<span class="sc">$</span>trt)</span>
+<span id="cb19-266"><a href="#cb19-266" aria-hidden="true" tabindex="-1"></a>cox_for_ate <span class="ot">&lt;-</span> <span class="fu">coxph</span>(<span class="fu">Surv</span>(time, event) <span class="sc">~</span> trt_f <span class="sc">+</span> age <span class="sc">+</span> sex, <span class="at">data =</span> df,</span>
+<span id="cb19-267"><a href="#cb19-267" aria-hidden="true" tabindex="-1"></a>                     <span class="at">x =</span> <span class="cn">TRUE</span>, <span class="at">y =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb19-268"><a href="#cb19-268" aria-hidden="true" tabindex="-1"></a>ps_for_ate  <span class="ot">&lt;-</span> <span class="fu">glm</span>(trt_f <span class="sc">~</span> age <span class="sc">+</span> sex, <span class="at">data =</span> df, <span class="at">family =</span> binomial, <span class="at">x =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb19-269"><a href="#cb19-269" aria-hidden="true" tabindex="-1"></a><span class="co"># With right-censoring, the IPTW/AIPTW survival estimator needs a model for</span></span>
+<span id="cb19-270"><a href="#cb19-270" aria-hidden="true" tabindex="-1"></a><span class="co"># the censoring mechanism (a Cox model for time-to-censoring).</span></span>
+<span id="cb19-271"><a href="#cb19-271" aria-hidden="true" tabindex="-1"></a>cens_for_ate <span class="ot">&lt;-</span> <span class="fu">coxph</span>(<span class="fu">Surv</span>(time, event <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">~</span> age <span class="sc">+</span> sex, <span class="at">data =</span> df,</span>
+<span id="cb19-272"><a href="#cb19-272" aria-hidden="true" tabindex="-1"></a>                      <span class="at">x =</span> <span class="cn">TRUE</span>, <span class="at">y =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb19-273"><a href="#cb19-273" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-274"><a href="#cb19-274" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(ate_surv)</span>
-<span id="cb19-275"><a href="#cb19-275" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-276"><a href="#cb19-276" aria-hidden="true" tabindex="-1"></a><span class="co"># The summary displays one estimator; put all three side by side</span></span>
-<span id="cb19-277"><a href="#cb19-277" aria-hidden="true" tabindex="-1"></a>ate_tab <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(data.table<span class="sc">::</span><span class="fu">as.data.table</span>(ate_surv, <span class="at">type =</span> <span class="st">"diffRisk"</span>))</span>
-<span id="cb19-278"><a href="#cb19-278" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(ate_tab[, <span class="fu">c</span>(<span class="st">"estimator"</span>, <span class="st">"estimate"</span>, <span class="st">"se"</span>, <span class="st">"lower"</span>, <span class="st">"upper"</span>)],</span>
-<span id="cb19-279"><a href="#cb19-279" aria-hidden="true" tabindex="-1"></a>             <span class="at">digits =</span> <span class="dv">3</span>,</span>
-<span id="cb19-280"><a href="#cb19-280" aria-hidden="true" tabindex="-1"></a>             <span class="at">caption =</span> <span class="st">"Risk difference at t = 5 under each estimator."</span>)</span>
-<span id="cb19-281"><a href="#cb19-281" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb19-282"><a href="#cb19-282" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-283"><a href="#cb19-283" aria-hidden="true" tabindex="-1"></a>The object contains three estimators, shown side-by-side in the table:</span>
-<span id="cb19-284"><a href="#cb19-284" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-285"><a href="#cb19-285" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Gformula** — parametric g-computation using the Cox model only.</span>
-<span id="cb19-286"><a href="#cb19-286" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**IPTW** — inverse probability of treatment weighting.</span>
-<span id="cb19-287"><a href="#cb19-287" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**AIPTW** — augmented IPTW (doubly robust); the recommended default.</span>
+<span id="cb19-274"><a href="#cb19-274" aria-hidden="true" tabindex="-1"></a>ate_surv <span class="ot">&lt;-</span> <span class="fu">ate</span>(</span>
+<span id="cb19-275"><a href="#cb19-275" aria-hidden="true" tabindex="-1"></a>  <span class="at">event       =</span> cox_for_ate,</span>
+<span id="cb19-276"><a href="#cb19-276" aria-hidden="true" tabindex="-1"></a>  <span class="at">treatment   =</span> ps_for_ate,</span>
+<span id="cb19-277"><a href="#cb19-277" aria-hidden="true" tabindex="-1"></a>  <span class="at">censor      =</span> cens_for_ate,</span>
+<span id="cb19-278"><a href="#cb19-278" aria-hidden="true" tabindex="-1"></a>  <span class="at">data        =</span> df,</span>
+<span id="cb19-279"><a href="#cb19-279" aria-hidden="true" tabindex="-1"></a>  <span class="at">times       =</span> <span class="dv">5</span>,</span>
+<span id="cb19-280"><a href="#cb19-280" aria-hidden="true" tabindex="-1"></a>  <span class="at">estimator   =</span> <span class="fu">c</span>(<span class="st">"Gformula"</span>, <span class="st">"IPTW"</span>, <span class="st">"AIPTW"</span>),</span>
+<span id="cb19-281"><a href="#cb19-281" aria-hidden="true" tabindex="-1"></a>  <span class="at">cause       =</span> <span class="dv">1</span>,</span>
+<span id="cb19-282"><a href="#cb19-282" aria-hidden="true" tabindex="-1"></a>  <span class="at">se          =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb19-283"><a href="#cb19-283" aria-hidden="true" tabindex="-1"></a>  <span class="at">B           =</span> <span class="dv">0</span>,</span>
+<span id="cb19-284"><a href="#cb19-284" aria-hidden="true" tabindex="-1"></a>  <span class="at">verbose     =</span> <span class="cn">FALSE</span></span>
+<span id="cb19-285"><a href="#cb19-285" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-286"><a href="#cb19-286" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-287"><a href="#cb19-287" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(ate_surv)</span>
 <span id="cb19-288"><a href="#cb19-288" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-289"><a href="#cb19-289" aria-hidden="true" tabindex="-1"></a>Agreement across these estimates is reassuring. Disagreement is a warning</span>
-<span id="cb19-290"><a href="#cb19-290" aria-hidden="true" tabindex="-1"></a>about model specification.</span>
-<span id="cb19-291"><a href="#cb19-291" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-292"><a href="#cb19-292" aria-hidden="true" tabindex="-1"></a><span class="fu">## Hazard ratio vs RMST: which to report?</span></span>
-<span id="cb19-293"><a href="#cb19-293" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-294"><a href="#cb19-294" aria-hidden="true" tabindex="-1"></a>For causal reporting, RMST is often easier to defend than the hazard ratio:</span>
+<span id="cb19-289"><a href="#cb19-289" aria-hidden="true" tabindex="-1"></a><span class="co"># The summary displays one estimator; put all three side by side</span></span>
+<span id="cb19-290"><a href="#cb19-290" aria-hidden="true" tabindex="-1"></a>ate_tab <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(data.table<span class="sc">::</span><span class="fu">as.data.table</span>(ate_surv, <span class="at">type =</span> <span class="st">"diffRisk"</span>))</span>
+<span id="cb19-291"><a href="#cb19-291" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(ate_tab[, <span class="fu">c</span>(<span class="st">"estimator"</span>, <span class="st">"estimate"</span>, <span class="st">"se"</span>, <span class="st">"lower"</span>, <span class="st">"upper"</span>)],</span>
+<span id="cb19-292"><a href="#cb19-292" aria-hidden="true" tabindex="-1"></a>             <span class="at">digits =</span> <span class="dv">3</span>,</span>
+<span id="cb19-293"><a href="#cb19-293" aria-hidden="true" tabindex="-1"></a>             <span class="at">caption =</span> <span class="st">"Risk difference at t = 5 under each estimator."</span>)</span>
+<span id="cb19-294"><a href="#cb19-294" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb19-295"><a href="#cb19-295" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-296"><a href="#cb19-296" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Quantity <span class="pp">|</span> Pro <span class="pp">|</span> Con <span class="pp">|</span></span>
-<span id="cb19-297"><a href="#cb19-297" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
-<span id="cb19-298"><a href="#cb19-298" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Hazard ratio** <span class="pp">|</span> Compact summary; familiar <span class="pp">|</span> Requires PH; no causal interpretation; conditional on survivors <span class="pp">|</span></span>
-<span id="cb19-299"><a href="#cb19-299" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **RMST difference** <span class="pp">|</span> Directly interpretable as "years gained"; no PH assumption <span class="pp">|</span> Depends on cutoff $\tau$; less familiar <span class="pp">|</span></span>
-<span id="cb19-300"><a href="#cb19-300" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Survival probability difference at t** <span class="pp">|</span> Direct probability statement <span class="pp">|</span> Depends on choice of $t$ <span class="pp">|</span></span>
+<span id="cb19-296"><a href="#cb19-296" aria-hidden="true" tabindex="-1"></a>The object contains three estimators, shown side-by-side in the table:</span>
+<span id="cb19-297"><a href="#cb19-297" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-298"><a href="#cb19-298" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Gformula** — parametric g-computation using the Cox model only.</span>
+<span id="cb19-299"><a href="#cb19-299" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**IPTW** — inverse probability of treatment weighting.</span>
+<span id="cb19-300"><a href="#cb19-300" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**AIPTW** — augmented IPTW (doubly robust); the recommended default.</span>
 <span id="cb19-301"><a href="#cb19-301" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-302"><a href="#cb19-302" aria-hidden="true" tabindex="-1"></a>In practice, report at least:</span>
-<span id="cb19-303"><a href="#cb19-303" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-304"><a href="#cb19-304" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>The KM curves with risk tables (description).</span>
-<span id="cb19-305"><a href="#cb19-305" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>The Cox HR with adjustment (familiar comparison to literature).</span>
-<span id="cb19-306"><a href="#cb19-306" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>The RMST difference at a clinically meaningful $\tau$ (interpretable</span>
-<span id="cb19-307"><a href="#cb19-307" aria-hidden="true" tabindex="-1"></a>   causal contrast).</span>
-<span id="cb19-308"><a href="#cb19-308" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>The DR ATE on survival probability at one or two follow-up times.</span>
-<span id="cb19-309"><a href="#cb19-309" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-310"><a href="#cb19-310" aria-hidden="true" tabindex="-1"></a><span class="fu">## Connections</span></span>
-<span id="cb19-311"><a href="#cb19-311" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-312"><a href="#cb19-312" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">G-Methods chapter</span><span class="co">](g-methods.qmd)</span> covers IPTW with time-varying</span>
-<span id="cb19-313"><a href="#cb19-313" aria-hidden="true" tabindex="-1"></a>  treatments — directly applicable when treatment evolves during</span>
-<span id="cb19-314"><a href="#cb19-314" aria-hidden="true" tabindex="-1"></a>  follow-up. The IPCW machinery here is the censoring analogue.</span>
-<span id="cb19-315"><a href="#cb19-315" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">Heterogeneous Effects chapter</span><span class="co">](heterogeneous-effects.qmd)</span> ML</span>
-<span id="cb19-316"><a href="#cb19-316" aria-hidden="true" tabindex="-1"></a>  methods extend to survival via causal survival forests</span>
-<span id="cb19-317"><a href="#cb19-317" aria-hidden="true" tabindex="-1"></a>  (<span class="in">`grf::causal_survival_forest`</span>).</span>
-<span id="cb19-318"><a href="#cb19-318" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">Bayesian Causal Inference chapter</span><span class="co">](bayesian-causal.qmd)</span> extends</span>
-<span id="cb19-319"><a href="#cb19-319" aria-hidden="true" tabindex="-1"></a>  to survival via Bayesian additive regression trees for time-to-event</span>
-<span id="cb19-320"><a href="#cb19-320" aria-hidden="true" tabindex="-1"></a>  outcomes (<span class="in">`BART::surv.bart`</span> for discrete-time survival, or <span class="in">`BART::abart`</span></span>
-<span id="cb19-321"><a href="#cb19-321" aria-hidden="true" tabindex="-1"></a>  for an accelerated-failure-time model with right-censoring).</span>
+<span id="cb19-302"><a href="#cb19-302" aria-hidden="true" tabindex="-1"></a>Agreement across these estimates is reassuring. Disagreement is a warning</span>
+<span id="cb19-303"><a href="#cb19-303" aria-hidden="true" tabindex="-1"></a>about model specification.</span>
+<span id="cb19-304"><a href="#cb19-304" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-305"><a href="#cb19-305" aria-hidden="true" tabindex="-1"></a><span class="fu">## Hazard ratio vs RMST: which to report?</span></span>
+<span id="cb19-306"><a href="#cb19-306" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-307"><a href="#cb19-307" aria-hidden="true" tabindex="-1"></a>For causal reporting, RMST is often easier to defend than the hazard ratio:</span>
+<span id="cb19-308"><a href="#cb19-308" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-309"><a href="#cb19-309" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Quantity <span class="pp">|</span> Pro <span class="pp">|</span> Con <span class="pp">|</span></span>
+<span id="cb19-310"><a href="#cb19-310" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
+<span id="cb19-311"><a href="#cb19-311" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Hazard ratio** <span class="pp">|</span> Compact summary; familiar <span class="pp">|</span> Requires PH; no causal interpretation; conditional on survivors <span class="pp">|</span></span>
+<span id="cb19-312"><a href="#cb19-312" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **RMST difference** <span class="pp">|</span> Directly interpretable as "years gained"; no PH assumption <span class="pp">|</span> Depends on cutoff $\tau$; less familiar <span class="pp">|</span></span>
+<span id="cb19-313"><a href="#cb19-313" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Survival probability difference at t** <span class="pp">|</span> Direct probability statement <span class="pp">|</span> Depends on choice of $t$ <span class="pp">|</span></span>
+<span id="cb19-314"><a href="#cb19-314" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-315"><a href="#cb19-315" aria-hidden="true" tabindex="-1"></a>In practice, report at least:</span>
+<span id="cb19-316"><a href="#cb19-316" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-317"><a href="#cb19-317" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>The KM curves with risk tables (description).</span>
+<span id="cb19-318"><a href="#cb19-318" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>The Cox HR with adjustment (familiar comparison to literature).</span>
+<span id="cb19-319"><a href="#cb19-319" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>The RMST difference at a clinically meaningful $\tau$ (interpretable</span>
+<span id="cb19-320"><a href="#cb19-320" aria-hidden="true" tabindex="-1"></a>   causal contrast).</span>
+<span id="cb19-321"><a href="#cb19-321" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>The DR ATE on survival probability at one or two follow-up times.</span>
 <span id="cb19-322"><a href="#cb19-322" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-323"><a href="#cb19-323" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb19-323"><a href="#cb19-323" aria-hidden="true" tabindex="-1"></a><span class="fu">## Connections</span></span>
 <span id="cb19-324"><a href="#cb19-324" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-325"><a href="#cb19-325" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Survival outcomes require methods that handle censoring.</span>
-<span id="cb19-326"><a href="#cb19-326" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Cox models are familiar, but hazard ratios are hard to interpret causally.</span>
-<span id="cb19-327"><a href="#cb19-327" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>RMST differences are often the clearest causal summary.</span>
-<span id="cb19-328"><a href="#cb19-328" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>IPCW handles informative censoring.</span>
-<span id="cb19-329"><a href="#cb19-329" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`riskRegression::ate`</span> reports g-formula, IPTW, and AIPTW estimates for</span>
-<span id="cb19-330"><a href="#cb19-330" aria-hidden="true" tabindex="-1"></a>  survival probabilities.</span>
+<span id="cb19-325"><a href="#cb19-325" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">G-Methods chapter</span><span class="co">](g-methods.qmd)</span> covers IPTW with time-varying</span>
+<span id="cb19-326"><a href="#cb19-326" aria-hidden="true" tabindex="-1"></a>  treatments — directly applicable when treatment evolves during</span>
+<span id="cb19-327"><a href="#cb19-327" aria-hidden="true" tabindex="-1"></a>  follow-up. The IPCW machinery here is the censoring analogue.</span>
+<span id="cb19-328"><a href="#cb19-328" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">Heterogeneous Effects chapter</span><span class="co">](heterogeneous-effects.qmd)</span> ML</span>
+<span id="cb19-329"><a href="#cb19-329" aria-hidden="true" tabindex="-1"></a>  methods extend to survival via causal survival forests</span>
+<span id="cb19-330"><a href="#cb19-330" aria-hidden="true" tabindex="-1"></a>  (<span class="in">`grf::causal_survival_forest`</span>).</span>
+<span id="cb19-331"><a href="#cb19-331" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">Bayesian Causal Inference chapter</span><span class="co">](bayesian-causal.qmd)</span> extends</span>
+<span id="cb19-332"><a href="#cb19-332" aria-hidden="true" tabindex="-1"></a>  to survival via Bayesian additive regression trees for time-to-event</span>
+<span id="cb19-333"><a href="#cb19-333" aria-hidden="true" tabindex="-1"></a>  outcomes (<span class="in">`BART::surv.bart`</span> for discrete-time survival, or <span class="in">`BART::abart`</span></span>
+<span id="cb19-334"><a href="#cb19-334" aria-hidden="true" tabindex="-1"></a>  for an accelerated-failure-time model with right-censoring).</span>
+<span id="cb19-335"><a href="#cb19-335" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-336"><a href="#cb19-336" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb19-337"><a href="#cb19-337" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-338"><a href="#cb19-338" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Survival outcomes require methods that handle censoring.</span>
+<span id="cb19-339"><a href="#cb19-339" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Cox models are familiar, but hazard ratios are hard to interpret causally.</span>
+<span id="cb19-340"><a href="#cb19-340" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>RMST differences are often the clearest causal summary.</span>
+<span id="cb19-341"><a href="#cb19-341" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>IPCW handles informative censoring.</span>
+<span id="cb19-342"><a href="#cb19-342" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`riskRegression::ate`</span> reports g-formula, IPTW, and AIPTW estimates for</span>
+<span id="cb19-343"><a href="#cb19-343" aria-hidden="true" tabindex="-1"></a>  survival probabilities.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

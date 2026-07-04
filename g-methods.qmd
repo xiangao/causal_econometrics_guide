@@ -151,6 +151,15 @@ mod_Y  <- lm(Y  ~ L0 + A0 + L1 + A1, data = df)
 # Regime 1: always treat (A0=1, A1=1)
 # Regime 2: never treat (A0=0, A1=0)
 
+# Because both mod_L1 and mod_Y are linear, E[Y | do(A0=a0,A1=a1)] could be
+# obtained by a deterministic plug-in instead: substitute the conditional
+# mean E[L1|L0,A0=a0] directly into mod_Y, without ever drawing rnorm(). We
+# simulate a full stochastic draw of L1 here instead, because that approach
+# generalizes directly to non-linear systems (e.g. a binary L1 fit with
+# logistic regression, or an interaction between L1 and A1 in mod_Y) where
+# E[Y | do(...)] is NOT just mod_Y evaluated at the plugged-in conditional
+# mean of L1 -- you genuinely need to integrate Y's model over the
+# distribution of L1, which Monte Carlo simulation does automatically.
 g_compute <- function(a0, a1) {
   L1_sim <- predict(mod_L1, newdata = transform(df, A0 = a0)) +
             rnorm(n, 0, sigma(mod_L1))   # simulate from L1 | L0, A0=a0

@@ -179,11 +179,15 @@ heterogeneity.
 ps_fit <- glm(D ~ X1 + X2 + X3 + X4 + X5, data = df, family = binomial)
 piHat  <- predict(ps_fit, type = "response")
 
-# BCF prints MCMC progress in a way that conflicts with knitr's encoding;
-# fork the call into a separate R session so its stdout/stderr don't poison
-# the parent locale. Use SEPARATE input and output files so a failed
-# subprocess can never leave the input list sitting where we expect the
-# result, and check the exit status and object names before trusting it.
+# BCF prints MCMC progress in a way that conflicts with knitr's encoding.
+# Its `verbose=FALSE`/`no_output=TRUE` arguments do not fully suppress this
+# within the SAME R session (the progress output comes from C++ code, not
+# from R's own message()/cat() machinery that sink()/suppressMessages()
+# can intercept) -- so the only reliable fix is running bcf() in its own R
+# process and only reading back the saved result, never its console output.
+# Use SEPARATE input and output files so a failed subprocess can never leave
+# the input list sitting where we expect the result, and check the exit
+# status and object names before trusting it.
 tmp_in  <- tempfile(fileext = ".rds")
 tmp_out <- tempfile(fileext = ".rds")
 tmp_err <- tempfile(fileext = ".log")

@@ -77,7 +77,12 @@ data(pension)
 #  data <- pension %>% mutate(inc_dm=inc-mean(inc), age_dm=age-mean(age))
 #  for ATT (used here), de-mean X by deducting the mean of X in the treated group:
 data <- pension %>%
-  mutate(inc_dm=inc-mean(pension$inc[pension$p401==1]), age_dm=age- mean(pension$age[pension$p401==1]))
+  # Reference the local (in-mutate) inc/age rather than pension$inc/pension$age
+  # directly: hardcoding the parent object name here would silently keep using
+  # the ORIGINAL full-sample means even if this code were reused on a
+  # resampled/bootstrapped copy of the data assigned to `data`, producing
+  # wrong point estimates and standard errors for that use case.
+  mutate(inc_dm=inc-mean(inc[p401==1]), age_dm=age-mean(age[p401==1]))
 lm_ra <- lm(net_tfa ~ p401*(inc_dm + age_dm),data=data)
 summary(lm_ra)
 #coeftest(lm_ra, vcov=vcovHC(lm_ra, type='HC2'))[2,]

@@ -135,6 +135,13 @@ aipw_backdoor <- function(data, treatment, outcome, adjust) {
   mu1 <- predict(mu_fit, newdata = d1)
   mu0 <- predict(mu_fit, newdata = d0)
   pi1 <- predict(pi_fit, newdata = data, type = "response")
+  # Truncate (winsorize) the propensity score away from 0/1. AIPW divides by
+  # pi1 and (1-pi1), so an estimated propensity near the boundary produces
+  # huge inverse-probability weights and blows up the estimator's variance.
+  # Bounding at [0.01, 0.99] trades a small amount of bias (we no longer use
+  # the true estimated propensity for the most extreme units) for much
+  # lower variance -- a standard and usually favorable trade-off, but worth
+  # flagging explicitly since it is a bias-variance choice, not a free lunch.
   pi1 <- pmin(pmax(pi1, 0.01), 0.99)
 
   w  <- data[[treatment]]; y <- data[[outcome]]

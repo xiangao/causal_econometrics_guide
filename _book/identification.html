@@ -474,7 +474,7 @@ window.Quarto = {
 </div>
 </section><section id="controlled-and-uncontrolled-confounders" class="level2" data-number="1.3"><h2 data-number="1.3" class="anchored" data-anchor-id="controlled-and-uncontrolled-confounders">
 <span class="header-section-number">1.3</span> Controlled and Uncontrolled Confounders</h2>
-<p>If we can control for all confounders then we do have causation from correlation. However, first, do we have all confounders in our data? Secondly, how do we control for them. In a randomised experiment, we don’t have these problems. In an observational study, we have these two problems. In the graph, we may have “c2” unobserved, “c1” observed, for example. Then any estimation of the effect from <span class="math inline">\(w\)</span> to <span class="math inline">\(y\)</span> is biased.</p>
+<p>If we can control for all confounders then we do have causation from correlation. However, first, do we have all confounders in our data? Secondly, how do we control for them? In a randomised experiment, we don’t have these problems. In an observational study, we have these two problems. In the graph, we may have “c2” unobserved, “c1” observed, for example. Then any estimation of the effect from <span class="math inline">\(w\)</span> to <span class="math inline">\(y\)</span> is biased.</p>
 </section><section id="potential-outcome-setup" class="level2" data-number="1.4"><h2 data-number="1.4" class="anchored" data-anchor-id="potential-outcome-setup">
 <span class="header-section-number">1.4</span> Potential Outcome Setup</h2>
 <p>We use the Potential Outcomes framework, also called counterfactual framework to study causal effect. What is a potential outcome? Suppose we have the simplest situation. A treatment has two states, treated and control (untreated). And we have a person (subject) who then has two potential outcomes <span class="math inline">\(Y(1)\)</span> and <span class="math inline">\(Y(0)\)</span>. Consider these two fixed.</p>
@@ -506,7 +506,7 @@ window.Quarto = {
 <p>But in observational studies, most cases we cannot assume unconfoundedness. What can we do to justify unconfoundedness better?</p>
 </section><section id="unconfoundedness-and-overlap" class="level2" data-number="1.7"><h2 data-number="1.7" class="anchored" data-anchor-id="unconfoundedness-and-overlap">
 <span class="header-section-number">1.7</span> Unconfoundedness and Overlap</h2>
-<p>Weaker Assumptions: Unconfoundedness (conditional independence, or ignorability): <span class="math display">\[ E[Y(0) | W, X] = E[Y(0)| X] \]</span> Overlap: <span class="math display">\[ 0 &lt; \pi(x)= P(W=1 | X=x) &lt; 1\]</span> SUTVA (stable unit treatment value assumption): 1. No interference between units. No spillovers. 2. Consistency. No hidden versions of treatment or control. Treatment is clearly defined.</p>
+<p>Weaker Assumptions: Unconfoundedness (conditional independence, or ignorability), stated jointly for both potential outcomes since we are after the ATE here (as opposed to the ATT case above, which only required it for <span class="math inline">\(Y(0)\)</span>): <span class="math display">\[ E[Y(d) | W, X] = E[Y(d)| X] \quad \text{for } d \in \{0,1\} \]</span> Overlap: <span class="math display">\[ 0 &lt; \pi(x)= P(W=1 | X=x) &lt; 1\]</span> SUTVA (stable unit treatment value assumption): 1. No interference between units. No spillovers. 2. Consistency. No hidden versions of treatment or control. Treatment is clearly defined.</p>
 <p>Within each subgroup of <span class="math inline">\(X=x\)</span>, W is independent of <span class="math inline">\(Y(0)\)</span>. With the overlap assumption, we ensure there is a comparable control unit for each treated unit.</p>
 <p>However, these two criteria are often contradictory: we may need more covariates to satisfy conditional independence; meanwhile, if the dimension of covariates goes high, then it’s likely in some partition we don’t have control units.</p>
 <p>We need four assumptions for identification:</p>
@@ -518,6 +518,7 @@ window.Quarto = {
 </ul></section><section id="observational-data-flowchart" class="level2" data-number="1.8"><h2 data-number="1.8" class="anchored" data-anchor-id="observational-data-flowchart">
 <span class="header-section-number">1.8</span> Observational Data Flowchart</h2>
 <p>In observational studies, I summarise the decision what method to use for identification of causal effect:</p>
+<p>Note: AIPW and IPWRA are themselves influence-function-based, doubly-robust estimators – they can be implemented with either parametric nuisance models (logistic regression, OLS) or flexible machine-learning nuisance models (with cross-fitting, as in DoubleML/TMLE), so they appear on both sides of the split below. The split is really about <em>how the nuisance (propensity/outcome) models are estimated</em>, not about the estimator family itself.</p>
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div>
@@ -525,14 +526,14 @@ window.Quarto = {
 <div>
 <pre class="mermaid mermaid-js">flowchart LR
   A[Observational data Y,W,X] --&gt; B{Unconfoundedness?}
-  B --&gt; | Yes | C{Parametric?}
-  C --&gt; | Yes | D(RA)
-  C --&gt; | Yes | E(IPW)
-  C --&gt; | Yes | F(AIPW)
-  C --&gt; | Yes | G(IPWRA)
-  C --&gt; | No | H(IF based estimators)
-  C --&gt; | No | I(TMLE)
-  C --&gt; | No | J(DoubleML)
+  B --&gt; | Yes | C{Nuisance models: parametric or flexible/ML?}
+  C --&gt; | Parametric | D(RA)
+  C --&gt; | Parametric | E(IPW)
+  C --&gt; | Parametric | F(AIPW)
+  C --&gt; | Parametric | G(IPWRA)
+  C --&gt; | Flexible/ML with cross-fitting | H(AIPW)
+  C --&gt; | Flexible/ML with cross-fitting | I(TMLE)
+  C --&gt; | Flexible/ML with cross-fitting | J(DoubleML)
   B --&gt; | No | K{Panel data?}
   K --&gt; | Yes | L{Parallel Trend?}
   L --&gt; | Yes | M(DID)
@@ -1081,7 +1082,7 @@ window.Quarto = {
 <span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a><span class="fu">## Controlled and Uncontrolled Confounders</span></span>
 <span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a>If we can control for all confounders then we do have causation from correlation. However, first, do we have all confounders in our data? Secondly, how do we control for them. In a randomised experiment, we don't have these problems. In an observational study, we have these two problems. In the graph, we may have "c2" unobserved, "c1" observed, for example. Then any estimation of the effect from $w$ to $y$ is biased.</span>
+<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a>If we can control for all confounders then we do have causation from correlation. However, first, do we have all confounders in our data? Secondly, how do we control for them? In a randomised experiment, we don't have these problems. In an observational study, we have these two problems. In the graph, we may have "c2" unobserved, "c1" observed, for example. Then any estimation of the effect from $w$ to $y$ is biased.</span>
 <span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a><span class="fu">## Potential Outcome Setup</span></span>
 <span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a></span>
@@ -1143,7 +1144,7 @@ window.Quarto = {
 <span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a><span class="fu">## Unconfoundedness and Overlap</span></span>
 <span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a>Weaker Assumptions: Unconfoundedness (conditional independence, or ignorability): $$ E<span class="co">[</span><span class="ot">Y(0) | W, X</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">Y(0)| X</span><span class="co">]</span> $$ Overlap: $$ 0 &lt; \pi(x)= P(W=1 | X=x) &lt; 1$$ SUTVA (stable unit treatment value assumption): 1. No interference between units. No spillovers. 2. Consistency. No hidden versions of treatment or control. Treatment is clearly defined.</span>
+<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a>Weaker Assumptions: Unconfoundedness (conditional independence, or ignorability), stated jointly for both potential outcomes since we are after the ATE here (as opposed to the ATT case above, which only required it for $Y(0)$): $$ E<span class="co">[</span><span class="ot">Y(d) | W, X</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">Y(d)| X</span><span class="co">]</span> \quad \text{for } d \in <span class="sc">\{</span>0,1<span class="sc">\}</span> $$ Overlap: $$ 0 &lt; \pi(x)= P(W=1 | X=x) &lt; 1$$ SUTVA (stable unit treatment value assumption): 1. No interference between units. No spillovers. 2. Consistency. No hidden versions of treatment or control. Treatment is clearly defined.</span>
 <span id="cb1-135"><a href="#cb1-135" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a>Within each subgroup of $X=x$, W is independent of $Y(0)$. With the overlap assumption, we ensure there is a comparable control unit for each treated unit.</span>
 <span id="cb1-137"><a href="#cb1-137" aria-hidden="true" tabindex="-1"></a></span>
@@ -1160,26 +1161,28 @@ window.Quarto = {
 <span id="cb1-148"><a href="#cb1-148" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-149"><a href="#cb1-149" aria-hidden="true" tabindex="-1"></a>In observational studies, I summarise the decision what method to use for identification of causal effect:</span>
 <span id="cb1-150"><a href="#cb1-150" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-153"><a href="#cb1-153" aria-hidden="true" tabindex="-1"></a><span class="in">```{mermaid}</span></span>
-<span id="cb1-154"><a href="#cb1-154" aria-hidden="true" tabindex="-1"></a>flowchart LR</span>
-<span id="cb1-155"><a href="#cb1-155" aria-hidden="true" tabindex="-1"></a>  A[Observational data Y,W,X] --&gt; B{Unconfoundedness?}</span>
-<span id="cb1-156"><a href="#cb1-156" aria-hidden="true" tabindex="-1"></a>  B --&gt; | Yes | C{Parametric?}</span>
-<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Yes | D(RA)</span>
-<span id="cb1-158"><a href="#cb1-158" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Yes | E(IPW)</span>
-<span id="cb1-159"><a href="#cb1-159" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Yes | F(AIPW)</span>
-<span id="cb1-160"><a href="#cb1-160" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Yes | G(IPWRA)</span>
-<span id="cb1-161"><a href="#cb1-161" aria-hidden="true" tabindex="-1"></a>  C --&gt; | No | H(IF based estimators)</span>
-<span id="cb1-162"><a href="#cb1-162" aria-hidden="true" tabindex="-1"></a>  C --&gt; | No | I(TMLE)</span>
-<span id="cb1-163"><a href="#cb1-163" aria-hidden="true" tabindex="-1"></a>  C --&gt; | No | J(DoubleML)</span>
-<span id="cb1-164"><a href="#cb1-164" aria-hidden="true" tabindex="-1"></a>  B --&gt; | No | K{Panel data?}</span>
-<span id="cb1-165"><a href="#cb1-165" aria-hidden="true" tabindex="-1"></a>  K --&gt; | Yes | L{Parallel Trend?}</span>
-<span id="cb1-166"><a href="#cb1-166" aria-hidden="true" tabindex="-1"></a>  L --&gt; | Yes | M(DID)</span>
-<span id="cb1-167"><a href="#cb1-167" aria-hidden="true" tabindex="-1"></a>  L --&gt; | No | N(Synthetic Control)</span>
-<span id="cb1-168"><a href="#cb1-168" aria-hidden="true" tabindex="-1"></a>  L --&gt; | No | O(Synthetic DID)</span>
-<span id="cb1-169"><a href="#cb1-169" aria-hidden="true" tabindex="-1"></a>  K --&gt; | No | P{Instrument?}</span>
-<span id="cb1-170"><a href="#cb1-170" aria-hidden="true" tabindex="-1"></a>  P --&gt; | Yes | Q(IV <span class="ot">or</span> RDD)</span>
-<span id="cb1-171"><a href="#cb1-171" aria-hidden="true" tabindex="-1"></a>  P --&gt; | No | R(You are stuck!)</span>
-<span id="cb1-172"><a href="#cb1-172" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb1-151"><a href="#cb1-151" aria-hidden="true" tabindex="-1"></a>Note: AIPW and IPWRA are themselves influence-function-based, doubly-robust estimators -- they can be implemented with either parametric nuisance models (logistic regression, OLS) or flexible machine-learning nuisance models (with cross-fitting, as in DoubleML/TMLE), so they appear on both sides of the split below. The split is really about *how the nuisance (propensity/outcome) models are estimated*, not about the estimator family itself.</span>
+<span id="cb1-152"><a href="#cb1-152" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-155"><a href="#cb1-155" aria-hidden="true" tabindex="-1"></a><span class="in">```{mermaid}</span></span>
+<span id="cb1-156"><a href="#cb1-156" aria-hidden="true" tabindex="-1"></a>flowchart LR</span>
+<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a>  A[Observational data Y,W,X] --&gt; B{Unconfoundedness?}</span>
+<span id="cb1-158"><a href="#cb1-158" aria-hidden="true" tabindex="-1"></a>  B --&gt; | Yes | C{Nuisance models: parametric <span class="ot">or</span> flexible/ML?}</span>
+<span id="cb1-159"><a href="#cb1-159" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Parametric | D(RA)</span>
+<span id="cb1-160"><a href="#cb1-160" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Parametric | E(IPW)</span>
+<span id="cb1-161"><a href="#cb1-161" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Parametric | F(AIPW)</span>
+<span id="cb1-162"><a href="#cb1-162" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Parametric | G(IPWRA)</span>
+<span id="cb1-163"><a href="#cb1-163" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Flexible/ML with cross-fitting | H(AIPW)</span>
+<span id="cb1-164"><a href="#cb1-164" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Flexible/ML with cross-fitting | I(TMLE)</span>
+<span id="cb1-165"><a href="#cb1-165" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Flexible/ML with cross-fitting | J(DoubleML)</span>
+<span id="cb1-166"><a href="#cb1-166" aria-hidden="true" tabindex="-1"></a>  B --&gt; | No | K{Panel data?}</span>
+<span id="cb1-167"><a href="#cb1-167" aria-hidden="true" tabindex="-1"></a>  K --&gt; | Yes | L{Parallel Trend?}</span>
+<span id="cb1-168"><a href="#cb1-168" aria-hidden="true" tabindex="-1"></a>  L --&gt; | Yes | M(DID)</span>
+<span id="cb1-169"><a href="#cb1-169" aria-hidden="true" tabindex="-1"></a>  L --&gt; | No | N(Synthetic Control)</span>
+<span id="cb1-170"><a href="#cb1-170" aria-hidden="true" tabindex="-1"></a>  L --&gt; | No | O(Synthetic DID)</span>
+<span id="cb1-171"><a href="#cb1-171" aria-hidden="true" tabindex="-1"></a>  K --&gt; | No | P{Instrument?}</span>
+<span id="cb1-172"><a href="#cb1-172" aria-hidden="true" tabindex="-1"></a>  P --&gt; | Yes | Q(IV <span class="ot">or</span> RDD)</span>
+<span id="cb1-173"><a href="#cb1-173" aria-hidden="true" tabindex="-1"></a>  P --&gt; | No | R(You are stuck!)</span>
+<span id="cb1-174"><a href="#cb1-174" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

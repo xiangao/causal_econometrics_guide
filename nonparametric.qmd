@@ -70,6 +70,35 @@ True_Psi <- mean(data$Y.1-data$Y.0);
 cat(" True_Psi:", True_Psi)
 ```
 
+The line above reports `mean(Y.1 - Y.0)` for this particular draw. That is a
+legitimate quantity --- the *sample* average treatment effect --- but it is not a
+fixed benchmark, and it is easy to mistake for one. The potential outcomes are
+binary, so at $n = 1000$ this realized average has a sampling standard deviation
+of about 0.020: two runs of the same DGP under different seeds can differ by 0.04
+without anything being wrong. (The R and Julia editions of this chapter print
+0.21 and 0.184 for exactly this reason.) Estimator standard errors in this
+chapter are around 0.03, so a noisy target of that size would swamp the
+comparison we are trying to make.
+
+The *population* ATE is a definite number, and since the DGP is fully specified
+we can integrate it out rather than simulate it:
+
+```{r popate, warning=FALSE, cache=TRUE, message=FALSE}
+# w1, w2 ~ Bernoulli(0.5); w3 ~ U(0,4); w4 ~ U(0,5). Average the true individual
+# effect plogis(lin0 + 1) - plogis(lin0) over that covariate distribution.
+pop_ate <- mean(sapply(list(c(0,0), c(0,1), c(1,0), c(1,1)), function(w)
+  integrate(function(w4) sapply(w4, function(u4)
+    integrate(function(w3) {
+      lin0 <- -1 - 0.1*w[1] + 0.3*w[2] + 0.25*w3 + 0.2*u4 + 0.15*w[2]*u4
+      plogis(lin0 + 1) - plogis(lin0)
+    }, 0, 4)$value / 4), 0, 5)$value / 5))
+
+cat(sprintf("Realized-sample ATE (this draw): %.4f\n", True_Psi))
+cat(sprintf("Exact population ATE:           %.4f\n", pop_ate))
+```
+
+Compare the estimators below against 0.2028, not against the realized draw.
+
 ```{r npcausal3, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 SL.library <- c("SL.earth","SL.gam","SL.glmnet","SL.glm.interaction", "SL.mean","SL.ranger", "SL.xgboost")
 ```

@@ -395,9 +395,18 @@ cat(sprintf("Estimated welfare: policy tree %.3f vs treat-everyone %.3f (gain %.
 
 The point of the shallow tree is interpretability. It gives up some
 flexibility in exchange for a rule that can be inspected. Here the tree
-splits on $X_1$ — the true effect modifier — close to the optimal
-threshold of $0.5$, and the learned rule beats treat-everyone because
-units with $\tau(x) < 2$ are not worth the cost.
+splits on $X_1$ — the true effect modifier — and the learned rule beats
+treat-everyone because units with $\tau(x) < 2$ are not worth the cost.
+
+Inspect the printed tree rather than summarising it, though, because at depth 2
+both branches split $X_1$ again: the fitted rule treats $X_1 \in (0.422, 0.627]$
+and $X_1 > 0.644$, but not the sliver between them. Since $\tau(x) = 1 + 2x_1$
+is monotone, the optimal rule is a *single* threshold at $x_1 = 0.5$, so that gap
+is estimation noise and not a discovery. The effective lower cut of 0.42 rather
+than 0.50 is what produces the 56.5% treatment rate against an optimal 50.5%.
+A depth-1 tree is the better-specified model for this DGP, and the practical
+lesson is to fit the shallower tree too: a depth-2 structure should not be read
+as evidence of a genuinely non-monotone rule when a depth-1 tree does as well.
 
 For an extended walkthrough of policy trees with IPW and AIPW losses,
 see the [companion blog chapter on `policytree`](https://xiangao.github.io/blog_book/policytree.html).

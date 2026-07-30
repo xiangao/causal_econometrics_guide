@@ -476,6 +476,37 @@ tau.hat = synthdid_estimate(setup$Y, setup$N0, setup$T0)
 summary(tau.hat)
 ```
 
+The point estimate, $-15.6$, is the headline number from Arkhangelsky et al.
+(2021). Note that the `se` entry comes back `NA`, and that is not a glitch to
+skim past: `summary()` defaults to a **jackknife** standard error, which deletes
+one treated unit at a time. California is the *only* treated unit here, so
+deleting it leaves nothing to estimate and the jackknife is undefined. The
+bootstrap SE fails for the same reason. With a single treated unit the usable
+option is the placebo method, which builds the reference distribution by
+pretending each control state was treated:
+
+```{r did14b, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+set.seed(12345)
+cat(sprintf("N0 = %d control states, T0 = %d pre-periods, N1 = %d treated unit\n",
+            setup$N0, setup$T0, nrow(setup$Y) - setup$N0))
+
+se_placebo <- as.numeric(synthdid_se(tau.hat, method = "placebo"))
+cat(sprintf("SDiD estimate %.2f, placebo SE %.2f, 95%% CI [%.2f, %.2f]\n",
+            as.numeric(tau.hat), se_placebo,
+            as.numeric(tau.hat) - 1.96 * se_placebo,
+            as.numeric(tau.hat) + 1.96 * se_placebo))
+```
+
+Two cautions on that interval. The placebo standard error is a permutation
+quantity, so it moves with the seed --- report the seed, or average over several.
+And it is justified under the assumption that the treated unit is exchangeable
+with the controls, which is a real assumption about California, not a technicality.
+The interval here comfortably includes zero, which is worth stating plainly: the
+much-cited $-15.6$ is not statistically distinguishable from no effect with 38
+control states and one treated unit. Note also that `summary(tau.hat,
+se.method = "placebo")` does *not* fix the `NA` --- the `se` field stays empty;
+`synthdid_se()` has to be called directly.
+
 ```{r did15, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 tau.sc   = sc_estimate(setup$Y, setup$N0, setup$T0)
 tau.did  = did_estimate(setup$Y, setup$N0, setup$T0)

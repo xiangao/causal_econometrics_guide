@@ -402,11 +402,45 @@ useful when matching the whole covariate distribution is important.
 
 ### Comparing matching to weighting
 
-The matching and weighting examples here target the same ATT. In an applied
-paper I would report balance for each method, not just the final coefficient.
-If several reasonable methods give similar balance and similar estimates, the
-result is more credible. If they differ sharply, the problem is usually weak
-overlap or model dependence.
+The matching and weighting examples here target the same ATT, so put the two
+estimates next to each other rather than reporting whichever came last:
+
+```{r}
+#| label: compare-methods
+#| cache: true
+
+cmp <- rbind(
+  transform(as.data.frame(
+    avg_comparisons(fit, variables = "treat", vcov = ~subclass,
+                    newdata = subset(m.data, treat == 1))),
+    method = "Full matching (subclass-clustered SE)"),
+  transform(as.data.frame(
+    avg_comparisons(fit_ebal, variables = "treat",
+                    newdata = subset(lalonde, treat == 1))),
+    method = "Entropy balancing (sandwich SE)")
+)
+
+cmp[, c("method", "estimate", "std.error", "conf.low", "conf.high", "p.value")] |>
+  knitr::kable(digits = c(0, 0, 0, 0, 0, 3),
+               caption = "Two routes to the same ATT on the Lalonde data")
+```
+
+The gap is instructive. The two point estimates differ by roughly one standard
+error, and one interval excludes zero while the other does not --- a reader who
+sees only one of these tables would draw a different conclusion about whether
+the programme worked. Note also that the ranking on balance does not settle it:
+entropy balancing imposes *exact* mean balance (every standardized difference
+above is at most 0.023), whereas full matching leaves `educ` at $-0.096$, yet it
+is entropy balancing that gives the smaller estimate and the wider interval.
+Better mean balance is not the same thing as a more precise or more credible
+answer.
+
+This is model dependence, not a bug in either method. In an applied paper I would
+report balance for each method, not just the final coefficient, and I would report
+both estimates. If several reasonable methods give similar balance and similar
+estimates, the result is more credible. If they differ sharply, as here, the
+problem is usually weak overlap or model dependence, and the honest summary says
+so instead of picking the number that crosses the significance line.
 
 For more details on `MatchIt` and the Stata `teffects` commands, see the
 [matching blog chapter](https://xiangao.github.io/blog_book/matching-part1.html)

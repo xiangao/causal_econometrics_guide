@@ -216,6 +216,22 @@ $$
 E[Y(a)] = \sum_m P(M=m\mid A=a)\sum_{a'} P(Y=1\mid A=a', M=m) P(A=a').
 $$
 
+The DGP has a known truth. Under $do(A=a)$ the mediator is
+$M \sim \text{Bern}(\Lambda(-0.4 + 1.2a))$ while $U$ keeps its marginal $N(0,1)$
+distribution, so
+
+$$
+\tau = \big[\Lambda(0.8) - \Lambda(-0.4)\big]\;
+       \big[g(-0.1) - g(-1.0)\big], \qquad
+g(c) = E_U\big[\Lambda(c + 0.7U)\big],
+$$
+
+which evaluates to $0.2887 \times 0.1894 = 0.0547$. The naive contrast
+$E[Y\mid A=1]-E[Y\mid A=0]$ equals $0.158$ in the population this DGP defines --- almost three times the
+causal effect, because $U$ raises both the chance of treatment and the outcome.
+That gap is what the front-door step removes. The table below reports the
+sample version of the naive contrast alongside the front-door estimate.
+
 For binary $A$, $M$, $Y$ we plug in sample proportions:
 
 ```{r}
@@ -254,14 +270,16 @@ est_fd <- front_door_ace(df_fd)
 se_fd  <- sd(boot_ace)
 ci_fd  <- est_fd + c(-1, 1) * qnorm(0.975) * se_fd
 
-data.frame(estimand = "Front-door ACE",
-           estimate = round(est_fd, 4),
-           lower_95 = round(ci_fd[1], 4),
-           upper_95 = round(ci_fd[2], 4),
-           se       = round(se_fd, 4)) |> kable()
+naive_fd <- mean(df_fd$Y[df_fd$A == 1]) - mean(df_fd$Y[df_fd$A == 0])
+
+data.frame(estimand = c("Naive E[Y|A=1] - E[Y|A=0]", "Front-door ACE", "Truth"),
+           estimate = round(c(naive_fd, est_fd, 0.0547), 4),
+           lower_95 = c(NA, round(ci_fd[1], 4), NA),
+           upper_95 = c(NA, round(ci_fd[2], 4), NA),
+           se       = c(NA, round(se_fd, 4), NA)) |> kable()
 ```
 
-This is the practical advantage of separating identification from estimation. State the graph first. Then use the estimator that matches the identified functional.
+The naive contrast is far above the truth; the front-door estimate brackets it. This is the practical advantage of separating identification from estimation. State the graph first. Then use the estimator that matches the identified functional.
 
 ## General ID Algorithm
 

@@ -105,3 +105,59 @@ Review of the 2026-07-28 rewrite of `poisson-iv.qmd` (10 commits), the only chap
 **A-vs-B contradiction.** The Approach-C callout said "Approach A … is the practical choice when many fixed effects are present" while the rewritten takeaway said to use B and treat A as a fallback. Both A and B run unmodified in FE-Poisson (only the first stage differs), so the callout now says so and prefers B.
 
 **Approach C: state it as a bias-variance tradeoff, not a ranking.** Mullahy's multiplicative moments are genuinely *consistent* for this DGP — the omitted `ad`/`female` effects are independent multiplicative heterogeneity, absorbed by the intercept ($\beta_0 \to \beta_0 + \log E[e^c]$) — verified at $n=10^6$: 0.8015, sd 0.0013. **But consistency is not accuracy at a given $n$.** At the chapter's own $n=5000$ over 10 seeds: A mean 0.8323 / sd 0.0236 / RMSE 0.0393; B 0.8185 / 0.0262 / 0.0310; C 0.7985 / 0.0679 / 0.0645. C is nearly unbiased and yet has the **worst RMSE**, being ~3× noisier without the fixed effects. My first draft of this fix said "prefer Approach C" and had to be corrected — the rendered output refuted it. Its comparison paragraph already showed C closest (0.7844 vs A 0.8613, B 0.8544), so the paragraph now explains why that is a bias story with a variance cost.
+
+## Deep read (2026-07-30) — reusable gotchas
+
+Full-depth pass over all 24 chapters, paired against the Julia companion. Log:
+`~/projects/books/_review3/deepread_causal_books.md`.
+
+### `synthdid`: the default SE is undefined with one treated unit
+
+`summary(tau.hat)` on California Prop 99 returns `se = NA` and it is easy to skim
+past. The default is a **jackknife** SE, which deletes one treated unit at a time —
+and California is the only treated unit, so it is undefined. `bootstrap` fails for
+the same reason. Only `placebo` works, and note that
+`summary(tau.hat, se.method = "placebo")` does **not** populate the `se` field;
+`synthdid_se(tau.hat, method = "placebo")` must be called directly. It is a
+permutation quantity, so report the seed. With the seed in `did.qmd` it gives 8.37,
+and the resulting 95% interval **includes zero**.
+
+### State the truth next to every simulated estimate
+
+`graph-to-estimate.qmd` prints the true front-door ACE (0.453) beside its estimate;
+`graphs-identification-estimation.qmd` did not, so a reader had no way to judge
+0.0775. Derived it analytically (0.0547) and added it, plus the naive contrast for
+comparison. Both chapters now anchor their numbers.
+
+### Prefer the population value over the realized-sample one as a benchmark
+
+`nonparametric.qmd` used `mean(Y.1 - Y.0)` as "True_Psi". With binary potential
+outcomes at n=1000 that has a sampling SD of about 0.020 — comparable to the
+estimator SEs it is being compared against, and the reason this book printed 0.21
+where the Julia companion printed 0.184 for the *same* DGP. The population ATE is
+0.202785 by quadrature; both books now compute and report it.
+
+### Describe what the code actually produced
+
+Two prose/output mismatches this pass, both in chapters that were otherwise correct:
+- The dose-response curve `1 + 2d - 0.15d^2` was called "hump-shaped ... falls at
+  high doses". Its vertex is at 6.67 and the largest dose drawn is 6.39, so it
+  increases across the whole support.
+- The policy tree was described as splitting near the optimal threshold of 0.5. The
+  printed depth-2 tree treats `X1 in (0.422, 0.627]` **or** `X1 > 0.644` — a
+  non-monotone rule with a gap, for a monotone `tau`.
+
+### If a section promises a comparison, compute it
+
+"Comparing matching to weighting" contained only generic advice. The chapter's own
+two estimates are full matching 1977 (SE 704) and entropy balancing 1273 (SE 770) —
+exactly one SE apart, with p flipping 0.005 to 0.098, and entropy balancing has the
+*better* mean balance. Built the table from the existing fitted objects so the
+numbers regenerate rather than being hardcoded.
+
+### Reviewing rendered output
+
+Search only inside `<div class="cell-output...">` blocks. Plain-text searches of the
+rendered HTML also hit Quarto's echoed-source panel, which produced several false
+findings in earlier passes (e.g. matching a string that lives inside a chunk's own
+`tryCatch`).

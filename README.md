@@ -46,3 +46,24 @@ remotes::install_github("nhejazi/medoutcon")
 > **2026-06-13:** Technical-audit fix pass (Codex audit in `../_technical_audit_20260613/`). Fixed sharp-RD DGP sign (jump now on the treated side; estimate ≈ +2, verified); rewrote the brittle RMST KM-integration helper; strengthened mediation natural-effect assumptions and labeled CDE IPW as discrete-mediator-only; defined the panel causal-forest within estimand precisely; added AIPW SE/cross-fitting caveats; corrected "doubly robust" phrasing and the nonparametric plug-in critique; qualified continuous-treatment DR; separated IV conditional-independence from exclusion; renamed trimmed/untrimmed IPW weight columns; hardened the BCF subprocess fallback; clarified the CPDAG-F1 orientation-only metric, the simplified latent-MAG oracle, and the PISA design approximation; removed `mean()` around scalars. Fixed pre-existing version drift exposed on re-render (rdrobust 4.0.0 dropped `all=`; fixest IV no longer allows the running variable in both endogenous and instrument lists). Corrected the `renv`-pinned claim in the preface. Rendered clean.
 
 > **2026-07-30:** Review of the 2026-07-28 `poisson-iv` rewrite (report in `../_review3/review_20260730.md`). The mathematics checked out — Terza's exact correction, the first-order Taylor expansion behind Approach B, the logit generalized-residual collapse, and the claimed probability limits were all re-derived or re-verified at n=10^6. Four corrections: all six citations to Imbens & Wooldridge were re-pointed from the 2009 *JEL* paper to their actual source, the 2007 NBER Summer Institute Lecture Notes 6 on control functions (new bib entry); a truncated quote was restored to include "and still adopt (3.25)", which had reversed its meaning; rho is now defined as the coefficient in E(exp(c1)|v2) = exp(rho*v2) rather than as a correlation (the chapter's own DGP has correlation 1 while rho = 0.2); and two leftover passages recommending Approach A were reconciled with the takeaway's recommendation of B. Approach C is now presented as a bias-variance tradeoff rather than a ranking: Mullahy's moments are consistent here (0.8015 at n=10^6), but at the chapter's n=5000 C is roughly three times as noisy as B and so has the worst RMSE of the three.
+
+> **2026-07-30 (deep read):** Full-depth pass over every topic, reviewed **paired**
+> against the companion book so each acts as the other's control (log:
+> `../_review3/deepread_causal_books.md`). The pairing is what found most of the
+> errors; the recurring defect is a correction that landed in one book, chapter, or
+> section and not its twin.
+>
+> Corrections here: the synthetic-DiD summary printed an unexplained `NA` standard
+> error (the jackknife is undefined with a single treated unit — California — so a
+> placebo SE was added, and the resulting interval includes zero); the
+> continuous-treatment dose-response `1 + 2d - 0.15d^2` was described as
+> "hump-shaped ... falls at high doses" when its vertex at 6.67 lies beyond the
+> largest dose observed; the policy-tree prose claimed a single threshold near 0.5
+> where the printed depth-2 tree yields a non-monotone rule; "True_Psi" in
+> `nonparametric` was a realized-sample mean whose own sampling SD (0.020) rivals
+> the estimator SEs, replaced by the exact population ATE 0.202785; the front-door
+> estimate in `graphs-identification-estimation` had no truth to check it against
+> (derived analytically: 0.0547); and the section titled "Comparing matching to
+> weighting" contained no comparison — the two estimates are exactly one standard
+> error apart, with *p* flipping 0.005 to 0.098 while the *better*-balanced method
+> gives the smaller estimate.

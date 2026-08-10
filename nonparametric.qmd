@@ -37,15 +37,15 @@ Considerations:
 
 Estimators based on efficient influence function are often $\sqrt n$ consistent, meaning they converge to the truth at the $1/\sqrt n$ rate. This means the estimation error not only goes to 0 as $n$ goes to infinity, but does so as fast as $1/ \sqrt n$ goes to 0. Why does this matter? Because we have limited sample size, when we are based on asymptotics, the faster the bias goes to 0 the smaller sample size we need.
 
-If we have an estimator such that $$ \sqrt n (\hat \psi - \psi) = \sqrt n P_n(\phi) + o_P(1) \rightarrow N(0, var(\phi))$$
+If we have an estimator such that $$ \sqrt n (\hat \psi - \psi) = \sqrt n P_n(\phi) + o_P(1) \rightarrow N(0, var(\phi))$$ {#eq-nonparametric-1}
 
 Then this estimator is $\sqrt n$ consistent and asymptotically normal; and $\phi$ is the influence function. The efficient influence function is the one with variance at the lower bound (similar to parametric case for Cramer-Rao lower bound).
 
 Unfortunately there is no universal formula for efficient influence function for every problem. We need to derive it for each problem. For example, ATE has an IF based estimator, but ATT needs a different formula; and LATE has a different formula too, etc. Deriving them is hard!
 
-Take the mean potential outcome under treatment, $\psi_1 = E \{ E(Y | X, A=1) \} = E[Y(1)]$ (the ATE is the difference $\psi_1 - \psi_0$ of the two arm means, and its EIF is the difference of the two arm-specific EIFs below). The efficient influence function for $\psi_1$ is $$\phi (Z; P) = \frac{A}{\pi (X)} \{ Y - \mu (X) \} + \mu(X) - \psi_1$$ where $\pi (X) = P(A=1 | X)$ the propensity score model, $\mu (X) = E(Y |X, A=1)$, the outcome model.
+Take the mean potential outcome under treatment, $\psi_1 = E \{ E(Y | X, A=1) \} = E[Y(1)]$ (the ATE is the difference $\psi_1 - \psi_0$ of the two arm means, and its EIF is the difference of the two arm-specific EIFs below). The efficient influence function for $\psi_1$ is $$\phi (Z; P) = \frac{A}{\pi (X)} \{ Y - \mu (X) \} + \mu(X) - \psi_1$$ {#eq-nonparametric-2} where $\pi (X) = P(A=1 | X)$ the propensity score model, $\mu (X) = E(Y |X, A=1)$, the outcome model.
 
-For example, an IF-based bias-corrected estimator $$\hat \psi = P_n [ \frac{A}{\hat \pi (X)} \{ Y - \hat \mu (X) \} + \hat \mu(X) ]$$ where $P_n$ means sample mean. This is the familiar AIPW estimator. It is known to be doubly robust.
+For example, an IF-based bias-corrected estimator $$\hat \psi = P_n [ \frac{A}{\hat \pi (X)} \{ Y - \hat \mu (X) \} + \hat \mu(X) ]$$ {#eq-nonparametric-3} where $P_n$ means sample mean. This is the familiar AIPW estimator. It is known to be doubly robust.
 
 Since we know the influence function, we can estimate the asymptotic variance. The uncentered summand $\frac{A}{\hat\pi(X)}\{Y-\hat\mu(X)\}+\hat\mu(X)$ differs from $\phi$ only by the constant $\psi_1$, so the two have the same variance. We can use any estimators for the nuisance parameters; the sample mean of the summand is then $\hat\psi_1$, its sample variance estimates $var(\phi)$, and the standard error of $\hat\psi_1$ is $sd(\hat\phi)/\sqrt{n}$ (differencing the two arms gives the ATE).
 
@@ -151,7 +151,7 @@ aipw<- ate(y=Y, a=A, x=W, nsplits=2, sl.lib=SL.library)
 The ATT has its own efficient influence function. With
 $p = P(A=1)$ and $\mu_0(X)=E[Y|X,A=0]$,
 
-$$\phi_{ATT}(Z) = \frac{1}{p}\left\{ A(Y-\mu_0(X)) - (1-A)\frac{\pi(X)}{1-\pi(X)}(Y-\mu_0(X)) \right\} - \frac{A}{p}\,\psi_{ATT}.$$
+$$\phi_{ATT}(Z) = \frac{1}{p}\left\{ A(Y-\mu_0(X)) - (1-A)\frac{\pi(X)}{1-\pi(X)}(Y-\mu_0(X)) \right\} - \frac{A}{p}\,\psi_{ATT}.$$ {#eq-nonparametric-4}
 
 Treated units contribute their outcome-model residual; control units
 enter with the odds weight $\pi(X)/(1-\pi(X))$, which reweights them to
@@ -212,9 +212,9 @@ The R package DoubleML implements the double/debiased machine learning framework
 
 They consider a partially linear model:
 
-$$ y_i = \theta d_i + g_0(x_i) + \eta_i $$
+$$ y_i = \theta d_i + g_0(x_i) + \eta_i $$ {#eq-nonparametric-5}
 
-$$ d_i = m_0(x_i) + v_i $$
+$$ d_i = m_0(x_i) + v_i $$ {#eq-nonparametric-6}
 
 This model is quite general, except it does not allow interaction of $d$ and $x$; therefore no heterogeneous treatment effect across $x$. But "DoubleML" implements more than partially linear model, it actually allows for heterogeneous treatment effects, in models such as interactive regression model.
 
@@ -224,7 +224,7 @@ Then regress $\tilde Y$ on $\tilde D$. Based on FWL theorem, you get $\hat \thet
 
 An important component here is to specify a Neyman-orthogonal score function. In the case of PLR, the "partialling-out" score (the DoubleML default, matching the residual-on-residual regression above) is
 
-$$\psi (Z; \theta, \eta) = \big(Y- l(X) - \theta (D-m(X))\big)\big(D-m(X)\big) $$
+$$\psi (Z; \theta, \eta) = \big(Y- l(X) - \theta (D-m(X))\big)\big(D-m(X)\big) $$ {#eq-nonparametric-7}
 
 The estimator $\hat \theta$ solves the equation that the sample mean of this score function is 0.
 

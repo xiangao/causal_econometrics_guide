@@ -589,7 +589,7 @@ window.Quarto = {
 <span class="header-section-number">13.1.5</span> LATE Identification</h3>
 <p>Since we excluded defiers, and the other two groups (always-takers and never-takers) are not affected by the treatment assignment Z. The only effect we can identify is the treatment effect on the compliers. This is called the Local Average Treatment Effect (LATE).</p>
 <p>Below we write potential outcomes indexed by the instrument, <span class="math inline">\(Y(Z=z)\)</span>, rather than by treatment status, <span class="math inline">\(Y(d)\)</span>. The exclusion restriction is exactly what licenses this: since <span class="math inline">\(Y(w,1)=Y(w,0)\)</span>, <span class="math inline">\(Y\)</span> depends on <span class="math inline">\(Z\)</span> only through <span class="math inline">\(W\)</span>, so <span class="math inline">\(Y(Z=z) = Y(W(z), z) = Y(W(z))\)</span> in the usual treatment-indexed notation. For a complier (<span class="math inline">\(W(1)=1, W(0)=0\)</span>), this means <span class="math inline">\(Y(Z=1) = Y(1)\)</span> and <span class="math inline">\(Y(Z=0) = Y(0)\)</span>, so <span class="math inline">\(E[Y(Z=1)-Y(Z=0) \mid G=C]\)</span> below is exactly <span class="math inline">\(E[Y(1)-Y(0) \mid G=C]\)</span>, the LATE in treatment-indexed notation.</p>
-<p><span class="math display">\[ \small
+<p><span id="eq-iv-rdd-1"><span class="math display">\[ \small
 \begin{aligned}
 &amp; E[Y(Z=1) - Y(Z=0) | G = C] \\
 &amp;= \frac{E[Y(Z=1) - Y(Z=0)]}{P(W(1)=1, W(0)=0)} \\
@@ -597,16 +597,16 @@ window.Quarto = {
 &amp;= \frac{E[Y|Z=1] - E[Y|Z=0]}{P(W=1|Z=1)-P(W=1|Z=0)} \\
 &amp;= \frac{E[Y|Z=1] - E[Y|Z=0]}{E[W|Z=1]-E[W|Z=0]}
 \end{aligned}
-\]</span></p>
+\tag{13.1}\]</span></span></p>
 </section><section id="parametric-models" class="level3" data-number="13.1.6"><h3 data-number="13.1.6" class="anchored" data-anchor-id="parametric-models">
 <span class="header-section-number">13.1.6</span> Parametric Models</h3>
 <p>With a binary instrument this is exactly the ratio of two OLS coefficients — no linearity assumption is needed, since a regression on a binary regressor just computes the two group means. This is sometimes called the Wald estimator.</p>
-<p><span class="math display">\[
+<p><span id="eq-iv-rdd-2"><span class="math display">\[
 \begin{aligned}
 \tau_{LATE} &amp;= \frac{E[Y|Z=1] - E[Y|Z=0]}{E[W|Z=1]-E[W|Z=0]} \\
 &amp;= \frac{Cov(Y,Z)}{Cov(W,Z)}
 \end{aligned}
-\]</span></p>
+\tag{13.2}\]</span></span></p>
 <p>Why do covariates help? It is important to separate two assumptions here. Conditioning on covariates <span class="math inline">\(X\)</span> can make the <em>as-if-random</em> (conditional independence) assumption more credible: the instrument may be unconfounded only within levels of <span class="math inline">\(X\)</span>. But the <em>exclusion restriction</em> – that the instrument has no direct effect on the outcome – is a substantive structural assumption that covariates do not generally repair. Adding <span class="math inline">\(X\)</span> removes a direct <span class="math inline">\(Z \to Y\)</span> path only if that path runs entirely through <span class="math inline">\(X\)</span>, or if exclusion is conditional by design. So covariates help with conditional independence, not with exclusion per se.</p>
 </section><section id="example" class="level3" data-number="13.1.7"><h3 data-number="13.1.7" class="anchored" data-anchor-id="example">
 <span class="header-section-number">13.1.7</span> Example</h3>
@@ -663,9 +663,9 @@ w           0.972416527 0.02312558 42.0493890 0.0000000</code></pre>
 <span class="header-section-number">13.1.8</span> Control Function Approach</h3>
 <p>Two-stage least squares can be implemented equivalently via the <strong>control function (CF) approach</strong>. Understanding why makes the extension to nonlinear models (next chapter) transparent.</p>
 <p><strong>Algebraic motivation.</strong> Because <code>w</code> is endogenous, decompose the structural error:</p>
-<p><span class="math display">\[\varepsilon = \rho v + \eta, \qquad v \equiv w - E[w \mid z], \qquad E(z\eta) = 0,\; E(zv) = 0.\]</span></p>
+<p><span id="eq-iv-rdd-3"><span class="math display">\[\varepsilon = \rho v + \eta, \qquad v \equiv w - E[w \mid z], \qquad E(z\eta) = 0,\; E(zv) = 0. \tag{13.3}\]</span></span></p>
 <p>If we <em>knew</em> <span class="math inline">\(v\)</span>, controlling for it directly would eliminate the confounding channel. We don’t know <span class="math inline">\(v\)</span>, but the first-stage residual <span class="math inline">\(\hat v = w - \hat w\)</span> is a consistent estimate. Substituting into the structural equation:</p>
-<p><span class="math display">\[y = \alpha + \beta w + \rho\,\hat v + \text{error}.\]</span></p>
+<p><span id="eq-iv-rdd-4"><span class="math display">\[y = \alpha + \beta w + \rho\,\hat v + \text{error}. \tag{13.4}\]</span></span></p>
 <p>OLS on this <strong>augmented</strong> second stage gives a consistent <span class="math inline">\(\hat\beta\)</span> — identical to 2SLS by the Frisch–Waugh–Lovell (FWL) theorem. The coefficient <span class="math inline">\(\hat\rho\)</span> on <span class="math inline">\(\hat v\)</span> doubles as a <strong>Durbin–Wu–Hausman (DWH) endogeneity test</strong>: under <span class="math inline">\(H_0\)</span> (w is exogenous), <span class="math inline">\(\rho = 0\)</span>.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># Manual 2SLS, explicitly</span></span>
@@ -711,21 +711,21 @@ w           0.972416527 0.02312558 42.0493890 0.0000000</code></pre>
 </section></section><section id="when-2sls-with-covariates-is-actually-late" class="level2" data-number="13.2"><h2 data-number="13.2" class="anchored" data-anchor-id="when-2sls-with-covariates-is-actually-late">
 <span class="header-section-number">13.2</span> When 2SLS with Covariates Is <em>Actually</em> LATE</h2>
 <p>The LATE identification above is clean because we have no covariates. The Wald estimator gives us LATE, full stop. But in practice we usually add covariates to defend conditional exogeneity:</p>
-<p><span class="math display">\[
+<p><span id="eq-iv-rdd-5"><span class="math display">\[
 Y = \beta W + \gamma^\top X + U, \qquad W = \pi Z + \delta^\top X + V.
-\]</span></p>
+\tag{13.5}\]</span></span></p>
 <p>Does 2SLS on this still give us a LATE? <span class="citation" data-cites="angrist-pischke-2009">Angrist and Pischke (<a href="references.html#ref-angrist-pischke-2009" role="doc-biblioref">2009</a>)</span> say it gives a weighted average of covariate-specific LATEs. <span class="citation" data-cites="blandhol-et-al-2025">Blandhol et al. (<a href="references.html#ref-blandhol-et-al-2025" role="doc-biblioref">2025</a>)</span> show that this is generally not true.</p>
 <section id="why-the-linear-specification-hides-an-assumption" class="level3" data-number="13.2.1"><h3 data-number="13.2.1" class="anchored" data-anchor-id="why-the-linear-specification-hides-an-assumption">
 <span class="header-section-number">13.2.1</span> Why the Linear Specification Hides an Assumption</h3>
 <p>By Frisch-Waugh-Lovell, the IV estimand is</p>
-<p><span class="math display">\[
+<p><span id="eq-iv-rdd-6"><span class="math display">\[
 \beta_{iv} = \frac{E[Y \tilde Z]}{E[W \tilde Z]}, \qquad \tilde Z = Z - L[Z \mid X],
-\]</span></p>
+\tag{13.6}\]</span></span></p>
 <p>where <span class="math inline">\(L[Z \mid X]\)</span> is the <strong>linear</strong> projection of <span class="math inline">\(Z\)</span> on <span class="math inline">\(X\)</span>. So <span class="math inline">\(\tilde Z\)</span> is the part of <span class="math inline">\(Z\)</span> that a linear regression on <span class="math inline">\(X\)</span> cannot explain.</p>
 <p>What if the true <span class="math inline">\(E[Z \mid X]\)</span> is not linear in <span class="math inline">\(X\)</span>? Then <span class="math inline">\(L[Z \mid X] \neq E[Z \mid X]\)</span>, and the residual instrument <span class="math inline">\(\tilde Z\)</span> still picks up some of the conditional mean. The IV estimand then mixes treatment effects across compliance groups. <span class="citation" data-cites="blandhol-et-al-2025">Blandhol et al. (<a href="references.html#ref-blandhol-et-al-2025" role="doc-biblioref">2025</a>)</span> prove that <span class="math inline">\(\beta_{iv}\)</span> is a non-negatively weighted average of conditional LATEs only if the rich covariates condition holds:</p>
-<p><span class="math display">\[
+<p><span id="eq-iv-rdd-7"><span class="math display">\[
 L[Z \mid X] = E[Z \mid X].
-\]</span></p>
+\tag{13.7}\]</span></span></p>
 <p>This is a parametric assumption about <span class="math inline">\(E[Z \mid X]\)</span>. It is implicit in the linear-in-<span class="math inline">\(X\)</span> specification, and it is rarely defended. When it fails, <span class="math inline">\(\beta_{iv}\)</span> picks up treatment effects for always-takers as well as compliers, and some always-taker terms enter with negative weight.</p>
 <div class="callout callout-style-simple callout-warning">
 <div class="callout-body d-flex">
@@ -867,9 +867,9 @@ RESET = 117.02, df1 = 2, df2 = 7996, p-value &lt; 2.2e-16</code></pre>
 <li><p><strong>If RESET rejects, report DDML PLIV alongside 2SLS.</strong> That is what the <code>DoubleML</code> chunk above does. DDML PLIV targets <span class="math inline">\(\beta_{rich}\)</span>, a non-negatively weighted average of conditional LATEs.</p></li>
 <li>
 <p><strong>For a binary instrument, also estimate the unconditional LATE.</strong> With instrument propensity score weighting <span class="citation" data-cites="sloczynski-2024">(<a href="references.html#ref-sloczynski-2024" role="doc-biblioref">Słoczyński 2024</a>)</span>,</p>
-<p><span class="math display">\[
+<p><span id="eq-iv-rdd-8"><span class="math display">\[
 \hat\beta_{late} = \frac{\sum_i Y_i [Z_i/\hat p(X_i) - (1-Z_i)/(1-\hat p(X_i))]}{\sum_i W_i [Z_i/\hat p(X_i) - (1-Z_i)/(1-\hat p(X_i))]},
-\]</span></p>
+\tag{13.8}\]</span></span></p>
 <p>where <span class="math inline">\(\hat p(X) = P(Z = 1 \mid X)\)</span> is estimated nonparametrically. Stata has <code>kappalate</code> (Słoczyński, Uysal and Wooldridge), which implements this and related weighting estimators of the LATE. In R it is straightforward to build once <span class="math inline">\(\hat p(X)\)</span> is in hand.</p>
 </li>
 </ol></section><section id="a-note-on-the-frdd-example" class="level3" data-number="13.2.5"><h3 data-number="13.2.5" class="anchored" data-anchor-id="a-note-on-the-frdd-example">
@@ -884,7 +884,7 @@ RESET = 117.02, df1 = 2, df2 = 7996, p-value &lt; 2.2e-16</code></pre>
 <section id="sharp-rdd" class="level3" data-number="13.3.1"><h3 data-number="13.3.1" class="anchored" data-anchor-id="sharp-rdd">
 <span class="header-section-number">13.3.1</span> Sharp RDD</h3>
 <p>We have a continuous variable <span class="math inline">\(X\)</span>, called the running variable, which determines the binary treatment <span class="math inline">\(W\)</span>. The treatment is assigned according to a threshold <span class="math inline">\(c\)</span>. The outcome variable <span class="math inline">\(Y\)</span> is a function of <span class="math inline">\(X\)</span> and <span class="math inline">\(W\)</span>.</p>
-<p><span class="math display">\[ W=\mathbb{1}(X&gt;c)\]</span></p>
+<p><span id="eq-iv-rdd-9"><span class="math display">\[ W=\mathbb{1}(X&gt;c) \tag{13.9}\]</span></span></p>
 <p>Lee (2008) studies the effect of incumbency advantage in elections. His identification strategy is based on the discontinuity generated by the rule that the party with a majority vote share wins. The forcing variable <span class="math inline">\(X_i\)</span> is the difference in vote share between the Democratic and Republican parties in one election, with the threshold <span class="math inline">\(c = 0\)</span>. The outcome variable <span class="math inline">\(Y_i\)</span> is vote share at the second election.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/rdpackages/rdrobust">rdrobust</a></span><span class="op">)</span></span>
@@ -899,7 +899,7 @@ RESET = 117.02, df1 = 2, df2 = 7996, p-value &lt; 2.2e-16</code></pre>
 </div>
 </section><section id="identification-of-srdd" class="level3" data-number="13.3.2"><h3 data-number="13.3.2" class="anchored" data-anchor-id="identification-of-srdd">
 <span class="header-section-number">13.3.2</span> Identification of SRDD</h3>
-<p><span class="math display">\[ \tau_{RD} = \lim_{x \to c^+} E[Y|X=x] - \lim_{x \to c^-} E[Y|X=x] \]</span></p>
+<p><span id="eq-iv-rdd-10"><span class="math display">\[ \tau_{RD} = \lim_{x \to c^+} E[Y|X=x] - \lim_{x \to c^-} E[Y|X=x]  \tag{13.10}\]</span></span></p>
 <p>In words, the treatment effect is the difference in the outcome from the right side and from the left side. This is the same as the difference in the outcome at the threshold, as if the treatment is assigned randomly.</p>
 </section><section id="estimation-of-srdd" class="level3" data-number="13.3.3"><h3 data-number="13.3.3" class="anchored" data-anchor-id="estimation-of-srdd">
 <span class="header-section-number">13.3.3</span> Estimation of SRDD</h3>
@@ -984,7 +984,7 @@ Unique Obs.                     595          665
 </section><section id="fuzzy-rdd" class="level3" data-number="13.3.5"><h3 data-number="13.3.5" class="anchored" data-anchor-id="fuzzy-rdd">
 <span class="header-section-number">13.3.5</span> Fuzzy RDD</h3>
 <p>In fuzzy RDD, the treatment is assigned according to a threshold <span class="math inline">\(c\)</span>, but there exist non-compliance. This is similar to IV case.</p>
-<p><span class="math display">\[ \tau_{FRD} = \frac{\lim_{x \to c^+} E[Y|X=x] - \lim_{x \to c^-} E[Y|X=x]}{\lim_{x \to c^+} E[W|X=x] - \lim_{x \to c^-} E[W|X=x]} \]</span></p>
+<p><span id="eq-iv-rdd-11"><span class="math display">\[ \tau_{FRD} = \frac{\lim_{x \to c^+} E[Y|X=x] - \lim_{x \to c^-} E[Y|X=x]}{\lim_{x \to c^+} E[W|X=x] - \lim_{x \to c^-} E[W|X=x]}  \tag{13.11}\]</span></span></p>
 <p>For example, if food stamp eligibility is given to all households below a certain income, but not all households receive the food stamps. In other words, income does not solely determine the assignment. Cutoff point increases the probability of treatment but doesn’t completely determine treatment.</p>
 <p>FRDD is IV.</p>
 </section><section id="frdd-example" class="level3" data-number="13.3.6"><h3 data-number="13.3.6" class="anchored" data-anchor-id="frdd-example">
@@ -1634,7 +1634,7 @@ Słoczyński, Tymon. 2024. <span>“When Should We (Not) Interpret Linear <span>
 <span id="cb32-103"><a href="#cb32-103" aria-hidden="true" tabindex="-1"></a>&amp;= \frac{E<span class="co">[</span><span class="ot">Y|Z=1</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y|Z=0</span><span class="co">]</span>}{P(W=1|Z=1)-P(W=1|Z=0)} <span class="sc">\\</span></span>
 <span id="cb32-104"><a href="#cb32-104" aria-hidden="true" tabindex="-1"></a>&amp;= \frac{E<span class="co">[</span><span class="ot">Y|Z=1</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y|Z=0</span><span class="co">]</span>}{E<span class="co">[</span><span class="ot">W|Z=1</span><span class="co">]</span>-E<span class="co">[</span><span class="ot">W|Z=0</span><span class="co">]</span>}</span>
 <span id="cb32-105"><a href="#cb32-105" aria-hidden="true" tabindex="-1"></a>\end{aligned}</span>
-<span id="cb32-106"><a href="#cb32-106" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb32-106"><a href="#cb32-106" aria-hidden="true" tabindex="-1"></a>$$ {#eq-iv-rdd-1}</span>
 <span id="cb32-107"><a href="#cb32-107" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-108"><a href="#cb32-108" aria-hidden="true" tabindex="-1"></a><span class="fu">### Parametric Models</span></span>
 <span id="cb32-109"><a href="#cb32-109" aria-hidden="true" tabindex="-1"></a></span>
@@ -1645,7 +1645,7 @@ Słoczyński, Tymon. 2024. <span>“When Should We (Not) Interpret Linear <span>
 <span id="cb32-114"><a href="#cb32-114" aria-hidden="true" tabindex="-1"></a>\tau_{LATE} &amp;= \frac{E<span class="co">[</span><span class="ot">Y|Z=1</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y|Z=0</span><span class="co">]</span>}{E<span class="co">[</span><span class="ot">W|Z=1</span><span class="co">]</span>-E<span class="co">[</span><span class="ot">W|Z=0</span><span class="co">]</span>} <span class="sc">\\</span></span>
 <span id="cb32-115"><a href="#cb32-115" aria-hidden="true" tabindex="-1"></a>&amp;= \frac{Cov(Y,Z)}{Cov(W,Z)}</span>
 <span id="cb32-116"><a href="#cb32-116" aria-hidden="true" tabindex="-1"></a>\end{aligned}</span>
-<span id="cb32-117"><a href="#cb32-117" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb32-117"><a href="#cb32-117" aria-hidden="true" tabindex="-1"></a>$$ {#eq-iv-rdd-2}</span>
 <span id="cb32-118"><a href="#cb32-118" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-119"><a href="#cb32-119" aria-hidden="true" tabindex="-1"></a>Why do covariates help? It is important to separate two assumptions</span>
 <span id="cb32-120"><a href="#cb32-120" aria-hidden="true" tabindex="-1"></a>here. Conditioning on covariates $X$ can make the *as-if-random*</span>
@@ -1701,11 +1701,11 @@ Słoczyński, Tymon. 2024. <span>“When Should We (Not) Interpret Linear <span>
 <span id="cb32-170"><a href="#cb32-170" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-171"><a href="#cb32-171" aria-hidden="true" tabindex="-1"></a>**Algebraic motivation.** Because <span class="in">`w`</span> is endogenous, decompose the structural error:</span>
 <span id="cb32-172"><a href="#cb32-172" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-173"><a href="#cb32-173" aria-hidden="true" tabindex="-1"></a>$$\varepsilon = \rho v + \eta, \qquad v \equiv w - E<span class="co">[</span><span class="ot">w \mid z</span><span class="co">]</span>, \qquad E(z\eta) = 0,\; E(zv) = 0.$$</span>
+<span id="cb32-173"><a href="#cb32-173" aria-hidden="true" tabindex="-1"></a>$$\varepsilon = \rho v + \eta, \qquad v \equiv w - E<span class="co">[</span><span class="ot">w \mid z</span><span class="co">]</span>, \qquad E(z\eta) = 0,\; E(zv) = 0.$$ {#eq-iv-rdd-3}</span>
 <span id="cb32-174"><a href="#cb32-174" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-175"><a href="#cb32-175" aria-hidden="true" tabindex="-1"></a>If we *knew* $v$, controlling for it directly would eliminate the confounding channel. We don't know $v$, but the first-stage residual $\hat v = w - \hat w$ is a consistent estimate. Substituting into the structural equation:</span>
 <span id="cb32-176"><a href="#cb32-176" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-177"><a href="#cb32-177" aria-hidden="true" tabindex="-1"></a>$$y = \alpha + \beta w + \rho\,\hat v + \text{error}.$$</span>
+<span id="cb32-177"><a href="#cb32-177" aria-hidden="true" tabindex="-1"></a>$$y = \alpha + \beta w + \rho\,\hat v + \text{error}.$$ {#eq-iv-rdd-4}</span>
 <span id="cb32-178"><a href="#cb32-178" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-179"><a href="#cb32-179" aria-hidden="true" tabindex="-1"></a>OLS on this **augmented** second stage gives a consistent $\hat\beta$ — identical to 2SLS by the Frisch–Waugh–Lovell (FWL) theorem. The coefficient $\hat\rho$ on $\hat v$ doubles as a **Durbin–Wu–Hausman (DWH) endogeneity test**: under $H_0$ (w is exogenous), $\rho = 0$.</span>
 <span id="cb32-180"><a href="#cb32-180" aria-hidden="true" tabindex="-1"></a></span>
@@ -1744,7 +1744,7 @@ Słoczyński, Tymon. 2024. <span>“When Should We (Not) Interpret Linear <span>
 <span id="cb32-213"><a href="#cb32-213" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-214"><a href="#cb32-214" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb32-215"><a href="#cb32-215" aria-hidden="true" tabindex="-1"></a>Y = \beta W + \gamma^\top X + U, \qquad W = \pi Z + \delta^\top X + V.</span>
-<span id="cb32-216"><a href="#cb32-216" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb32-216"><a href="#cb32-216" aria-hidden="true" tabindex="-1"></a>$$ {#eq-iv-rdd-5}</span>
 <span id="cb32-217"><a href="#cb32-217" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-218"><a href="#cb32-218" aria-hidden="true" tabindex="-1"></a>Does 2SLS on this still give us a LATE? @angrist-pischke-2009 say it gives a weighted average of covariate-specific LATEs. @blandhol-et-al-2025 show that this is generally not true.</span>
 <span id="cb32-219"><a href="#cb32-219" aria-hidden="true" tabindex="-1"></a></span>
@@ -1754,7 +1754,7 @@ Słoczyński, Tymon. 2024. <span>“When Should We (Not) Interpret Linear <span>
 <span id="cb32-223"><a href="#cb32-223" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-224"><a href="#cb32-224" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb32-225"><a href="#cb32-225" aria-hidden="true" tabindex="-1"></a>\beta_{iv} = \frac{E<span class="co">[</span><span class="ot">Y \tilde Z</span><span class="co">]</span>}{E<span class="co">[</span><span class="ot">W \tilde Z</span><span class="co">]</span>}, \qquad \tilde Z = Z - L<span class="co">[</span><span class="ot">Z \mid X</span><span class="co">]</span>,</span>
-<span id="cb32-226"><a href="#cb32-226" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb32-226"><a href="#cb32-226" aria-hidden="true" tabindex="-1"></a>$$ {#eq-iv-rdd-6}</span>
 <span id="cb32-227"><a href="#cb32-227" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-228"><a href="#cb32-228" aria-hidden="true" tabindex="-1"></a>where $L<span class="co">[</span><span class="ot">Z \mid X</span><span class="co">]</span>$ is the **linear** projection of $Z$ on $X$. So $\tilde Z$ is the part of $Z$ that a linear regression on $X$ cannot explain.</span>
 <span id="cb32-229"><a href="#cb32-229" aria-hidden="true" tabindex="-1"></a></span>
@@ -1762,7 +1762,7 @@ Słoczyński, Tymon. 2024. <span>“When Should We (Not) Interpret Linear <span>
 <span id="cb32-231"><a href="#cb32-231" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-232"><a href="#cb32-232" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb32-233"><a href="#cb32-233" aria-hidden="true" tabindex="-1"></a>L<span class="co">[</span><span class="ot">Z \mid X</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">Z \mid X</span><span class="co">]</span>.</span>
-<span id="cb32-234"><a href="#cb32-234" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb32-234"><a href="#cb32-234" aria-hidden="true" tabindex="-1"></a>$$ {#eq-iv-rdd-7}</span>
 <span id="cb32-235"><a href="#cb32-235" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-236"><a href="#cb32-236" aria-hidden="true" tabindex="-1"></a>This is a parametric assumption about $E<span class="co">[</span><span class="ot">Z \mid X</span><span class="co">]</span>$. It is implicit in the linear-in-$X$ specification, and it is rarely defended. When it fails, $\beta_{iv}$ picks up treatment effects for always-takers as well as compliers, and some always-taker terms enter with negative weight.</span>
 <span id="cb32-237"><a href="#cb32-237" aria-hidden="true" tabindex="-1"></a></span>
@@ -1888,7 +1888,7 @@ Słoczyński, Tymon. 2024. <span>“When Should We (Not) Interpret Linear <span>
 <span id="cb32-357"><a href="#cb32-357" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-358"><a href="#cb32-358" aria-hidden="true" tabindex="-1"></a>   $$</span>
 <span id="cb32-359"><a href="#cb32-359" aria-hidden="true" tabindex="-1"></a>   \hat\beta_{late} = \frac{\sum_i Y_i <span class="co">[</span><span class="ot">Z_i/\hat p(X_i) - (1-Z_i)/(1-\hat p(X_i))</span><span class="co">]</span>}{\sum_i W_i <span class="co">[</span><span class="ot">Z_i/\hat p(X_i) - (1-Z_i)/(1-\hat p(X_i))</span><span class="co">]</span>},</span>
-<span id="cb32-360"><a href="#cb32-360" aria-hidden="true" tabindex="-1"></a>   $$</span>
+<span id="cb32-360"><a href="#cb32-360" aria-hidden="true" tabindex="-1"></a>   $$ {#eq-iv-rdd-8}</span>
 <span id="cb32-361"><a href="#cb32-361" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-362"><a href="#cb32-362" aria-hidden="true" tabindex="-1"></a>   where $\hat p(X) = P(Z = 1 \mid X)$ is estimated nonparametrically. Stata has <span class="in">`kappalate`</span> (Słoczyński, Uysal and Wooldridge), which implements this and related weighting estimators of the LATE. In R it is straightforward to build once $\hat p(X)$ is in hand.</span>
 <span id="cb32-363"><a href="#cb32-363" aria-hidden="true" tabindex="-1"></a></span>
@@ -1908,7 +1908,7 @@ Słoczyński, Tymon. 2024. <span>“When Should We (Not) Interpret Linear <span>
 <span id="cb32-377"><a href="#cb32-377" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-378"><a href="#cb32-378" aria-hidden="true" tabindex="-1"></a>We have a continuous variable $X$, called the running variable, which determines the binary treatment $W$. The treatment is assigned according to a threshold $c$. The outcome variable $Y$ is a function of $X$ and $W$.</span>
 <span id="cb32-379"><a href="#cb32-379" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-380"><a href="#cb32-380" aria-hidden="true" tabindex="-1"></a>$$ W=\mathbb{1}(X&gt;c)$$</span>
+<span id="cb32-380"><a href="#cb32-380" aria-hidden="true" tabindex="-1"></a>$$ W=\mathbb{1}(X&gt;c)$$ {#eq-iv-rdd-9}</span>
 <span id="cb32-381"><a href="#cb32-381" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-382"><a href="#cb32-382" aria-hidden="true" tabindex="-1"></a>Lee (2008) studies the effect of incumbency advantage in elections. His identification strategy is based on the discontinuity generated by the rule that the party with a majority vote share wins. The forcing variable $X_i$ is the difference in vote share between the Democratic and Republican parties in one election, with the threshold $c = 0$. The outcome variable $Y_i$ is vote share at the second election.</span>
 <span id="cb32-383"><a href="#cb32-383" aria-hidden="true" tabindex="-1"></a></span>
@@ -1920,7 +1920,7 @@ Słoczyński, Tymon. 2024. <span>“When Should We (Not) Interpret Linear <span>
 <span id="cb32-389"><a href="#cb32-389" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-390"><a href="#cb32-390" aria-hidden="true" tabindex="-1"></a><span class="fu">### Identification of SRDD</span></span>
 <span id="cb32-391"><a href="#cb32-391" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-392"><a href="#cb32-392" aria-hidden="true" tabindex="-1"></a>$$ \tau_{RD} = \lim_{x \to c^+} E<span class="co">[</span><span class="ot">Y|X=x</span><span class="co">]</span> - \lim_{x \to c^-} E<span class="co">[</span><span class="ot">Y|X=x</span><span class="co">]</span> $$</span>
+<span id="cb32-392"><a href="#cb32-392" aria-hidden="true" tabindex="-1"></a>$$ \tau_{RD} = \lim_{x \to c^+} E<span class="co">[</span><span class="ot">Y|X=x</span><span class="co">]</span> - \lim_{x \to c^-} E<span class="co">[</span><span class="ot">Y|X=x</span><span class="co">]</span> $$ {#eq-iv-rdd-10}</span>
 <span id="cb32-393"><a href="#cb32-393" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-394"><a href="#cb32-394" aria-hidden="true" tabindex="-1"></a>In words, the treatment effect is the difference in the outcome from the right side and from the left side. This is the same as the difference in the outcome at the threshold, as if the treatment is assigned randomly.</span>
 <span id="cb32-395"><a href="#cb32-395" aria-hidden="true" tabindex="-1"></a></span>
@@ -1951,7 +1951,7 @@ Słoczyński, Tymon. 2024. <span>“When Should We (Not) Interpret Linear <span>
 <span id="cb32-420"><a href="#cb32-420" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-421"><a href="#cb32-421" aria-hidden="true" tabindex="-1"></a>In fuzzy RDD, the treatment is assigned according to a threshold $c$, but there exist non-compliance. This is similar to IV case.</span>
 <span id="cb32-422"><a href="#cb32-422" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-423"><a href="#cb32-423" aria-hidden="true" tabindex="-1"></a>$$ \tau_{FRD} = \frac{\lim_{x \to c^+} E<span class="co">[</span><span class="ot">Y|X=x</span><span class="co">]</span> - \lim_{x \to c^-} E<span class="co">[</span><span class="ot">Y|X=x</span><span class="co">]</span>}{\lim_{x \to c^+} E<span class="co">[</span><span class="ot">W|X=x</span><span class="co">]</span> - \lim_{x \to c^-} E<span class="co">[</span><span class="ot">W|X=x</span><span class="co">]</span>} $$</span>
+<span id="cb32-423"><a href="#cb32-423" aria-hidden="true" tabindex="-1"></a>$$ \tau_{FRD} = \frac{\lim_{x \to c^+} E<span class="co">[</span><span class="ot">Y|X=x</span><span class="co">]</span> - \lim_{x \to c^-} E<span class="co">[</span><span class="ot">Y|X=x</span><span class="co">]</span>}{\lim_{x \to c^+} E<span class="co">[</span><span class="ot">W|X=x</span><span class="co">]</span> - \lim_{x \to c^-} E<span class="co">[</span><span class="ot">W|X=x</span><span class="co">]</span>} $$ {#eq-iv-rdd-11}</span>
 <span id="cb32-424"><a href="#cb32-424" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-425"><a href="#cb32-425" aria-hidden="true" tabindex="-1"></a>For example, if food stamp eligibility is given to all households below a certain income, but not all households receive the food stamps. In other words, income does not solely determine the assignment. Cutoff point increases the probability of treatment but doesn't completely determine treatment.</span>
 <span id="cb32-426"><a href="#cb32-426" aria-hidden="true" tabindex="-1"></a></span>

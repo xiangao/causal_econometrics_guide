@@ -472,9 +472,9 @@ window.Quarto = {
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/ecpolley/SuperLearner">SuperLearner</a></span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>So far most examples use a binary treatment. Many treatments are not binary: dose of a drug, hours in a program, dollars spent, or a treatment with several levels. In those cases “the treatment effect” is not one number. We usually want a dose-response curve,</p>
-<p><span class="math display">\[
+<p><span id="eq-continuous-treatments-1"><span class="math display">\[
 \mu(d) = \mathbb{E}[Y(d)], \quad d \in \mathcal{D}.
-\]</span></p>
+\tag{10.1}\]</span></span></p>
 <p>I use three approaches:</p>
 <ol type="1">
 <li>
@@ -561,9 +561,9 @@ window.Quarto = {
 </section><section id="generalized-propensity-score-gps" class="level2" data-number="10.3"><h2 data-number="10.3" class="anchored" data-anchor-id="generalized-propensity-score-gps">
 <span class="header-section-number">10.3</span> Generalized propensity score (GPS)</h2>
 <p>The <strong>generalized propensity score</strong> is the conditional density of the treatment given covariates:</p>
-<p><span class="math display">\[
+<p><span id="eq-continuous-treatments-2"><span class="math display">\[
 r(d, x) = f_{D \mid X}(d \mid x).
-\]</span></p>
+\tag{10.2}\]</span></span></p>
 <p>Under unconfoundedness, the GPS plays the same role as the propensity score for binary treatment. In practice we often start with a normal model for <span class="math inline">\(D \mid X\)</span>: <span class="math inline">\(D \mid X \sim \mathcal{N}(\beta_0+\beta'X,\sigma^2)\)</span>.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># Fit GPS model: D ~ X with Normal residuals</span></span>
@@ -634,9 +634,9 @@ r(d, x) = f_{D \mid X}(d \mid x).
 </li>
 </ul>
 <p>Then the dose-response at <span class="math inline">\(d\)</span> is estimated by</p>
-<p><span class="math display">\[
+<p><span id="eq-continuous-treatments-3"><span class="math display">\[
 \hat\mu_{DR}(d) = \frac{1}{n} \sum_i \left[ \hat\mu(d, X_i) + K_h(D_i - d) \cdot \frac{Y_i - \hat\mu(D_i, X_i)}{\hat r(D_i \mid X_i)} \right],
-\]</span></p>
+\tag{10.3}\]</span></span></p>
 <p>where <span class="math inline">\(K_h\)</span> is a kernel around dose <span class="math inline">\(d\)</span>. The bandwidth <span class="math inline">\(h\)</span> controls how much nearby observed doses contribute to the estimate. (The code below uses the weight-normalized — Hájek — version of the correction term, dividing the weights by their mean; the population limit is unchanged.)</p>
 <p>Using the GPS already estimated above, the implementation is short:</p>
 <div class="cell">
@@ -1326,7 +1326,7 @@ Kennedy, Edward H., Zongming Ma, Matthew D. McHugh, and Dylan S. Small. 2017. <s
 <span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a>\mu(d) = \mathbb{E}<span class="co">[</span><span class="ot">Y(d)</span><span class="co">]</span>, \quad d \in \mathcal{D}.</span>
-<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>$$ {#eq-continuous-treatments-1}</span>
 <span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a>I use three approaches:</span>
 <span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a></span>
@@ -1439,7 +1439,7 @@ Kennedy, Edward H., Zongming Ma, Matthew D. McHugh, and Dylan S. Small. 2017. <s
 <span id="cb19-149"><a href="#cb19-149" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-150"><a href="#cb19-150" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb19-151"><a href="#cb19-151" aria-hidden="true" tabindex="-1"></a>r(d, x) = f_{D \mid X}(d \mid x).</span>
-<span id="cb19-152"><a href="#cb19-152" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb19-152"><a href="#cb19-152" aria-hidden="true" tabindex="-1"></a>$$ {#eq-continuous-treatments-2}</span>
 <span id="cb19-153"><a href="#cb19-153" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-154"><a href="#cb19-154" aria-hidden="true" tabindex="-1"></a>Under unconfoundedness, the GPS plays the same role as the propensity score</span>
 <span id="cb19-155"><a href="#cb19-155" aria-hidden="true" tabindex="-1"></a>for binary treatment. In practice we often start with a normal model for</span>
@@ -1523,7 +1523,7 @@ Kennedy, Edward H., Zongming Ma, Matthew D. McHugh, and Dylan S. Small. 2017. <s
 <span id="cb19-237"><a href="#cb19-237" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-238"><a href="#cb19-238" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb19-239"><a href="#cb19-239" aria-hidden="true" tabindex="-1"></a>\hat\mu_{DR}(d) = \frac{1}{n} \sum_i \left<span class="co">[</span><span class="ot"> \hat\mu(d, X_i) + K_h(D_i - d) \cdot \frac{Y_i - \hat\mu(D_i, X_i)}{\hat r(D_i \mid X_i)} \right</span><span class="co">]</span>,</span>
-<span id="cb19-240"><a href="#cb19-240" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb19-240"><a href="#cb19-240" aria-hidden="true" tabindex="-1"></a>$$ {#eq-continuous-treatments-3}</span>
 <span id="cb19-241"><a href="#cb19-241" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-242"><a href="#cb19-242" aria-hidden="true" tabindex="-1"></a>where $K_h$ is a kernel around dose $d$. The bandwidth $h$ controls how much</span>
 <span id="cb19-243"><a href="#cb19-243" aria-hidden="true" tabindex="-1"></a>nearby observed doses contribute to the estimate. (The code below uses the</span>

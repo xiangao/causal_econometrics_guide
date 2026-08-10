@@ -523,9 +523,9 @@ window.Quarto = {
 <span class="header-section-number">2.2</span> The five estimands</h2>
 <section id="ate-average-treatment-effect" class="level3" data-number="2.2.1"><h3 data-number="2.2.1" class="anchored" data-anchor-id="ate-average-treatment-effect">
 <span class="header-section-number">2.2.1</span> ATE — average treatment effect</h3>
-<p><span class="math display">\[
+<p><span id="eq-causal-estimands-1"><span class="math display">\[
 \text{ATE} = \mathbb{E}[Y(1) - Y(0)]
-\]</span></p>
+\tag{2.1}\]</span></span></p>
 <p>ATE is the mean effect in the whole population. It compares the mean outcome if everyone were treated with the mean outcome if nobody were treated.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ate_true</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">Y1</span> <span class="op">-</span> <span class="va">Y0</span><span class="op">)</span></span>
@@ -541,9 +541,9 @@ window.Quarto = {
 </div>
 </section><section id="att-average-treatment-effect-on-the-treated" class="level3" data-number="2.2.2"><h3 data-number="2.2.2" class="anchored" data-anchor-id="att-average-treatment-effect-on-the-treated">
 <span class="header-section-number">2.2.2</span> ATT — average treatment effect on the treated</h3>
-<p><span class="math display">\[
+<p><span id="eq-causal-estimands-2"><span class="math display">\[
 \text{ATT} = \mathbb{E}[Y(1) - Y(0) \mid D = 1]
-\]</span></p>
+\tag{2.2}\]</span></span></p>
 <p>ATT is the mean effect for the units that actually took treatment. It differs from ATE when treatment selection is related to treatment-effect heterogeneity.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">att_true</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">Y1</span><span class="op">[</span><span class="va">D</span> <span class="op">==</span> <span class="fl">1</span><span class="op">]</span> <span class="op">-</span> <span class="va">Y0</span><span class="op">[</span><span class="va">D</span> <span class="op">==</span> <span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
@@ -555,9 +555,9 @@ window.Quarto = {
 <p>Here ATT is close to ATE – and in fact the two are analytically identical in this DGP, exactly <span class="math inline">\(2.0\)</span> in the population; the estimates above only differ by finite-sample simulation noise, not by any true gap between the estimands. The reason is mechanical: the individual treatment effect <span class="math inline">\(\tau_i = 1+2X_i\)</span> depends only on <span class="math inline">\(X_i\)</span>, while selection into treatment depends on <span class="math inline">\(U_i\)</span> (and the instrument <span class="math inline">\(Z_i\)</span> below), and <span class="math inline">\(X_i\)</span> is generated independently of <span class="math inline">\(U_i\)</span> and <span class="math inline">\(Z_i\)</span>. Since treatment-effect heterogeneity is unrelated to who selects into treatment or who complies with the instrument, averaging <span class="math inline">\(\tau_i\)</span> over the treated subpopulation or over compliers gives the same population average as over everyone – hence ATE = ATT = LATE = <span class="math inline">\(2.0\)</span> exactly here. If selection (or compliance) also depended on <span class="math inline">\(X\)</span>, these estimands would diverge, since ATE, ATT, and LATE are different averages of <span class="math inline">\(\tau_i\)</span> across different, non-identical subpopulations.</p>
 </section><section id="late-local-average-treatment-effect-imbens-angrist" class="level3" data-number="2.2.3"><h3 data-number="2.2.3" class="anchored" data-anchor-id="late-local-average-treatment-effect-imbens-angrist">
 <span class="header-section-number">2.2.3</span> LATE — local average treatment effect (Imbens-Angrist)</h3>
-<p><span class="math display">\[
+<p><span id="eq-causal-estimands-3"><span class="math display">\[
 \text{LATE} = \mathbb{E}[Y(1) - Y(0) \mid D(1) &gt; D(0)]
-\]</span></p>
+\tag{2.3}\]</span></span></p>
 <p>LATE is the mean effect for compliers, the units whose treatment status is changed by the instrument. Under the usual IV assumptions, the Wald estimator identifies this effect, not the ATE. Identifying LATE by the Wald ratio additionally requires monotonicity (no defiers): <span class="math inline">\(D(1) \ge D(0)\)</span> for all <span class="math inline">\(i\)</span>. This DGP imposes it by generating both potential treatments from one shared latent draw <span class="math inline">\(V_i\)</span> with ordered thresholds (<span class="math inline">\(D(z) = \mathbb{1}\{V_i &lt; p_{Dz}\}\)</span> with <span class="math inline">\(p_{D1} \ge p_{D0}\)</span>), so no unit is pushed <em>out</em> of treatment by the offer. Raising the <em>probability</em> alone would not be enough: with independent draws for <span class="math inline">\(D(0)\)</span> and <span class="math inline">\(D(1)\)</span>, roughly 3% of units would be defiers and the Wald ratio would no longer equal the complier mean.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">compliers</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">D1</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span> <span class="op">&amp;</span> <span class="op">(</span><span class="va">D0</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span></span>
@@ -581,9 +581,9 @@ window.Quarto = {
 <p>With heterogeneous effects, IV averages over the people moved by the instrument. In this example the Wald estimate matches the complier mean because <span class="math inline">\(Z\)</span> changes treatment only for that group.</p>
 </section><section id="cate-conditional-average-treatment-effect" class="level3" data-number="2.2.4"><h3 data-number="2.2.4" class="anchored" data-anchor-id="cate-conditional-average-treatment-effect">
 <span class="header-section-number">2.2.4</span> CATE — conditional average treatment effect</h3>
-<p><span class="math display">\[
+<p><span id="eq-causal-estimands-4"><span class="math display">\[
 \text{CATE}(x) = \mathbb{E}[Y(1) - Y(0) \mid X = x]
-\]</span></p>
+\tag{2.4}\]</span></span></p>
 <p>CATE keeps <span class="math inline">\(X\)</span> in the estimand. In this DGP, CATE(<span class="math inline">\(x\)</span>) is simply <span class="math inline">\(\tau(x)=1+2x\)</span>.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">nbins</span> <span class="op">&lt;-</span> <span class="fl">20</span></span>
@@ -606,9 +606,9 @@ window.Quarto = {
 </div>
 </section><section id="qte-quantile-treatment-effect" class="level3" data-number="2.2.5"><h3 data-number="2.2.5" class="anchored" data-anchor-id="qte-quantile-treatment-effect">
 <span class="header-section-number">2.2.5</span> QTE — quantile treatment effect</h3>
-<p><span class="math display">\[
+<p><span id="eq-causal-estimands-5"><span class="math display">\[
 \text{QTE}(q) = F^{-1}_{Y(1)}(q) - F^{-1}_{Y(0)}(q)
-\]</span></p>
+\tag{2.5}\]</span></span></p>
 <p>QTE compares the two marginal outcome distributions. It is the difference between a quantile under treatment and the same quantile under control. It does not follow the same person across the two potential outcomes.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">qte_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.95</span>, by <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
@@ -1317,7 +1317,7 @@ Blandhol, Christine, John Bonney, Magne Mogstad, and Alexander Torgovitsky. 2025
 <span id="cb35-83"><a href="#cb35-83" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-84"><a href="#cb35-84" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb35-85"><a href="#cb35-85" aria-hidden="true" tabindex="-1"></a>\text{ATE} = \mathbb{E}<span class="co">[</span><span class="ot">Y(1) - Y(0)</span><span class="co">]</span></span>
-<span id="cb35-86"><a href="#cb35-86" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb35-86"><a href="#cb35-86" aria-hidden="true" tabindex="-1"></a>$$ {#eq-causal-estimands-1}</span>
 <span id="cb35-87"><a href="#cb35-87" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-88"><a href="#cb35-88" aria-hidden="true" tabindex="-1"></a>ATE is the mean effect in the whole population. It compares the mean outcome</span>
 <span id="cb35-89"><a href="#cb35-89" aria-hidden="true" tabindex="-1"></a>if everyone were treated with the mean outcome if nobody were treated.</span>
@@ -1336,7 +1336,7 @@ Blandhol, Christine, John Bonney, Magne Mogstad, and Alexander Torgovitsky. 2025
 <span id="cb35-104"><a href="#cb35-104" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-105"><a href="#cb35-105" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb35-106"><a href="#cb35-106" aria-hidden="true" tabindex="-1"></a>\text{ATT} = \mathbb{E}<span class="co">[</span><span class="ot">Y(1) - Y(0) \mid D = 1</span><span class="co">]</span></span>
-<span id="cb35-107"><a href="#cb35-107" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb35-107"><a href="#cb35-107" aria-hidden="true" tabindex="-1"></a>$$ {#eq-causal-estimands-2}</span>
 <span id="cb35-108"><a href="#cb35-108" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-109"><a href="#cb35-109" aria-hidden="true" tabindex="-1"></a>ATT is the mean effect for the units that actually took treatment. It differs</span>
 <span id="cb35-110"><a href="#cb35-110" aria-hidden="true" tabindex="-1"></a>from ATE when treatment selection is related to treatment-effect</span>
@@ -1368,7 +1368,7 @@ Blandhol, Christine, John Bonney, Magne Mogstad, and Alexander Torgovitsky. 2025
 <span id="cb35-138"><a href="#cb35-138" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-139"><a href="#cb35-139" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb35-140"><a href="#cb35-140" aria-hidden="true" tabindex="-1"></a>\text{LATE} = \mathbb{E}<span class="co">[</span><span class="ot">Y(1) - Y(0) \mid D(1) &gt; D(0)</span><span class="co">]</span></span>
-<span id="cb35-141"><a href="#cb35-141" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb35-141"><a href="#cb35-141" aria-hidden="true" tabindex="-1"></a>$$ {#eq-causal-estimands-3}</span>
 <span id="cb35-142"><a href="#cb35-142" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-143"><a href="#cb35-143" aria-hidden="true" tabindex="-1"></a>LATE is the mean effect for compliers, the units whose treatment status is</span>
 <span id="cb35-144"><a href="#cb35-144" aria-hidden="true" tabindex="-1"></a>changed by the instrument. Under the usual IV assumptions, the Wald estimator</span>
@@ -1404,7 +1404,7 @@ Blandhol, Christine, John Bonney, Magne Mogstad, and Alexander Torgovitsky. 2025
 <span id="cb35-176"><a href="#cb35-176" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-177"><a href="#cb35-177" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb35-178"><a href="#cb35-178" aria-hidden="true" tabindex="-1"></a>\text{CATE}(x) = \mathbb{E}<span class="co">[</span><span class="ot">Y(1) - Y(0) \mid X = x</span><span class="co">]</span></span>
-<span id="cb35-179"><a href="#cb35-179" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb35-179"><a href="#cb35-179" aria-hidden="true" tabindex="-1"></a>$$ {#eq-causal-estimands-4}</span>
 <span id="cb35-180"><a href="#cb35-180" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-181"><a href="#cb35-181" aria-hidden="true" tabindex="-1"></a>CATE keeps $X$ in the estimand. In this DGP, CATE($x$) is simply</span>
 <span id="cb35-182"><a href="#cb35-182" aria-hidden="true" tabindex="-1"></a>$\tau(x)=1+2x$.</span>
@@ -1430,7 +1430,7 @@ Blandhol, Christine, John Bonney, Magne Mogstad, and Alexander Torgovitsky. 2025
 <span id="cb35-204"><a href="#cb35-204" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-205"><a href="#cb35-205" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb35-206"><a href="#cb35-206" aria-hidden="true" tabindex="-1"></a>\text{QTE}(q) = F^{-1}_{Y(1)}(q) - F^{-1}_{Y(0)}(q)</span>
-<span id="cb35-207"><a href="#cb35-207" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb35-207"><a href="#cb35-207" aria-hidden="true" tabindex="-1"></a>$$ {#eq-causal-estimands-5}</span>
 <span id="cb35-208"><a href="#cb35-208" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-209"><a href="#cb35-209" aria-hidden="true" tabindex="-1"></a>QTE compares the two marginal outcome distributions. It is the difference</span>
 <span id="cb35-210"><a href="#cb35-210" aria-hidden="true" tabindex="-1"></a>between a quantile under treatment and the same quantile under control. It</span>

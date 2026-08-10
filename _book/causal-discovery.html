@@ -463,9 +463,9 @@ window.Quarto = {
 <section id="why-some-edges-cannot-be-oriented" class="level3" data-number="19.1.1"><h3 data-number="19.1.1" class="anchored" data-anchor-id="why-some-edges-cannot-be-oriented">
 <span class="header-section-number">19.1.1</span> Why some edges cannot be oriented</h3>
 <p>Three DAGs are observationally equivalent — they produce the same set of conditional independences — and therefore indistinguishable from data:</p>
-<p><span class="math display">\[X \to Y \to Z \qquad X \leftarrow Y \leftarrow Z \qquad X \leftarrow Y \to Z\]</span></p>
+<p><span id="eq-causal-discovery-1"><span class="math display">\[X \to Y \to Z \qquad X \leftarrow Y \leftarrow Z \qquad X \leftarrow Y \to Z \tag{19.1}\]</span></span></p>
 <p>All three imply <span class="math inline">\(X \perp\!\!\!\perp Z \mid Y\)</span> and no other CI. Their CPDAG shows <span class="math inline">\(X - Y - Z\)</span> with no arrowheads.</p>
-<p>The structure <span class="math inline">\(X \to Y \leftarrow Z\)</span> (a <strong>collider</strong> at <span class="math inline">\(Y\)</span>) is <em>not</em> equivalent: here <span class="math inline">\(X \perp\!\!\!\perp Z\)</span> but <span class="math inline">\(X \not\!\perp\!\!\!\perp Z \mid Y\)</span>. Because it has a unique CI signature, the <span class="math inline">\(\to Y \leftarrow\)</span> orientation is identifiable from data. Algorithms orient these colliders; non-collider edges often remain undirected.</p>
+<p>The structure <span class="math inline">\(X \to Y \leftarrow Z\)</span> (a <strong>collider</strong> at <span class="math inline">\(Y\)</span>) is <em>not</em> equivalent: here <span class="math inline">\(X \perp\!\!\!\perp Z\)</span> but <span class="math inline">\(X \not\perp\!\!\!\perp Z \mid Y\)</span>. Because it has a unique CI signature, the <span class="math inline">\(\to Y \leftarrow\)</span> orientation is identifiable from data. Algorithms orient these colliders; non-collider edges often remain undirected.</p>
 </section><section id="what-a-cpdag-tells-you" class="level3" data-number="19.1.2"><h3 data-number="19.1.2" class="anchored" data-anchor-id="what-a-cpdag-tells-you">
 <span class="header-section-number">19.1.2</span> What a CPDAG tells you</h3>
 <p>A directed edge <span class="math inline">\(X \to Y\)</span> in the CPDAG means: in <em>every</em> DAG consistent with the data, <span class="math inline">\(X\)</span> causes <span class="math inline">\(Y\)</span>. An undirected edge <span class="math inline">\(X - Y\)</span> means some consistent DAGs have <span class="math inline">\(X \to Y\)</span> and others have <span class="math inline">\(X \leftarrow Y\)</span> — data alone cannot decide.</p>
@@ -500,7 +500,7 @@ window.Quarto = {
 <p>Both target the same CPDAG, but they make different mistakes. PC depends on finite-sample conditional independence tests. GES depends on the score. I would usually compare both.</p>
 </section><section id="simulation" class="level2" data-number="19.3"><h2 data-number="19.3" class="anchored" data-anchor-id="simulation">
 <span class="header-section-number">19.3</span> Simulation</h2>
-<p>We generate a random Gaussian linear DAG using <code><a href="https://rdrr.io/pkg/pcalg/man/randomDAG.html">pcalg::randomDAG</a></code> with 8 nodes and edge probability 0.35. Each edge <span class="math inline">\(j \to i\)</span> generates a structural equation <span class="math display">\[X_i = \sum_{j \in \text{pa}(i)} \beta_{ji} X_j + \varepsilon_i, \quad \varepsilon_i \sim N(0,1),\]</span> with <span class="math inline">\(|\beta_{ji}|\)</span> drawn from <span class="math inline">\([0.25, 1]\)</span>.</p>
+<p>We generate a random Gaussian linear DAG using <code><a href="https://rdrr.io/pkg/pcalg/man/randomDAG.html">pcalg::randomDAG</a></code> with 8 nodes and edge probability 0.35. Each edge <span class="math inline">\(j \to i\)</span> generates a structural equation <span id="eq-causal-discovery-2"><span class="math display">\[X_i = \sum_{j \in \text{pa}(i)} \beta_{ji} X_j + \varepsilon_i, \quad \varepsilon_i \sim N(0,1), \tag{19.2}\]</span></span> with <span class="math inline">\(|\beta_{ji}|\)</span> drawn from <span class="math inline">\([0.25, 1]\)</span>.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">2025</span><span class="op">)</span></span>
 <span></span>
@@ -542,7 +542,7 @@ Figure&nbsp;19.1: True DAG used for simulation.
 </div>
 </section><section id="ci-test-and-score-infrastructure" class="level2" data-number="19.4"><h2 data-number="19.4" class="anchored" data-anchor-id="ci-test-and-score-infrastructure">
 <span class="header-section-number">19.4</span> CI-Test and Score Infrastructure</h2>
-<p>PC uses a <strong>Fisher-Z conditional independence test</strong> appropriate for Gaussian data. Given the partial correlation <span class="math inline">\(\hat\rho_{XY \mid Z}\)</span>, the test statistic is <span class="math display">\[T = \sqrt{n - |Z| - 3} \cdot \operatorname{atanh}(\hat\rho_{XY \mid Z}) \;\sim\; N(0,1) \quad \text{under } H_0: X \perp\!\!\!\perp Y \mid Z.\]</span></p>
+<p>PC uses a <strong>Fisher-Z conditional independence test</strong> appropriate for Gaussian data. Given the partial correlation <span class="math inline">\(\hat\rho_{XY \mid Z}\)</span>, the test statistic is <span id="eq-causal-discovery-3"><span class="math display">\[T = \sqrt{n - |Z| - 3} \cdot \operatorname{atanh}(\hat\rho_{XY \mid Z}) \;\sim\; N(0,1) \quad \text{under } H_0: X \perp\!\!\!\perp Y \mid Z. \tag{19.3}\]</span></span></p>
 <p><strong>Choosing the significance level</strong> <span class="math inline">\(\alpha\)</span> involves a bias–variance tradeoff on the skeleton:</p>
 <p>An edge is <em>removed</em> whenever a CI test fails to reject independence (<span class="math inline">\(p \ge \alpha\)</span>), so <span class="math inline">\(\alpha\)</span> controls how easily edges are deleted:</p>
 <ul>
@@ -552,7 +552,7 @@ Figure&nbsp;19.1: True DAG used for simulation.
 <strong>High <span class="math inline">\(\alpha\)</span> (e.g., 0.05)</strong>: independence is rejected more often, so fewer edges are removed. Denser skeleton; risks retaining spurious edges.</li>
 </ul>
 <p>With <span class="math inline">\(n = 2000\)</span> and <span class="math inline">\(p = 8\)</span> we use <span class="math inline">\(\alpha = 0.01\)</span>, a common default.</p>
-<p>GES does not use a significance level. It selects the graph that <em>minimizes</em> the <strong>Gaussian BIC</strong> <span class="math display">\[\text{BIC}(G) = -2 \,\ell(\hat\theta; G) + |G| \log n\]</span> (equivalently, maximizes the penalized log-likelihood <span class="math inline">\(\ell - \tfrac{|G|}{2}\log n\)</span>), which penalizes graph complexity directly. Implemented in <code>pcalg</code> as <code>GaussL0penObsScore</code>.</p>
+<p>GES does not use a significance level. It selects the graph that <em>minimizes</em> the <strong>Gaussian BIC</strong> <span id="eq-causal-discovery-4"><span class="math display">\[\text{BIC}(G) = -2 \,\ell(\hat\theta; G) + |G| \log n \tag{19.4}\]</span></span> (equivalently, maximizes the penalized log-likelihood <span class="math inline">\(\ell - \tfrac{|G|}{2}\log n\)</span>), which penalizes graph complexity directly. Implemented in <code>pcalg</code> as <code>GaussL0penObsScore</code>.</p>
 <p>We wrap <code>gaussCItest</code> in a counter to track exactly how many CI tests PC calls:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">make_counted_ci</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">suff_stat</span><span class="op">)</span> <span class="op">{</span></span>
@@ -1128,10 +1128,10 @@ Figure&nbsp;19.4: Estimated CPDAGs from PC and GES on PISA 2022 (USA). Arrows ar
 </section><section id="orienting-with-background-knowledge" class="level3" data-number="19.9.3"><h3 data-number="19.9.3" class="anchored" data-anchor-id="orienting-with-background-knowledge">
 <span class="header-section-number">19.9.3</span> Orienting with background knowledge</h3>
 <p>Sex and immigration background are fixed at birth; family socioeconomic status is established long before the test; grade precedes the assessment; the score is the outcome. That gives a <strong>tier ordering</strong></p>
-<p><span class="math display">\[
+<p><span id="eq-causal-discovery-5"><span class="math display">\[
 \{\text{GENDER}, \text{IMMIG}\} \prec \{\text{HISEI}, \text{HOMEPOS}\}
 \prec \text{GRADE} \prec \text{MATH}.
-\]</span></p>
+\tag{19.5}\]</span></span></p>
 <p>A cross-tier edge must point earlier→later; a within-tier edge the ordering cannot decide. We impose this on the discovered <strong>skeleton</strong>, because the ordering is knowledge we hold independently of how the data oriented things.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tier_p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>HISEI <span class="op">=</span> <span class="fl">1</span>, HOMEPOS <span class="op">=</span> <span class="fl">1</span>, IMMIG <span class="op">=</span> <span class="fl">0</span>, GRADE <span class="op">=</span> <span class="fl">2</span>, GENDER <span class="op">=</span> <span class="fl">0</span>, MATH <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">[</span><span class="va">plabs</span><span class="op">]</span></span>
@@ -1790,11 +1790,11 @@ Figure&nbsp;19.6: Bootstrap edge-selection frequency (weighted PC, 200 resamples
 <span id="cb26-77"><a href="#cb26-77" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb26-78"><a href="#cb26-78" aria-hidden="true" tabindex="-1"></a>Three DAGs are observationally equivalent — they produce the same set of conditional independences — and therefore indistinguishable from data:</span>
 <span id="cb26-79"><a href="#cb26-79" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-80"><a href="#cb26-80" aria-hidden="true" tabindex="-1"></a>$$X \to Y \to Z \qquad X \leftarrow Y \leftarrow Z \qquad X \leftarrow Y \to Z$$</span>
+<span id="cb26-80"><a href="#cb26-80" aria-hidden="true" tabindex="-1"></a>$$X \to Y \to Z \qquad X \leftarrow Y \leftarrow Z \qquad X \leftarrow Y \to Z$$ {#eq-causal-discovery-1}</span>
 <span id="cb26-81"><a href="#cb26-81" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb26-82"><a href="#cb26-82" aria-hidden="true" tabindex="-1"></a>All three imply $X \perp<span class="sc">\!\!\!</span>\perp Z \mid Y$ and no other CI. Their CPDAG shows $X - Y - Z$ with no arrowheads.</span>
 <span id="cb26-83"><a href="#cb26-83" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-84"><a href="#cb26-84" aria-hidden="true" tabindex="-1"></a>The structure $X \to Y \leftarrow Z$ (a **collider** at $Y$) is *not* equivalent: here $X \perp<span class="sc">\!\!\!</span>\perp Z$ but $X \not<span class="sc">\!</span>\perp<span class="sc">\!\!\!</span>\perp Z \mid Y$. Because it has a unique CI signature, the $\to Y \leftarrow$ orientation is identifiable from data. Algorithms orient these colliders; non-collider edges often remain undirected.</span>
+<span id="cb26-84"><a href="#cb26-84" aria-hidden="true" tabindex="-1"></a>The structure $X \to Y \leftarrow Z$ (a **collider** at $Y$) is *not* equivalent: here $X \perp<span class="sc">\!\!\!</span>\perp Z$ but $X \not\perp<span class="sc">\!\!\!</span>\perp Z \mid Y$. Because it has a unique CI signature, the $\to Y \leftarrow$ orientation is identifiable from data. Algorithms orient these colliders; non-collider edges often remain undirected.</span>
 <span id="cb26-85"><a href="#cb26-85" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb26-86"><a href="#cb26-86" aria-hidden="true" tabindex="-1"></a><span class="fu">### What a CPDAG tells you</span></span>
 <span id="cb26-87"><a href="#cb26-87" aria-hidden="true" tabindex="-1"></a></span>
@@ -1818,7 +1818,7 @@ Figure&nbsp;19.6: Bootstrap edge-selection frequency (weighted PC, 200 resamples
 <span id="cb26-105"><a href="#cb26-105" aria-hidden="true" tabindex="-1"></a><span class="fu">## Simulation</span></span>
 <span id="cb26-106"><a href="#cb26-106" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb26-107"><a href="#cb26-107" aria-hidden="true" tabindex="-1"></a>We generate a random Gaussian linear DAG using <span class="in">`pcalg::randomDAG`</span> with 8 nodes and edge probability 0.35. Each edge $j \to i$ generates a structural equation</span>
-<span id="cb26-108"><a href="#cb26-108" aria-hidden="true" tabindex="-1"></a>$$X_i = \sum_{j \in \text{pa}(i)} \beta_{ji} X_j + \varepsilon_i, \quad \varepsilon_i \sim N(0,1),$$</span>
+<span id="cb26-108"><a href="#cb26-108" aria-hidden="true" tabindex="-1"></a>$$X_i = \sum_{j \in \text{pa}(i)} \beta_{ji} X_j + \varepsilon_i, \quad \varepsilon_i \sim N(0,1),$$ {#eq-causal-discovery-2}</span>
 <span id="cb26-109"><a href="#cb26-109" aria-hidden="true" tabindex="-1"></a>with $|\beta_{ji}|$ drawn from $<span class="co">[</span><span class="ot">0.25, 1</span><span class="co">]</span>$.</span>
 <span id="cb26-110"><a href="#cb26-110" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb26-113"><a href="#cb26-113" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
@@ -1856,7 +1856,7 @@ Figure&nbsp;19.6: Bootstrap edge-selection frequency (weighted PC, 200 resamples
 <span id="cb26-147"><a href="#cb26-147" aria-hidden="true" tabindex="-1"></a><span class="fu">## CI-Test and Score Infrastructure</span></span>
 <span id="cb26-148"><a href="#cb26-148" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb26-149"><a href="#cb26-149" aria-hidden="true" tabindex="-1"></a>PC uses a **Fisher-Z conditional independence test** appropriate for Gaussian data. Given the partial correlation $\hat\rho_{XY \mid Z}$, the test statistic is</span>
-<span id="cb26-150"><a href="#cb26-150" aria-hidden="true" tabindex="-1"></a>$$T = \sqrt{n - |Z| - 3} \cdot \operatorname{atanh}(\hat\rho_{XY \mid Z}) \;\sim\; N(0,1) \quad \text{under } H_0: X \perp<span class="sc">\!\!\!</span>\perp Y \mid Z.$$</span>
+<span id="cb26-150"><a href="#cb26-150" aria-hidden="true" tabindex="-1"></a>$$T = \sqrt{n - |Z| - 3} \cdot \operatorname{atanh}(\hat\rho_{XY \mid Z}) \;\sim\; N(0,1) \quad \text{under } H_0: X \perp<span class="sc">\!\!\!</span>\perp Y \mid Z.$$ {#eq-causal-discovery-3}</span>
 <span id="cb26-151"><a href="#cb26-151" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb26-152"><a href="#cb26-152" aria-hidden="true" tabindex="-1"></a>**Choosing the significance level** $\alpha$ involves a bias–variance tradeoff on the skeleton:</span>
 <span id="cb26-153"><a href="#cb26-153" aria-hidden="true" tabindex="-1"></a></span>
@@ -1873,7 +1873,7 @@ Figure&nbsp;19.6: Bootstrap edge-selection frequency (weighted PC, 200 resamples
 <span id="cb26-164"><a href="#cb26-164" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb26-165"><a href="#cb26-165" aria-hidden="true" tabindex="-1"></a>GES does not use a significance level. It selects the graph that *minimizes*</span>
 <span id="cb26-166"><a href="#cb26-166" aria-hidden="true" tabindex="-1"></a>the **Gaussian BIC**</span>
-<span id="cb26-167"><a href="#cb26-167" aria-hidden="true" tabindex="-1"></a>$$\text{BIC}(G) = -2 \,\ell(\hat\theta; G) + |G| \log n$$</span>
+<span id="cb26-167"><a href="#cb26-167" aria-hidden="true" tabindex="-1"></a>$$\text{BIC}(G) = -2 \,\ell(\hat\theta; G) + |G| \log n$$ {#eq-causal-discovery-4}</span>
 <span id="cb26-168"><a href="#cb26-168" aria-hidden="true" tabindex="-1"></a>(equivalently, maximizes the penalized log-likelihood</span>
 <span id="cb26-169"><a href="#cb26-169" aria-hidden="true" tabindex="-1"></a>$\ell - \tfrac{|G|}{2}\log n$), which penalizes graph complexity directly.</span>
 <span id="cb26-170"><a href="#cb26-170" aria-hidden="true" tabindex="-1"></a>Implemented in <span class="in">`pcalg`</span> as <span class="in">`GaussL0penObsScore`</span>.</span>
@@ -2279,7 +2279,7 @@ Figure&nbsp;19.6: Bootstrap edge-selection frequency (weighted PC, 200 resamples
 <span id="cb26-596"><a href="#cb26-596" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb26-597"><a href="#cb26-597" aria-hidden="true" tabindex="-1"></a><span class="sc">\{</span>\text{GENDER}, \text{IMMIG}<span class="sc">\}</span> \prec <span class="sc">\{</span>\text{HISEI}, \text{HOMEPOS}<span class="sc">\}</span></span>
 <span id="cb26-598"><a href="#cb26-598" aria-hidden="true" tabindex="-1"></a>\prec \text{GRADE} \prec \text{MATH}.</span>
-<span id="cb26-599"><a href="#cb26-599" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb26-599"><a href="#cb26-599" aria-hidden="true" tabindex="-1"></a>$$ {#eq-causal-discovery-5}</span>
 <span id="cb26-600"><a href="#cb26-600" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb26-601"><a href="#cb26-601" aria-hidden="true" tabindex="-1"></a>A cross-tier edge must point earlier→later; a within-tier edge the ordering</span>
 <span id="cb26-602"><a href="#cb26-602" aria-hidden="true" tabindex="-1"></a>cannot decide. We impose this on the discovered **skeleton**, because the</span>

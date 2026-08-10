@@ -480,9 +480,9 @@ window.Quarto = {
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org">ggplot2</a></span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>The <a href="./causal-estimands.html">estimands chapter</a> defined the conditional average treatment effect</p>
-<p><span class="math display">\[
+<p><span id="eq-heterogeneous-effects-1"><span class="math display">\[
 \text{CATE}(x) = \mathbb{E}[Y(1) - Y(0) \mid X = x]
-\]</span></p>
+\tag{9.1}\]</span></span></p>
 <p>as the effect of treatment for units with covariates <span class="math inline">\(X=x\)</span>. In the simulation we could compute it from known potential outcomes. In real data we do not observe both <span class="math inline">\(Y(0)\)</span> and <span class="math inline">\(Y(1)\)</span>, so CATE has to be estimated from <span class="math inline">\((X,D,Y)\)</span>.</p>
 <p>I use four kinds of tools:</p>
 <ul>
@@ -535,9 +535,9 @@ window.Quarto = {
 <section id="s-learner-single" class="level3" data-number="9.2.1"><h3 data-number="9.2.1" class="anchored" data-anchor-id="s-learner-single">
 <span class="header-section-number">9.2.1</span> S-learner (“single”)</h3>
 <p>Fit one regression of <span class="math inline">\(Y\)</span> on <span class="math inline">\((D, X)\)</span>, then predict the difference between <span class="math inline">\(D=1\)</span> and <span class="math inline">\(D=0\)</span> at each <span class="math inline">\(x\)</span>:</p>
-<p><span class="math display">\[
+<p><span id="eq-heterogeneous-effects-2"><span class="math display">\[
 \hat\tau^S(x) = \hat\mu(1, x) - \hat\mu(0, x).
-\]</span></p>
+\tag{9.2}\]</span></span></p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># Use a flexible learner — random forest from grf::regression_forest</span></span>
 <span><span class="va">XD_train</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html">cbind</a></span><span class="op">(</span>D <span class="op">=</span> <span class="va">D</span>, <span class="va">X</span><span class="op">)</span></span>
@@ -608,10 +608,10 @@ window.Quarto = {
 <span class="header-section-number">9.2.4</span> R-learner <span class="citation" data-cites="nie-wager-2021">(<a href="references.html#ref-nie-wager-2021" role="doc-biblioref">Nie and Wager 2021</a>)</span>
 </h3>
 <p>The R-learner partials out the main effects of <span class="math inline">\(X\)</span> from both <span class="math inline">\(Y\)</span> and <span class="math inline">\(D\)</span>. It then estimates how the residualized treatment predicts the residualized outcome:</p>
-<p><span class="math display">\[
+<p><span id="eq-heterogeneous-effects-3"><span class="math display">\[
 \tilde Y_i = \frac{Y_i - \hat m(X_i)}{D_i - \hat e(X_i)}, \quad
 \text{weights} = (D_i - \hat e(X_i))^2,
-\]</span></p>
+\tag{9.3}\]</span></span></p>
 <p>where <span class="math inline">\(\hat m(x) = \mathbb{E}[Y \mid X = x]\)</span> and <span class="math inline">\(\hat e(x) = \mathbb{E}[D \mid X = x]\)</span> are cross-fitted nuisance estimates. Regressing <span class="math inline">\(\tilde Y\)</span> on <span class="math inline">\(X\)</span> with these weights gives the CATE estimate.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># Cross-fitting: split sample into 2 folds, fit nuisances on one, predict on the other</span></span>
@@ -649,11 +649,11 @@ window.Quarto = {
 <span class="header-section-number">9.2.5</span> DR-learner <span class="citation" data-cites="kennedy-2020-optimal-dr">(<a href="references.html#ref-kennedy-2020-optimal-dr" role="doc-biblioref">Kennedy 2020</a>)</span>
 </h3>
 <p>The DR-learner uses an AIPW-style pseudo-outcome and then regresses it on <span class="math inline">\(X\)</span>:</p>
-<p><span class="math display">\[
+<p><span id="eq-heterogeneous-effects-4"><span class="math display">\[
 \tilde Y_i^{DR} = \hat\mu_1(X_i) - \hat\mu_0(X_i) +
 \frac{D_i (Y_i - \hat\mu_1(X_i))}{\hat e(X_i)} -
 \frac{(1 - D_i) (Y_i - \hat\mu_0(X_i))}{1 - \hat e(X_i)}.
-\]</span></p>
+\tag{9.4}\]</span></span></p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">mu1_cf</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>; <span class="va">mu0_cf</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>; <span class="va">e_cf</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
 <span><span class="kw">for</span> <span class="op">(</span><span class="va">k</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">)</span> <span class="op">{</span></span>
@@ -741,9 +741,9 @@ Causal forest AIPW ATE: 1.994  (SE = 0.031, true = 2.006)</code></pre>
 </section></section><section id="best-linear-projection-blp" class="level2" data-number="9.4"><h2 data-number="9.4" class="anchored" data-anchor-id="best-linear-projection-blp">
 <span class="header-section-number">9.4</span> Best linear projection (BLP)</h2>
 <p>Even if CATE is nonlinear, we often want a regression-style summary: which covariates are associated with larger effects? The best linear projection of CATE onto <span class="math inline">\(X\)</span> is</p>
-<p><span class="math display">\[
+<p><span id="eq-heterogeneous-effects-5"><span class="math display">\[
 \text{BLP}(X) = \arg\min_{\beta_0, \beta} \mathbb{E}\left[ (\tau(X) - \beta_0 - X'\beta)^2 \right],
-\]</span></p>
+\tag{9.5}\]</span></span></p>
 <p>which <code>grf</code> estimates with valid standard errors:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb23"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">blp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/grf/man/best_linear_projection.html">best_linear_projection</a></span><span class="op">(</span><span class="va">cf</span>, A <span class="op">=</span> <span class="va">X</span><span class="op">)</span></span>
@@ -1512,7 +1512,7 @@ Nie, Xinkun, and Stefan Wager. 2021. <span>“Quasi-Oracle Estimation of Heterog
 <span id="cb44-25"><a href="#cb44-25" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb44-26"><a href="#cb44-26" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb44-27"><a href="#cb44-27" aria-hidden="true" tabindex="-1"></a>\text{CATE}(x) = \mathbb{E}<span class="co">[</span><span class="ot">Y(1) - Y(0) \mid X = x</span><span class="co">]</span></span>
-<span id="cb44-28"><a href="#cb44-28" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb44-28"><a href="#cb44-28" aria-hidden="true" tabindex="-1"></a>$$ {#eq-heterogeneous-effects-1}</span>
 <span id="cb44-29"><a href="#cb44-29" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb44-30"><a href="#cb44-30" aria-hidden="true" tabindex="-1"></a>as the effect of treatment for units with covariates $X=x$. In the</span>
 <span id="cb44-31"><a href="#cb44-31" aria-hidden="true" tabindex="-1"></a>simulation we could compute it from known potential outcomes. In real data</span>
@@ -1575,7 +1575,7 @@ Nie, Xinkun, and Stefan Wager. 2021. <span>“Quasi-Oracle Estimation of Heterog
 <span id="cb44-90"><a href="#cb44-90" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb44-91"><a href="#cb44-91" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb44-92"><a href="#cb44-92" aria-hidden="true" tabindex="-1"></a>\hat\tau^S(x) = \hat\mu(1, x) - \hat\mu(0, x).</span>
-<span id="cb44-93"><a href="#cb44-93" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb44-93"><a href="#cb44-93" aria-hidden="true" tabindex="-1"></a>$$ {#eq-heterogeneous-effects-2}</span>
 <span id="cb44-94"><a href="#cb44-94" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb44-97"><a href="#cb44-97" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
 <span id="cb44-98"><a href="#cb44-98" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: s-learner</span></span>
@@ -1666,7 +1666,7 @@ Nie, Xinkun, and Stefan Wager. 2021. <span>“Quasi-Oracle Estimation of Heterog
 <span id="cb44-187"><a href="#cb44-187" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb44-188"><a href="#cb44-188" aria-hidden="true" tabindex="-1"></a>\tilde Y_i = \frac{Y_i - \hat m(X_i)}{D_i - \hat e(X_i)}, \quad</span>
 <span id="cb44-189"><a href="#cb44-189" aria-hidden="true" tabindex="-1"></a>\text{weights} = (D_i - \hat e(X_i))^2,</span>
-<span id="cb44-190"><a href="#cb44-190" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb44-190"><a href="#cb44-190" aria-hidden="true" tabindex="-1"></a>$$ {#eq-heterogeneous-effects-3}</span>
 <span id="cb44-191"><a href="#cb44-191" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb44-192"><a href="#cb44-192" aria-hidden="true" tabindex="-1"></a>where $\hat m(x) = \mathbb{E}<span class="co">[</span><span class="ot">Y \mid X = x</span><span class="co">]</span>$ and $\hat e(x) = \mathbb{E}<span class="co">[</span><span class="ot">D \mid X = x</span><span class="co">]</span>$</span>
 <span id="cb44-193"><a href="#cb44-193" aria-hidden="true" tabindex="-1"></a>are cross-fitted nuisance estimates. Regressing $\tilde Y$ on $X$ with these</span>
@@ -1716,7 +1716,7 @@ Nie, Xinkun, and Stefan Wager. 2021. <span>“Quasi-Oracle Estimation of Heterog
 <span id="cb44-239"><a href="#cb44-239" aria-hidden="true" tabindex="-1"></a>\tilde Y_i^{DR} = \hat\mu_1(X_i) - \hat\mu_0(X_i) +</span>
 <span id="cb44-240"><a href="#cb44-240" aria-hidden="true" tabindex="-1"></a>\frac{D_i (Y_i - \hat\mu_1(X_i))}{\hat e(X_i)} -</span>
 <span id="cb44-241"><a href="#cb44-241" aria-hidden="true" tabindex="-1"></a>\frac{(1 - D_i) (Y_i - \hat\mu_0(X_i))}{1 - \hat e(X_i)}.</span>
-<span id="cb44-242"><a href="#cb44-242" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb44-242"><a href="#cb44-242" aria-hidden="true" tabindex="-1"></a>$$ {#eq-heterogeneous-effects-4}</span>
 <span id="cb44-243"><a href="#cb44-243" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb44-246"><a href="#cb44-246" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
 <span id="cb44-247"><a href="#cb44-247" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: dr-learner</span></span>
@@ -1816,7 +1816,7 @@ Nie, Xinkun, and Stefan Wager. 2021. <span>“Quasi-Oracle Estimation of Heterog
 <span id="cb44-345"><a href="#cb44-345" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb44-346"><a href="#cb44-346" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb44-347"><a href="#cb44-347" aria-hidden="true" tabindex="-1"></a>\text{BLP}(X) = \arg\min_{\beta_0, \beta} \mathbb{E}\left<span class="co">[</span><span class="ot"> (\tau(X) - \beta_0 - X'\beta)^2 \right</span><span class="co">]</span>,</span>
-<span id="cb44-348"><a href="#cb44-348" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb44-348"><a href="#cb44-348" aria-hidden="true" tabindex="-1"></a>$$ {#eq-heterogeneous-effects-5}</span>
 <span id="cb44-349"><a href="#cb44-349" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb44-350"><a href="#cb44-350" aria-hidden="true" tabindex="-1"></a>which <span class="in">`grf`</span> estimates with valid standard errors:</span>
 <span id="cb44-351"><a href="#cb44-351" aria-hidden="true" tabindex="-1"></a></span>

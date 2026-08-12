@@ -428,11 +428,10 @@ window.Quarto = {
 
 </header><section id="why-do-we-need-tools-for-causal-inference" class="level2" data-number="1.1"><h2 data-number="1.1" class="anchored" data-anchor-id="why-do-we-need-tools-for-causal-inference">
 <span class="header-section-number">1.1</span> Why Do We Need Tools for Causal Inference?</h2>
-<p>The main reason we need tools for causal inference is that “association is not causation”. We have known how to do association for a long time. In econometrics, people have studied various models for different situations, but mostly associational. But why is association not causation?</p>
-<p>The reason is that we may have confounding variables.</p>
+<p>Association is not causation. We have known how to measure associations for a long time, but most econometric models are associational. The gap between the two arises from confounding.</p>
 </section><section id="confounders" class="level2" data-number="1.2"><h2 data-number="1.2" class="anchored" data-anchor-id="confounders">
 <span class="header-section-number">1.2</span> Confounders</h2>
-<p>In this graph, we have <span class="math inline">\(w\)</span> (treatment), <span class="math inline">\(y\)</span> (outcome), and two confounders <span class="math inline">\(c1\)</span> and <span class="math inline">\(c2\)</span>. Both <span class="math inline">\(c1\)</span> and <span class="math inline">\(c2\)</span> affect both <span class="math inline">\(w\)</span> and <span class="math inline">\(y\)</span>. Therefore, if we just look at the association between <span class="math inline">\(w\)</span> and <span class="math inline">\(y\)</span>, it may be due to the confounding effect of <span class="math inline">\(c1\)</span> and <span class="math inline">\(c2\)</span>. We cannot say that the association is causal.</p>
+<p>In this graph, <span class="math inline">\(w\)</span> is the treatment, <span class="math inline">\(y\)</span> the outcome, and <span class="math inline">\(c_1\)</span>, <span class="math inline">\(c_2\)</span> are confounders. Both confounders affect both <span class="math inline">\(w\)</span> and <span class="math inline">\(y\)</span>, so the observed association between <span class="math inline">\(w\)</span> and <span class="math inline">\(y\)</span> may reflect confounding rather than a causal effect.</p>
 <div class="cell">
 <div class="cell-output-display">
 <div>
@@ -441,7 +440,7 @@ window.Quarto = {
 </div>
 </div>
 </div>
-<p>Here is a concrete example with 401(k) participation and assets. It could be the case that income and age are causing both 401(k) participation and assets. Therefore, the association between 401(k) participation and assets may not be causal. We need to control for income and age to identify the causal effect of 401(k) participation on assets.</p>
+<p>A concrete example: income and age may both drive 401(k) participation and assets. To identify the causal effect of participation on assets, we need to control for income and age.</p>
 <div class="cell">
 <div class="cell-output-display">
 <div>
@@ -461,15 +460,14 @@ window.Quarto = {
 </div>
 </section><section id="controlled-and-uncontrolled-confounders" class="level2" data-number="1.3"><h2 data-number="1.3" class="anchored" data-anchor-id="controlled-and-uncontrolled-confounders">
 <span class="header-section-number">1.3</span> Controlled and Uncontrolled Confounders</h2>
-<p>If we can control for all confounders then we do have causation from correlation. However, first, do we have all confounders in our data? Secondly, how do we control for them? In a randomised experiment, we don’t have these problems. In an observational study, we have these two problems. In the graph, we may have “c2” unobserved, “c1” observed, for example. Then any estimation of the effect from <span class="math inline">\(w\)</span> to <span class="math inline">\(y\)</span> is biased.</p>
+<p>If we can control for all confounders, correlation does imply causation. The two questions are: do we observe all confounders, and how do we control for them? In a randomized experiment neither question arises. In an observational study both do. If <span class="math inline">\(c_2\)</span> is unobserved, any estimate of the effect of <span class="math inline">\(w\)</span> on <span class="math inline">\(y\)</span> is biased.</p>
 </section><section id="potential-outcome-setup" class="level2" data-number="1.4"><h2 data-number="1.4" class="anchored" data-anchor-id="potential-outcome-setup">
 <span class="header-section-number">1.4</span> Potential Outcome Setup</h2>
-<p>We use the Potential Outcomes framework, also called counterfactual framework to study causal effect. What is a potential outcome? Suppose we have the simplest situation. A treatment has two states, treated and control (untreated). And we have a person (subject) who then has two potential outcomes <span class="math inline">\(Y(1)\)</span> and <span class="math inline">\(Y(0)\)</span>. Consider these two fixed.</p>
-<p>That is, every one subject has two potential outcomes. That can be seen as pre-determined. That is, even before the experiment, or program, they are already there. The experiment is to try to recover them. However, recovering each individual treatment effect <span class="math inline">\(\tau_i = Y_i(1) - Y_i(0)\)</span> is not possible, because it’s impossible to observe both <span class="math inline">\(Y_i(1)\)</span> and <span class="math inline">\(Y_i(0)\)</span>. Only some average treatment effects can be estimated.</p>
-<p>We label treatment assignment status <span class="math inline">\(W\)</span>, covariates <span class="math inline">\(X\)</span>.</p>
+<p>We study causal effects through the potential outcomes (counterfactual) framework. Each unit has two potential outcomes, <span class="math inline">\(Y(1)\)</span> and <span class="math inline">\(Y(0)\)</span>, one for each treatment state. These are fixed before any assignment; the experiment tries to recover them. The fundamental problem is that we never observe both: only the realized outcome <span class="math inline">\(Y = WY(1) + (1-W)Y(0)\)</span> is seen. Individual treatment effects <span class="math inline">\(\tau_i = Y_i(1) - Y_i(0)\)</span> are not identifiable; only averages can be estimated.</p>
+<p>We write <span class="math inline">\(W\)</span> for treatment assignment and <span class="math inline">\(X\)</span> for covariates.</p>
 </section><section id="ate-att-and-atu" class="level2" data-number="1.5"><h2 data-number="1.5" class="anchored" data-anchor-id="ate-att-and-atu">
 <span class="header-section-number">1.5</span> ATE, ATT and ATU</h2>
-<p>Let’s define some treatment effects:</p>
+<p>The standard estimands are:</p>
 <p><span id="eq-identification-1"><span class="math display">\[ \tau_{ATE} = E[Y(1) - Y(0)]  \tag{1.1}\]</span></span></p>
 <p><span id="eq-identification-2"><span class="math display">\[ \tau_{ATT} =  E[Y(1) - Y(0) | W=1]  \tag{1.2}\]</span></span></p>
 <p><span id="eq-identification-3"><span class="math display">\[ \tau_{ATU} =  E[Y(1) - Y(0)| W=0]  \tag{1.3}\]</span></span></p>
@@ -491,7 +489,7 @@ window.Quarto = {
 \tag{1.10}\]</span></span></p>
 <p>Note the conditional-on-<span class="math inline">\(X\)</span> assumption does NOT imply the marginal equality <span class="math inline">\(E[Y(0)|W=1]=E[Y(0)|W=0]\)</span>: treated and control units have different covariate distributions, so the adjustment over <span class="math inline">\(X\)</span> is essential. In a randomised experiment, unconfoundedness holds without conditioning on <span class="math inline">\(X\)</span> (i.e.&nbsp;<span class="math inline">\(E[Y(0)|W]=E[Y(0)]\)</span>); then <span class="math inline">\(E[Y(0)|W=1]=E[Y(0)|W=0]=E[Y|W=0]\)</span>, the formula collapses to <span class="math inline">\(E[Y|W=1]-E[Y|W=0]\)</span>, and a difference-in-means estimator is consistent.</p>
 <p><span id="eq-identification-11"><span class="math display">\[ \hat{\tau}_{ATT} = \bar Y_1 - \bar Y_0  \tag{1.11}\]</span></span></p>
-<p>But in observational studies, most cases we cannot assume unconfoundedness. What can we do to justify unconfoundedness better?</p>
+<p>In observational studies, unconfoundedness is rarely credible without further justification. The rest of this book develops the tools for doing so.</p>
 </section><section id="unconfoundedness-and-overlap" class="level2" data-number="1.7"><h2 data-number="1.7" class="anchored" data-anchor-id="unconfoundedness-and-overlap">
 <span class="header-section-number">1.7</span> Unconfoundedness and Overlap</h2>
 <p>Weaker Assumptions: Unconfoundedness (conditional independence, or ignorability), stated jointly for both potential outcomes since we are after the ATE here (as opposed to the ATT case above, which only required it for <span class="math inline">\(Y(0)\)</span>): <span id="eq-identification-12"><span class="math display">\[ E[Y(d) | W, X] = E[Y(d)| X] \quad \text{for } d \in \{0,1\}  \tag{1.12}\]</span></span> Overlap: <span id="eq-identification-13"><span class="math display">\[ 0 &lt; \pi(x)= P(W=1 | X=x) &lt; 1 \tag{1.13}\]</span></span> SUTVA (stable unit treatment value assumption): 1. No interference between units. No spillovers. 2. Consistency. No hidden versions of treatment or control. Treatment is clearly defined.</p>
@@ -1011,168 +1009,164 @@ window.Quarto = {
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">## Why Do We Need Tools for Causal Inference?</span></span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>The main reason we need tools for causal inference is that "association is not causation". We have known how to do association for a long time. In econometrics, people have studied various models for different situations, but mostly associational. But why is association not causation?</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>Association is not causation. We have known how to measure associations for a long time, but most econometric models are associational. The gap between the two arises from confounding.</span>
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>The reason is that we may have confounding variables.</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="fu">## Confounders</span></span>
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="fu">## Confounders</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>In this graph, $w$ is the treatment, $y$ the outcome, and $c_1$, $c_2$ are confounders. Both confounders affect both $w$ and $y$, so the observed association between $w$ and $y$ may reflect confounding rather than a causal effect.</span>
 <span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>In this graph, we have $w$ (treatment), $y$ (outcome), and two confounders $c1$ and $c2$. Both $c1$ and $c2$ affect both $w$ and $y$. Therefore, if we just look at the association between $w$ and $y$, it may be due to the confounding effect of $c1$ and $c2$. We cannot say that the association is causal.</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="in">```{r dag1, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}</span></span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">dagify</span>(</span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>  y <span class="sc">~</span> w,</span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>  w <span class="sc">~</span> c1,</span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>  y <span class="sc">~</span> c1,</span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>  w <span class="sc">~</span> c2,</span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>  y <span class="sc">~</span> c2,</span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>  <span class="at">exposure =</span> <span class="st">"w"</span>,</span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome =</span> <span class="st">"y"</span>,</span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">coords =</span> <span class="fu">list</span>(<span class="at">x =</span> <span class="fu">c</span>(<span class="at">w =</span> <span class="dv">1</span>, <span class="at">c1 =</span> <span class="dv">2</span>, <span class="at">c2 =</span> <span class="dv">2</span>, <span class="at">y =</span> <span class="dv">3</span>),</span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>                <span class="at">y =</span> <span class="fu">c</span>(<span class="at">w =</span> <span class="dv">2</span>, <span class="at">c1 =</span> <span class="dv">1</span>, <span class="at">c2 =</span> <span class="dv">3</span>, <span class="at">y =</span> <span class="dv">2</span>))</span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="fu">ggdag</span>(g)</span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="in">```{r dag1, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">dagify</span>(</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>  y <span class="sc">~</span> w,</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>  w <span class="sc">~</span> c1,</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>  y <span class="sc">~</span> c1,</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>  w <span class="sc">~</span> c2,</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>  y <span class="sc">~</span> c2,</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>  <span class="at">exposure =</span> <span class="st">"w"</span>,</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome =</span> <span class="st">"y"</span>,</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>  <span class="at">coords =</span> <span class="fu">list</span>(<span class="at">x =</span> <span class="fu">c</span>(<span class="at">w =</span> <span class="dv">1</span>, <span class="at">c1 =</span> <span class="dv">2</span>, <span class="at">c2 =</span> <span class="dv">2</span>, <span class="at">y =</span> <span class="dv">3</span>),</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>                <span class="at">y =</span> <span class="fu">c</span>(<span class="at">w =</span> <span class="dv">2</span>, <span class="at">c1 =</span> <span class="dv">1</span>, <span class="at">c2 =</span> <span class="dv">3</span>, <span class="at">y =</span> <span class="dv">2</span>))</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="fu">ggdag</span>(g)</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>A concrete example: income and age may both drive 401(k) participation and assets. To identify the causal effect of participation on assets, we need to control for income and age.</span>
 <span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>Here is a concrete example with 401(k) participation and assets. It could be the case that income and age are causing both 401(k) participation and assets. Therefore, the association between 401(k) participation and assets may not be causal. We need to control for income and age to identify the causal effect of 401(k) participation on assets.</span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a><span class="in">```{r dag1.2, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}</span></span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">dagify</span>(</span>
-<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>  assets <span class="sc">~</span> p401k,</span>
-<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>  p401k <span class="sc">~</span> income,</span>
-<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>  assets <span class="sc">~</span> income,</span>
-<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>  p401k <span class="sc">~</span> age,</span>
-<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>  assets <span class="sc">~</span> age,</span>
-<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>  <span class="at">exposure =</span> <span class="st">"p401k"</span>,</span>
-<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome =</span> <span class="st">"assets"</span>,</span>
-<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>  <span class="at">coords =</span> <span class="fu">list</span>(<span class="at">x =</span> <span class="fu">c</span>(<span class="at">p401k =</span> <span class="dv">1</span>, <span class="at">income =</span> <span class="dv">2</span>, <span class="at">age =</span> <span class="dv">2</span>, <span class="at">assets =</span> <span class="dv">3</span>),</span>
-<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>                <span class="at">y =</span> <span class="fu">c</span>(<span class="at">p401k =</span> <span class="dv">2</span>, <span class="at">income =</span> <span class="dv">1</span>, <span class="at">age =</span> <span class="dv">3</span>, <span class="at">assets =</span> <span class="dv">2</span>))</span>
-<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a><span class="fu">ggdag</span>(g)</span>
-<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a><span class="in">```{r dag1.2, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">dagify</span>(</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>  assets <span class="sc">~</span> p401k,</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>  p401k <span class="sc">~</span> income,</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>  assets <span class="sc">~</span> income,</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>  p401k <span class="sc">~</span> age,</span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>  assets <span class="sc">~</span> age,</span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>  <span class="at">exposure =</span> <span class="st">"p401k"</span>,</span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome =</span> <span class="st">"assets"</span>,</span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>  <span class="at">coords =</span> <span class="fu">list</span>(<span class="at">x =</span> <span class="fu">c</span>(<span class="at">p401k =</span> <span class="dv">1</span>, <span class="at">income =</span> <span class="dv">2</span>, <span class="at">age =</span> <span class="dv">2</span>, <span class="at">assets =</span> <span class="dv">3</span>),</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>                <span class="at">y =</span> <span class="fu">c</span>(<span class="at">p401k =</span> <span class="dv">2</span>, <span class="at">income =</span> <span class="dv">1</span>, <span class="at">age =</span> <span class="dv">3</span>, <span class="at">assets =</span> <span class="dv">2</span>))</span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a><span class="fu">ggdag</span>(g)</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>And another example with birth weight and maternal smoking. It could be the case that prenatal care and maternal age are causing both maternal smoking and birth weight. It could be that maternal smoking has nothing to do with birth weight. But age and prenatal care are causing both maternal smoking and birth weight, therefore maternal smoking appears to cause birth weight.</span>
 <span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>And another example with birth weight and maternal smoking. It could be the case that prenatal care and maternal age are causing both maternal smoking and birth weight. It could be that maternal smoking has nothing to do with birth weight. But age and prenatal care are causing both maternal smoking and birth weight, therefore maternal smoking appears to cause birth weight.</span>
-<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a><span class="in">```{r dag1.3, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}</span></span>
-<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">dagify</span>(</span>
-<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>  bweight <span class="sc">~</span> mbsmoke,</span>
-<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>  mbsmoke <span class="sc">~</span> prenatal,</span>
-<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>  bweight <span class="sc">~</span> prenatal,</span>
-<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>  mbsmoke <span class="sc">~</span> age,</span>
-<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>  bweight <span class="sc">~</span> age,</span>
-<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>  <span class="at">exposure =</span> <span class="st">"mbsmoke"</span>,</span>
-<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome =</span> <span class="st">"bweight"</span>,</span>
-<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a>  <span class="at">coords =</span> <span class="fu">list</span>(<span class="at">x =</span> <span class="fu">c</span>(<span class="at">mbsmoke =</span> <span class="dv">1</span>, <span class="at">prenatal =</span> <span class="dv">2</span>, <span class="at">age =</span> <span class="dv">2</span>, <span class="at">bweight =</span> <span class="dv">3</span>),</span>
-<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>                <span class="at">y =</span> <span class="fu">c</span>(<span class="at">mbsmoke =</span> <span class="dv">2</span>, <span class="at">prenatal =</span> <span class="dv">1</span>, <span class="at">age =</span> <span class="dv">3</span>, <span class="at">bweight =</span> <span class="dv">2</span>))</span>
-<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a><span class="fu">ggdag</span>(g)</span>
-<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a><span class="in">```{r dag1.3, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}</span></span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">dagify</span>(</span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>  bweight <span class="sc">~</span> mbsmoke,</span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>  mbsmoke <span class="sc">~</span> prenatal,</span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>  bweight <span class="sc">~</span> prenatal,</span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>  mbsmoke <span class="sc">~</span> age,</span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>  bweight <span class="sc">~</span> age,</span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>  <span class="at">exposure =</span> <span class="st">"mbsmoke"</span>,</span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome =</span> <span class="st">"bweight"</span>,</span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>  <span class="at">coords =</span> <span class="fu">list</span>(<span class="at">x =</span> <span class="fu">c</span>(<span class="at">mbsmoke =</span> <span class="dv">1</span>, <span class="at">prenatal =</span> <span class="dv">2</span>, <span class="at">age =</span> <span class="dv">2</span>, <span class="at">bweight =</span> <span class="dv">3</span>),</span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a>                <span class="at">y =</span> <span class="fu">c</span>(<span class="at">mbsmoke =</span> <span class="dv">2</span>, <span class="at">prenatal =</span> <span class="dv">1</span>, <span class="at">age =</span> <span class="dv">3</span>, <span class="at">bweight =</span> <span class="dv">2</span>))</span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a><span class="fu">ggdag</span>(g)</span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a><span class="fu">## Controlled and Uncontrolled Confounders</span></span>
 <span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a><span class="fu">## Controlled and Uncontrolled Confounders</span></span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a>If we can control for all confounders, correlation does imply causation. The two questions are: do we observe all confounders, and how do we control for them? In a randomized experiment neither question arises. In an observational study both do. If $c_2$ is unobserved, any estimate of the effect of $w$ on $y$ is biased.</span>
 <span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a>If we can control for all confounders then we do have causation from correlation. However, first, do we have all confounders in our data? Secondly, how do we control for them? In a randomised experiment, we don't have these problems. In an observational study, we have these two problems. In the graph, we may have "c2" unobserved, "c1" observed, for example. Then any estimation of the effect from $w$ to $y$ is biased.</span>
+<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a><span class="fu">## Potential Outcome Setup</span></span>
 <span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a><span class="fu">## Potential Outcome Setup</span></span>
+<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a>We study causal effects through the potential outcomes (counterfactual) framework. Each unit has two potential outcomes, $Y(1)$ and $Y(0)$, one for each treatment state. These are fixed before any assignment; the experiment tries to recover them. The fundamental problem is that we never observe both: only the realized outcome $Y = WY(1) + (1-W)Y(0)$ is seen. Individual treatment effects $\tau_i = Y_i(1) - Y_i(0)$ are not identifiable; only averages can be estimated.</span>
 <span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a>We use the Potential Outcomes framework, also called counterfactual framework to study causal effect. What is a potential outcome? Suppose we have the simplest situation. A treatment has two states, treated and control (untreated). And we have a person (subject) who then has two potential outcomes $Y(1)$ and $Y(0)$. Consider these two fixed.</span>
+<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a>We write $W$ for treatment assignment and $X$ for covariates.</span>
 <span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a>That is, every one subject has two potential outcomes. That can be seen as pre-determined. That is, even before the experiment, or program, they are already there. The experiment is to try to recover them. However, recovering each individual treatment effect $\tau_i = Y_i(1) - Y_i(0)$ is not possible, because it's impossible to observe both $Y_i(1)$ and $Y_i(0)$. Only some average treatment effects can be estimated.</span>
+<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a><span class="fu">## ATE, ATT and ATU</span></span>
 <span id="cb1-79"><a href="#cb1-79" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a>We label treatment assignment status $W$, covariates $X$.</span>
+<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a>The standard estimands are:</span>
 <span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a><span class="fu">## ATE, ATT and ATU</span></span>
+<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a>$$ \tau_{ATE} = E<span class="co">[</span><span class="ot">Y(1) - Y(0)</span><span class="co">]</span> $$ {#eq-identification-1}</span>
 <span id="cb1-83"><a href="#cb1-83" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-84"><a href="#cb1-84" aria-hidden="true" tabindex="-1"></a>Let's define some treatment effects:</span>
+<span id="cb1-84"><a href="#cb1-84" aria-hidden="true" tabindex="-1"></a>$$ \tau_{ATT} =  E<span class="co">[</span><span class="ot">Y(1) - Y(0) | W=1</span><span class="co">]</span> $$ {#eq-identification-2}</span>
 <span id="cb1-85"><a href="#cb1-85" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-86"><a href="#cb1-86" aria-hidden="true" tabindex="-1"></a>$$ \tau_{ATE} = E<span class="co">[</span><span class="ot">Y(1) - Y(0)</span><span class="co">]</span> $$ {#eq-identification-1}</span>
+<span id="cb1-86"><a href="#cb1-86" aria-hidden="true" tabindex="-1"></a>$$ \tau_{ATU} =  E<span class="co">[</span><span class="ot">Y(1) - Y(0)| W=0</span><span class="co">]</span> $$ {#eq-identification-3}</span>
 <span id="cb1-87"><a href="#cb1-87" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-88"><a href="#cb1-88" aria-hidden="true" tabindex="-1"></a>$$ \tau_{ATT} =  E<span class="co">[</span><span class="ot">Y(1) - Y(0) | W=1</span><span class="co">]</span> $$ {#eq-identification-2}</span>
+<span id="cb1-88"><a href="#cb1-88" aria-hidden="true" tabindex="-1"></a>$$ \tau_{ATE} = \rho \tau_{ATT} + (1-\rho) \tau_{ATU}$$ {#eq-identification-4}</span>
 <span id="cb1-89"><a href="#cb1-89" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-90"><a href="#cb1-90" aria-hidden="true" tabindex="-1"></a>$$ \tau_{ATU} =  E<span class="co">[</span><span class="ot">Y(1) - Y(0)| W=0</span><span class="co">]</span> $$ {#eq-identification-3}</span>
+<span id="cb1-90"><a href="#cb1-90" aria-hidden="true" tabindex="-1"></a>where $\rho= P(W=1)$.</span>
 <span id="cb1-91"><a href="#cb1-91" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-92"><a href="#cb1-92" aria-hidden="true" tabindex="-1"></a>$$ \tau_{ATE} = \rho \tau_{ATT} + (1-\rho) \tau_{ATU}$$ {#eq-identification-4}</span>
+<span id="cb1-92"><a href="#cb1-92" aria-hidden="true" tabindex="-1"></a><span class="fu">## Identification: From Potential Outcome to Observed</span></span>
 <span id="cb1-93"><a href="#cb1-93" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-94"><a href="#cb1-94" aria-hidden="true" tabindex="-1"></a>where $\rho= P(W=1)$.</span>
+<span id="cb1-94"><a href="#cb1-94" aria-hidden="true" tabindex="-1"></a>We focus on $\tau_{ATT}$. To identify it, we need: $$ E<span class="co">[</span><span class="ot">Y(1) | W=1</span><span class="co">]</span>$$ {#eq-identification-5} which is easy, because we observe it.</span>
 <span id="cb1-95"><a href="#cb1-95" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-96"><a href="#cb1-96" aria-hidden="true" tabindex="-1"></a><span class="fu">## Identification: From Potential Outcome to Observed</span></span>
+<span id="cb1-96"><a href="#cb1-96" aria-hidden="true" tabindex="-1"></a>And we need $$ E<span class="co">[</span><span class="ot">Y(0) | W=1</span><span class="co">]</span>$$ {#eq-identification-6}</span>
 <span id="cb1-97"><a href="#cb1-97" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-98"><a href="#cb1-98" aria-hidden="true" tabindex="-1"></a>We focus on $\tau_{ATT}$. To identify it, we need: $$ E<span class="co">[</span><span class="ot">Y(1) | W=1</span><span class="co">]</span>$$ {#eq-identification-5} which is easy, because we observe it.</span>
+<span id="cb1-98"><a href="#cb1-98" aria-hidden="true" tabindex="-1"></a>To identify this, we'll need unconfoundedness: $$ E<span class="co">[</span><span class="ot">Y(0) | W, X</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">Y(0)| X</span><span class="co">]</span> $$ {#eq-identification-7} and overlap: $$ \pi(x)= P(W=1 | X=x) &lt; 1$$ {#eq-identification-8} (for the ATT only $\pi(x)&lt;1$ is needed; the ATE requires $0&lt;\pi(x)&lt;1$).</span>
 <span id="cb1-99"><a href="#cb1-99" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-100"><a href="#cb1-100" aria-hidden="true" tabindex="-1"></a>And we need $$ E<span class="co">[</span><span class="ot">Y(0) | W=1</span><span class="co">]</span>$$ {#eq-identification-6}</span>
-<span id="cb1-101"><a href="#cb1-101" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-102"><a href="#cb1-102" aria-hidden="true" tabindex="-1"></a>To identify this, we'll need unconfoundedness: $$ E<span class="co">[</span><span class="ot">Y(0) | W, X</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">Y(0)| X</span><span class="co">]</span> $$ {#eq-identification-7} and overlap: $$ \pi(x)= P(W=1 | X=x) &lt; 1$$ {#eq-identification-8} (for the ATT only $\pi(x)&lt;1$ is needed; the ATE requires $0&lt;\pi(x)&lt;1$).</span>
-<span id="cb1-103"><a href="#cb1-103" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-104"><a href="#cb1-104" aria-hidden="true" tabindex="-1"></a>Unconfoundedness says that within each subgroup $X=x$, treated and</span>
-<span id="cb1-105"><a href="#cb1-105" aria-hidden="true" tabindex="-1"></a>control units have the same mean of $Y(0)$:</span>
-<span id="cb1-106"><a href="#cb1-106" aria-hidden="true" tabindex="-1"></a>$E<span class="co">[</span><span class="ot">Y(0)|W=1,X=x</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y(0)|W=0,X=x</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y|W=0,X=x</span><span class="co">]</span>$. Averaging over the</span>
-<span id="cb1-107"><a href="#cb1-107" aria-hidden="true" tabindex="-1"></a>covariate distribution of the treated,</span>
+<span id="cb1-100"><a href="#cb1-100" aria-hidden="true" tabindex="-1"></a>Unconfoundedness says that within each subgroup $X=x$, treated and</span>
+<span id="cb1-101"><a href="#cb1-101" aria-hidden="true" tabindex="-1"></a>control units have the same mean of $Y(0)$:</span>
+<span id="cb1-102"><a href="#cb1-102" aria-hidden="true" tabindex="-1"></a>$E<span class="co">[</span><span class="ot">Y(0)|W=1,X=x</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y(0)|W=0,X=x</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y|W=0,X=x</span><span class="co">]</span>$. Averaging over the</span>
+<span id="cb1-103"><a href="#cb1-103" aria-hidden="true" tabindex="-1"></a>covariate distribution of the treated,</span>
+<span id="cb1-104"><a href="#cb1-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-105"><a href="#cb1-105" aria-hidden="true" tabindex="-1"></a>$$ E<span class="co">[</span><span class="ot">Y(0)| W=1</span><span class="co">]</span> = E\big<span class="co">[</span><span class="ot"> E[Y | W=0, X] \mid W=1 \big</span><span class="co">]</span>, $$ {#eq-identification-9}</span>
+<span id="cb1-106"><a href="#cb1-106" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-107"><a href="#cb1-107" aria-hidden="true" tabindex="-1"></a>which involves only observed data. Therefore ATT is identified:</span>
 <span id="cb1-108"><a href="#cb1-108" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-109"><a href="#cb1-109" aria-hidden="true" tabindex="-1"></a>$$ E<span class="co">[</span><span class="ot">Y(0)| W=1</span><span class="co">]</span> = E\big<span class="co">[</span><span class="ot"> E[Y | W=0, X] \mid W=1 \big</span><span class="co">]</span>, $$ {#eq-identification-9}</span>
-<span id="cb1-110"><a href="#cb1-110" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-111"><a href="#cb1-111" aria-hidden="true" tabindex="-1"></a>which involves only observed data. Therefore ATT is identified:</span>
-<span id="cb1-112"><a href="#cb1-112" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-113"><a href="#cb1-113" aria-hidden="true" tabindex="-1"></a> $$</span>
-<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a>\begin{aligned}</span>
-<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a>\tau_{ATT} &amp;=  E<span class="co">[</span><span class="ot">Y(1) - Y(0) | W=1</span><span class="co">]</span> <span class="sc">\\</span></span>
-<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a>&amp;= E<span class="co">[</span><span class="ot">Y|W=1</span><span class="co">]</span> - E\big<span class="co">[</span><span class="ot"> E[Y | W=0, X] \mid W=1 \big</span><span class="co">]</span></span>
-<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a>\end{aligned}</span>
-<span id="cb1-118"><a href="#cb1-118" aria-hidden="true" tabindex="-1"></a>$$ {#eq-identification-10}</span>
-<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-120"><a href="#cb1-120" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a>Note the conditional-on-$X$ assumption does NOT imply the marginal</span>
-<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a>equality $E<span class="co">[</span><span class="ot">Y(0)|W=1</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y(0)|W=0</span><span class="co">]</span>$: treated and control units have</span>
-<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a>different covariate distributions, so the adjustment over $X$ is</span>
-<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a>essential. In a randomised experiment, unconfoundedness holds without</span>
-<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a>conditioning on $X$ (i.e. $E<span class="co">[</span><span class="ot">Y(0)|W</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y(0)</span><span class="co">]</span>$); then</span>
-<span id="cb1-126"><a href="#cb1-126" aria-hidden="true" tabindex="-1"></a>$E<span class="co">[</span><span class="ot">Y(0)|W=1</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y(0)|W=0</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y|W=0</span><span class="co">]</span>$, the formula collapses to</span>
-<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a>$E<span class="co">[</span><span class="ot">Y|W=1</span><span class="co">]</span>-E<span class="co">[</span><span class="ot">Y|W=0</span><span class="co">]</span>$, and a difference-in-means estimator is</span>
-<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a>consistent.</span>
+<span id="cb1-109"><a href="#cb1-109" aria-hidden="true" tabindex="-1"></a> $$</span>
+<span id="cb1-110"><a href="#cb1-110" aria-hidden="true" tabindex="-1"></a>\begin{aligned}</span>
+<span id="cb1-111"><a href="#cb1-111" aria-hidden="true" tabindex="-1"></a>\tau_{ATT} &amp;=  E<span class="co">[</span><span class="ot">Y(1) - Y(0) | W=1</span><span class="co">]</span> <span class="sc">\\</span></span>
+<span id="cb1-112"><a href="#cb1-112" aria-hidden="true" tabindex="-1"></a>&amp;= E<span class="co">[</span><span class="ot">Y|W=1</span><span class="co">]</span> - E\big<span class="co">[</span><span class="ot"> E[Y | W=0, X] \mid W=1 \big</span><span class="co">]</span></span>
+<span id="cb1-113"><a href="#cb1-113" aria-hidden="true" tabindex="-1"></a>\end{aligned}</span>
+<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a>$$ {#eq-identification-10}</span>
+<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a>Note the conditional-on-$X$ assumption does NOT imply the marginal</span>
+<span id="cb1-118"><a href="#cb1-118" aria-hidden="true" tabindex="-1"></a>equality $E<span class="co">[</span><span class="ot">Y(0)|W=1</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y(0)|W=0</span><span class="co">]</span>$: treated and control units have</span>
+<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a>different covariate distributions, so the adjustment over $X$ is</span>
+<span id="cb1-120"><a href="#cb1-120" aria-hidden="true" tabindex="-1"></a>essential. In a randomised experiment, unconfoundedness holds without</span>
+<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a>conditioning on $X$ (i.e. $E<span class="co">[</span><span class="ot">Y(0)|W</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y(0)</span><span class="co">]</span>$); then</span>
+<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a>$E<span class="co">[</span><span class="ot">Y(0)|W=1</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y(0)|W=0</span><span class="co">]</span>=E<span class="co">[</span><span class="ot">Y|W=0</span><span class="co">]</span>$, the formula collapses to</span>
+<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a>$E<span class="co">[</span><span class="ot">Y|W=1</span><span class="co">]</span>-E<span class="co">[</span><span class="ot">Y|W=0</span><span class="co">]</span>$, and a difference-in-means estimator is</span>
+<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a>consistent.</span>
+<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-126"><a href="#cb1-126" aria-hidden="true" tabindex="-1"></a>$$ \hat{\tau}_{ATT} = \bar Y_1 - \bar Y_0 $$ {#eq-identification-11}</span>
+<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a>In observational studies, unconfoundedness is rarely credible without further justification. The rest of this book develops the tools for doing so.</span>
 <span id="cb1-129"><a href="#cb1-129" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-130"><a href="#cb1-130" aria-hidden="true" tabindex="-1"></a>$$ \hat{\tau}_{ATT} = \bar Y_1 - \bar Y_0 $$ {#eq-identification-11}</span>
+<span id="cb1-130"><a href="#cb1-130" aria-hidden="true" tabindex="-1"></a><span class="fu">## Unconfoundedness and Overlap</span></span>
 <span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a>But in observational studies, most cases we cannot assume unconfoundedness. What can we do to justify unconfoundedness better?</span>
+<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a>Weaker Assumptions: Unconfoundedness (conditional independence, or ignorability), stated jointly for both potential outcomes since we are after the ATE here (as opposed to the ATT case above, which only required it for $Y(0)$): $$ E<span class="co">[</span><span class="ot">Y(d) | W, X</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">Y(d)| X</span><span class="co">]</span> \quad \text{for } d \in <span class="sc">\{</span>0,1<span class="sc">\}</span> $$ {#eq-identification-12} Overlap: $$ 0 &lt; \pi(x)= P(W=1 | X=x) &lt; 1$$ {#eq-identification-13} SUTVA (stable unit treatment value assumption): 1. No interference between units. No spillovers. 2. Consistency. No hidden versions of treatment or control. Treatment is clearly defined.</span>
 <span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a><span class="fu">## Unconfoundedness and Overlap</span></span>
+<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a>Within each subgroup of $X=x$, W is independent of $Y(0)$. With the overlap assumption, we ensure there is a comparable control unit for each treated unit.</span>
 <span id="cb1-135"><a href="#cb1-135" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a>Weaker Assumptions: Unconfoundedness (conditional independence, or ignorability), stated jointly for both potential outcomes since we are after the ATE here (as opposed to the ATT case above, which only required it for $Y(0)$): $$ E<span class="co">[</span><span class="ot">Y(d) | W, X</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">Y(d)| X</span><span class="co">]</span> \quad \text{for } d \in <span class="sc">\{</span>0,1<span class="sc">\}</span> $$ {#eq-identification-12} Overlap: $$ 0 &lt; \pi(x)= P(W=1 | X=x) &lt; 1$$ {#eq-identification-13} SUTVA (stable unit treatment value assumption): 1. No interference between units. No spillovers. 2. Consistency. No hidden versions of treatment or control. Treatment is clearly defined.</span>
+<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a>However, these two criteria are often contradictory: we may need more covariates to satisfy conditional independence; meanwhile, if the dimension of covariates goes high, then it's likely in some partition we don't have control units.</span>
 <span id="cb1-137"><a href="#cb1-137" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a>Within each subgroup of $X=x$, W is independent of $Y(0)$. With the overlap assumption, we ensure there is a comparable control unit for each treated unit.</span>
+<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a>We need four assumptions for identification:</span>
 <span id="cb1-139"><a href="#cb1-139" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-140"><a href="#cb1-140" aria-hidden="true" tabindex="-1"></a>However, these two criteria are often contradictory: we may need more covariates to satisfy conditional independence; meanwhile, if the dimension of covariates goes high, then it's likely in some partition we don't have control units.</span>
-<span id="cb1-141"><a href="#cb1-141" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-142"><a href="#cb1-142" aria-hidden="true" tabindex="-1"></a>We need four assumptions for identification:</span>
-<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-144"><a href="#cb1-144" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Unconfoundedness (conditional independence, or ignorability)</span>
-<span id="cb1-145"><a href="#cb1-145" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Overlap (positivity, common support)</span>
-<span id="cb1-146"><a href="#cb1-146" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>No interference</span>
-<span id="cb1-147"><a href="#cb1-147" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Consistency</span>
+<span id="cb1-140"><a href="#cb1-140" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Unconfoundedness (conditional independence, or ignorability)</span>
+<span id="cb1-141"><a href="#cb1-141" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Overlap (positivity, common support)</span>
+<span id="cb1-142"><a href="#cb1-142" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>No interference</span>
+<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Consistency</span>
+<span id="cb1-144"><a href="#cb1-144" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-145"><a href="#cb1-145" aria-hidden="true" tabindex="-1"></a><span class="fu">## Observational Data Flowchart</span></span>
+<span id="cb1-146"><a href="#cb1-146" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-147"><a href="#cb1-147" aria-hidden="true" tabindex="-1"></a>In observational studies, I summarise the decision what method to use for identification of causal effect:</span>
 <span id="cb1-148"><a href="#cb1-148" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-149"><a href="#cb1-149" aria-hidden="true" tabindex="-1"></a><span class="fu">## Observational Data Flowchart</span></span>
+<span id="cb1-149"><a href="#cb1-149" aria-hidden="true" tabindex="-1"></a>Note: AIPW and IPWRA are themselves influence-function-based, doubly-robust estimators -- they can be implemented with either parametric nuisance models (logistic regression, OLS) or flexible machine-learning nuisance models (with cross-fitting, as in DoubleML/TMLE), so they appear on both sides of the split below. The split is really about *how the nuisance (propensity/outcome) models are estimated*, not about the estimator family itself.</span>
 <span id="cb1-150"><a href="#cb1-150" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-151"><a href="#cb1-151" aria-hidden="true" tabindex="-1"></a>In observational studies, I summarise the decision what method to use for identification of causal effect:</span>
-<span id="cb1-152"><a href="#cb1-152" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-153"><a href="#cb1-153" aria-hidden="true" tabindex="-1"></a>Note: AIPW and IPWRA are themselves influence-function-based, doubly-robust estimators -- they can be implemented with either parametric nuisance models (logistic regression, OLS) or flexible machine-learning nuisance models (with cross-fitting, as in DoubleML/TMLE), so they appear on both sides of the split below. The split is really about *how the nuisance (propensity/outcome) models are estimated*, not about the estimator family itself.</span>
-<span id="cb1-154"><a href="#cb1-154" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a><span class="in">```{mermaid}</span></span>
-<span id="cb1-158"><a href="#cb1-158" aria-hidden="true" tabindex="-1"></a>flowchart LR</span>
-<span id="cb1-159"><a href="#cb1-159" aria-hidden="true" tabindex="-1"></a>  A[Observational data Y,W,X] --&gt; B{Unconfoundedness?}</span>
-<span id="cb1-160"><a href="#cb1-160" aria-hidden="true" tabindex="-1"></a>  B --&gt; | Yes | C{Nuisance models: parametric <span class="ot">or</span> flexible/ML?}</span>
-<span id="cb1-161"><a href="#cb1-161" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Parametric | D(RA)</span>
-<span id="cb1-162"><a href="#cb1-162" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Parametric | E(IPW)</span>
-<span id="cb1-163"><a href="#cb1-163" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Parametric | F(AIPW)</span>
-<span id="cb1-164"><a href="#cb1-164" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Parametric | G(IPWRA)</span>
-<span id="cb1-165"><a href="#cb1-165" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Flexible/ML with cross-fitting | H(AIPW)</span>
-<span id="cb1-166"><a href="#cb1-166" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Flexible/ML with cross-fitting | I(TMLE)</span>
-<span id="cb1-167"><a href="#cb1-167" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Flexible/ML with cross-fitting | J(DoubleML)</span>
-<span id="cb1-168"><a href="#cb1-168" aria-hidden="true" tabindex="-1"></a>  B --&gt; | No | K{Panel data?}</span>
-<span id="cb1-169"><a href="#cb1-169" aria-hidden="true" tabindex="-1"></a>  K --&gt; | Yes | L{Parallel Trend?}</span>
-<span id="cb1-170"><a href="#cb1-170" aria-hidden="true" tabindex="-1"></a>  L --&gt; | Yes | M(DID)</span>
-<span id="cb1-171"><a href="#cb1-171" aria-hidden="true" tabindex="-1"></a>  L --&gt; | No | N(Synthetic Control)</span>
-<span id="cb1-172"><a href="#cb1-172" aria-hidden="true" tabindex="-1"></a>  L --&gt; | No | O(Synthetic DID)</span>
-<span id="cb1-173"><a href="#cb1-173" aria-hidden="true" tabindex="-1"></a>  K --&gt; | No | P{Instrument?}</span>
-<span id="cb1-174"><a href="#cb1-174" aria-hidden="true" tabindex="-1"></a>  P --&gt; | Yes | Q(IV <span class="ot">or</span> RDD)</span>
-<span id="cb1-175"><a href="#cb1-175" aria-hidden="true" tabindex="-1"></a>  P --&gt; | No | R(You are stuck!)</span>
-<span id="cb1-176"><a href="#cb1-176" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb1-153"><a href="#cb1-153" aria-hidden="true" tabindex="-1"></a><span class="in">```{mermaid}</span></span>
+<span id="cb1-154"><a href="#cb1-154" aria-hidden="true" tabindex="-1"></a>flowchart LR</span>
+<span id="cb1-155"><a href="#cb1-155" aria-hidden="true" tabindex="-1"></a>  A[Observational data Y,W,X] --&gt; B{Unconfoundedness?}</span>
+<span id="cb1-156"><a href="#cb1-156" aria-hidden="true" tabindex="-1"></a>  B --&gt; | Yes | C{Nuisance models: parametric <span class="ot">or</span> flexible/ML?}</span>
+<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Parametric | D(RA)</span>
+<span id="cb1-158"><a href="#cb1-158" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Parametric | E(IPW)</span>
+<span id="cb1-159"><a href="#cb1-159" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Parametric | F(AIPW)</span>
+<span id="cb1-160"><a href="#cb1-160" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Parametric | G(IPWRA)</span>
+<span id="cb1-161"><a href="#cb1-161" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Flexible/ML with cross-fitting | H(AIPW)</span>
+<span id="cb1-162"><a href="#cb1-162" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Flexible/ML with cross-fitting | I(TMLE)</span>
+<span id="cb1-163"><a href="#cb1-163" aria-hidden="true" tabindex="-1"></a>  C --&gt; | Flexible/ML with cross-fitting | J(DoubleML)</span>
+<span id="cb1-164"><a href="#cb1-164" aria-hidden="true" tabindex="-1"></a>  B --&gt; | No | K{Panel data?}</span>
+<span id="cb1-165"><a href="#cb1-165" aria-hidden="true" tabindex="-1"></a>  K --&gt; | Yes | L{Parallel Trend?}</span>
+<span id="cb1-166"><a href="#cb1-166" aria-hidden="true" tabindex="-1"></a>  L --&gt; | Yes | M(DID)</span>
+<span id="cb1-167"><a href="#cb1-167" aria-hidden="true" tabindex="-1"></a>  L --&gt; | No | N(Synthetic Control)</span>
+<span id="cb1-168"><a href="#cb1-168" aria-hidden="true" tabindex="-1"></a>  L --&gt; | No | O(Synthetic DID)</span>
+<span id="cb1-169"><a href="#cb1-169" aria-hidden="true" tabindex="-1"></a>  K --&gt; | No | P{Instrument?}</span>
+<span id="cb1-170"><a href="#cb1-170" aria-hidden="true" tabindex="-1"></a>  P --&gt; | Yes | Q(IV <span class="ot">or</span> RDD)</span>
+<span id="cb1-171"><a href="#cb1-171" aria-hidden="true" tabindex="-1"></a>  P --&gt; | No | R(You are stuck!)</span>
+<span id="cb1-172"><a href="#cb1-172" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

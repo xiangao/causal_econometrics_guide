@@ -411,7 +411,7 @@ window.Quarto = {
 <main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./estimation.html">Estimation</a></li><li class="breadcrumb-item"><a href="./nonparametric.html"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Nonparametric Causal Methods</span></a></li></ol></nav><div class="quarto-title">
 <div class="quarto-title-block"><div><h1 class="title">
 <span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Nonparametric Causal Methods</span>
-</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+</h1><button type="button" class="btn code-tools-button dropdown-toggle" id="quarto-code-tools-menu" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi"></i> Code</button><ul class="dropdown-menu dropdown-menu-end" aria-labelelledby="quarto-code-tools-menu"><li><a id="quarto-show-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Show All Code</a></li><li><a id="quarto-hide-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Hide All Code</a></li><li><hr class="dropdown-divider"></li><li><a id="quarto-view-source" class="dropdown-item" href="javascript:void(0)" role="button">View Source</a></li></ul></div></div>
 </div>
 
 
@@ -455,7 +455,7 @@ window.Quarto = {
 <section id="simulation-setup" class="level3" data-number="8.2.1"><h3 data-number="8.2.1" class="anchored" data-anchor-id="simulation-setup">
 <span class="header-section-number">8.2.1</span> Simulation Setup</h3>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">n</span><span class="op">=</span><span class="fl">1000</span></span>
 <span><span class="va">w1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span><span class="op">(</span><span class="va">n</span>, size<span class="op">=</span><span class="fl">1</span>, prob<span class="op">=</span><span class="fl">0.5</span><span class="op">)</span></span>
 <span><span class="va">w2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span><span class="op">(</span><span class="va">n</span>, size<span class="op">=</span><span class="fl">1</span>, prob<span class="op">=</span><span class="fl">0.5</span><span class="op">)</span></span>
@@ -469,14 +469,14 @@ window.Quarto = {
 <span><span class="va">data</span> <span class="op">&lt;-</span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span><span class="va">w1</span>, <span class="va">w2</span>, <span class="va">w3</span>, <span class="va">w4</span>, <span class="va">A</span>, <span class="va">Y</span>, <span class="va">Y.1</span>, <span class="va">Y.0</span><span class="op">)</span></span>
 <span><span class="va">True_Psi</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">data</span><span class="op">$</span><span class="va">Y.1</span><span class="op">-</span><span class="va">data</span><span class="op">$</span><span class="va">Y.0</span><span class="op">)</span>;</span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="st">" True_Psi:"</span>, <span class="va">True_Psi</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
+</details><div class="cell-output cell-output-stdout">
 <pre><code> True_Psi: 0.21</code></pre>
 </div>
 </div>
 <p>The line above reports <code>mean(Y.1 - Y.0)</code> for this particular draw. That is a legitimate quantity — the <em>sample</em> average treatment effect — but it is not a fixed benchmark, and it is easy to mistake for one. The potential outcomes are binary, so at <span class="math inline">\(n = 1000\)</span> this realized average has a sampling standard deviation of about 0.020: two runs of the same DGP under different seeds can differ by 0.04 without anything being wrong. (The R and Julia editions of this chapter print 0.21 and 0.184 for exactly this reason.) Estimator standard errors in this chapter are around 0.03, so a noisy target of that size would swamp the comparison we are trying to make.</p>
 <p>The <em>population</em> ATE is a definite number, and since the DGP is fully specified we can integrate it out rather than simulate it:</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># w1, w2 ~ Bernoulli(0.5); w3 ~ U(0,4); w4 ~ U(0,5). Average the true individual</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># w1, w2 ~ Bernoulli(0.5); w3 ~ U(0,4); w4 ~ U(0,5). Average the true individual</span></span>
 <span><span class="co"># effect plogis(lin0 + 1) - plogis(lin0) over that covariate distribution.</span></span>
 <span><span class="va">pop_ate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">sapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">0</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">1</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">0</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">1</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">w</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/integrate.html">integrate</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">w4</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">sapply</a></span><span class="op">(</span><span class="va">w4</span>, <span class="kw">function</span><span class="op">(</span><span class="va">u4</span><span class="op">)</span></span>
@@ -486,17 +486,18 @@ window.Quarto = {
 <span>    <span class="op">}</span>, <span class="fl">0</span>, <span class="fl">4</span><span class="op">)</span><span class="op">$</span><span class="va">value</span> <span class="op">/</span> <span class="fl">4</span><span class="op">)</span>, <span class="fl">0</span>, <span class="fl">5</span><span class="op">)</span><span class="op">$</span><span class="va">value</span> <span class="op">/</span> <span class="fl">5</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"Realized-sample ATE (this draw): %.4f\n"</span>, <span class="va">True_Psi</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
+</details><div class="cell-output cell-output-stdout">
 <pre><code>Realized-sample ATE (this draw): 0.2100</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"Exact population ATE:           %.4f\n"</span>, <span class="va">pop_ate</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"Exact population ATE:           %.4f\n"</span>, <span class="va">pop_ate</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details><div class="cell-output cell-output-stdout">
 <pre><code>Exact population ATE:           0.2028</code></pre>
 </div>
 </div>
 <p>Compare the estimators below against 0.2028, not against the realized draw.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">SL.library</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"SL.earth"</span>,<span class="st">"SL.gam"</span>,<span class="st">"SL.glmnet"</span>,<span class="st">"SL.glm.interaction"</span>, <span class="st">"SL.mean"</span>,<span class="st">"SL.ranger"</span>, <span class="st">"SL.xgboost"</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">SL.library</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"SL.earth"</span>,<span class="st">"SL.gam"</span>,<span class="st">"SL.glmnet"</span>,<span class="st">"SL.glm.interaction"</span>, <span class="st">"SL.mean"</span>,<span class="st">"SL.ranger"</span>, <span class="st">"SL.xgboost"</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
 </div>
 </section><section id="plug-in-estimator-from-outcome-regression" class="level3" data-number="8.2.2"><h3 data-number="8.2.2" class="anchored" data-anchor-id="plug-in-estimator-from-outcome-regression">
 <span class="header-section-number">8.2.2</span> Plug-in Estimator from Outcome Regression</h3>
@@ -511,21 +512,21 @@ window.Quarto = {
 </div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">mufit</span> <span class="op">&lt;-</span> <span class="fu">SuperLearner</span><span class="op">(</span>Y<span class="op">=</span><span class="va">data</span><span class="op">$</span><span class="va">Y</span>, X<span class="op">=</span><span class="va">data</span> <span class="op">%&gt;%</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html">select</a></span><span class="op">(</span><span class="va">w1</span>,<span class="va">w2</span>,<span class="va">w3</span>,<span class="va">w4</span>,<span class="va">A</span><span class="op">)</span>,</span>
 <span>                                     SL.library<span class="op">=</span><span class="va">SL.library</span>, family<span class="op">=</span><span class="st">"binomial"</span><span class="op">)</span></span>
 <span><span class="co"># predict the PO Y^1</span></span>
 <span><span class="va">mu1hat</span><span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span><span class="op">(</span><span class="va">mufit</span>, newdata<span class="op">=</span><span class="va">data</span> <span class="op">%&gt;%</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html">select</a></span><span class="op">(</span><span class="va">w1</span>,<span class="va">w2</span>,<span class="va">w3</span>,<span class="va">w4</span>,<span class="va">A</span><span class="op">)</span> <span class="op">%&gt;%</span> <span class="fu">mutate</span><span class="op">(</span>A<span class="op">=</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">pred</span></span>
 <span><span class="va">mu0hat</span><span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span><span class="op">(</span><span class="va">mufit</span>, newdata<span class="op">=</span><span class="va">data</span> <span class="op">%&gt;%</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html">select</a></span><span class="op">(</span><span class="va">w1</span>,<span class="va">w2</span>,<span class="va">w3</span>,<span class="va">w4</span>,<span class="va">A</span><span class="op">)</span> <span class="op">%&gt;%</span> <span class="fu">mutate</span><span class="op">(</span>A<span class="op">=</span><span class="fl">0</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">pred</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">mu1hat</span><span class="op">-</span><span class="va">mu0hat</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
+</details><div class="cell-output cell-output-stdout">
 <pre><code>[1] 0.1824593</code></pre>
 </div>
 </div>
 </section><section id="aipw-ate" class="level3" data-number="8.2.3"><h3 data-number="8.2.3" class="anchored" data-anchor-id="aipw-ate">
 <span class="header-section-number">8.2.3</span> AIPW ATE</h3>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">123</span><span class="op">)</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">123</span><span class="op">)</span></span>
 <span><span class="va">pifit</span> <span class="op">&lt;-</span> <span class="fu">SuperLearner</span><span class="op">(</span>Y<span class="op">=</span><span class="va">data</span><span class="op">$</span><span class="va">A</span>, X<span class="op">=</span><span class="va">data</span> <span class="op">%&gt;%</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html">select</a></span><span class="op">(</span><span class="va">w1</span>,<span class="va">w2</span>,<span class="va">w3</span>,<span class="va">w4</span><span class="op">)</span>,</span>
 <span>                    SL.library<span class="op">=</span><span class="va">SL.library</span>, family<span class="op">=</span><span class="st">"binomial"</span><span class="op">)</span></span>
 <span><span class="va">pi1hat</span> <span class="op">&lt;-</span> <span class="va">pifit</span><span class="op">$</span><span class="va">SL.predict</span></span>
@@ -539,17 +540,17 @@ window.Quarto = {
 <span><span class="va">ci.ub</span><span class="op">&lt;-</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">IF</span><span class="op">)</span><span class="op">+</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">qnorm</a></span><span class="op">(</span><span class="fl">.975</span><span class="op">)</span><span class="op">*</span><span class="fu"><a href="https://rdrr.io/r/stats/sd.html">sd</a></span><span class="op">(</span><span class="va">IF</span><span class="op">)</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">IF</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">res.manual.aipw</span><span class="op">&lt;-</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">aipw.manual</span>,<span class="va">ci.lb</span>, <span class="va">ci.ub</span><span class="op">)</span></span>
 <span><span class="va">res.manual.aipw</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
+</details><div class="cell-output cell-output-stdout">
 <pre><code>[1] 0.1893510 0.1291976 0.2495044</code></pre>
 </div>
 </div>
 </section><section id="aipw-ate-using-npcausal" class="level3" data-number="8.2.4"><h3 data-number="8.2.4" class="anchored" data-anchor-id="aipw-ate-using-npcausal">
 <span class="header-section-number">8.2.4</span> AIPW ATE Using npcausal</h3>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">npcausal</span><span class="op">)</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">npcausal</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">aipw</span><span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/npcausal/man/ate.html">ate</a></span><span class="op">(</span>y<span class="op">=</span><span class="va">Y</span>, a<span class="op">=</span><span class="va">A</span>, x<span class="op">=</span><span class="va">W</span>, nsplits<span class="op">=</span><span class="fl">2</span>, sl.lib<span class="op">=</span><span class="va">SL.library</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
+</details><div class="cell-output cell-output-stdout">
 <pre><code>
   |                                                                            
   |                                                                      |   0%
@@ -581,7 +582,7 @@ window.Quarto = {
 <p><span id="eq-nonparametric-4"><span class="math display">\[\phi_{ATT}(Z) = \frac{1}{p}\left\{ A(Y-\mu_0(X)) - (1-A)\frac{\pi(X)}{1-\pi(X)}(Y-\mu_0(X)) \right\} - \frac{A}{p}\,\psi_{ATT}. \tag{8.4}\]</span></span></p>
 <p>Treated units contribute their outcome-model residual; control units enter with the odds weight <span class="math inline">\(\pi(X)/(1-\pi(X))\)</span>, which reweights them to the covariate distribution of the treated. Note the correction term uses the CONTROL units — an estimator computed on the treated subsample alone would silently reduce to regression adjustment.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># npcausal (attached above) exports its own SL.ranger, whose fit object is</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># npcausal (attached above) exports its own SL.ranger, whose fit object is</span></span>
 <span><span class="co"># incompatible with SuperLearner's predict method; pin SuperLearner's wrapper</span></span>
 <span><span class="va">SL.ranger</span> <span class="op">&lt;-</span> <span class="fu">SuperLearner</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/SuperLearner/man/SL.ranger.html">SL.ranger</a></span></span>
 <span><span class="va">data2</span> <span class="op">&lt;-</span> <span class="va">data</span> <span class="op">%&gt;%</span></span>
@@ -604,17 +605,17 @@ window.Quarto = {
 <span><span class="va">ci.ub</span><span class="op">&lt;-</span><span class="va">aipw.manual.att</span><span class="op">+</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html">qnorm</a></span><span class="op">(</span><span class="fl">.975</span><span class="op">)</span><span class="op">*</span><span class="fu"><a href="https://rdrr.io/r/stats/sd.html">sd</a></span><span class="op">(</span><span class="va">phi_c</span><span class="op">)</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">phi_c</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">res.manual.aipw.att</span><span class="op">&lt;-</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">aipw.manual.att</span>,<span class="va">ci.lb</span>, <span class="va">ci.ub</span><span class="op">)</span></span>
 <span><span class="va">res.manual.aipw.att</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
+</details><div class="cell-output cell-output-stdout">
 <pre><code>[1] 0.1817775 0.1204417 0.2431132</code></pre>
 </div>
 </div>
 </section><section id="aipw-att-using-npcausal" class="level3" data-number="8.2.6"><h3 data-number="8.2.6" class="anchored" data-anchor-id="aipw-att-using-npcausal">
 <span class="header-section-number">8.2.6</span> AIPW ATT Using npcausal</h3>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">npcausal</span><span class="op">)</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">npcausal</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">aipw</span><span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/npcausal/man/att.html">att</a></span><span class="op">(</span>y<span class="op">=</span><span class="va">Y</span>, a<span class="op">=</span><span class="va">A</span>, x<span class="op">=</span><span class="va">W</span>, nsplits<span class="op">=</span><span class="fl">2</span>, sl.lib<span class="op">=</span><span class="va">SL.library</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
+</details><div class="cell-output cell-output-stdout">
 <pre><code>
   |                                                                            
   |                                                                      |   0%
@@ -637,11 +638,11 @@ window.Quarto = {
 <p>TMLE is a variant of IF based estimator. It is also a doubly robust estimator. See Mark van der Laan and his coauthors for the recent development of TMLE.</p>
 <p>We should expect npcausal and tmle give similar answers.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://CRAN.R-project.org/package=tmle">tmle</a></span><span class="op">)</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://CRAN.R-project.org/package=tmle">tmle</a></span><span class="op">)</span></span>
 <span><span class="va">TMLE</span><span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/tmle/man/tmle.html">tmle</a></span><span class="op">(</span>Y<span class="op">=</span><span class="va">data</span><span class="op">$</span><span class="va">Y</span>,A<span class="op">=</span><span class="va">data</span><span class="op">$</span><span class="va">A</span>,W<span class="op">=</span><span class="va">W</span>, family<span class="op">=</span><span class="st">"binomial"</span>, Q.SL.library<span class="op">=</span><span class="va">SL.library</span>, g.SL.library<span class="op">=</span><span class="va">SL.library</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">TMLE</span><span class="op">$</span><span class="va">estimates</span><span class="op">$</span><span class="va">ATE</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
+</details><div class="cell-output cell-output-stdout">
 <pre><code>$psi
 [1] 0.1892973
 
@@ -681,13 +682,13 @@ $bs.CI.onesided.upper
 <p>The estimator <span class="math inline">\(\hat \theta\)</span> solves the equation that the sample mean of this score function is 0.</p>
 <p>The estimator’s variance comes from the usual sandwich formula built on the score, <span class="math inline">\(\hat\sigma^2 = \hat J^{-1}\, \widehat{E[\psi^2]}\, \hat J^{-1}\)</span> with <span class="math inline">\(\hat J = -\frac{1}{n}\sum_i (D_i-\hat m(X_i))^2\)</span>.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://docs.doubleml.org/stable/index.html">DoubleML</a></span><span class="op">)</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://docs.doubleml.org/stable/index.html">DoubleML</a></span><span class="op">)</span></span>
 <span><span class="va">dml_data</span> <span class="op">=</span> <span class="va"><a href="https://rdrr.io/pkg/DoubleML/man/DoubleMLData.html">DoubleMLData</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">data</span>,</span>
 <span>                             y_col <span class="op">=</span> <span class="st">"Y"</span>,</span>
 <span>                             d_cols <span class="op">=</span> <span class="st">"A"</span>,</span>
 <span>                             x_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"w1"</span>,<span class="st">"w2"</span>,<span class="st">"w3"</span>,<span class="st">"w4"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">dml_data</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
+</details><div class="cell-output cell-output-stdout">
 <pre><code>================= DoubleMLData Object ==================
 
 
@@ -701,7 +702,7 @@ No. Observations: 1000</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3.mlr-org.com">mlr3</a></span><span class="op">)</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3.mlr-org.com">mlr3</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3learners.mlr-org.com">mlr3learners</a></span><span class="op">)</span></span>
 <span><span class="co"># suppress messages from mlr3 package during fitting</span></span>
 <span><span class="fu">lgr</span><span class="fu">::</span><span class="fu"><a href="https://s-fleck.github.io/lgr/reference/get_logger.html">get_logger</a></span><span class="op">(</span><span class="st">"mlr3"</span><span class="op">)</span><span class="op">$</span><span class="fu">set_threshold</span><span class="op">(</span><span class="st">"warn"</span><span class="op">)</span></span>
@@ -715,7 +716,7 @@ No. Observations: 1000</code></pre>
 <span><span class="va">obj_dml_plr</span> <span class="op">=</span> <span class="va"><a href="https://rdrr.io/pkg/DoubleML/man/DoubleMLPLR.html">DoubleMLPLR</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">dml_data</span>, ml_l<span class="op">=</span><span class="va">ml_l</span>, ml_m<span class="op">=</span><span class="va">ml_m</span><span class="op">)</span></span>
 <span><span class="va">obj_dml_plr</span><span class="op">$</span><span class="fu">fit</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">obj_dml_plr</span><span class="op">$</span><span class="fu">summary</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
+</details><div class="cell-output cell-output-stdout">
 <pre><code>Estimates and significance testing of the effect of target variables
   Estimate. Std. Error t value Pr(&gt;|t|)    
 A   0.19257    0.03136    6.14 8.24e-10 ***

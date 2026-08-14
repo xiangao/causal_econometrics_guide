@@ -431,7 +431,7 @@ window.Quarto = {
 <main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./causal-discovery.html">Causal Discovery</a></li><li class="breadcrumb-item"><a href="./causal-discovery-latent.html"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Causal Discovery: Latent Variables</span></a></li></ol></nav><div class="quarto-title">
 <div class="quarto-title-block"><div><h1 class="title">
 <span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Causal Discovery: Latent Variables</span>
-</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+</h1><button type="button" class="btn code-tools-button dropdown-toggle" id="quarto-code-tools-menu" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi"></i> Code</button><ul class="dropdown-menu dropdown-menu-end" aria-labelelledby="quarto-code-tools-menu"><li><a id="quarto-show-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Show All Code</a></li><li><a id="quarto-hide-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Hide All Code</a></li><li><hr class="dropdown-divider"></li><li><a id="quarto-view-source" class="dropdown-item" href="javascript:void(0)" role="button">View Source</a></li></ul></div></div>
 </div>
 
 
@@ -541,7 +541,7 @@ window.Quarto = {
 <span class="header-section-number">20.3</span> Simulation with Hidden Variables</h2>
 <p>We reuse the same 8-node Gaussian linear DAG from the previous chapter and hide 2 nodes, treating them as unobserved confounders.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">2025</span><span class="op">)</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">2025</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">n_vars</span>     <span class="op">&lt;-</span> <span class="fl">8</span></span>
 <span><span class="va">n_samples</span>  <span class="op">&lt;-</span> <span class="fl">2000</span></span>
@@ -560,7 +560,7 @@ window.Quarto = {
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"Total variables: %d   Hidden: %s   Observed: %d"</span>,</span>
 <span>        <span class="va">n_vars</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste</a></span><span class="op">(</span><span class="va">all_labels</span><span class="op">[</span><span class="va">latent_idx</span><span class="op">]</span>, collapse <span class="op">=</span> <span class="st">", "</span><span class="op">)</span>, <span class="va">n_obs</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
+</details><div class="cell-output cell-output-stdout">
 <pre><code>[1] "Total variables: 8   Hidden: X3, X6   Observed: 6"</code></pre>
 </div>
 </div>
@@ -568,7 +568,7 @@ window.Quarto = {
 <span class="header-section-number">20.3.1</span> True structure over observed variables</h3>
 <p>Two observed variables are adjacent in the MAG iff no subset of the <em>observed</em> variables d-separates them in the full DAG. We compute this with <code><a href="https://rdrr.io/pkg/pcalg/man/dsep.html">pcalg::dsep</a></code>.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">all_subsets</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">xs</span><span class="op">)</span> <span class="op">{</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">all_subsets</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">xs</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="kw">for</span> <span class="op">(</span><span class="va">k</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_along</a></span><span class="op">(</span><span class="va">xs</span><span class="op">)</span><span class="op">)</span> <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">out</span>, <span class="fu"><a href="https://rdrr.io/r/utils/combn.html">combn</a></span><span class="op">(</span><span class="va">xs</span>, <span class="va">k</span>, simplify <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="va">out</span></span>
@@ -640,16 +640,16 @@ window.Quarto = {
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"True MAG skeleton edges (over %d observed nodes): %d"</span>,</span>
 <span>        <span class="va">n_obs</span>, <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">amat_true_mag</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
+</details><div class="cell-output cell-output-stdout">
 <pre><code>[1] "True MAG skeleton edges (over 6 observed nodes): 10"</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/par.html">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/par.html">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">plot_ig</span><span class="op">(</span><span class="va">ig_true_full</span>, layout <span class="op">=</span> <span class="va">full_layout</span>, main <span class="op">=</span> <span class="st">"Full DAG (all 8 nodes)"</span><span class="op">)</span></span>
 <span><span class="fu">plot_ig</span><span class="op">(</span><span class="va">ig_true_pag</span>,  layout <span class="op">=</span> <span class="va">obs_layout</span>,  main <span class="op">=</span> <span class="st">"True MAG (observed nodes)"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html">par</a></span><span class="op">(</span><span class="va">op</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output-display">
+</details><div class="cell-output-display">
 <div id="fig-latent-dag" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-latent-dag-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="causal-discovery-latent_files/figure-html/fig-latent-dag-1.png" class="img-fluid figure-img" width="1056">
@@ -676,7 +676,7 @@ Figure&nbsp;20.1: Full DAG (all 8 nodes) and the true MAG skeleton over observed
 </ol>
 <p>The extra marks let FCI say what is known and what remains uncertain, but the output is harder to read than a DAG.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">make_counted_ci</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">suff_stat</span><span class="op">)</span> <span class="op">{</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">make_counted_ci</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">suff_stat</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">count</span> <span class="op">&lt;-</span> <span class="fl">0L</span></span>
 <span>  <span class="va">ci</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">y</span>, <span class="va">S</span>, <span class="va">suffStat</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">count</span> <span class="op">&lt;&lt;-</span> <span class="va">count</span> <span class="op">+</span> <span class="fl">1L</span></span>
@@ -692,9 +692,10 @@ Figure&nbsp;20.1: Full DAG (all 8 nodes) and the true MAG skeleton over observed
 <span><span class="va">fci_fit</span>  <span class="op">&lt;-</span> <span class="fu">fci</span><span class="op">(</span><span class="va">suff_obs</span>, <span class="va">ci_fci</span><span class="op">$</span><span class="va">ci</span>, labels <span class="op">=</span> <span class="va">obs_labels</span>,</span>
 <span>                alpha <span class="op">=</span> <span class="va">sig_level</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">ci_tests_fci</span> <span class="op">&lt;-</span> <span class="va">ci_fci</span><span class="op">$</span><span class="fu">count</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># pcalg PAG amat encoding: 0 = no edge, 1 = circle, 2 = arrowhead, 3 = tail.</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># pcalg PAG amat encoding: 0 = no edge, 1 = circle, 2 = arrowhead, 3 = tail.</span></span>
 <span><span class="co"># An edge between i and j is described by amat[i,j] (the mark AT j)</span></span>
 <span><span class="co"># and amat[j,i] (the mark AT i).</span></span>
 <span><span class="va">pag_skeleton_amat</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">amat</span><span class="op">)</span> <span class="op">{</span></span>
@@ -715,13 +716,13 @@ Figure&nbsp;20.1: Full DAG (all 8 nodes) and the true MAG skeleton over observed
 <span><span class="va">f1_fci_v</span>  <span class="op">&lt;-</span> <span class="fu">f1_skel</span><span class="op">(</span><span class="va">amat_true_mag</span>, <span class="va">skel_fci</span><span class="op">)</span></span>
 <span><span class="va">ig_fci</span>    <span class="op">&lt;-</span> <span class="fu">pag_to_ig</span><span class="op">(</span><span class="va">fci_fit</span><span class="op">@</span><span class="va">amat</span>, <span class="va">obs_labels</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"FCI:    skeleton F1 = %.3f   CI tests = %d"</span>, <span class="va">f1_fci_v</span>, <span class="va">ci_tests_fci</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
+</details><div class="cell-output cell-output-stdout">
 <pre><code>[1] "FCI:    skeleton F1 = 0.824   CI tests = 165"</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">plot_ig</span><span class="op">(</span><span class="va">ig_fci</span>, layout <span class="op">=</span> <span class="va">obs_layout</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output-display">
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">plot_ig</span><span class="op">(</span><span class="va">ig_fci</span>, layout <span class="op">=</span> <span class="va">obs_layout</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details><div class="cell-output-display">
 <div id="fig-fci-pag" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-fci-pag-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="causal-discovery-latent_files/figure-html/fig-fci-pag-1.png" class="img-fluid figure-img" width="528">
@@ -764,7 +765,7 @@ Figure&nbsp;20.2: PAG estimated by FCI. Dashed edges indicate endpoints with cir
 </ol>
 <p>In practice, the skeleton is often the main output: it tells us which pairs need substantive attention. Full PAG orientations are useful, but they are harder to defend.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ci_rfci</span>    <span class="op">&lt;-</span> <span class="fu">make_counted_ci</span><span class="op">(</span><span class="va">suff_obs</span><span class="op">)</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ci_rfci</span>    <span class="op">&lt;-</span> <span class="fu">make_counted_ci</span><span class="op">(</span><span class="va">suff_obs</span><span class="op">)</span></span>
 <span><span class="va">rfci_fit</span>   <span class="op">&lt;-</span> <span class="fu">rfci</span><span class="op">(</span><span class="va">suff_obs</span>, <span class="va">ci_rfci</span><span class="op">$</span><span class="va">ci</span>, labels <span class="op">=</span> <span class="va">obs_labels</span>,</span>
 <span>                   alpha <span class="op">=</span> <span class="va">sig_level</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">ci_tests_rfci</span> <span class="op">&lt;-</span> <span class="va">ci_rfci</span><span class="op">$</span><span class="fu">count</span><span class="op">(</span><span class="op">)</span></span>
@@ -773,7 +774,7 @@ Figure&nbsp;20.2: PAG estimated by FCI. Dashed edges indicate endpoints with cir
 <span><span class="va">f1_rfci_v</span>  <span class="op">&lt;-</span> <span class="fu">f1_skel</span><span class="op">(</span><span class="va">amat_true_mag</span>, <span class="va">skel_rfci</span><span class="op">)</span></span>
 <span><span class="va">ig_rfci</span>    <span class="op">&lt;-</span> <span class="fu">pag_to_ig</span><span class="op">(</span><span class="va">rfci_fit</span><span class="op">@</span><span class="va">amat</span>, <span class="va">obs_labels</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"RFCI:   skeleton F1 = %.3f   CI tests = %d"</span>, <span class="va">f1_rfci_v</span>, <span class="va">ci_tests_rfci</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
+</details><div class="cell-output cell-output-stdout">
 <pre><code>[1] "RFCI:   skeleton F1 = 0.824   CI tests = 138"</code></pre>
 </div>
 </div>
@@ -792,13 +793,13 @@ Figure&nbsp;20.2: PAG estimated by FCI. Dashed edges indicate endpoints with cir
 </section><section id="comparison" class="level2" data-number="20.6"><h2 data-number="20.6" class="anchored" data-anchor-id="comparison">
 <span class="header-section-number">20.6</span> Comparison</h2>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">kable</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">kable</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span></span>
 <span>  Algorithm   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"FCI"</span>, <span class="st">"RFCI"</span><span class="op">)</span>,</span>
 <span>  Output      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Full PAG"</span>, <span class="st">"Skeleton + partial PAG"</span><span class="op">)</span>,</span>
 <span>  Skeleton_F1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">f1_fci_v</span>, <span class="va">f1_rfci_v</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span>,</span>
 <span>  CI_Tests    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">ci_tests_fci</span>, <span class="va">ci_tests_rfci</span><span class="op">)</span></span>
 <span><span class="op">)</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div id="tbl-latent-comparison" class="cell quarto-float quarto-figure quarto-figure-center anchored">
+</details><div id="tbl-latent-comparison" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure"><figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-latent-comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Table&nbsp;20.1: Algorithm comparison on the latent-variable scenario (2 hidden nodes, n = 2000)
 </figcaption><div aria-describedby="tbl-latent-comparison-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -831,12 +832,12 @@ Table&nbsp;20.1: Algorithm comparison on the latent-variable scenario (2 hidden 
 </div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/par.html">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">3</span><span class="op">)</span>, mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/par.html">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">3</span><span class="op">)</span>, mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">plot_ig</span><span class="op">(</span><span class="va">ig_true_pag</span>, layout <span class="op">=</span> <span class="va">obs_layout</span>, main <span class="op">=</span> <span class="st">"True MAG"</span><span class="op">)</span></span>
 <span><span class="fu">plot_ig</span><span class="op">(</span><span class="va">ig_fci</span>,      layout <span class="op">=</span> <span class="va">obs_layout</span>, main <span class="op">=</span> <span class="st">"FCI — estimated PAG"</span><span class="op">)</span></span>
 <span><span class="fu">plot_ig</span><span class="op">(</span><span class="va">ig_rfci</span>,     layout <span class="op">=</span> <span class="va">obs_layout</span>, main <span class="op">=</span> <span class="st">"RFCI — estimated PAG"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html">par</a></span><span class="op">(</span><span class="va">op</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output-display">
+</details><div class="cell-output-display">
 <div id="fig-latent-skeletons" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-latent-skeletons-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="causal-discovery-latent_files/figure-html/fig-latent-skeletons-1.png" class="img-fluid figure-img" width="1152">
@@ -850,7 +851,7 @@ Figure&nbsp;20.3: True MAG vs.&nbsp;PAGs recovered by FCI and RFCI. Directed arr
 </section><section id="monte-carlo-evaluation" class="level2" data-number="20.7"><h2 data-number="20.7" class="anchored" data-anchor-id="monte-carlo-evaluation">
 <span class="header-section-number">20.7</span> Monte Carlo Evaluation</h2>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">evaluate_latent</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">seed</span>, <span class="va">n_vars</span> <span class="op">=</span> <span class="fl">8</span>, <span class="va">n_samples</span> <span class="op">=</span> <span class="fl">2000</span>,</span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">evaluate_latent</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">seed</span>, <span class="va">n_vars</span> <span class="op">=</span> <span class="fl">8</span>, <span class="va">n_samples</span> <span class="op">=</span> <span class="fl">2000</span>,</span>
 <span>                            <span class="va">edge_prob</span> <span class="op">=</span> <span class="fl">0.35</span>, <span class="va">n_latent</span> <span class="op">=</span> <span class="fl">2</span>, <span class="va">sig</span> <span class="op">=</span> <span class="fl">0.01</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="va">seed</span><span class="op">)</span></span>
 <span>  <span class="va">labs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span><span class="op">(</span><span class="st">"X"</span>, <span class="fl">1</span><span class="op">:</span><span class="va">n_vars</span><span class="op">)</span></span>
@@ -889,7 +890,7 @@ Figure&nbsp;20.3: True MAG vs.&nbsp;PAGs recovered by FCI and RFCI. Directed arr
 <span><span class="fu">kable</span><span class="op">(</span><span class="va">mc_summary</span>,</span>
 <span>      caption <span class="op">=</span> <span class="st">"Monte Carlo averages (100 replications, n = 2000, p = 8, 2 latent)"</span>,</span>
 <span>      row.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output-display">
+</details><div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <caption>Monte Carlo averages (100 replications, n = 2000, p = 8, 2 latent)</caption>
 <thead><tr class="header">
@@ -913,7 +914,7 @@ Figure&nbsp;20.3: True MAG vs.&nbsp;PAGs recovered by FCI and RFCI. Directed arr
 </div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">mc_long</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span></span>
+<details class="code-fold"><summary>Show code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">mc_long</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span></span>
 <span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"FCI"</span>, <span class="st">"RFCI"</span><span class="op">)</span>, each <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">mc</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  ci     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">mc</span><span class="op">$</span><span class="va">ci_fci</span>, <span class="va">mc</span><span class="op">$</span><span class="va">ci_rfci</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
@@ -923,7 +924,7 @@ Figure&nbsp;20.3: True MAG vs.&nbsp;PAGs recovered by FCI and RFCI. Directed arr
 <span>  <span class="fu">labs</span><span class="op">(</span>x <span class="op">=</span> <span class="st">"CI tests"</span>, y <span class="op">=</span> <span class="st">"Frequency"</span>,</span>
 <span>       title <span class="op">=</span> <span class="st">"CI Test Counts: FCI vs RFCI (100 replications)"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">theme_minimal</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output-display">
+</details><div class="cell-output-display">
 <div id="fig-latent-mc" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure"><div aria-describedby="fig-latent-mc-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <img src="causal-discovery-latent_files/figure-html/fig-latent-mc-1.png" class="img-fluid figure-img" width="672">

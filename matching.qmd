@@ -68,10 +68,15 @@ data("lalonde", package = "MatchIt")
 glimpse(lalonde)
 ```
 
-The treatment is `treat`; the outcome is `re78`; the covariates are `age`,
-`educ`, `race`, `married`, `nodegree`, `re74`, and `re75`.
+There are 614 observations, 185 treated and 429 control. The treatment is
+`treat`; the outcome is `re78`, 1978 earnings in dollars; the covariates are
+`age`, `educ` (years of schooling), `race` (black, hispanic, white), `married`,
+`nodegree` (no high-school degree), and `re74` and `re75`, earnings in 1974 and
+1975. The earnings variables matter most here, because they pile up at zero and
+differ sharply between the groups.
 
-First check balance before doing any matching:
+Before matching anything we check balance. `bal.tab` reports the standardized
+mean difference for each covariate and flags any above 0.1:
 
 ```{r}
 #| label: pre-balance
@@ -84,8 +89,12 @@ m.pre <- matchit(treat ~ age + educ + race + married + nodegree + re74 + re75,
 bal.tab(m.pre, thresholds = c(m = 0.1))
 ```
 
-Several standardized mean differences are larger than 0.1. That is usually
-too large to call the sample balanced.
+Seven of the nine contrasts exceed 0.1. Earnings in 1974 differ by $-0.72$
+standard deviations, the black indicator by 0.64, the white indicator by
+$-0.56$, marital status by $-0.32$, age by $-0.31$, earnings in 1975 by
+$-0.29$. Only `educ` (0.055) and the hispanic indicator ($-0.083$) pass. The
+propensity score itself differs by 1.79 standard deviations. This sample is
+nowhere near balanced.
 
 ## Distance measures
 
@@ -103,6 +112,9 @@ Matching needs a distance metric. The usual choices are:
 
 ### Nearest-neighbour matching on a propensity score
 
+We fit the propensity score by logistic regression, take its linear index, and
+match each treated unit to the single closest control, without replacement.
+
 ```{r}
 #| label: nn-match
 #| cache: true
@@ -117,6 +129,9 @@ m.nn <- matchit(treat ~ age + educ + race + married + nodegree + re74 + re75,
 m.nn
 ```
 
+All 185 treated units are matched, so 370 of the 614 observations are used and
+244 controls are discarded. The target estimand is the ATT.
+
 Now check balance again:
 
 ```{r}
@@ -126,8 +141,13 @@ Now check balance again:
 bal.tab(m.nn, thresholds = c(m = 0.1))
 ```
 
-Some covariates are still not balanced. Nearest-neighbor matching on a
-logit propensity score is simple, but it is not automatically good.
+Five of nine now pass, up from two. The earnings histories are repaired: `re74`
+goes from $-0.72$ to $-0.05$ and `re75` from $-0.29$ to $-0.03$. Race is not:
+the black indicator is still 0.373 and the white indicator $-0.216$. And `educ`
+has got worse, from 0.055 to $-0.129$. This is what matching on a scalar score
+does: it balances the score, not the covariates. Two units with the same score
+can differ on individual covariates in offsetting ways, and nothing in the
+procedure prevents that.
 
 ### Full matching
 
@@ -149,7 +169,17 @@ m.full <- matchit(treat ~ age + educ + race + married + nodegree + re74 + re75,
 bal.tab(m.full, thresholds = c(m = 0.1))
 ```
 
-In this example full matching gives better balance than simple 1:1 matching.
+All ten contrasts now pass, the largest being `educ` at $-0.096$, and no
+observation is discarded. The cost is in the weights: the control effective
+sample size falls from 429 to 50.8, because full matching concentrates weight
+on the controls that resemble treated units.
+
+The effective sample size is the number of equally weighted observations that
+would carry the same precision. An unweighted mean of $m$ observations has
+variance $\sigma^2/m$; a weighted mean with weights summing to one has variance
+$\sigma^2 \sum_i w_i^2$. Setting the two equal gives $m = 1/\sum_i w_i^2$. So
+50.8 means these 429 controls carry about as much information as 51 equally
+weighted ones. Balance improved and precision did not.
 
 ### Mahalanobis matching
 
@@ -165,6 +195,13 @@ m.maha <- matchit(treat ~ age + educ + race + married + nodegree + re74 + re75,
                   distance = "mahalanobis")
 bal.tab(m.maha, thresholds = c(m = 0.1))
 ```
+
+Mahalanobis matching balances only four of nine. The black and white indicators
+sit at $\pm 0.378$, `re74` at $-0.248$, `re75` at $-0.132$, and `age` at 0.127.
+It does worse than the propensity score did on earnings. With a three-level
+race factor and two earnings variables that pile up at zero, the covariance
+matrix is a poor description of the covariate space, and the metric it defines
+is a poor guide to who resembles whom.
 
 ### Coarsened Exact Matching (CEM)
 
@@ -182,9 +219,16 @@ m.cem <- matchit(treat ~ age + educ + race + married + nodegree + re74 + re75,
 bal.tab(m.cem, thresholds = c(m = 0.1))
 ```
 
+All nine contrasts pass, and the largest is `age` at 0.049. Read the sample
+sizes before celebrating: only 65 of the 185 treated units are matched, and 120
+are dropped, along with 354 of the 429 controls. The control effective sample
+size is 41.3.
+
 CEM can drop many observations. That is not necessarily a problem. It is
 often telling us that the original sample does not support the target
-comparison.
+comparison. But it does change the question. The estimand is now the average
+effect for the 65 treated units that had a comparable control, not the ATT for
+all 185, and those two need not be the same number.
 
 ## Estimation after matching
 
@@ -216,6 +260,10 @@ avg_comparisons(fit,
                 newdata = subset(m.data, treat == 1))   # ATT
 ```
 
+The full-matching ATT is \$1,977 with a subclass-clustered standard error of
+\$704, a 95% interval of $[596, 3357]$, and $p = 0.005$. Training raised 1978
+earnings for the trained.
+
 The point is not that matching mechanically produces the "right" answer.
 The point is that after improving balance, the estimate is much less driven
 by obvious covariate differences.
@@ -228,7 +276,7 @@ standardized mean differences before and after matching.
 ```{r}
 #| label: love-plot
 #| cache: true
-#| fig-cap: "Balance improvement from nearest-neighbour and full matching."
+#| fig-cap: "Balance before and after full matching, as absolute standardized mean differences."
 #| fig-width: 8
 #| fig-height: 5
 
@@ -239,6 +287,13 @@ love.plot(m.full,
           var.order = "unadjusted",
           title = "Balance plot — Full matching")
 ```
+
+Each variable appears twice, unadjusted and adjusted, with the variables
+ordered by their unadjusted difference and differences plotted in absolute
+value. Every point moves toward zero except `educ`, which starts at 0.055 and
+ends at 0.096 --- it was already balanced, and full matching traded a little of
+it for the rest. `re74`, the worst offender before matching at $-0.72$, moves
+furthest, ending at $-0.0009$.
 
 A useful rule is that standardized mean differences should be below 0.1,
 or below 0.05 if we want to be stricter.
@@ -260,6 +315,11 @@ m.repl <- matchit(treat ~ age + educ + race + married + nodegree + re74 + re75,
                   replace = TRUE)
 bal.tab(m.repl, thresholds = c(m = 0.1))
 ```
+
+With replacement, nine of ten contrasts pass, against five of nine without.
+`age` is the exception, at 0.240. Only 82 distinct controls are used, and their
+effective sample size is 46.3. Compared with the 1:1 match without replacement,
+which used 185 distinct controls, the same good controls are being reused.
 
 If matching without replacement cannot balance the sample, matching with
 replacement is a reasonable next step.
@@ -318,6 +378,10 @@ w_ipw <- weightit(treat ~ age + educ + race + married + nodegree + re74 + re75,
 bal.tab(w_ipw, stats = c("m"), thresholds = c(m = 0.05))
 ```
 
+Note the stricter 0.05 threshold from here on. IPW balances nine of ten;
+`age` fails at 0.119. The control effective sample size is 99.8 out of 429,
+better than any of the matching methods above.
+
 ### Covariate balancing propensity score (CBPS)
 
 CBPS estimates the propensity score while also trying to balance covariate
@@ -332,6 +396,9 @@ w_cbps <- weightit(treat ~ age + educ + race + married + nodegree + re74 + re75,
                    data = lalonde, estimand = "ATT", method = "cbps")
 bal.tab(w_cbps, stats = c("m"), thresholds = c(m = 0.05))
 ```
+
+Every covariate mean difference is zero to three decimals, and the control
+effective sample size is 98.5.
 
 ### Entropy balancing
 
@@ -349,7 +416,17 @@ bal.tab(w_ebal, stats = c("m"), thresholds = c(m = 0.05))
 ```
 
 The standardized mean differences are essentially zero because entropy
-balancing imposes mean balance directly.
+balancing imposes mean balance directly. The effective sample size is 98.5.
+
+That is the same table CBPS produced, and it is not a coincidence: the two sets
+of control weights are numerically identical here, agreeing to twelve decimal
+places. Just-identified CBPS for the ATT solves the exact mean-balance moment
+conditions with a logistic link, which makes the control weights proportional
+to $\exp(x'\lambda)$. Entropy balancing minimises the Kullback-Leibler
+divergence from uniform weights subject to the same exact mean-balance
+constraints, and its solution has the same $\exp(x'\lambda)$ form. Same
+constraints, same functional form, same weights. The two methods are motivated
+differently and arrive at one answer.
 
 ### Energy balancing
 
@@ -365,6 +442,12 @@ w_energy <- weightit(treat ~ age + educ + race + married + nodegree + re74 + re7
                      data = lalonde, estimand = "ATT", method = "energy")
 bal.tab(w_energy, stats = c("m"), thresholds = c(m = 0.05))
 ```
+
+All nine contrasts pass, the largest being `re75` at 0.023 --- close to zero
+but not exactly zero, because energy balancing does not impose mean balance as
+a constraint. The control effective sample size is 41.8, less than half of
+entropy balancing's 98.5. That is the price of targeting the whole covariate
+distribution rather than its means.
 
 ### Estimation with weighted-aware regression
 
@@ -385,7 +468,8 @@ avg_comparisons(fit_ebal, variables = "treat",
                 newdata = subset(lalonde, treat == 1))   # ATT
 ```
 
-This gives the entropy-balanced ATT and a sandwich-style standard error.
+The entropy-balanced ATT is \$1,273 with a sandwich standard error of \$770,
+a 95% interval of $[-236, 2783]$, and $p = 0.098$. The interval includes zero.
 
 ### When to use each weighting method
 

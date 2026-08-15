@@ -131,7 +131,16 @@ two coincide. It is a faster screening tool.
 
 ## Simulation with Hidden Variables
 
-We reuse the same 8-node Gaussian linear DAG from the previous chapter and hide 2 nodes, treating them as unobserved confounders.
+We reuse the same 8-node Gaussian linear DAG from the previous chapter --- same
+seed, same `randomDAG` call with edge probability 0.35 and coefficients drawn
+from $[0.25, 1]$, same $n = 2000$ draws with standard normal errors --- and then
+hide two of the nodes, $X_3$ and $X_6$, treating them as unobserved
+confounders. The algorithms below see a $2000 \times 6$ matrix; the full
+8-column matrix is kept only to construct the truth.
+
+The aim is to see what latent confounding costs. The previous chapter's PC
+reached a skeleton F1 of 0.952 with all eight variables observed. Nothing about
+the DGP changes here except which columns we are allowed to look at.
 
 ```{r}
 set.seed(2025)
@@ -234,6 +243,15 @@ sprintf("True MAG skeleton edges (over %d observed nodes): %d",
         n_obs, sum(amat_true_mag) / 2)
 ```
 
+This is the first thing to notice, before any algorithm runs. The full DAG has
+11 edges among 8 nodes. The true MAG over the 6 observed nodes has 10 edges
+among 15 possible pairs, a density of two thirds. Hiding two variables did not
+simplify the problem; it made the graph much denser, because every pair of
+observed nodes sharing a hidden parent acquires an edge that was not there
+before. That densification is the cost of latent confounding, and it is why the
+F1 scores below sit well under the 0.952 that PC managed with everything
+observed.
+
 ```{r}
 #| label: fig-latent-dag
 #| fig-cap: "Full DAG (all 8 nodes) and the true MAG skeleton over observed variables. The MAG skeleton includes both direct paths and paths through hidden nodes."
@@ -304,6 +322,11 @@ ig_fci    <- pag_to_ig(fci_fit@amat, obs_labels)
 sprintf("FCI:    skeleton F1 = %.3f   CI tests = %d", f1_fci_v, ci_tests_fci)
 ```
 
+FCI recovers the skeleton with an F1 of 0.824, using 165 CI tests. That is a
+long way below PC's 0.952 on the same underlying DAG with nothing hidden, and
+the dense MAG is why: with two thirds of all pairs adjacent, there are few
+conditional independences left to find, and each missed edge costs more.
+
 ```{r}
 #| label: fig-fci-pag
 #| fig-cap: "PAG estimated by FCI. Dashed edges indicate endpoints with circle (○) marks — orientations the algorithm could not determine. Solid double-headed arrows (↔) flag definite hidden common causes."
@@ -352,6 +375,10 @@ ig_rfci    <- pag_to_ig(rfci_fit@amat, obs_labels)
 sprintf("RFCI:   skeleton F1 = %.3f   CI tests = %d", f1_rfci_v, ci_tests_rfci)
 ```
 
+RFCI reaches the same skeleton F1 of 0.824 using 138 CI tests instead of 165, a
+saving of 16%. On this dataset the Possible-D-SEP stage bought FCI nothing:
+it ran 27 extra tests and removed no edge that mattered for the skeleton score.
+
 ::: {.callout-note}
 **FCI vs. RFCI output: same plot type, fewer marks**
 
@@ -373,6 +400,9 @@ kable(data.frame(
 ), row.names = FALSE)
 ```
 
+The two algorithms tie on skeleton recovery and RFCI is cheaper. One dataset is
+not enough to conclude that, which is what the Monte Carlo below is for.
+
 ```{r}
 #| label: fig-latent-skeletons
 #| fig-cap: "True MAG vs. PAGs recovered by FCI and RFCI. Directed arrows are definite cause-to-effect; bidirected (↔) edges flag hidden common causes; circle (○) marks indicate orientations the algorithm could not resolve. RFCI typically leaves more circles than FCI because its orientation phase is deliberately more conservative."
@@ -386,6 +416,10 @@ par(op)
 ```
 
 ## Monte Carlo Evaluation
+
+We repeat the whole exercise 100 times, drawing a fresh random DAG each time
+and choosing a fresh pair of nodes to hide, so the results do not depend on one
+graph or one unlucky choice of which variables are unobserved.
 
 ```{r}
 #| cache: true
@@ -432,6 +466,21 @@ kable(mc_summary,
       row.names = FALSE)
 ```
 
+Averaged over 100 replications, FCI gets a skeleton F1 of 0.938 and RFCI 0.943,
+while FCI uses 150.5 CI tests and RFCI 102.7. RFCI is 32% cheaper and loses
+nothing on the skeleton.
+
+Two cautions on reading that. The 0.005 F1 difference is not evidence that RFCI
+recovers skeletons better; RFCI converges to a *supergraph* of the PAG
+skeleton, so if anything theory points the other way, and a gap this small on
+100 replications is noise. And the single dataset above scored 0.824 for both,
+well below these averages --- that draw was one of the harder ones, as its
+denser-than-average MAG would suggest.
+
+What does survive is the cost result. Skipping the Possible-D-SEP stage is
+where RFCI's savings come from, and on these graphs that stage is roughly a
+third of FCI's work while contributing nothing measurable to skeleton accuracy.
+
 ```{r}
 #| label: fig-latent-mc
 #| fig-cap: "CI-test count distributions across 100 replications. By skipping the Possible-D-SEP tests, RFCI typically — though not always — runs fewer tests than FCI."
@@ -450,6 +499,10 @@ ggplot(mc_long, aes(x = ci, fill = method)) +
        title = "CI Test Counts: FCI vs RFCI (100 replications)") +
   theme_minimal()
 ```
+
+The two histograms overlap, which is the point of the figure's caption: RFCI is
+usually but not always cheaper, because its extra collider-verification tests
+can outweigh the Possible-D-SEP saving on sparse draws.
 
 ## Summary
 

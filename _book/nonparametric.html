@@ -454,6 +454,10 @@ window.Quarto = {
 <p>In this estimator, both <span class="math inline">\(\hat \mu\)</span> and <span class="math inline">\(\hat \pi\)</span> can be done using any estimator, such as machine learning. One caveat: <span class="math inline">\(\sqrt n\)</span> inference with flexible ML nuisances requires either Donsker-type complexity restrictions or sample splitting (cross-fitting), where the nuisance models are fit on one fold and evaluated on another. The manual estimators below use in-sample predictions for simplicity; the <code>npcausal</code> calls cross-fit with <code>nsplits=2</code>, and the DoubleML section below returns to sample splitting as a key ingredient.</p>
 <section id="simulation-setup" class="level3" data-number="8.2.1"><h3 data-number="8.2.1" class="anchored" data-anchor-id="simulation-setup">
 <span class="header-section-number">8.2.1</span> Simulation Setup</h3>
+<p>The aim is to run one estimand through five estimators on a single data set — a plug-in outcome regression, AIPW computed by hand, AIPW from <code>npcausal</code>, TMLE, and DoubleML — and compare them against a truth we can compute exactly.</p>
+<p>We simulate <span class="math inline">\(n = 1000\)</span> people with four covariates: <span class="math inline">\(w_1, w_2 \sim
+\text{Bernoulli}(0.5)\)</span>, <span class="math inline">\(w_3 \sim U(0,4)\)</span> and <span class="math inline">\(w_4 \sim U(0,5)\)</span>, the last two rounded to three decimals. Treatment is <span class="math inline">\(A \sim \text{Bernoulli}(\Lambda(-0.4 + 0.2w_2 + 0.15w_3 + 0.2w_4 + 0.15w_2w_4))\)</span>. Both potential outcomes are Bernoulli with the same logit index, <span class="math inline">\(Y(d) \sim \text{Bernoulli}(\Lambda(-1 + d - 0.1w_1 + 0.3w_2 + 0.25w_3 + 0.2w_4 + 0.15w_2w_4))\)</span>, and we observe <span class="math inline">\(Y = AY(1) + (1-A)Y(0)\)</span>.</p>
+<p>Treatment shifts the logit index by exactly 1, so the individual effect <span class="math inline">\(\Lambda(\text{lin} + 1) - \Lambda(\text{lin})\)</span> varies across people even though the shift is constant. Note also that <span class="math inline">\(w_1\)</span> enters the outcome but not the treatment, and that both the propensity and the outcome carry a <span class="math inline">\(w_2 w_4\)</span> interaction. Neither nuisance function is linear in the covariates, which is why flexible estimators are worth using here.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">n</span><span class="op">=</span><span class="fl">1000</span></span>
@@ -494,7 +498,8 @@ window.Quarto = {
 <pre><code>Exact population ATE:           0.2028</code></pre>
 </div>
 </div>
-<p>Compare the estimators below against 0.2028, not against the realized draw.</p>
+<p>The realized draw is 0.2100 and the population value is 0.2028. Compare the estimators below against 0.2028.</p>
+<p>All of them need estimates of the outcome regression <span class="math inline">\(\mu\)</span> and the propensity score <span class="math inline">\(\pi\)</span>. We estimate both with the same super-learner library: MARS (<code>SL.earth</code>), a generalised additive model, the lasso, logistic regression with pairwise interactions, the sample mean, a random forest, and gradient boosting. The super learner takes a cross-validated convex combination of these, so no single functional form has to be right.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">SL.library</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"SL.earth"</span>,<span class="st">"SL.gam"</span>,<span class="st">"SL.glmnet"</span>,<span class="st">"SL.glm.interaction"</span>, <span class="st">"SL.mean"</span>,<span class="st">"SL.ranger"</span>, <span class="st">"SL.xgboost"</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
@@ -511,6 +516,7 @@ window.Quarto = {
 </div>
 </div>
 </div>
+<p>We fit the outcome regression on all four covariates and treatment, then predict each unit’s outcome twice, once with <span class="math inline">\(A\)</span> set to 1 and once with <span class="math inline">\(A\)</span> set to 0, and average the difference. This is the plug-in, or g-computation, estimator: no propensity score anywhere.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">mufit</span> <span class="op">&lt;-</span> <span class="fu">SuperLearner</span><span class="op">(</span>Y<span class="op">=</span><span class="va">data</span><span class="op">$</span><span class="va">Y</span>, X<span class="op">=</span><span class="va">data</span> <span class="op">%&gt;%</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html">select</a></span><span class="op">(</span><span class="va">w1</span>,<span class="va">w2</span>,<span class="va">w3</span>,<span class="va">w4</span>,<span class="va">A</span><span class="op">)</span>,</span>
@@ -523,8 +529,10 @@ window.Quarto = {
 <pre><code>[1] 0.1824593</code></pre>
 </div>
 </div>
+<p>The plug-in gives 0.1825 against the true 0.2028. It comes with no standard error, and this is the point of the section: the super learner’s regularisation bias passes straight into the average, and there is no correction term to remove it.</p>
 </section><section id="aipw-ate" class="level3" data-number="8.2.3"><h3 data-number="8.2.3" class="anchored" data-anchor-id="aipw-ate">
 <span class="header-section-number">8.2.3</span> AIPW ATE</h3>
+<p>We now add the augmentation term. We fit the propensity score with the same library, form the two arm summands <span class="math inline">\(\frac{A}{\hat\pi}(Y - \hat\mu_1) + \hat\mu_1\)</span> and <span class="math inline">\(\frac{1-A}{1-\hat\pi}(Y - \hat\mu_0) + \hat\mu_0\)</span>, and average their difference. The standard error is the sample standard deviation of that difference divided by <span class="math inline">\(\sqrt{n}\)</span>, the influence-function standard error. The printed vector is the estimate followed by the lower and upper 95% bounds.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">123</span><span class="op">)</span></span>
 <span><span class="va">pifit</span> <span class="op">&lt;-</span> <span class="fu">SuperLearner</span><span class="op">(</span>Y<span class="op">=</span><span class="va">data</span><span class="op">$</span><span class="va">A</span>, X<span class="op">=</span><span class="va">data</span> <span class="op">%&gt;%</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html">select</a></span><span class="op">(</span><span class="va">w1</span>,<span class="va">w2</span>,<span class="va">w3</span>,<span class="va">w4</span><span class="op">)</span>,</span>
@@ -544,8 +552,10 @@ window.Quarto = {
 <pre><code>[1] 0.1893510 0.1291976 0.2495044</code></pre>
 </div>
 </div>
+<p>AIPW gives 0.1894 with a 95% interval of <span class="math inline">\([0.1292, 0.2495]\)</span>, which covers the true 0.2028. The augmentation term moved the estimate from 0.1825 to 0.1894 and supplied an interval the plug-in could not.</p>
 </section><section id="aipw-ate-using-npcausal" class="level3" data-number="8.2.4"><h3 data-number="8.2.4" class="anchored" data-anchor-id="aipw-ate-using-npcausal">
 <span class="header-section-number">8.2.4</span> AIPW ATE Using npcausal</h3>
+<p>The same estimator from a package, with one change that matters: <code>nsplits=2</code> cross-fits the nuisances, so each unit’s <span class="math inline">\(\hat\mu\)</span> and <span class="math inline">\(\hat\pi\)</span> come from a model fitted without it. The output reports both arm means and their difference.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">npcausal</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
@@ -576,11 +586,13 @@ window.Quarto = {
 3 E{Y(1)-Y(0)} 0.1943359 0.03160068 0.1323985 0.2562732    0</code></pre>
 </div>
 </div>
+<p>Cross-fitting gives <span class="math inline">\(E[Y(0)] = 0.5625\)</span>, <span class="math inline">\(E[Y(1)] = 0.7568\)</span>, and a difference of 0.1943 with a standard error of 0.0316 and an interval of <span class="math inline">\([0.1324, 0.2563]\)</span>. That is closer to the true 0.2028 than the in-sample version, and the standard error is the one to trust.</p>
 </section><section id="aipw-att" class="level3" data-number="8.2.5"><h3 data-number="8.2.5" class="anchored" data-anchor-id="aipw-att">
 <span class="header-section-number">8.2.5</span> AIPW ATT</h3>
 <p>The ATT has its own efficient influence function. With <span class="math inline">\(p = P(A=1)\)</span> and <span class="math inline">\(\mu_0(X)=E[Y|X,A=0]\)</span>,</p>
 <p><span id="eq-nonparametric-4"><span class="math display">\[\phi_{ATT}(Z) = \frac{1}{p}\left\{ A(Y-\mu_0(X)) - (1-A)\frac{\pi(X)}{1-\pi(X)}(Y-\mu_0(X)) \right\} - \frac{A}{p}\,\psi_{ATT}. \tag{8.4}\]</span></span></p>
 <p>Treated units contribute their outcome-model residual; control units enter with the odds weight <span class="math inline">\(\pi(X)/(1-\pi(X))\)</span>, which reweights them to the covariate distribution of the treated. Note the correction term uses the CONTROL units — an estimator computed on the treated subsample alone would silently reduce to regression adjustment.</p>
+<p>So we fit <span class="math inline">\(\mu_0\)</span> on the controls only, predict it for everyone, and build the summand above from the propensity score already estimated. The printed vector is again the estimate and the two 95% bounds.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># npcausal (attached above) exports its own SL.ranger, whose fit object is</span></span>
 <span><span class="co"># incompatible with SuperLearner's predict method; pin SuperLearner's wrapper</span></span>
@@ -609,6 +621,7 @@ window.Quarto = {
 <pre><code>[1] 0.1817775 0.1204417 0.2431132</code></pre>
 </div>
 </div>
+<p>The ATT comes out at 0.1818 with an interval of <span class="math inline">\([0.1204, 0.2431]\)</span>.</p>
 </section><section id="aipw-att-using-npcausal" class="level3" data-number="8.2.6"><h3 data-number="8.2.6" class="anchored" data-anchor-id="aipw-att-using-npcausal">
 <span class="header-section-number">8.2.6</span> AIPW ATT Using npcausal</h3>
 <div class="cell">
@@ -633,10 +646,12 @@ window.Quarto = {
 3 E{Y-Y(0)|A=1} 0.1730014 0.05289367 0.06932981 0.2766730 0.001</code></pre>
 </div>
 </div>
+<p>Cross-fitted, the ATT is 0.1730 with a standard error of 0.0529 and an interval of <span class="math inline">\([0.0693, 0.2767]\)</span>.</p>
+<p>The ATT is a different estimand from the ATE, and here they genuinely differ: the treatment probability rises with <span class="math inline">\(w_2\)</span>, <span class="math inline">\(w_3\)</span> and <span class="math inline">\(w_4\)</span>, and the individual effect varies with those same covariates, so averaging over the treated is not the same as averaging over everyone. The two estimates are 0.1730 and 0.1943, and with standard errors of 0.0529 and 0.0316 the data cannot separate them. Note that the ATT standard error is two-thirds larger, because only the treated units contribute to the average.</p>
 </section></section><section id="tmle" class="level2" data-number="8.3"><h2 data-number="8.3" class="anchored" data-anchor-id="tmle">
 <span class="header-section-number">8.3</span> TMLE</h2>
 <p>TMLE is a variant of IF based estimator. It is also a doubly robust estimator. See Mark van der Laan and his coauthors for the recent development of TMLE.</p>
-<p>We should expect npcausal and tmle give similar answers.</p>
+<p>TMLE targets the same ATE with the same nuisance library, so we should expect it to agree with <code>npcausal</code>.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://CRAN.R-project.org/package=tmle">tmle</a></span><span class="op">)</span></span>
 <span><span class="va">TMLE</span><span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/tmle/man/tmle.html">tmle</a></span><span class="op">(</span>Y<span class="op">=</span><span class="va">data</span><span class="op">$</span><span class="va">Y</span>,A<span class="op">=</span><span class="va">data</span><span class="op">$</span><span class="va">A</span>,W<span class="op">=</span><span class="va">W</span>, family<span class="op">=</span><span class="st">"binomial"</span>, Q.SL.library<span class="op">=</span><span class="va">SL.library</span>, g.SL.library<span class="op">=</span><span class="va">SL.library</span><span class="op">)</span></span>
@@ -668,6 +683,7 @@ $bs.CI.onesided.upper
 [1]  NA Inf</code></pre>
 </div>
 </div>
+<p>TMLE gives 0.1893 with an interval of <span class="math inline">\([0.1288, 0.2498]\)</span>, against AIPW’s 0.1894 and <code>npcausal</code>’s 0.1943. The three agree to well within a standard error, which is what the theory predicts: they share an efficient influence function and differ only in how they solve its estimating equation.</p>
 </section><section id="doubleml" class="level2" data-number="8.4"><h2 data-number="8.4" class="anchored" data-anchor-id="doubleml">
 <span class="header-section-number">8.4</span> DoubleML</h2>
 <p>The R package DoubleML implements the double/debiased machine learning framework of Chernozhukov et al.&nbsp;(2018). It provides functionalities to estimate parameters in causal models based on machine learning methods. The double machine learning framework consists of three key ingredients: Neyman orthogonality, High-quality machine learning estimation and Sample splitting.</p>
@@ -681,6 +697,7 @@ $bs.CI.onesided.upper
 <p><span id="eq-nonparametric-7"><span class="math display">\[\psi (Z; \theta, \eta) = \big(Y- l(X) - \theta (D-m(X))\big)\big(D-m(X)\big)  \tag{8.7}\]</span></span></p>
 <p>The estimator <span class="math inline">\(\hat \theta\)</span> solves the equation that the sample mean of this score function is 0.</p>
 <p>The estimator’s variance comes from the usual sandwich formula built on the score, <span class="math inline">\(\hat\sigma^2 = \hat J^{-1}\, \widehat{E[\psi^2]}\, \hat J^{-1}\)</span> with <span class="math inline">\(\hat J = -\frac{1}{n}\sum_i (D_i-\hat m(X_i))^2\)</span>.</p>
+<p>We set up the data object first, naming the outcome, the treatment and the four covariates:</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://docs.doubleml.org/stable/index.html">DoubleML</a></span><span class="op">)</span></span>
 <span><span class="va">dml_data</span> <span class="op">=</span> <span class="va"><a href="https://rdrr.io/pkg/DoubleML/man/DoubleMLData.html">DoubleMLData</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">data</span>,</span>
@@ -701,6 +718,7 @@ Selection variable:
 No. Observations: 1000</code></pre>
 </div>
 </div>
+<p>Both nuisance functions are estimated by a random forest with 500 trees, depth at most 5, and a minimum node size of 2. DoubleML cross-fits them and solves the partialling-out score.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3.mlr-org.com">mlr3</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://mlr3learners.mlr-org.com">mlr3learners</a></span><span class="op">)</span></span>
@@ -724,6 +742,8 @@ A   0.19257    0.03136    6.14 8.24e-10 ***
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 </div>
 </div>
+<p>DoubleML returns 0.19257 with a standard error of 0.03136, in line with AIPW’s 0.1894 and TMLE’s 0.1893.</p>
+<p>One caveat on what this number is. The partially linear model has no treatment-covariate interaction, so its <span class="math inline">\(\theta\)</span> is not the ATE when effects are heterogeneous, and in this DGP they are: the individual effect <span class="math inline">\(\Lambda(\text{lin}+1) - \Lambda(\text{lin})\)</span> depends on the covariates. By the Frisch-Waugh-Lovell argument behind the partialling-out score, <span class="math inline">\(\theta\)</span> is the average of the conditional effects weighted by the conditional variance of treatment, <span class="math inline">\(\text{Var}(A \mid X)\)</span>, so people whose treatment is hardest to predict count most. It equals the ATE only when the effect is constant. Here the two are close, 0.193 against 0.203, but that is a property of this DGP and not a general result.</p>
 
 
 <!-- -->
@@ -1244,208 +1264,310 @@ Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 <span id="cb24-55"><a href="#cb24-55" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb24-56"><a href="#cb24-56" aria-hidden="true" tabindex="-1"></a><span class="fu">### Simulation Setup</span></span>
 <span id="cb24-57"><a href="#cb24-57" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-58"><a href="#cb24-58" aria-hidden="true" tabindex="-1"></a><span class="in">```{r npcausal2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb24-59"><a href="#cb24-59" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
-<span id="cb24-60"><a href="#cb24-60" aria-hidden="true" tabindex="-1"></a>n<span class="ot">=</span><span class="dv">1000</span></span>
-<span id="cb24-61"><a href="#cb24-61" aria-hidden="true" tabindex="-1"></a>w1 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="at">size=</span><span class="dv">1</span>, <span class="at">prob=</span><span class="fl">0.5</span>)</span>
-<span id="cb24-62"><a href="#cb24-62" aria-hidden="true" tabindex="-1"></a>w2 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="at">size=</span><span class="dv">1</span>, <span class="at">prob=</span><span class="fl">0.5</span>)</span>
-<span id="cb24-63"><a href="#cb24-63" aria-hidden="true" tabindex="-1"></a>w3 <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">runif</span>(n, <span class="at">min=</span><span class="dv">0</span>, <span class="at">max=</span><span class="dv">4</span>), <span class="at">digits=</span><span class="dv">3</span>)</span>
-<span id="cb24-64"><a href="#cb24-64" aria-hidden="true" tabindex="-1"></a>w4 <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">runif</span>(n, <span class="at">min=</span><span class="dv">0</span>, <span class="at">max=</span><span class="dv">5</span>), <span class="at">digits=</span><span class="dv">3</span>)</span>
-<span id="cb24-65"><a href="#cb24-65" aria-hidden="true" tabindex="-1"></a>A  <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="at">size=</span><span class="dv">1</span>, <span class="at">prob=</span> <span class="fu">plogis</span>(<span class="sc">-</span><span class="fl">0.4</span> <span class="sc">+</span> <span class="fl">0.2</span><span class="sc">*</span>w2 <span class="sc">+</span> <span class="fl">0.15</span><span class="sc">*</span>w3 <span class="sc">+</span> <span class="fl">0.2</span><span class="sc">*</span>w4 <span class="sc">+</span> <span class="fl">0.15</span><span class="sc">*</span>w2<span class="sc">*</span>w4))</span>
-<span id="cb24-66"><a href="#cb24-66" aria-hidden="true" tabindex="-1"></a>Y<span class="fl">.1</span> <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="at">size=</span><span class="dv">1</span>, <span class="at">prob=</span> <span class="fu">plogis</span>(<span class="sc">-</span><span class="dv">1</span> <span class="sc">+</span> <span class="dv">1</span> <span class="sc">-</span><span class="fl">0.1</span><span class="sc">*</span>w1 <span class="sc">+</span> <span class="fl">0.3</span><span class="sc">*</span>w2 <span class="sc">+</span> <span class="fl">0.25</span><span class="sc">*</span>w3 <span class="sc">+</span> <span class="fl">0.2</span><span class="sc">*</span>w4 <span class="sc">+</span> <span class="fl">0.15</span><span class="sc">*</span>w2<span class="sc">*</span>w4))</span>
-<span id="cb24-67"><a href="#cb24-67" aria-hidden="true" tabindex="-1"></a>Y<span class="fl">.0</span> <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="at">size=</span><span class="dv">1</span>, <span class="at">prob=</span> <span class="fu">plogis</span>(<span class="sc">-</span><span class="dv">1</span> <span class="sc">+</span> <span class="dv">0</span> <span class="sc">-</span><span class="fl">0.1</span><span class="sc">*</span>w1 <span class="sc">+</span> <span class="fl">0.3</span><span class="sc">*</span>w2 <span class="sc">+</span> <span class="fl">0.25</span><span class="sc">*</span>w3 <span class="sc">+</span> <span class="fl">0.2</span><span class="sc">*</span>w4 <span class="sc">+</span> <span class="fl">0.15</span><span class="sc">*</span>w2<span class="sc">*</span>w4))</span>
-<span id="cb24-68"><a href="#cb24-68" aria-hidden="true" tabindex="-1"></a>Y <span class="ot">&lt;-</span> Y<span class="fl">.1</span><span class="sc">*</span>A <span class="sc">+</span> Y<span class="fl">.0</span><span class="sc">*</span>(<span class="dv">1</span> <span class="sc">-</span> A)</span>
-<span id="cb24-69"><a href="#cb24-69" aria-hidden="true" tabindex="-1"></a>W<span class="ot">&lt;-</span><span class="fu">data.frame</span>(<span class="fu">cbind</span>(w1,w2,w3,w4))</span>
-<span id="cb24-70"><a href="#cb24-70" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span>  <span class="fu">data.frame</span>(w1, w2, w3, w4, A, Y, Y<span class="fl">.1</span>, Y<span class="fl">.0</span>)</span>
-<span id="cb24-71"><a href="#cb24-71" aria-hidden="true" tabindex="-1"></a>True_Psi <span class="ot">&lt;-</span> <span class="fu">mean</span>(data<span class="sc">$</span>Y<span class="fl">.1</span><span class="sc">-</span>data<span class="sc">$</span>Y<span class="fl">.0</span>);</span>
-<span id="cb24-72"><a href="#cb24-72" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">" True_Psi:"</span>, True_Psi)</span>
-<span id="cb24-73"><a href="#cb24-73" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb24-74"><a href="#cb24-74" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-75"><a href="#cb24-75" aria-hidden="true" tabindex="-1"></a>The line above reports <span class="in">`mean(Y.1 - Y.0)`</span> for this particular draw. That is a</span>
-<span id="cb24-76"><a href="#cb24-76" aria-hidden="true" tabindex="-1"></a>legitimate quantity --- the *sample* average treatment effect --- but it is not a</span>
-<span id="cb24-77"><a href="#cb24-77" aria-hidden="true" tabindex="-1"></a>fixed benchmark, and it is easy to mistake for one. The potential outcomes are</span>
-<span id="cb24-78"><a href="#cb24-78" aria-hidden="true" tabindex="-1"></a>binary, so at $n = 1000$ this realized average has a sampling standard deviation</span>
-<span id="cb24-79"><a href="#cb24-79" aria-hidden="true" tabindex="-1"></a>of about 0.020: two runs of the same DGP under different seeds can differ by 0.04</span>
-<span id="cb24-80"><a href="#cb24-80" aria-hidden="true" tabindex="-1"></a>without anything being wrong. (The R and Julia editions of this chapter print</span>
-<span id="cb24-81"><a href="#cb24-81" aria-hidden="true" tabindex="-1"></a>0.21 and 0.184 for exactly this reason.) Estimator standard errors in this</span>
-<span id="cb24-82"><a href="#cb24-82" aria-hidden="true" tabindex="-1"></a>chapter are around 0.03, so a noisy target of that size would swamp the</span>
-<span id="cb24-83"><a href="#cb24-83" aria-hidden="true" tabindex="-1"></a>comparison we are trying to make.</span>
-<span id="cb24-84"><a href="#cb24-84" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-85"><a href="#cb24-85" aria-hidden="true" tabindex="-1"></a>The *population* ATE is a definite number, and since the DGP is fully specified</span>
-<span id="cb24-86"><a href="#cb24-86" aria-hidden="true" tabindex="-1"></a>we can integrate it out rather than simulate it:</span>
-<span id="cb24-87"><a href="#cb24-87" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-88"><a href="#cb24-88" aria-hidden="true" tabindex="-1"></a><span class="in">```{r popate, warning=FALSE, cache=TRUE, message=FALSE}</span></span>
-<span id="cb24-89"><a href="#cb24-89" aria-hidden="true" tabindex="-1"></a><span class="co"># w1, w2 ~ Bernoulli(0.5); w3 ~ U(0,4); w4 ~ U(0,5). Average the true individual</span></span>
-<span id="cb24-90"><a href="#cb24-90" aria-hidden="true" tabindex="-1"></a><span class="co"># effect plogis(lin0 + 1) - plogis(lin0) over that covariate distribution.</span></span>
-<span id="cb24-91"><a href="#cb24-91" aria-hidden="true" tabindex="-1"></a>pop_ate <span class="ot">&lt;-</span> <span class="fu">mean</span>(<span class="fu">sapply</span>(<span class="fu">list</span>(<span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">0</span>), <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">0</span>), <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">1</span>)), <span class="cf">function</span>(w)</span>
-<span id="cb24-92"><a href="#cb24-92" aria-hidden="true" tabindex="-1"></a>  <span class="fu">integrate</span>(<span class="cf">function</span>(w4) <span class="fu">sapply</span>(w4, <span class="cf">function</span>(u4)</span>
-<span id="cb24-93"><a href="#cb24-93" aria-hidden="true" tabindex="-1"></a>    <span class="fu">integrate</span>(<span class="cf">function</span>(w3) {</span>
-<span id="cb24-94"><a href="#cb24-94" aria-hidden="true" tabindex="-1"></a>      lin0 <span class="ot">&lt;-</span> <span class="sc">-</span><span class="dv">1</span> <span class="sc">-</span> <span class="fl">0.1</span><span class="sc">*</span>w[<span class="dv">1</span>] <span class="sc">+</span> <span class="fl">0.3</span><span class="sc">*</span>w[<span class="dv">2</span>] <span class="sc">+</span> <span class="fl">0.25</span><span class="sc">*</span>w3 <span class="sc">+</span> <span class="fl">0.2</span><span class="sc">*</span>u4 <span class="sc">+</span> <span class="fl">0.15</span><span class="sc">*</span>w[<span class="dv">2</span>]<span class="sc">*</span>u4</span>
-<span id="cb24-95"><a href="#cb24-95" aria-hidden="true" tabindex="-1"></a>      <span class="fu">plogis</span>(lin0 <span class="sc">+</span> <span class="dv">1</span>) <span class="sc">-</span> <span class="fu">plogis</span>(lin0)</span>
-<span id="cb24-96"><a href="#cb24-96" aria-hidden="true" tabindex="-1"></a>    }, <span class="dv">0</span>, <span class="dv">4</span>)<span class="sc">$</span>value <span class="sc">/</span> <span class="dv">4</span>), <span class="dv">0</span>, <span class="dv">5</span>)<span class="sc">$</span>value <span class="sc">/</span> <span class="dv">5</span>))</span>
-<span id="cb24-97"><a href="#cb24-97" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-98"><a href="#cb24-98" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Realized-sample ATE (this draw): %.4f</span><span class="sc">\n</span><span class="st">"</span>, True_Psi))</span>
-<span id="cb24-99"><a href="#cb24-99" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Exact population ATE:           %.4f</span><span class="sc">\n</span><span class="st">"</span>, pop_ate))</span>
-<span id="cb24-100"><a href="#cb24-100" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb24-101"><a href="#cb24-101" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-102"><a href="#cb24-102" aria-hidden="true" tabindex="-1"></a>Compare the estimators below against 0.2028, not against the realized draw.</span>
+<span id="cb24-58"><a href="#cb24-58" aria-hidden="true" tabindex="-1"></a>The aim is to run one estimand through five estimators on a single data set ---</span>
+<span id="cb24-59"><a href="#cb24-59" aria-hidden="true" tabindex="-1"></a>a plug-in outcome regression, AIPW computed by hand, AIPW from <span class="in">`npcausal`</span>,</span>
+<span id="cb24-60"><a href="#cb24-60" aria-hidden="true" tabindex="-1"></a>TMLE, and DoubleML --- and compare them against a truth we can compute exactly.</span>
+<span id="cb24-61"><a href="#cb24-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-62"><a href="#cb24-62" aria-hidden="true" tabindex="-1"></a>We simulate $n = 1000$ people with four covariates: $w_1, w_2 \sim</span>
+<span id="cb24-63"><a href="#cb24-63" aria-hidden="true" tabindex="-1"></a>\text{Bernoulli}(0.5)$, $w_3 \sim U(0,4)$ and $w_4 \sim U(0,5)$, the last two</span>
+<span id="cb24-64"><a href="#cb24-64" aria-hidden="true" tabindex="-1"></a>rounded to three decimals. Treatment is</span>
+<span id="cb24-65"><a href="#cb24-65" aria-hidden="true" tabindex="-1"></a>$A \sim \text{Bernoulli}(\Lambda(-0.4 + 0.2w_2 + 0.15w_3 + 0.2w_4 + 0.15w_2w_4))$.</span>
+<span id="cb24-66"><a href="#cb24-66" aria-hidden="true" tabindex="-1"></a>Both potential outcomes are Bernoulli with the same logit index,</span>
+<span id="cb24-67"><a href="#cb24-67" aria-hidden="true" tabindex="-1"></a>$Y(d) \sim \text{Bernoulli}(\Lambda(-1 + d - 0.1w_1 + 0.3w_2 + 0.25w_3 + 0.2w_4 + 0.15w_2w_4))$,</span>
+<span id="cb24-68"><a href="#cb24-68" aria-hidden="true" tabindex="-1"></a>and we observe $Y = AY(1) + (1-A)Y(0)$.</span>
+<span id="cb24-69"><a href="#cb24-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-70"><a href="#cb24-70" aria-hidden="true" tabindex="-1"></a>Treatment shifts the logit index by exactly 1, so the individual effect</span>
+<span id="cb24-71"><a href="#cb24-71" aria-hidden="true" tabindex="-1"></a>$\Lambda(\text{lin} + 1) - \Lambda(\text{lin})$ varies across people even though</span>
+<span id="cb24-72"><a href="#cb24-72" aria-hidden="true" tabindex="-1"></a>the shift is constant. Note also that $w_1$ enters the outcome but not the</span>
+<span id="cb24-73"><a href="#cb24-73" aria-hidden="true" tabindex="-1"></a>treatment, and that both the propensity and the outcome carry a $w_2 w_4$</span>
+<span id="cb24-74"><a href="#cb24-74" aria-hidden="true" tabindex="-1"></a>interaction. Neither nuisance function is linear in the covariates, which is</span>
+<span id="cb24-75"><a href="#cb24-75" aria-hidden="true" tabindex="-1"></a>why flexible estimators are worth using here.</span>
+<span id="cb24-76"><a href="#cb24-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-77"><a href="#cb24-77" aria-hidden="true" tabindex="-1"></a><span class="in">```{r npcausal2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb24-78"><a href="#cb24-78" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb24-79"><a href="#cb24-79" aria-hidden="true" tabindex="-1"></a>n<span class="ot">=</span><span class="dv">1000</span></span>
+<span id="cb24-80"><a href="#cb24-80" aria-hidden="true" tabindex="-1"></a>w1 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="at">size=</span><span class="dv">1</span>, <span class="at">prob=</span><span class="fl">0.5</span>)</span>
+<span id="cb24-81"><a href="#cb24-81" aria-hidden="true" tabindex="-1"></a>w2 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="at">size=</span><span class="dv">1</span>, <span class="at">prob=</span><span class="fl">0.5</span>)</span>
+<span id="cb24-82"><a href="#cb24-82" aria-hidden="true" tabindex="-1"></a>w3 <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">runif</span>(n, <span class="at">min=</span><span class="dv">0</span>, <span class="at">max=</span><span class="dv">4</span>), <span class="at">digits=</span><span class="dv">3</span>)</span>
+<span id="cb24-83"><a href="#cb24-83" aria-hidden="true" tabindex="-1"></a>w4 <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="fu">runif</span>(n, <span class="at">min=</span><span class="dv">0</span>, <span class="at">max=</span><span class="dv">5</span>), <span class="at">digits=</span><span class="dv">3</span>)</span>
+<span id="cb24-84"><a href="#cb24-84" aria-hidden="true" tabindex="-1"></a>A  <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="at">size=</span><span class="dv">1</span>, <span class="at">prob=</span> <span class="fu">plogis</span>(<span class="sc">-</span><span class="fl">0.4</span> <span class="sc">+</span> <span class="fl">0.2</span><span class="sc">*</span>w2 <span class="sc">+</span> <span class="fl">0.15</span><span class="sc">*</span>w3 <span class="sc">+</span> <span class="fl">0.2</span><span class="sc">*</span>w4 <span class="sc">+</span> <span class="fl">0.15</span><span class="sc">*</span>w2<span class="sc">*</span>w4))</span>
+<span id="cb24-85"><a href="#cb24-85" aria-hidden="true" tabindex="-1"></a>Y<span class="fl">.1</span> <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="at">size=</span><span class="dv">1</span>, <span class="at">prob=</span> <span class="fu">plogis</span>(<span class="sc">-</span><span class="dv">1</span> <span class="sc">+</span> <span class="dv">1</span> <span class="sc">-</span><span class="fl">0.1</span><span class="sc">*</span>w1 <span class="sc">+</span> <span class="fl">0.3</span><span class="sc">*</span>w2 <span class="sc">+</span> <span class="fl">0.25</span><span class="sc">*</span>w3 <span class="sc">+</span> <span class="fl">0.2</span><span class="sc">*</span>w4 <span class="sc">+</span> <span class="fl">0.15</span><span class="sc">*</span>w2<span class="sc">*</span>w4))</span>
+<span id="cb24-86"><a href="#cb24-86" aria-hidden="true" tabindex="-1"></a>Y<span class="fl">.0</span> <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="at">size=</span><span class="dv">1</span>, <span class="at">prob=</span> <span class="fu">plogis</span>(<span class="sc">-</span><span class="dv">1</span> <span class="sc">+</span> <span class="dv">0</span> <span class="sc">-</span><span class="fl">0.1</span><span class="sc">*</span>w1 <span class="sc">+</span> <span class="fl">0.3</span><span class="sc">*</span>w2 <span class="sc">+</span> <span class="fl">0.25</span><span class="sc">*</span>w3 <span class="sc">+</span> <span class="fl">0.2</span><span class="sc">*</span>w4 <span class="sc">+</span> <span class="fl">0.15</span><span class="sc">*</span>w2<span class="sc">*</span>w4))</span>
+<span id="cb24-87"><a href="#cb24-87" aria-hidden="true" tabindex="-1"></a>Y <span class="ot">&lt;-</span> Y<span class="fl">.1</span><span class="sc">*</span>A <span class="sc">+</span> Y<span class="fl">.0</span><span class="sc">*</span>(<span class="dv">1</span> <span class="sc">-</span> A)</span>
+<span id="cb24-88"><a href="#cb24-88" aria-hidden="true" tabindex="-1"></a>W<span class="ot">&lt;-</span><span class="fu">data.frame</span>(<span class="fu">cbind</span>(w1,w2,w3,w4))</span>
+<span id="cb24-89"><a href="#cb24-89" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span>  <span class="fu">data.frame</span>(w1, w2, w3, w4, A, Y, Y<span class="fl">.1</span>, Y<span class="fl">.0</span>)</span>
+<span id="cb24-90"><a href="#cb24-90" aria-hidden="true" tabindex="-1"></a>True_Psi <span class="ot">&lt;-</span> <span class="fu">mean</span>(data<span class="sc">$</span>Y<span class="fl">.1</span><span class="sc">-</span>data<span class="sc">$</span>Y<span class="fl">.0</span>);</span>
+<span id="cb24-91"><a href="#cb24-91" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">" True_Psi:"</span>, True_Psi)</span>
+<span id="cb24-92"><a href="#cb24-92" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb24-93"><a href="#cb24-93" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-94"><a href="#cb24-94" aria-hidden="true" tabindex="-1"></a>The line above reports <span class="in">`mean(Y.1 - Y.0)`</span> for this particular draw. That is a</span>
+<span id="cb24-95"><a href="#cb24-95" aria-hidden="true" tabindex="-1"></a>legitimate quantity --- the *sample* average treatment effect --- but it is not a</span>
+<span id="cb24-96"><a href="#cb24-96" aria-hidden="true" tabindex="-1"></a>fixed benchmark, and it is easy to mistake for one. The potential outcomes are</span>
+<span id="cb24-97"><a href="#cb24-97" aria-hidden="true" tabindex="-1"></a>binary, so at $n = 1000$ this realized average has a sampling standard deviation</span>
+<span id="cb24-98"><a href="#cb24-98" aria-hidden="true" tabindex="-1"></a>of about 0.020: two runs of the same DGP under different seeds can differ by 0.04</span>
+<span id="cb24-99"><a href="#cb24-99" aria-hidden="true" tabindex="-1"></a>without anything being wrong. (The R and Julia editions of this chapter print</span>
+<span id="cb24-100"><a href="#cb24-100" aria-hidden="true" tabindex="-1"></a>0.21 and 0.184 for exactly this reason.) Estimator standard errors in this</span>
+<span id="cb24-101"><a href="#cb24-101" aria-hidden="true" tabindex="-1"></a>chapter are around 0.03, so a noisy target of that size would swamp the</span>
+<span id="cb24-102"><a href="#cb24-102" aria-hidden="true" tabindex="-1"></a>comparison we are trying to make.</span>
 <span id="cb24-103"><a href="#cb24-103" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-104"><a href="#cb24-104" aria-hidden="true" tabindex="-1"></a><span class="in">```{r npcausal3, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb24-105"><a href="#cb24-105" aria-hidden="true" tabindex="-1"></a>SL.library <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"SL.earth"</span>,<span class="st">"SL.gam"</span>,<span class="st">"SL.glmnet"</span>,<span class="st">"SL.glm.interaction"</span>, <span class="st">"SL.mean"</span>,<span class="st">"SL.ranger"</span>, <span class="st">"SL.xgboost"</span>)</span>
-<span id="cb24-106"><a href="#cb24-106" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb24-107"><a href="#cb24-107" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-108"><a href="#cb24-108" aria-hidden="true" tabindex="-1"></a><span class="fu">### Plug-in Estimator from Outcome Regression</span></span>
-<span id="cb24-109"><a href="#cb24-109" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-110"><a href="#cb24-110" aria-hidden="true" tabindex="-1"></a>::: {.callout-warning}</span>
-<span id="cb24-111"><a href="#cb24-111" aria-hidden="true" tabindex="-1"></a>**For illustration only -- do not use in-sample ML nuisance predictions in applied work.** The manual <span class="in">`mu1hat`</span>/<span class="in">`mu0hat`</span>/<span class="in">`pi1hat`</span> estimators below reuse the same data to fit and evaluate the outcome-regression and propensity models (no cross-fitting). With flexible machine-learning nuisance estimators this causes overfitting bias that invalidates the estimator's asymptotic normality and the validity of standard-error calculations based on it (Chernozhukov et al., 2018). Always use sample splitting / cross-fitting with ML nuisances -- as the <span class="in">`npcausal`</span> calls below do (<span class="in">`nsplits=2`</span>), and as DoubleML does later in this chapter.</span>
-<span id="cb24-112"><a href="#cb24-112" aria-hidden="true" tabindex="-1"></a>:::</span>
-<span id="cb24-113"><a href="#cb24-113" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-114"><a href="#cb24-114" aria-hidden="true" tabindex="-1"></a><span class="in">```{r npcausal4, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb24-115"><a href="#cb24-115" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
-<span id="cb24-116"><a href="#cb24-116" aria-hidden="true" tabindex="-1"></a>mufit <span class="ot">&lt;-</span> <span class="fu">SuperLearner</span>(<span class="at">Y=</span>data<span class="sc">$</span>Y, <span class="at">X=</span>data <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(w1,w2,w3,w4,A),</span>
-<span id="cb24-117"><a href="#cb24-117" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">SL.library=</span>SL.library, <span class="at">family=</span><span class="st">"binomial"</span>)</span>
-<span id="cb24-118"><a href="#cb24-118" aria-hidden="true" tabindex="-1"></a><span class="co"># predict the PO Y^1</span></span>
-<span id="cb24-119"><a href="#cb24-119" aria-hidden="true" tabindex="-1"></a>mu1hat<span class="ot">&lt;-</span> <span class="fu">predict</span>(mufit, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(w1,w2,w3,w4,A) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">A=</span><span class="dv">1</span>))<span class="sc">$</span>pred</span>
-<span id="cb24-120"><a href="#cb24-120" aria-hidden="true" tabindex="-1"></a>mu0hat<span class="ot">&lt;-</span> <span class="fu">predict</span>(mufit, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(w1,w2,w3,w4,A) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">A=</span><span class="dv">0</span>))<span class="sc">$</span>pred</span>
-<span id="cb24-121"><a href="#cb24-121" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(mu1hat<span class="sc">-</span>mu0hat)</span>
-<span id="cb24-122"><a href="#cb24-122" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb24-104"><a href="#cb24-104" aria-hidden="true" tabindex="-1"></a>The *population* ATE is a definite number, and since the DGP is fully specified</span>
+<span id="cb24-105"><a href="#cb24-105" aria-hidden="true" tabindex="-1"></a>we can integrate it out rather than simulate it:</span>
+<span id="cb24-106"><a href="#cb24-106" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-107"><a href="#cb24-107" aria-hidden="true" tabindex="-1"></a><span class="in">```{r popate, warning=FALSE, cache=TRUE, message=FALSE}</span></span>
+<span id="cb24-108"><a href="#cb24-108" aria-hidden="true" tabindex="-1"></a><span class="co"># w1, w2 ~ Bernoulli(0.5); w3 ~ U(0,4); w4 ~ U(0,5). Average the true individual</span></span>
+<span id="cb24-109"><a href="#cb24-109" aria-hidden="true" tabindex="-1"></a><span class="co"># effect plogis(lin0 + 1) - plogis(lin0) over that covariate distribution.</span></span>
+<span id="cb24-110"><a href="#cb24-110" aria-hidden="true" tabindex="-1"></a>pop_ate <span class="ot">&lt;-</span> <span class="fu">mean</span>(<span class="fu">sapply</span>(<span class="fu">list</span>(<span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">0</span>), <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">0</span>), <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">1</span>)), <span class="cf">function</span>(w)</span>
+<span id="cb24-111"><a href="#cb24-111" aria-hidden="true" tabindex="-1"></a>  <span class="fu">integrate</span>(<span class="cf">function</span>(w4) <span class="fu">sapply</span>(w4, <span class="cf">function</span>(u4)</span>
+<span id="cb24-112"><a href="#cb24-112" aria-hidden="true" tabindex="-1"></a>    <span class="fu">integrate</span>(<span class="cf">function</span>(w3) {</span>
+<span id="cb24-113"><a href="#cb24-113" aria-hidden="true" tabindex="-1"></a>      lin0 <span class="ot">&lt;-</span> <span class="sc">-</span><span class="dv">1</span> <span class="sc">-</span> <span class="fl">0.1</span><span class="sc">*</span>w[<span class="dv">1</span>] <span class="sc">+</span> <span class="fl">0.3</span><span class="sc">*</span>w[<span class="dv">2</span>] <span class="sc">+</span> <span class="fl">0.25</span><span class="sc">*</span>w3 <span class="sc">+</span> <span class="fl">0.2</span><span class="sc">*</span>u4 <span class="sc">+</span> <span class="fl">0.15</span><span class="sc">*</span>w[<span class="dv">2</span>]<span class="sc">*</span>u4</span>
+<span id="cb24-114"><a href="#cb24-114" aria-hidden="true" tabindex="-1"></a>      <span class="fu">plogis</span>(lin0 <span class="sc">+</span> <span class="dv">1</span>) <span class="sc">-</span> <span class="fu">plogis</span>(lin0)</span>
+<span id="cb24-115"><a href="#cb24-115" aria-hidden="true" tabindex="-1"></a>    }, <span class="dv">0</span>, <span class="dv">4</span>)<span class="sc">$</span>value <span class="sc">/</span> <span class="dv">4</span>), <span class="dv">0</span>, <span class="dv">5</span>)<span class="sc">$</span>value <span class="sc">/</span> <span class="dv">5</span>))</span>
+<span id="cb24-116"><a href="#cb24-116" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-117"><a href="#cb24-117" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Realized-sample ATE (this draw): %.4f</span><span class="sc">\n</span><span class="st">"</span>, True_Psi))</span>
+<span id="cb24-118"><a href="#cb24-118" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Exact population ATE:           %.4f</span><span class="sc">\n</span><span class="st">"</span>, pop_ate))</span>
+<span id="cb24-119"><a href="#cb24-119" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb24-120"><a href="#cb24-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-121"><a href="#cb24-121" aria-hidden="true" tabindex="-1"></a>The realized draw is 0.2100 and the population value is 0.2028. Compare the</span>
+<span id="cb24-122"><a href="#cb24-122" aria-hidden="true" tabindex="-1"></a>estimators below against 0.2028.</span>
 <span id="cb24-123"><a href="#cb24-123" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-124"><a href="#cb24-124" aria-hidden="true" tabindex="-1"></a><span class="fu">### AIPW ATE</span></span>
-<span id="cb24-125"><a href="#cb24-125" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-126"><a href="#cb24-126" aria-hidden="true" tabindex="-1"></a><span class="in">```{r npcausal6, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb24-127"><a href="#cb24-127" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
-<span id="cb24-128"><a href="#cb24-128" aria-hidden="true" tabindex="-1"></a>pifit <span class="ot">&lt;-</span> <span class="fu">SuperLearner</span>(<span class="at">Y=</span>data<span class="sc">$</span>A, <span class="at">X=</span>data <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(w1,w2,w3,w4),</span>
-<span id="cb24-129"><a href="#cb24-129" aria-hidden="true" tabindex="-1"></a>                    <span class="at">SL.library=</span>SL.library, <span class="at">family=</span><span class="st">"binomial"</span>)</span>
-<span id="cb24-130"><a href="#cb24-130" aria-hidden="true" tabindex="-1"></a>pi1hat <span class="ot">&lt;-</span> pifit<span class="sc">$</span>SL.predict</span>
-<span id="cb24-131"><a href="#cb24-131" aria-hidden="true" tabindex="-1"></a>pi0hat <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">-</span> pi1hat</span>
-<span id="cb24-132"><a href="#cb24-132" aria-hidden="true" tabindex="-1"></a>IF<span class="fl">.1</span><span class="ot">&lt;-</span>((data<span class="sc">$</span>A<span class="sc">/</span>pi1hat)<span class="sc">*</span>(data<span class="sc">$</span>Y<span class="sc">-</span>mu1hat)<span class="sc">+</span>mu1hat)</span>
-<span id="cb24-133"><a href="#cb24-133" aria-hidden="true" tabindex="-1"></a>IF<span class="fl">.0</span><span class="ot">&lt;-</span>(((<span class="dv">1</span><span class="sc">-</span>data<span class="sc">$</span>A)<span class="sc">/</span>pi0hat)<span class="sc">*</span>(data<span class="sc">$</span>Y<span class="sc">-</span>mu0hat)<span class="sc">+</span>mu0hat)</span>
-<span id="cb24-134"><a href="#cb24-134" aria-hidden="true" tabindex="-1"></a>IF<span class="ot">&lt;-</span>IF<span class="fl">.1</span><span class="sc">-</span>IF<span class="fl">.0</span></span>
-<span id="cb24-135"><a href="#cb24-135" aria-hidden="true" tabindex="-1"></a>aipw<span class="fl">.1</span><span class="ot">&lt;-</span><span class="fu">mean</span>(IF<span class="fl">.1</span>);aipw<span class="fl">.0</span><span class="ot">&lt;-</span><span class="fu">mean</span>(IF<span class="fl">.0</span>)</span>
-<span id="cb24-136"><a href="#cb24-136" aria-hidden="true" tabindex="-1"></a>aipw.manual<span class="ot">&lt;-</span>aipw<span class="fl">.1</span><span class="sc">-</span>aipw<span class="fl">.0</span></span>
-<span id="cb24-137"><a href="#cb24-137" aria-hidden="true" tabindex="-1"></a>ci.lb<span class="ot">&lt;-</span><span class="fu">mean</span>(IF)<span class="sc">-</span><span class="fu">qnorm</span>(.<span class="dv">975</span>)<span class="sc">*</span><span class="fu">sd</span>(IF)<span class="sc">/</span><span class="fu">sqrt</span>(<span class="fu">length</span>(IF))</span>
-<span id="cb24-138"><a href="#cb24-138" aria-hidden="true" tabindex="-1"></a>ci.ub<span class="ot">&lt;-</span><span class="fu">mean</span>(IF)<span class="sc">+</span><span class="fu">qnorm</span>(.<span class="dv">975</span>)<span class="sc">*</span><span class="fu">sd</span>(IF)<span class="sc">/</span><span class="fu">sqrt</span>(<span class="fu">length</span>(IF))</span>
-<span id="cb24-139"><a href="#cb24-139" aria-hidden="true" tabindex="-1"></a>res.manual.aipw<span class="ot">&lt;-</span><span class="fu">c</span>(aipw.manual,ci.lb, ci.ub)</span>
-<span id="cb24-140"><a href="#cb24-140" aria-hidden="true" tabindex="-1"></a>res.manual.aipw</span>
-<span id="cb24-141"><a href="#cb24-141" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb24-142"><a href="#cb24-142" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-143"><a href="#cb24-143" aria-hidden="true" tabindex="-1"></a><span class="fu">### AIPW ATE Using npcausal</span></span>
-<span id="cb24-144"><a href="#cb24-144" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-145"><a href="#cb24-145" aria-hidden="true" tabindex="-1"></a><span class="in">```{r npcausal7, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb24-146"><a href="#cb24-146" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(npcausal)</span>
+<span id="cb24-124"><a href="#cb24-124" aria-hidden="true" tabindex="-1"></a>All of them need estimates of the outcome regression $\mu$ and the propensity</span>
+<span id="cb24-125"><a href="#cb24-125" aria-hidden="true" tabindex="-1"></a>score $\pi$. We estimate both with the same super-learner library: MARS</span>
+<span id="cb24-126"><a href="#cb24-126" aria-hidden="true" tabindex="-1"></a>(<span class="in">`SL.earth`</span>), a generalised additive model, the lasso, logistic regression with</span>
+<span id="cb24-127"><a href="#cb24-127" aria-hidden="true" tabindex="-1"></a>pairwise interactions, the sample mean, a random forest, and gradient boosting.</span>
+<span id="cb24-128"><a href="#cb24-128" aria-hidden="true" tabindex="-1"></a>The super learner takes a cross-validated convex combination of these, so no</span>
+<span id="cb24-129"><a href="#cb24-129" aria-hidden="true" tabindex="-1"></a>single functional form has to be right.</span>
+<span id="cb24-130"><a href="#cb24-130" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-131"><a href="#cb24-131" aria-hidden="true" tabindex="-1"></a><span class="in">```{r npcausal3, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb24-132"><a href="#cb24-132" aria-hidden="true" tabindex="-1"></a>SL.library <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"SL.earth"</span>,<span class="st">"SL.gam"</span>,<span class="st">"SL.glmnet"</span>,<span class="st">"SL.glm.interaction"</span>, <span class="st">"SL.mean"</span>,<span class="st">"SL.ranger"</span>, <span class="st">"SL.xgboost"</span>)</span>
+<span id="cb24-133"><a href="#cb24-133" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb24-134"><a href="#cb24-134" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-135"><a href="#cb24-135" aria-hidden="true" tabindex="-1"></a><span class="fu">### Plug-in Estimator from Outcome Regression</span></span>
+<span id="cb24-136"><a href="#cb24-136" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-137"><a href="#cb24-137" aria-hidden="true" tabindex="-1"></a>::: {.callout-warning}</span>
+<span id="cb24-138"><a href="#cb24-138" aria-hidden="true" tabindex="-1"></a>**For illustration only -- do not use in-sample ML nuisance predictions in applied work.** The manual <span class="in">`mu1hat`</span>/<span class="in">`mu0hat`</span>/<span class="in">`pi1hat`</span> estimators below reuse the same data to fit and evaluate the outcome-regression and propensity models (no cross-fitting). With flexible machine-learning nuisance estimators this causes overfitting bias that invalidates the estimator's asymptotic normality and the validity of standard-error calculations based on it (Chernozhukov et al., 2018). Always use sample splitting / cross-fitting with ML nuisances -- as the <span class="in">`npcausal`</span> calls below do (<span class="in">`nsplits=2`</span>), and as DoubleML does later in this chapter.</span>
+<span id="cb24-139"><a href="#cb24-139" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb24-140"><a href="#cb24-140" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-141"><a href="#cb24-141" aria-hidden="true" tabindex="-1"></a>We fit the outcome regression on all four covariates and treatment, then</span>
+<span id="cb24-142"><a href="#cb24-142" aria-hidden="true" tabindex="-1"></a>predict each unit's outcome twice, once with $A$ set to 1 and once with $A$ set</span>
+<span id="cb24-143"><a href="#cb24-143" aria-hidden="true" tabindex="-1"></a>to 0, and average the difference. This is the plug-in, or g-computation,</span>
+<span id="cb24-144"><a href="#cb24-144" aria-hidden="true" tabindex="-1"></a>estimator: no propensity score anywhere.</span>
+<span id="cb24-145"><a href="#cb24-145" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-146"><a href="#cb24-146" aria-hidden="true" tabindex="-1"></a><span class="in">```{r npcausal4, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
 <span id="cb24-147"><a href="#cb24-147" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
-<span id="cb24-148"><a href="#cb24-148" aria-hidden="true" tabindex="-1"></a>aipw<span class="ot">&lt;-</span> <span class="fu">ate</span>(<span class="at">y=</span>Y, <span class="at">a=</span>A, <span class="at">x=</span>W, <span class="at">nsplits=</span><span class="dv">2</span>, <span class="at">sl.lib=</span>SL.library)</span>
-<span id="cb24-149"><a href="#cb24-149" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb24-150"><a href="#cb24-150" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-151"><a href="#cb24-151" aria-hidden="true" tabindex="-1"></a><span class="fu">### AIPW ATT</span></span>
-<span id="cb24-152"><a href="#cb24-152" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-153"><a href="#cb24-153" aria-hidden="true" tabindex="-1"></a>The ATT has its own efficient influence function. With</span>
-<span id="cb24-154"><a href="#cb24-154" aria-hidden="true" tabindex="-1"></a>$p = P(A=1)$ and $\mu_0(X)=E<span class="co">[</span><span class="ot">Y|X,A=0</span><span class="co">]</span>$,</span>
+<span id="cb24-148"><a href="#cb24-148" aria-hidden="true" tabindex="-1"></a>mufit <span class="ot">&lt;-</span> <span class="fu">SuperLearner</span>(<span class="at">Y=</span>data<span class="sc">$</span>Y, <span class="at">X=</span>data <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(w1,w2,w3,w4,A),</span>
+<span id="cb24-149"><a href="#cb24-149" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">SL.library=</span>SL.library, <span class="at">family=</span><span class="st">"binomial"</span>)</span>
+<span id="cb24-150"><a href="#cb24-150" aria-hidden="true" tabindex="-1"></a><span class="co"># predict the PO Y^1</span></span>
+<span id="cb24-151"><a href="#cb24-151" aria-hidden="true" tabindex="-1"></a>mu1hat<span class="ot">&lt;-</span> <span class="fu">predict</span>(mufit, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(w1,w2,w3,w4,A) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">A=</span><span class="dv">1</span>))<span class="sc">$</span>pred</span>
+<span id="cb24-152"><a href="#cb24-152" aria-hidden="true" tabindex="-1"></a>mu0hat<span class="ot">&lt;-</span> <span class="fu">predict</span>(mufit, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(w1,w2,w3,w4,A) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">A=</span><span class="dv">0</span>))<span class="sc">$</span>pred</span>
+<span id="cb24-153"><a href="#cb24-153" aria-hidden="true" tabindex="-1"></a><span class="fu">mean</span>(mu1hat<span class="sc">-</span>mu0hat)</span>
+<span id="cb24-154"><a href="#cb24-154" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb24-155"><a href="#cb24-155" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-156"><a href="#cb24-156" aria-hidden="true" tabindex="-1"></a>$$\phi_{ATT}(Z) = \frac{1}{p}\left<span class="sc">\{</span> A(Y-\mu_0(X)) - (1-A)\frac{\pi(X)}{1-\pi(X)}(Y-\mu_0(X)) \right<span class="sc">\}</span> - \frac{A}{p}\,\psi_{ATT}.$$ {#eq-nonparametric-4}</span>
-<span id="cb24-157"><a href="#cb24-157" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-158"><a href="#cb24-158" aria-hidden="true" tabindex="-1"></a>Treated units contribute their outcome-model residual; control units</span>
-<span id="cb24-159"><a href="#cb24-159" aria-hidden="true" tabindex="-1"></a>enter with the odds weight $\pi(X)/(1-\pi(X))$, which reweights them to</span>
-<span id="cb24-160"><a href="#cb24-160" aria-hidden="true" tabindex="-1"></a>the covariate distribution of the treated. Note the correction term</span>
-<span id="cb24-161"><a href="#cb24-161" aria-hidden="true" tabindex="-1"></a>uses the CONTROL units — an estimator computed on the treated</span>
-<span id="cb24-162"><a href="#cb24-162" aria-hidden="true" tabindex="-1"></a>subsample alone would silently reduce to regression adjustment.</span>
-<span id="cb24-163"><a href="#cb24-163" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-164"><a href="#cb24-164" aria-hidden="true" tabindex="-1"></a><span class="in">```{r npcausal8b, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb24-165"><a href="#cb24-165" aria-hidden="true" tabindex="-1"></a><span class="co"># npcausal (attached above) exports its own SL.ranger, whose fit object is</span></span>
-<span id="cb24-166"><a href="#cb24-166" aria-hidden="true" tabindex="-1"></a><span class="co"># incompatible with SuperLearner's predict method; pin SuperLearner's wrapper</span></span>
-<span id="cb24-167"><a href="#cb24-167" aria-hidden="true" tabindex="-1"></a>SL.ranger <span class="ot">&lt;-</span> SuperLearner<span class="sc">::</span>SL.ranger</span>
-<span id="cb24-168"><a href="#cb24-168" aria-hidden="true" tabindex="-1"></a>data2 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
-<span id="cb24-169"><a href="#cb24-169" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">pi0hat=</span><span class="fu">as.numeric</span>(pi0hat), <span class="at">pi1hat=</span><span class="fu">as.numeric</span>(pi1hat))</span>
-<span id="cb24-170"><a href="#cb24-170" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
-<span id="cb24-171"><a href="#cb24-171" aria-hidden="true" tabindex="-1"></a>data0 <span class="ot">&lt;-</span> data2 <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(A<span class="sc">==</span><span class="dv">0</span>)</span>
-<span id="cb24-172"><a href="#cb24-172" aria-hidden="true" tabindex="-1"></a>mufit <span class="ot">&lt;-</span> <span class="fu">SuperLearner</span>(<span class="at">Y=</span>data0<span class="sc">$</span>Y, <span class="at">X=</span>data0 <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(w1,w2,w3,w4),</span>
-<span id="cb24-173"><a href="#cb24-173" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">SL.library=</span>SL.library, <span class="at">family=</span><span class="st">"binomial"</span>)</span>
-<span id="cb24-174"><a href="#cb24-174" aria-hidden="true" tabindex="-1"></a><span class="co"># predict mu0 for ALL units, treated and control</span></span>
-<span id="cb24-175"><a href="#cb24-175" aria-hidden="true" tabindex="-1"></a>mu0hat_all <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">predict</span>(mufit, <span class="at">newdata=</span>data2 <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(w1,w2,w3,w4))<span class="sc">$</span>pred)</span>
-<span id="cb24-176"><a href="#cb24-176" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="fu">mean</span>(data2<span class="sc">$</span>A)</span>
-<span id="cb24-177"><a href="#cb24-177" aria-hidden="true" tabindex="-1"></a>resid0 <span class="ot">&lt;-</span> data2<span class="sc">$</span>Y <span class="sc">-</span> mu0hat_all</span>
-<span id="cb24-178"><a href="#cb24-178" aria-hidden="true" tabindex="-1"></a><span class="co"># uncentered IF-based ATT estimator</span></span>
-<span id="cb24-179"><a href="#cb24-179" aria-hidden="true" tabindex="-1"></a>phi <span class="ot">&lt;-</span> (data2<span class="sc">$</span>A<span class="sc">*</span>resid0 <span class="sc">-</span></span>
-<span id="cb24-180"><a href="#cb24-180" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">1</span><span class="sc">-</span>data2<span class="sc">$</span>A)<span class="sc">*</span>(data2<span class="sc">$</span>pi1hat<span class="sc">/</span>data2<span class="sc">$</span>pi0hat)<span class="sc">*</span>resid0)<span class="sc">/</span>p1</span>
-<span id="cb24-181"><a href="#cb24-181" aria-hidden="true" tabindex="-1"></a>aipw.manual.att <span class="ot">&lt;-</span> <span class="fu">mean</span>(phi)</span>
-<span id="cb24-182"><a href="#cb24-182" aria-hidden="true" tabindex="-1"></a><span class="co"># centered EIF for the variance</span></span>
-<span id="cb24-183"><a href="#cb24-183" aria-hidden="true" tabindex="-1"></a>phi_c <span class="ot">&lt;-</span> phi <span class="sc">-</span> (data2<span class="sc">$</span>A<span class="sc">/</span>p1)<span class="sc">*</span>aipw.manual.att</span>
-<span id="cb24-184"><a href="#cb24-184" aria-hidden="true" tabindex="-1"></a>ci.lb<span class="ot">&lt;-</span>aipw.manual.att<span class="sc">-</span><span class="fu">qnorm</span>(.<span class="dv">975</span>)<span class="sc">*</span><span class="fu">sd</span>(phi_c)<span class="sc">/</span><span class="fu">sqrt</span>(<span class="fu">length</span>(phi_c))</span>
-<span id="cb24-185"><a href="#cb24-185" aria-hidden="true" tabindex="-1"></a>ci.ub<span class="ot">&lt;-</span>aipw.manual.att<span class="sc">+</span><span class="fu">qnorm</span>(.<span class="dv">975</span>)<span class="sc">*</span><span class="fu">sd</span>(phi_c)<span class="sc">/</span><span class="fu">sqrt</span>(<span class="fu">length</span>(phi_c))</span>
-<span id="cb24-186"><a href="#cb24-186" aria-hidden="true" tabindex="-1"></a>res.manual.aipw.att<span class="ot">&lt;-</span><span class="fu">c</span>(aipw.manual.att,ci.lb, ci.ub)</span>
-<span id="cb24-187"><a href="#cb24-187" aria-hidden="true" tabindex="-1"></a>res.manual.aipw.att</span>
-<span id="cb24-188"><a href="#cb24-188" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb24-189"><a href="#cb24-189" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-190"><a href="#cb24-190" aria-hidden="true" tabindex="-1"></a><span class="fu">### AIPW ATT Using npcausal</span></span>
+<span id="cb24-156"><a href="#cb24-156" aria-hidden="true" tabindex="-1"></a>The plug-in gives 0.1825 against the true 0.2028. It comes with no standard</span>
+<span id="cb24-157"><a href="#cb24-157" aria-hidden="true" tabindex="-1"></a>error, and this is the point of the section: the super learner's regularisation</span>
+<span id="cb24-158"><a href="#cb24-158" aria-hidden="true" tabindex="-1"></a>bias passes straight into the average, and there is no correction term to</span>
+<span id="cb24-159"><a href="#cb24-159" aria-hidden="true" tabindex="-1"></a>remove it.</span>
+<span id="cb24-160"><a href="#cb24-160" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-161"><a href="#cb24-161" aria-hidden="true" tabindex="-1"></a><span class="fu">### AIPW ATE</span></span>
+<span id="cb24-162"><a href="#cb24-162" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-163"><a href="#cb24-163" aria-hidden="true" tabindex="-1"></a>We now add the augmentation term. We fit the propensity score with the same</span>
+<span id="cb24-164"><a href="#cb24-164" aria-hidden="true" tabindex="-1"></a>library, form the two arm summands</span>
+<span id="cb24-165"><a href="#cb24-165" aria-hidden="true" tabindex="-1"></a>$\frac{A}{\hat\pi}(Y - \hat\mu_1) + \hat\mu_1$ and</span>
+<span id="cb24-166"><a href="#cb24-166" aria-hidden="true" tabindex="-1"></a>$\frac{1-A}{1-\hat\pi}(Y - \hat\mu_0) + \hat\mu_0$, and average their</span>
+<span id="cb24-167"><a href="#cb24-167" aria-hidden="true" tabindex="-1"></a>difference. The standard error is the sample standard deviation of that</span>
+<span id="cb24-168"><a href="#cb24-168" aria-hidden="true" tabindex="-1"></a>difference divided by $\sqrt{n}$, the influence-function standard error. The</span>
+<span id="cb24-169"><a href="#cb24-169" aria-hidden="true" tabindex="-1"></a>printed vector is the estimate followed by the lower and upper 95% bounds.</span>
+<span id="cb24-170"><a href="#cb24-170" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-171"><a href="#cb24-171" aria-hidden="true" tabindex="-1"></a><span class="in">```{r npcausal6, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb24-172"><a href="#cb24-172" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb24-173"><a href="#cb24-173" aria-hidden="true" tabindex="-1"></a>pifit <span class="ot">&lt;-</span> <span class="fu">SuperLearner</span>(<span class="at">Y=</span>data<span class="sc">$</span>A, <span class="at">X=</span>data <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(w1,w2,w3,w4),</span>
+<span id="cb24-174"><a href="#cb24-174" aria-hidden="true" tabindex="-1"></a>                    <span class="at">SL.library=</span>SL.library, <span class="at">family=</span><span class="st">"binomial"</span>)</span>
+<span id="cb24-175"><a href="#cb24-175" aria-hidden="true" tabindex="-1"></a>pi1hat <span class="ot">&lt;-</span> pifit<span class="sc">$</span>SL.predict</span>
+<span id="cb24-176"><a href="#cb24-176" aria-hidden="true" tabindex="-1"></a>pi0hat <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">-</span> pi1hat</span>
+<span id="cb24-177"><a href="#cb24-177" aria-hidden="true" tabindex="-1"></a>IF<span class="fl">.1</span><span class="ot">&lt;-</span>((data<span class="sc">$</span>A<span class="sc">/</span>pi1hat)<span class="sc">*</span>(data<span class="sc">$</span>Y<span class="sc">-</span>mu1hat)<span class="sc">+</span>mu1hat)</span>
+<span id="cb24-178"><a href="#cb24-178" aria-hidden="true" tabindex="-1"></a>IF<span class="fl">.0</span><span class="ot">&lt;-</span>(((<span class="dv">1</span><span class="sc">-</span>data<span class="sc">$</span>A)<span class="sc">/</span>pi0hat)<span class="sc">*</span>(data<span class="sc">$</span>Y<span class="sc">-</span>mu0hat)<span class="sc">+</span>mu0hat)</span>
+<span id="cb24-179"><a href="#cb24-179" aria-hidden="true" tabindex="-1"></a>IF<span class="ot">&lt;-</span>IF<span class="fl">.1</span><span class="sc">-</span>IF<span class="fl">.0</span></span>
+<span id="cb24-180"><a href="#cb24-180" aria-hidden="true" tabindex="-1"></a>aipw<span class="fl">.1</span><span class="ot">&lt;-</span><span class="fu">mean</span>(IF<span class="fl">.1</span>);aipw<span class="fl">.0</span><span class="ot">&lt;-</span><span class="fu">mean</span>(IF<span class="fl">.0</span>)</span>
+<span id="cb24-181"><a href="#cb24-181" aria-hidden="true" tabindex="-1"></a>aipw.manual<span class="ot">&lt;-</span>aipw<span class="fl">.1</span><span class="sc">-</span>aipw<span class="fl">.0</span></span>
+<span id="cb24-182"><a href="#cb24-182" aria-hidden="true" tabindex="-1"></a>ci.lb<span class="ot">&lt;-</span><span class="fu">mean</span>(IF)<span class="sc">-</span><span class="fu">qnorm</span>(.<span class="dv">975</span>)<span class="sc">*</span><span class="fu">sd</span>(IF)<span class="sc">/</span><span class="fu">sqrt</span>(<span class="fu">length</span>(IF))</span>
+<span id="cb24-183"><a href="#cb24-183" aria-hidden="true" tabindex="-1"></a>ci.ub<span class="ot">&lt;-</span><span class="fu">mean</span>(IF)<span class="sc">+</span><span class="fu">qnorm</span>(.<span class="dv">975</span>)<span class="sc">*</span><span class="fu">sd</span>(IF)<span class="sc">/</span><span class="fu">sqrt</span>(<span class="fu">length</span>(IF))</span>
+<span id="cb24-184"><a href="#cb24-184" aria-hidden="true" tabindex="-1"></a>res.manual.aipw<span class="ot">&lt;-</span><span class="fu">c</span>(aipw.manual,ci.lb, ci.ub)</span>
+<span id="cb24-185"><a href="#cb24-185" aria-hidden="true" tabindex="-1"></a>res.manual.aipw</span>
+<span id="cb24-186"><a href="#cb24-186" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb24-187"><a href="#cb24-187" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-188"><a href="#cb24-188" aria-hidden="true" tabindex="-1"></a>AIPW gives 0.1894 with a 95% interval of $<span class="co">[</span><span class="ot">0.1292, 0.2495</span><span class="co">]</span>$, which covers the</span>
+<span id="cb24-189"><a href="#cb24-189" aria-hidden="true" tabindex="-1"></a>true 0.2028. The augmentation term moved the estimate from 0.1825 to 0.1894 and</span>
+<span id="cb24-190"><a href="#cb24-190" aria-hidden="true" tabindex="-1"></a>supplied an interval the plug-in could not.</span>
 <span id="cb24-191"><a href="#cb24-191" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-192"><a href="#cb24-192" aria-hidden="true" tabindex="-1"></a><span class="in">```{r npcausal10, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb24-193"><a href="#cb24-193" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(npcausal)</span>
-<span id="cb24-194"><a href="#cb24-194" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
-<span id="cb24-195"><a href="#cb24-195" aria-hidden="true" tabindex="-1"></a>aipw<span class="ot">&lt;-</span> <span class="fu">att</span>(<span class="at">y=</span>Y, <span class="at">a=</span>A, <span class="at">x=</span>W, <span class="at">nsplits=</span><span class="dv">2</span>, <span class="at">sl.lib=</span>SL.library)</span>
-<span id="cb24-196"><a href="#cb24-196" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb24-192"><a href="#cb24-192" aria-hidden="true" tabindex="-1"></a><span class="fu">### AIPW ATE Using npcausal</span></span>
+<span id="cb24-193"><a href="#cb24-193" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-194"><a href="#cb24-194" aria-hidden="true" tabindex="-1"></a>The same estimator from a package, with one change that matters: <span class="in">`nsplits=2`</span></span>
+<span id="cb24-195"><a href="#cb24-195" aria-hidden="true" tabindex="-1"></a>cross-fits the nuisances, so each unit's $\hat\mu$ and $\hat\pi$ come from a</span>
+<span id="cb24-196"><a href="#cb24-196" aria-hidden="true" tabindex="-1"></a>model fitted without it. The output reports both arm means and their difference.</span>
 <span id="cb24-197"><a href="#cb24-197" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-198"><a href="#cb24-198" aria-hidden="true" tabindex="-1"></a><span class="fu">## TMLE</span></span>
-<span id="cb24-199"><a href="#cb24-199" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-200"><a href="#cb24-200" aria-hidden="true" tabindex="-1"></a>TMLE is a variant of IF based estimator. It is also a doubly robust estimator. See Mark van der Laan and his coauthors for the recent development of TMLE.</span>
-<span id="cb24-201"><a href="#cb24-201" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-202"><a href="#cb24-202" aria-hidden="true" tabindex="-1"></a>We should expect npcausal and tmle give similar answers.</span>
+<span id="cb24-198"><a href="#cb24-198" aria-hidden="true" tabindex="-1"></a><span class="in">```{r npcausal7, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb24-199"><a href="#cb24-199" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(npcausal)</span>
+<span id="cb24-200"><a href="#cb24-200" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb24-201"><a href="#cb24-201" aria-hidden="true" tabindex="-1"></a>aipw<span class="ot">&lt;-</span> <span class="fu">ate</span>(<span class="at">y=</span>Y, <span class="at">a=</span>A, <span class="at">x=</span>W, <span class="at">nsplits=</span><span class="dv">2</span>, <span class="at">sl.lib=</span>SL.library)</span>
+<span id="cb24-202"><a href="#cb24-202" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb24-203"><a href="#cb24-203" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-204"><a href="#cb24-204" aria-hidden="true" tabindex="-1"></a><span class="in">```{r tmle1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb24-205"><a href="#cb24-205" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tmle)</span>
-<span id="cb24-206"><a href="#cb24-206" aria-hidden="true" tabindex="-1"></a>TMLE<span class="ot">&lt;-</span> <span class="fu">tmle</span>(<span class="at">Y=</span>data<span class="sc">$</span>Y,<span class="at">A=</span>data<span class="sc">$</span>A,<span class="at">W=</span>W, <span class="at">family=</span><span class="st">"binomial"</span>, <span class="at">Q.SL.library=</span>SL.library, <span class="at">g.SL.library=</span>SL.library)</span>
-<span id="cb24-207"><a href="#cb24-207" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-208"><a href="#cb24-208" aria-hidden="true" tabindex="-1"></a>TMLE<span class="sc">$</span>estimates<span class="sc">$</span>ATE</span>
-<span id="cb24-209"><a href="#cb24-209" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb24-204"><a href="#cb24-204" aria-hidden="true" tabindex="-1"></a>Cross-fitting gives $E<span class="co">[</span><span class="ot">Y(0)</span><span class="co">]</span> = 0.5625$, $E<span class="co">[</span><span class="ot">Y(1)</span><span class="co">]</span> = 0.7568$, and a difference of</span>
+<span id="cb24-205"><a href="#cb24-205" aria-hidden="true" tabindex="-1"></a>0.1943 with a standard error of 0.0316 and an interval of $<span class="co">[</span><span class="ot">0.1324, 0.2563</span><span class="co">]</span>$.</span>
+<span id="cb24-206"><a href="#cb24-206" aria-hidden="true" tabindex="-1"></a>That is closer to the true 0.2028 than the in-sample version, and the standard</span>
+<span id="cb24-207"><a href="#cb24-207" aria-hidden="true" tabindex="-1"></a>error is the one to trust.</span>
+<span id="cb24-208"><a href="#cb24-208" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-209"><a href="#cb24-209" aria-hidden="true" tabindex="-1"></a><span class="fu">### AIPW ATT</span></span>
 <span id="cb24-210"><a href="#cb24-210" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-211"><a href="#cb24-211" aria-hidden="true" tabindex="-1"></a><span class="fu">## DoubleML</span></span>
-<span id="cb24-212"><a href="#cb24-212" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-213"><a href="#cb24-213" aria-hidden="true" tabindex="-1"></a>The R package DoubleML implements the double/debiased machine learning framework of Chernozhukov et al. (2018). It provides functionalities to estimate parameters in causal models based on machine learning methods. The double machine learning framework consists of three key ingredients: Neyman orthogonality, High-quality machine learning estimation and Sample splitting.</span>
-<span id="cb24-214"><a href="#cb24-214" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-215"><a href="#cb24-215" aria-hidden="true" tabindex="-1"></a>They consider a partially linear model:</span>
-<span id="cb24-216"><a href="#cb24-216" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-217"><a href="#cb24-217" aria-hidden="true" tabindex="-1"></a>$$ y_i = \theta d_i + g_0(x_i) + \eta_i $$ {#eq-nonparametric-5}</span>
-<span id="cb24-218"><a href="#cb24-218" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-219"><a href="#cb24-219" aria-hidden="true" tabindex="-1"></a>$$ d_i = m_0(x_i) + v_i $$ {#eq-nonparametric-6}</span>
-<span id="cb24-220"><a href="#cb24-220" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-221"><a href="#cb24-221" aria-hidden="true" tabindex="-1"></a>This model is quite general, except it does not allow interaction of $d$ and $x$; therefore no heterogeneous treatment effect across $x$. But "DoubleML" implements more than partially linear model, it actually allows for heterogeneous treatment effects, in models such as interactive regression model.</span>
-<span id="cb24-222"><a href="#cb24-222" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-223"><a href="#cb24-223" aria-hidden="true" tabindex="-1"></a>The basic idea of doubleML is to use any machine learning algorithm to estimate outcome equation ($l_0(X) = E(Y | X)$) and treatment equation ($m_0(X) = E(D | X)$). Then get the residuals, namely $\tilde Y=Y-\hat l_0(X)$ and $\tilde D = D - \hat m_0(X)$.</span>
-<span id="cb24-224"><a href="#cb24-224" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-225"><a href="#cb24-225" aria-hidden="true" tabindex="-1"></a>Then regress $\tilde Y$ on $\tilde D$. Based on FWL theorem, you get $\hat \theta$.</span>
-<span id="cb24-226"><a href="#cb24-226" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-227"><a href="#cb24-227" aria-hidden="true" tabindex="-1"></a>An important component here is to specify a Neyman-orthogonal score function. In the case of PLR, the "partialling-out" score (the DoubleML default, matching the residual-on-residual regression above) is</span>
-<span id="cb24-228"><a href="#cb24-228" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-229"><a href="#cb24-229" aria-hidden="true" tabindex="-1"></a>$$\psi (Z; \theta, \eta) = \big(Y- l(X) - \theta (D-m(X))\big)\big(D-m(X)\big) $$ {#eq-nonparametric-7}</span>
-<span id="cb24-230"><a href="#cb24-230" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-231"><a href="#cb24-231" aria-hidden="true" tabindex="-1"></a>The estimator $\hat \theta$ solves the equation that the sample mean of this score function is 0.</span>
-<span id="cb24-232"><a href="#cb24-232" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-233"><a href="#cb24-233" aria-hidden="true" tabindex="-1"></a>The estimator's variance comes from the usual sandwich formula built on the score, $\hat\sigma^2 = \hat J^{-1}\, \widehat{E<span class="co">[</span><span class="ot">\psi^2</span><span class="co">]</span>}\, \hat J^{-1}$ with $\hat J = -\frac{1}{n}\sum_i (D_i-\hat m(X_i))^2$.</span>
-<span id="cb24-234"><a href="#cb24-234" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-235"><a href="#cb24-235" aria-hidden="true" tabindex="-1"></a><span class="in">```{r doubleml1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb24-236"><a href="#cb24-236" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DoubleML)</span>
-<span id="cb24-237"><a href="#cb24-237" aria-hidden="true" tabindex="-1"></a>dml_data <span class="ot">=</span> DoubleMLData<span class="sc">$</span><span class="fu">new</span>(data,</span>
-<span id="cb24-238"><a href="#cb24-238" aria-hidden="true" tabindex="-1"></a>                             <span class="at">y_col =</span> <span class="st">"Y"</span>,</span>
-<span id="cb24-239"><a href="#cb24-239" aria-hidden="true" tabindex="-1"></a>                             <span class="at">d_cols =</span> <span class="st">"A"</span>,</span>
-<span id="cb24-240"><a href="#cb24-240" aria-hidden="true" tabindex="-1"></a>                             <span class="at">x_cols =</span> <span class="fu">c</span>(<span class="st">"w1"</span>,<span class="st">"w2"</span>,<span class="st">"w3"</span>,<span class="st">"w4"</span>))</span>
-<span id="cb24-241"><a href="#cb24-241" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(dml_data)</span>
-<span id="cb24-242"><a href="#cb24-242" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb24-243"><a href="#cb24-243" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-244"><a href="#cb24-244" aria-hidden="true" tabindex="-1"></a><span class="in">```{r doubleml2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb24-245"><a href="#cb24-245" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mlr3)</span>
-<span id="cb24-246"><a href="#cb24-246" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mlr3learners)</span>
-<span id="cb24-247"><a href="#cb24-247" aria-hidden="true" tabindex="-1"></a><span class="co"># suppress messages from mlr3 package during fitting</span></span>
-<span id="cb24-248"><a href="#cb24-248" aria-hidden="true" tabindex="-1"></a>lgr<span class="sc">::</span><span class="fu">get_logger</span>(<span class="st">"mlr3"</span>)<span class="sc">$</span><span class="fu">set_threshold</span>(<span class="st">"warn"</span>)</span>
-<span id="cb24-249"><a href="#cb24-249" aria-hidden="true" tabindex="-1"></a>learner <span class="ot">=</span> <span class="fu">lrn</span>(<span class="st">"regr.ranger"</span>, <span class="at">num.trees=</span><span class="dv">500</span>,  <span class="at">max.depth=</span><span class="dv">5</span>, <span class="at">min.node.size=</span><span class="dv">2</span>)</span>
-<span id="cb24-250"><a href="#cb24-250" aria-hidden="true" tabindex="-1"></a>ml_l <span class="ot">=</span> learner<span class="sc">$</span><span class="fu">clone</span>()</span>
-<span id="cb24-251"><a href="#cb24-251" aria-hidden="true" tabindex="-1"></a>ml_m <span class="ot">=</span> learner<span class="sc">$</span><span class="fu">clone</span>()</span>
-<span id="cb24-252"><a href="#cb24-252" aria-hidden="true" tabindex="-1"></a>learner <span class="ot">=</span> <span class="fu">lrn</span>(<span class="st">"regr.glmnet"</span>)</span>
-<span id="cb24-253"><a href="#cb24-253" aria-hidden="true" tabindex="-1"></a>ml_g_sim <span class="ot">=</span> learner<span class="sc">$</span><span class="fu">clone</span>()</span>
-<span id="cb24-254"><a href="#cb24-254" aria-hidden="true" tabindex="-1"></a>ml_m_sim <span class="ot">=</span> learner<span class="sc">$</span><span class="fu">clone</span>()</span>
-<span id="cb24-255"><a href="#cb24-255" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
-<span id="cb24-256"><a href="#cb24-256" aria-hidden="true" tabindex="-1"></a>obj_dml_plr <span class="ot">=</span> DoubleMLPLR<span class="sc">$</span><span class="fu">new</span>(dml_data, <span class="at">ml_l=</span>ml_l, <span class="at">ml_m=</span>ml_m)</span>
-<span id="cb24-257"><a href="#cb24-257" aria-hidden="true" tabindex="-1"></a>obj_dml_plr<span class="sc">$</span><span class="fu">fit</span>()</span>
-<span id="cb24-258"><a href="#cb24-258" aria-hidden="true" tabindex="-1"></a>obj_dml_plr<span class="sc">$</span><span class="fu">summary</span>()</span>
-<span id="cb24-259"><a href="#cb24-259" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb24-211"><a href="#cb24-211" aria-hidden="true" tabindex="-1"></a>The ATT has its own efficient influence function. With</span>
+<span id="cb24-212"><a href="#cb24-212" aria-hidden="true" tabindex="-1"></a>$p = P(A=1)$ and $\mu_0(X)=E<span class="co">[</span><span class="ot">Y|X,A=0</span><span class="co">]</span>$,</span>
+<span id="cb24-213"><a href="#cb24-213" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-214"><a href="#cb24-214" aria-hidden="true" tabindex="-1"></a>$$\phi_{ATT}(Z) = \frac{1}{p}\left<span class="sc">\{</span> A(Y-\mu_0(X)) - (1-A)\frac{\pi(X)}{1-\pi(X)}(Y-\mu_0(X)) \right<span class="sc">\}</span> - \frac{A}{p}\,\psi_{ATT}.$$ {#eq-nonparametric-4}</span>
+<span id="cb24-215"><a href="#cb24-215" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-216"><a href="#cb24-216" aria-hidden="true" tabindex="-1"></a>Treated units contribute their outcome-model residual; control units</span>
+<span id="cb24-217"><a href="#cb24-217" aria-hidden="true" tabindex="-1"></a>enter with the odds weight $\pi(X)/(1-\pi(X))$, which reweights them to</span>
+<span id="cb24-218"><a href="#cb24-218" aria-hidden="true" tabindex="-1"></a>the covariate distribution of the treated. Note the correction term</span>
+<span id="cb24-219"><a href="#cb24-219" aria-hidden="true" tabindex="-1"></a>uses the CONTROL units — an estimator computed on the treated</span>
+<span id="cb24-220"><a href="#cb24-220" aria-hidden="true" tabindex="-1"></a>subsample alone would silently reduce to regression adjustment.</span>
+<span id="cb24-221"><a href="#cb24-221" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-222"><a href="#cb24-222" aria-hidden="true" tabindex="-1"></a>So we fit $\mu_0$ on the controls only, predict it for everyone, and build the</span>
+<span id="cb24-223"><a href="#cb24-223" aria-hidden="true" tabindex="-1"></a>summand above from the propensity score already estimated. The printed vector</span>
+<span id="cb24-224"><a href="#cb24-224" aria-hidden="true" tabindex="-1"></a>is again the estimate and the two 95% bounds.</span>
+<span id="cb24-225"><a href="#cb24-225" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-226"><a href="#cb24-226" aria-hidden="true" tabindex="-1"></a><span class="in">```{r npcausal8b, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb24-227"><a href="#cb24-227" aria-hidden="true" tabindex="-1"></a><span class="co"># npcausal (attached above) exports its own SL.ranger, whose fit object is</span></span>
+<span id="cb24-228"><a href="#cb24-228" aria-hidden="true" tabindex="-1"></a><span class="co"># incompatible with SuperLearner's predict method; pin SuperLearner's wrapper</span></span>
+<span id="cb24-229"><a href="#cb24-229" aria-hidden="true" tabindex="-1"></a>SL.ranger <span class="ot">&lt;-</span> SuperLearner<span class="sc">::</span>SL.ranger</span>
+<span id="cb24-230"><a href="#cb24-230" aria-hidden="true" tabindex="-1"></a>data2 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
+<span id="cb24-231"><a href="#cb24-231" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">pi0hat=</span><span class="fu">as.numeric</span>(pi0hat), <span class="at">pi1hat=</span><span class="fu">as.numeric</span>(pi1hat))</span>
+<span id="cb24-232"><a href="#cb24-232" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb24-233"><a href="#cb24-233" aria-hidden="true" tabindex="-1"></a>data0 <span class="ot">&lt;-</span> data2 <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(A<span class="sc">==</span><span class="dv">0</span>)</span>
+<span id="cb24-234"><a href="#cb24-234" aria-hidden="true" tabindex="-1"></a>mufit <span class="ot">&lt;-</span> <span class="fu">SuperLearner</span>(<span class="at">Y=</span>data0<span class="sc">$</span>Y, <span class="at">X=</span>data0 <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(w1,w2,w3,w4),</span>
+<span id="cb24-235"><a href="#cb24-235" aria-hidden="true" tabindex="-1"></a>                                     <span class="at">SL.library=</span>SL.library, <span class="at">family=</span><span class="st">"binomial"</span>)</span>
+<span id="cb24-236"><a href="#cb24-236" aria-hidden="true" tabindex="-1"></a><span class="co"># predict mu0 for ALL units, treated and control</span></span>
+<span id="cb24-237"><a href="#cb24-237" aria-hidden="true" tabindex="-1"></a>mu0hat_all <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">predict</span>(mufit, <span class="at">newdata=</span>data2 <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">select</span>(w1,w2,w3,w4))<span class="sc">$</span>pred)</span>
+<span id="cb24-238"><a href="#cb24-238" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="fu">mean</span>(data2<span class="sc">$</span>A)</span>
+<span id="cb24-239"><a href="#cb24-239" aria-hidden="true" tabindex="-1"></a>resid0 <span class="ot">&lt;-</span> data2<span class="sc">$</span>Y <span class="sc">-</span> mu0hat_all</span>
+<span id="cb24-240"><a href="#cb24-240" aria-hidden="true" tabindex="-1"></a><span class="co"># uncentered IF-based ATT estimator</span></span>
+<span id="cb24-241"><a href="#cb24-241" aria-hidden="true" tabindex="-1"></a>phi <span class="ot">&lt;-</span> (data2<span class="sc">$</span>A<span class="sc">*</span>resid0 <span class="sc">-</span></span>
+<span id="cb24-242"><a href="#cb24-242" aria-hidden="true" tabindex="-1"></a>        (<span class="dv">1</span><span class="sc">-</span>data2<span class="sc">$</span>A)<span class="sc">*</span>(data2<span class="sc">$</span>pi1hat<span class="sc">/</span>data2<span class="sc">$</span>pi0hat)<span class="sc">*</span>resid0)<span class="sc">/</span>p1</span>
+<span id="cb24-243"><a href="#cb24-243" aria-hidden="true" tabindex="-1"></a>aipw.manual.att <span class="ot">&lt;-</span> <span class="fu">mean</span>(phi)</span>
+<span id="cb24-244"><a href="#cb24-244" aria-hidden="true" tabindex="-1"></a><span class="co"># centered EIF for the variance</span></span>
+<span id="cb24-245"><a href="#cb24-245" aria-hidden="true" tabindex="-1"></a>phi_c <span class="ot">&lt;-</span> phi <span class="sc">-</span> (data2<span class="sc">$</span>A<span class="sc">/</span>p1)<span class="sc">*</span>aipw.manual.att</span>
+<span id="cb24-246"><a href="#cb24-246" aria-hidden="true" tabindex="-1"></a>ci.lb<span class="ot">&lt;-</span>aipw.manual.att<span class="sc">-</span><span class="fu">qnorm</span>(.<span class="dv">975</span>)<span class="sc">*</span><span class="fu">sd</span>(phi_c)<span class="sc">/</span><span class="fu">sqrt</span>(<span class="fu">length</span>(phi_c))</span>
+<span id="cb24-247"><a href="#cb24-247" aria-hidden="true" tabindex="-1"></a>ci.ub<span class="ot">&lt;-</span>aipw.manual.att<span class="sc">+</span><span class="fu">qnorm</span>(.<span class="dv">975</span>)<span class="sc">*</span><span class="fu">sd</span>(phi_c)<span class="sc">/</span><span class="fu">sqrt</span>(<span class="fu">length</span>(phi_c))</span>
+<span id="cb24-248"><a href="#cb24-248" aria-hidden="true" tabindex="-1"></a>res.manual.aipw.att<span class="ot">&lt;-</span><span class="fu">c</span>(aipw.manual.att,ci.lb, ci.ub)</span>
+<span id="cb24-249"><a href="#cb24-249" aria-hidden="true" tabindex="-1"></a>res.manual.aipw.att</span>
+<span id="cb24-250"><a href="#cb24-250" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb24-251"><a href="#cb24-251" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-252"><a href="#cb24-252" aria-hidden="true" tabindex="-1"></a>The ATT comes out at 0.1818 with an interval of $<span class="co">[</span><span class="ot">0.1204, 0.2431</span><span class="co">]</span>$.</span>
+<span id="cb24-253"><a href="#cb24-253" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-254"><a href="#cb24-254" aria-hidden="true" tabindex="-1"></a><span class="fu">### AIPW ATT Using npcausal</span></span>
+<span id="cb24-255"><a href="#cb24-255" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-256"><a href="#cb24-256" aria-hidden="true" tabindex="-1"></a><span class="in">```{r npcausal10, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb24-257"><a href="#cb24-257" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(npcausal)</span>
+<span id="cb24-258"><a href="#cb24-258" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb24-259"><a href="#cb24-259" aria-hidden="true" tabindex="-1"></a>aipw<span class="ot">&lt;-</span> <span class="fu">att</span>(<span class="at">y=</span>Y, <span class="at">a=</span>A, <span class="at">x=</span>W, <span class="at">nsplits=</span><span class="dv">2</span>, <span class="at">sl.lib=</span>SL.library)</span>
+<span id="cb24-260"><a href="#cb24-260" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb24-261"><a href="#cb24-261" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-262"><a href="#cb24-262" aria-hidden="true" tabindex="-1"></a>Cross-fitted, the ATT is 0.1730 with a standard error of 0.0529 and an interval</span>
+<span id="cb24-263"><a href="#cb24-263" aria-hidden="true" tabindex="-1"></a>of $<span class="co">[</span><span class="ot">0.0693, 0.2767</span><span class="co">]</span>$.</span>
+<span id="cb24-264"><a href="#cb24-264" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-265"><a href="#cb24-265" aria-hidden="true" tabindex="-1"></a>The ATT is a different estimand from the ATE, and here they genuinely differ:</span>
+<span id="cb24-266"><a href="#cb24-266" aria-hidden="true" tabindex="-1"></a>the treatment probability rises with $w_2$, $w_3$ and $w_4$, and the individual</span>
+<span id="cb24-267"><a href="#cb24-267" aria-hidden="true" tabindex="-1"></a>effect varies with those same covariates, so averaging over the treated is not</span>
+<span id="cb24-268"><a href="#cb24-268" aria-hidden="true" tabindex="-1"></a>the same as averaging over everyone. The two estimates are 0.1730 and 0.1943,</span>
+<span id="cb24-269"><a href="#cb24-269" aria-hidden="true" tabindex="-1"></a>and with standard errors of 0.0529 and 0.0316 the data cannot separate them.</span>
+<span id="cb24-270"><a href="#cb24-270" aria-hidden="true" tabindex="-1"></a>Note that the ATT standard error is two-thirds larger, because only the</span>
+<span id="cb24-271"><a href="#cb24-271" aria-hidden="true" tabindex="-1"></a>treated units contribute to the average.</span>
+<span id="cb24-272"><a href="#cb24-272" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-273"><a href="#cb24-273" aria-hidden="true" tabindex="-1"></a><span class="fu">## TMLE</span></span>
+<span id="cb24-274"><a href="#cb24-274" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-275"><a href="#cb24-275" aria-hidden="true" tabindex="-1"></a>TMLE is a variant of IF based estimator. It is also a doubly robust estimator. See Mark van der Laan and his coauthors for the recent development of TMLE.</span>
+<span id="cb24-276"><a href="#cb24-276" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-277"><a href="#cb24-277" aria-hidden="true" tabindex="-1"></a>TMLE targets the same ATE with the same nuisance library, so we should expect</span>
+<span id="cb24-278"><a href="#cb24-278" aria-hidden="true" tabindex="-1"></a>it to agree with <span class="in">`npcausal`</span>.</span>
+<span id="cb24-279"><a href="#cb24-279" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-280"><a href="#cb24-280" aria-hidden="true" tabindex="-1"></a><span class="in">```{r tmle1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb24-281"><a href="#cb24-281" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tmle)</span>
+<span id="cb24-282"><a href="#cb24-282" aria-hidden="true" tabindex="-1"></a>TMLE<span class="ot">&lt;-</span> <span class="fu">tmle</span>(<span class="at">Y=</span>data<span class="sc">$</span>Y,<span class="at">A=</span>data<span class="sc">$</span>A,<span class="at">W=</span>W, <span class="at">family=</span><span class="st">"binomial"</span>, <span class="at">Q.SL.library=</span>SL.library, <span class="at">g.SL.library=</span>SL.library)</span>
+<span id="cb24-283"><a href="#cb24-283" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-284"><a href="#cb24-284" aria-hidden="true" tabindex="-1"></a>TMLE<span class="sc">$</span>estimates<span class="sc">$</span>ATE</span>
+<span id="cb24-285"><a href="#cb24-285" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb24-286"><a href="#cb24-286" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-287"><a href="#cb24-287" aria-hidden="true" tabindex="-1"></a>TMLE gives 0.1893 with an interval of $<span class="co">[</span><span class="ot">0.1288, 0.2498</span><span class="co">]</span>$, against AIPW's 0.1894</span>
+<span id="cb24-288"><a href="#cb24-288" aria-hidden="true" tabindex="-1"></a>and <span class="in">`npcausal`</span>'s 0.1943. The three agree to well within a standard error, which</span>
+<span id="cb24-289"><a href="#cb24-289" aria-hidden="true" tabindex="-1"></a>is what the theory predicts: they share an efficient influence function and</span>
+<span id="cb24-290"><a href="#cb24-290" aria-hidden="true" tabindex="-1"></a>differ only in how they solve its estimating equation.</span>
+<span id="cb24-291"><a href="#cb24-291" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-292"><a href="#cb24-292" aria-hidden="true" tabindex="-1"></a><span class="fu">## DoubleML</span></span>
+<span id="cb24-293"><a href="#cb24-293" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-294"><a href="#cb24-294" aria-hidden="true" tabindex="-1"></a>The R package DoubleML implements the double/debiased machine learning framework of Chernozhukov et al. (2018). It provides functionalities to estimate parameters in causal models based on machine learning methods. The double machine learning framework consists of three key ingredients: Neyman orthogonality, High-quality machine learning estimation and Sample splitting.</span>
+<span id="cb24-295"><a href="#cb24-295" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-296"><a href="#cb24-296" aria-hidden="true" tabindex="-1"></a>They consider a partially linear model:</span>
+<span id="cb24-297"><a href="#cb24-297" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-298"><a href="#cb24-298" aria-hidden="true" tabindex="-1"></a>$$ y_i = \theta d_i + g_0(x_i) + \eta_i $$ {#eq-nonparametric-5}</span>
+<span id="cb24-299"><a href="#cb24-299" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-300"><a href="#cb24-300" aria-hidden="true" tabindex="-1"></a>$$ d_i = m_0(x_i) + v_i $$ {#eq-nonparametric-6}</span>
+<span id="cb24-301"><a href="#cb24-301" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-302"><a href="#cb24-302" aria-hidden="true" tabindex="-1"></a>This model is quite general, except it does not allow interaction of $d$ and $x$; therefore no heterogeneous treatment effect across $x$. But "DoubleML" implements more than partially linear model, it actually allows for heterogeneous treatment effects, in models such as interactive regression model.</span>
+<span id="cb24-303"><a href="#cb24-303" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-304"><a href="#cb24-304" aria-hidden="true" tabindex="-1"></a>The basic idea of doubleML is to use any machine learning algorithm to estimate outcome equation ($l_0(X) = E(Y | X)$) and treatment equation ($m_0(X) = E(D | X)$). Then get the residuals, namely $\tilde Y=Y-\hat l_0(X)$ and $\tilde D = D - \hat m_0(X)$.</span>
+<span id="cb24-305"><a href="#cb24-305" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-306"><a href="#cb24-306" aria-hidden="true" tabindex="-1"></a>Then regress $\tilde Y$ on $\tilde D$. Based on FWL theorem, you get $\hat \theta$.</span>
+<span id="cb24-307"><a href="#cb24-307" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-308"><a href="#cb24-308" aria-hidden="true" tabindex="-1"></a>An important component here is to specify a Neyman-orthogonal score function. In the case of PLR, the "partialling-out" score (the DoubleML default, matching the residual-on-residual regression above) is</span>
+<span id="cb24-309"><a href="#cb24-309" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-310"><a href="#cb24-310" aria-hidden="true" tabindex="-1"></a>$$\psi (Z; \theta, \eta) = \big(Y- l(X) - \theta (D-m(X))\big)\big(D-m(X)\big) $$ {#eq-nonparametric-7}</span>
+<span id="cb24-311"><a href="#cb24-311" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-312"><a href="#cb24-312" aria-hidden="true" tabindex="-1"></a>The estimator $\hat \theta$ solves the equation that the sample mean of this score function is 0.</span>
+<span id="cb24-313"><a href="#cb24-313" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-314"><a href="#cb24-314" aria-hidden="true" tabindex="-1"></a>The estimator's variance comes from the usual sandwich formula built on the score, $\hat\sigma^2 = \hat J^{-1}\, \widehat{E<span class="co">[</span><span class="ot">\psi^2</span><span class="co">]</span>}\, \hat J^{-1}$ with $\hat J = -\frac{1}{n}\sum_i (D_i-\hat m(X_i))^2$.</span>
+<span id="cb24-315"><a href="#cb24-315" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-316"><a href="#cb24-316" aria-hidden="true" tabindex="-1"></a>We set up the data object first, naming the outcome, the treatment and the four</span>
+<span id="cb24-317"><a href="#cb24-317" aria-hidden="true" tabindex="-1"></a>covariates:</span>
+<span id="cb24-318"><a href="#cb24-318" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-319"><a href="#cb24-319" aria-hidden="true" tabindex="-1"></a><span class="in">```{r doubleml1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb24-320"><a href="#cb24-320" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DoubleML)</span>
+<span id="cb24-321"><a href="#cb24-321" aria-hidden="true" tabindex="-1"></a>dml_data <span class="ot">=</span> DoubleMLData<span class="sc">$</span><span class="fu">new</span>(data,</span>
+<span id="cb24-322"><a href="#cb24-322" aria-hidden="true" tabindex="-1"></a>                             <span class="at">y_col =</span> <span class="st">"Y"</span>,</span>
+<span id="cb24-323"><a href="#cb24-323" aria-hidden="true" tabindex="-1"></a>                             <span class="at">d_cols =</span> <span class="st">"A"</span>,</span>
+<span id="cb24-324"><a href="#cb24-324" aria-hidden="true" tabindex="-1"></a>                             <span class="at">x_cols =</span> <span class="fu">c</span>(<span class="st">"w1"</span>,<span class="st">"w2"</span>,<span class="st">"w3"</span>,<span class="st">"w4"</span>))</span>
+<span id="cb24-325"><a href="#cb24-325" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(dml_data)</span>
+<span id="cb24-326"><a href="#cb24-326" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb24-327"><a href="#cb24-327" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-328"><a href="#cb24-328" aria-hidden="true" tabindex="-1"></a>Both nuisance functions are estimated by a random forest with 500 trees, depth</span>
+<span id="cb24-329"><a href="#cb24-329" aria-hidden="true" tabindex="-1"></a>at most 5, and a minimum node size of 2. DoubleML cross-fits them and solves</span>
+<span id="cb24-330"><a href="#cb24-330" aria-hidden="true" tabindex="-1"></a>the partialling-out score.</span>
+<span id="cb24-331"><a href="#cb24-331" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-332"><a href="#cb24-332" aria-hidden="true" tabindex="-1"></a><span class="in">```{r doubleml2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb24-333"><a href="#cb24-333" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mlr3)</span>
+<span id="cb24-334"><a href="#cb24-334" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mlr3learners)</span>
+<span id="cb24-335"><a href="#cb24-335" aria-hidden="true" tabindex="-1"></a><span class="co"># suppress messages from mlr3 package during fitting</span></span>
+<span id="cb24-336"><a href="#cb24-336" aria-hidden="true" tabindex="-1"></a>lgr<span class="sc">::</span><span class="fu">get_logger</span>(<span class="st">"mlr3"</span>)<span class="sc">$</span><span class="fu">set_threshold</span>(<span class="st">"warn"</span>)</span>
+<span id="cb24-337"><a href="#cb24-337" aria-hidden="true" tabindex="-1"></a>learner <span class="ot">=</span> <span class="fu">lrn</span>(<span class="st">"regr.ranger"</span>, <span class="at">num.trees=</span><span class="dv">500</span>,  <span class="at">max.depth=</span><span class="dv">5</span>, <span class="at">min.node.size=</span><span class="dv">2</span>)</span>
+<span id="cb24-338"><a href="#cb24-338" aria-hidden="true" tabindex="-1"></a>ml_l <span class="ot">=</span> learner<span class="sc">$</span><span class="fu">clone</span>()</span>
+<span id="cb24-339"><a href="#cb24-339" aria-hidden="true" tabindex="-1"></a>ml_m <span class="ot">=</span> learner<span class="sc">$</span><span class="fu">clone</span>()</span>
+<span id="cb24-340"><a href="#cb24-340" aria-hidden="true" tabindex="-1"></a>learner <span class="ot">=</span> <span class="fu">lrn</span>(<span class="st">"regr.glmnet"</span>)</span>
+<span id="cb24-341"><a href="#cb24-341" aria-hidden="true" tabindex="-1"></a>ml_g_sim <span class="ot">=</span> learner<span class="sc">$</span><span class="fu">clone</span>()</span>
+<span id="cb24-342"><a href="#cb24-342" aria-hidden="true" tabindex="-1"></a>ml_m_sim <span class="ot">=</span> learner<span class="sc">$</span><span class="fu">clone</span>()</span>
+<span id="cb24-343"><a href="#cb24-343" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb24-344"><a href="#cb24-344" aria-hidden="true" tabindex="-1"></a>obj_dml_plr <span class="ot">=</span> DoubleMLPLR<span class="sc">$</span><span class="fu">new</span>(dml_data, <span class="at">ml_l=</span>ml_l, <span class="at">ml_m=</span>ml_m)</span>
+<span id="cb24-345"><a href="#cb24-345" aria-hidden="true" tabindex="-1"></a>obj_dml_plr<span class="sc">$</span><span class="fu">fit</span>()</span>
+<span id="cb24-346"><a href="#cb24-346" aria-hidden="true" tabindex="-1"></a>obj_dml_plr<span class="sc">$</span><span class="fu">summary</span>()</span>
+<span id="cb24-347"><a href="#cb24-347" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb24-348"><a href="#cb24-348" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-349"><a href="#cb24-349" aria-hidden="true" tabindex="-1"></a>DoubleML returns 0.19257 with a standard error of 0.03136, in line with AIPW's</span>
+<span id="cb24-350"><a href="#cb24-350" aria-hidden="true" tabindex="-1"></a>0.1894 and TMLE's 0.1893.</span>
+<span id="cb24-351"><a href="#cb24-351" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-352"><a href="#cb24-352" aria-hidden="true" tabindex="-1"></a>One caveat on what this number is. The partially linear model has no</span>
+<span id="cb24-353"><a href="#cb24-353" aria-hidden="true" tabindex="-1"></a>treatment-covariate interaction, so its $\theta$ is not the ATE when effects are</span>
+<span id="cb24-354"><a href="#cb24-354" aria-hidden="true" tabindex="-1"></a>heterogeneous, and in this DGP they are: the individual effect</span>
+<span id="cb24-355"><a href="#cb24-355" aria-hidden="true" tabindex="-1"></a>$\Lambda(\text{lin}+1) - \Lambda(\text{lin})$ depends on the covariates. By the</span>
+<span id="cb24-356"><a href="#cb24-356" aria-hidden="true" tabindex="-1"></a>Frisch-Waugh-Lovell argument behind the partialling-out score, $\theta$ is the</span>
+<span id="cb24-357"><a href="#cb24-357" aria-hidden="true" tabindex="-1"></a>average of the conditional effects weighted by the conditional variance of</span>
+<span id="cb24-358"><a href="#cb24-358" aria-hidden="true" tabindex="-1"></a>treatment, $\text{Var}(A \mid X)$, so people whose treatment is hardest to</span>
+<span id="cb24-359"><a href="#cb24-359" aria-hidden="true" tabindex="-1"></a>predict count most. It equals the ATE only when the effect is constant. Here</span>
+<span id="cb24-360"><a href="#cb24-360" aria-hidden="true" tabindex="-1"></a>the two are close, 0.193 against 0.203, but that is a property of this DGP and</span>
+<span id="cb24-361"><a href="#cb24-361" aria-hidden="true" tabindex="-1"></a>not a general result.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

@@ -121,11 +121,23 @@ data("mpdta", package = "did")
 head(mpdta)
 ```
 
+The three tables below give the panel shape: observations per year, the
+ever-treated indicator, and the treatment cohorts.
+
 ```{r did2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 table(mpdta$year)
 table(mpdta$treat)
 table(mpdta$first.treat)
 ```
+
+The panel is balanced: 500 counties observed in each of 2003 through 2007,
+2,500 observations. 955 observations belong to ever-treated counties and 1,545
+to never-treated ones. The cohorts are 2004 (100 observations, so 20 counties),
+2006 (200, or 40 counties) and 2007 (655, or 131 counties), with 309 counties
+never treated. Treatment timing is staggered, which is exactly the case where
+plain TWFE misbehaves.
+
+We fit ETWFE with log population as a control, clustering on county.
 
 ```{r did3, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 library(etwfe)
@@ -144,14 +156,33 @@ mod =
 mod
 ```
 
+The raw model has one coefficient per cohort-year cell plus the control
+interactions, 22 in all, and ten more were dropped for collinearity. That is not
+something to read directly. `emfx()` aggregates the cells into the ATT.
+
 ```{r did5, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 emfx(mod)
 ```
+
+The ATT is $-0.0506$ with a standard error of 0.0125 and a 95% interval of
+$[-0.0751, -0.0261]$. Raising the minimum wage lowered teen employment by about
+5% on average across treated county-years.
+
+The same cells can be aggregated by time since treatment instead.
 
 ```{r did6, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 mod_es = emfx(mod, type = "event")
 mod_es
 ```
+
+The effect grows with exposure: $-0.033$ in the treatment year, $-0.057$ after
+one year, $-0.138$ after two, $-0.110$ after three. All four are significant.
+The standard errors widen with event time, from 0.013 to 0.032, because the
+later horizons rest on fewer cohorts: event time 0 uses all three cohorts (191
+counties), event time 1 uses the 2004 and 2006 cohorts (60 counties), and event
+times 2 and 3 rest on the 2004 cohort alone (20 counties).
+
+Adding `post_only = FALSE` keeps the pre-treatment periods in the plot.
 
 ```{r did7, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 mod_es2 = emfx(mod, type = "event", post_only = FALSE)
@@ -166,7 +197,27 @@ ggplot(mod_es2, aes(x = event, y = estimate, ymin = conf.low, ymax = conf.high))
   )
 ```
 
+Read the pre-treatment points with care, and note the caption on the figure.
+With `etwfe`'s default comparison group the pre-treatment estimates are forced
+to zero by construction, so their sitting on the line is arithmetic, not
+evidence for parallel trends. The Poisson example below uses
+`cgroup = "never"`, which frees them and makes the pre-period a real check.
+
 ## Example 2: Staggered DiD
+
+The mpdta effects are real and therefore unknown. To see whether ETWFE recovers
+what it should, we switch to simulated data where the answer is recorded in the
+file.
+
+`data/did_staggered_6.dta` is Wooldridge's simulated staggered panel: 500 units
+observed annually from 2001 to 2006, 3,000 observations. Units are treated in
+2004 (119 units), 2005 (83) or 2006 (36), and 262 are never treated. The
+outcome is `y`, `x` is a covariate, `d4`, `d5` and `d6` are cohort dummies, and
+`f04`, `f05`, `f06` are year dummies. What makes the file useful is `te4`,
+`te5` and `te6`: the true unit-level treatment effect each unit would
+experience under each cohort's treatment date. The effects are heterogeneous
+across units and grow with time since treatment, which is precisely the
+configuration that breaks plain TWFE.
 
 ```{r did8, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 # now we do staggered did.
@@ -183,6 +234,13 @@ head(did_data %>% select(id, year, y, x,d4, d5, d6, te4, te5, te6, first_treat )
 ```{r did19, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 table(did_data$first_treat)
 ```
+
+The counts are observations, six per unit: 1,572 never-treated, 714 in the 2004
+cohort, 498 in 2005, 216 in 2006.
+
+Because the true effects are in the data, we can compute the target before
+estimating it. Grouping the true effects by cohort and year gives the true ATT
+in each cohort-year cell.
 
 ```{r did9, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 did_data <- did_data %>%
@@ -209,6 +267,15 @@ did_data <- did_data %>%
     summarise(mean6=mean(te6))
 ```
 
+So the true cohort-year ATTs are: the 2004 cohort gains 3.76, 4.02 and 4.58 in
+2004, 2005 and 2006; the 2005 cohort gains 2.74 and 3.52 in 2005 and 2006; the
+2006 cohort gains 1.85 in 2006. (The `NA` rows are the units outside that
+cohort, which are not part of its ATT.) Effects grow with time since treatment
+and shrink across later cohorts --- heterogeneity in both directions.
+
+Averaging those cells over the 559 treated observations gives a true overall
+ATT of **3.677**. That is the number ETWFE has to reproduce.
+
 ```{r did11, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 library(etwfe)
 
@@ -229,15 +296,35 @@ mod
 emfx(mod)
 ```
 
+ETWFE gives 3.67 with a standard error of 0.172 and a 95% interval of
+$[3.33, 4.01]$, against a true 3.677. It recovers the ATT to three decimals.
+
+The same holds for the disaggregations. By time since treatment:
+
 ```{r did20, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 mod_es = emfx(mod, type = "event")
 mod_es
 ```
 
+Estimated 3.11, 4.02 and 4.21 at event times 0, 1 and 2, against true values of
+3.11, 3.81 and 4.58. Every interval covers its truth, and the estimates
+reproduce the growth in the effect with exposure.
+
+And by calendar year:
+
 ```{r did21, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 mod_es2 = emfx(mod, type = "calendar")
 mod_es2
 ```
+
+Estimated 3.51, 3.73 and 3.70 in 2004, 2005 and 2006, against true values of
+3.76, 3.49 and 3.80. Again all three intervals cover.
+
+Note that the calendar profile is nearly flat while the event-time profile
+rises. There is no contradiction: later calendar years mix an older cohort with
+large accumulated effects and a newly treated cohort with small ones, and the
+two movements offset. This is why the aggregation has to be chosen to match the
+question being asked.
 
 ## Nonlinear ETWFE: Count and Binary Outcomes
 
@@ -249,7 +336,25 @@ One implementation detail matters: the nonlinear ETWFE specification uses **coho
 
 ### Simulated example: staggered count data
 
-We simulate panel data with three treatment cohorts (treated in periods 3, 4, and 5) and one never-treated group. The true treatment effect is multiplicative: treated units see a 50% increase in their expected count ($\exp(0.4) - 1 \approx 0.49$). Parallel trends holds on the log scale.
+We simulate $N = 400$ units over $T = 6$ periods, 2,400 observations. Units are
+split into four groups of 100 by id: the first is treated from period 3, the
+second from period 4, the third from period 5, and the fourth never. Each unit
+draws a fixed effect $\alpha_i \sim N(0, 0.3^2)$. The log mean is
+$\log \mu_{it} = 1 + 0.2t + \alpha_i + 0.4 D_{it}$, and the outcome is
+$Y_{it} \sim \text{Poisson}(\mu_{it})$.
+
+The treatment effect is multiplicative and homogeneous on the log scale: every
+treated unit's expected count rises by a factor of $\exp(0.4)$, that is by
+$\exp(0.4) - 1 = 0.492$, or 49%. Parallel trends holds on the log scale by
+construction, and fails on the level scale, since a constant proportional
+effect is a larger absolute effect for units with higher baselines.
+
+On the count scale the ATT is not 0.492. It is
+$E[\mu_{it}(0) \mid \text{treated}] \times (\exp(0.4)-1)$, and the mean
+untreated count among treated observations is 7.649, so the true ATT is
+$7.649 \times 0.4918 = 3.762$ counts.
+
+The table below reports mean counts by cohort and treatment status.
 
 ```{r did_pois0, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 library(tidyverse)
@@ -277,6 +382,12 @@ df_count %>%
   summarise(mean_count = mean(count), .groups = "drop")
 ```
 
+The never-treated group averages 6.15 counts. Treated cohorts average 3.72,
+4.29 and 4.80 before treatment and 10.7, 11.5 and 13.2 after. The pre-treatment
+means look low only because they are drawn from earlier periods, and the time
+trend adds 0.2 to the log mean each period. This is exactly the comparison that
+a raw before-after difference would get wrong.
+
 ### Poisson ETWFE
 
 Pass `family = "poisson"` to `etwfe()`. Everything else — cohort dummies, `emfx()`, event study — works identically to the linear case. We use `cgroup = "never"` so that pre-treatment estimates are not mechanistically forced to zero.
@@ -297,9 +408,19 @@ mod_pois <- etwfe(
 emfx(mod_pois)
 ```
 
+The estimate is 3.99 counts with a standard error of 0.33 and a 95% interval of
+$[3.34, 4.64]$, against the true 3.762 derived above. The interval covers it.
+
 `emfx()` returns average marginal effects — the average difference $E[Y(1)] - E[Y(0)]$ in **count units** across treated observations. This is the ATT on the count scale. The underlying model imposes PT on the log scale, so each cohort-time treatment coefficient in the raw model can be exponentiated to get the incidence rate ratio for that cell (here they share a common value because the simulated effect is homogeneous).
 
 ### Event study
+
+Because we passed `cgroup = "never"`, the pre-treatment estimates are free
+parameters rather than zeros by construction, so the pre-period is an actual
+test here. On the count scale the post-treatment effect should also grow with
+event time even though the log-scale effect is constant, because the baseline
+count grows with the time trend: the true values are 3.13, 3.82, 4.17 and 4.69
+at event times 0 through 3.
 
 ```{r did_pois4, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 mod_pois_es <- emfx(mod_pois, type = "event", post_only = FALSE)
@@ -315,7 +436,7 @@ ggplot(mod_pois_es, aes(x = event, y = estimate, ymin = conf.low, ymax = conf.hi
   )
 ```
 
-Pre-treatment estimates are close to zero, confirming parallel trends on the log scale holds in the simulation.
+Pre-treatment estimates are close to zero, confirming parallel trends on the log scale holds in the simulation. The post-treatment points rise with event time, which is the count-scale consequence of a constant log-scale effect applied to a growing baseline, not evidence of a growing treatment effect.
 
 ### Comparison: linear ETWFE on log(count + 1)
 
@@ -333,6 +454,12 @@ mod_lin <- etwfe(
 )
 emfx(mod_lin)
 ```
+
+The linear model returns 0.38 with a 95% interval of $[0.318, 0.443]$. That
+number is neither the count-scale ATT of 3.99 nor the log-scale parameter 0.4,
+though it happens to sit near the latter because the counts here are large
+enough that $\log(Y+1) \approx \log Y$. With many zeros the approximation
+breaks and the estimate drifts.
 
 The linear model estimates the ATT on the $\log(Y+1)$ scale — not the same quantity as the Poisson ATT and harder to interpret. When treatment effects are multiplicative, Poisson ETWFE is the more appropriate model.
 
@@ -465,6 +592,12 @@ SDiD sets another weight in addition to SC weights, which changes over time. The
 
 ### Example: California Proposition 99
 
+The `california_prop99` panel is annual per-capita cigarette sales in packs for
+39 US states from 1970 to 2000. California raised its cigarette tax in 1989, so
+there is one treated unit, 38 controls, 19 pre-treatment years and 12
+post-treatment years. The estimand is the effect of Proposition 99 on
+California's cigarette consumption.
+
 ```{r did13, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 library(synthdid)
 data('california_prop99')
@@ -507,6 +640,17 @@ control states and one treated unit. Note also that `summary(tau.hat,
 se.method = "placebo")` does *not* fix the `NA` --- the `se` field stays empty;
 `synthdid_se()` has to be called directly.
 
+The summary output is also worth reading past the point estimate. The unit
+weights are concentrated: Nevada takes 0.124, New Hampshire 0.105, Connecticut
+0.078, and the effective number of controls is 16.4 out of 38. The time weights
+put 0.427 on 1988, 0.366 on 1986 and 0.206 on 1987, giving an effective 2.8
+pre-periods out of 19. Both are the point of the method --- weight the donors
+and the pre-periods that resemble the target --- and both are the reason the
+inference is hard.
+
+Running the same panel through all three estimators shows what the weighting
+does:
+
 ```{r did15, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 tau.sc   = sc_estimate(setup$Y, setup$N0, setup$T0)
 tau.did  = did_estimate(setup$Y, setup$N0, setup$T0)
@@ -514,6 +658,13 @@ estimates = list(tau.did, tau.sc, tau.hat)
 names(estimates) = c('Diff-in-Diff', 'Synthetic Control', 'Synthetic Diff-in-Diff')
 print(unlist(estimates))
 ```
+
+Plain DiD gives $-27.35$, synthetic control $-19.62$, and synthetic DiD
+$-15.60$. The three differ by more than the placebo standard error of 8.37, so
+the choice of estimator matters more here than the sampling uncertainty within
+any one of them. DiD weights every control state and every pre-period equally,
+which is why it moves furthest: states unlike California, and pre-periods unlike
+the late 1980s, all count in full.
 
 ```{r did16, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 plot <- synthdid_plot(estimates, facet.vertical=FALSE,
@@ -531,4 +682,10 @@ plot <- synthdid_plot(estimates, facet.vertical=FALSE,
 plot
 ```
 
-Note: $\lambda_t$ is plotted at the bottom.
+Each panel shows California's trajectory against the weighted control
+trajectory, with the estimated effect drawn as the gap after 1989. The time
+weights $\lambda_t$ are plotted along the bottom, so the pre-periods that
+actually enter the comparison are visible: for synthetic DiD they concentrate on
+1986 to 1988, the years just before the tax change. The synthetic control and
+synthetic DiD panels track California closely before 1989; the DiD panel does
+not, which is the visual counterpart to its larger estimate.

@@ -76,6 +76,23 @@ $L_1$ is confounded; regression with $L_1$ over-controls.
 
 ### Simulating the failure of regression
 
+We simulate $n = 5000$ units over two periods. The baseline covariate is
+$L_0 \sim N(0,1)$, and the first treatment is
+$A_0 \sim \text{Bernoulli}(\Lambda(-0.5 + 0.8L_0))$. The time-varying
+confounder responds to the first treatment,
+$L_1 = 0.5L_0 + 1.0A_0 + \nu$ with $\nu \sim N(0,1)$, and the second treatment
+responds to it, $A_1 \sim \text{Bernoulli}(\Lambda(-0.5 + 0.8L_1))$. The
+outcome is $Y = 0.5A_0 + 0.5A_1 + 0.5L_1 + 0.5L_0 + \varepsilon$ with
+$\varepsilon \sim N(0,1)$.
+
+The truth follows from the coefficients. $A_1$ has a total effect of 0.5.
+$A_0$ has a direct effect of 0.5 plus an indirect effect through $L_1$ of
+$1.0 \times 0.5 = 0.5$, so its total effect is 1.0. Always treating versus
+never treating is therefore worth $1.0 + 0.5 = 1.5$.
+
+We fit two regressions that a reader might reach for first: one omitting $L_1$
+and one including it.
+
 ```{r}
 #| label: dgp
 #| cache: true
@@ -114,12 +131,20 @@ cat(sprintf("Naive (with L1): A0=%.3f, A1=%.3f, total=%.3f\n",
             coef(naive_with_L1)["A0"] + coef(naive_with_L1)["A1"]))
 ```
 
-Neither regression recovers the true total effect:
+Neither regression recovers the true total effect of 1.5. Omitting $L_1$ gives
+1.813, too high; including it gives 1.048, too low. The truth is between them,
+and no choice between these two specifications reaches it.
+
+The two failures have different sources:
 
 - Excluding $L_1$ leaves confounding from $L_1 \to A_1$ that biases $A_1$'s
-  coefficient.
+  coefficient, 0.834 against a true 0.5. It also inflates $A_0$'s coefficient
+  to 0.979 for the same reason.
 - Including $L_1$ blocks the $A_0 \to L_1 \to Y$ pathway, so $A_0$'s
-  coefficient now measures only the direct effect, not the total effect.
+  coefficient now measures only the direct effect, not the total effect. It
+  gives 0.545 against a true direct effect of 0.5, and $A_1$ gives 0.503
+  against a true 0.5 --- both correct, but for the direct effects, and the
+  direct effects do not sum to the total.
 
 This is exactly the setting g-methods were designed for.
 
@@ -177,6 +202,9 @@ g_effect <- E_Y11 - E_Y00
 cat(sprintf("G-formula estimate (always treat vs never treat): %.3f\n", g_effect))
 cat("True total effect: 1.5\n")
 ```
+
+The g-formula gives 1.548 against a true 1.5, where the two regressions gave
+1.813 and 1.048.
 
 The important step is simulating $L_1$ under the counterfactual treatment.
 We do not condition on the observed $L_1$, because observed $L_1$ is partly
@@ -251,6 +279,11 @@ cat(sprintf("Weight summary: min=%.3f, mean=%.3f, max=%.3f\n",
 sw_trimmed <- pmin(sw, quantile(sw, 0.99))
 ```
 
+The weights run from 0.267 to 14.792 with a mean of 0.999. A mean of essentially
+one is what stabilized weights should give; the maximum of 14.8 is the part to
+watch, since a handful of observations carrying fifteen times their share will
+dominate the variance. That is what the trimming step addresses.
+
 ## Marginal structural models
 
 With the stabilized weights, the marginal structural model is a weighted
@@ -281,10 +314,16 @@ cat(sprintf("Untrimmed MSM total effect: %.3f\n",
             coef(msm_untrimmed)["A0"] + coef(msm_untrimmed)["A1"]))
 ```
 
+In the weighted population, $A_0$ gets 1.108 and $A_1$ gets 0.545, against true
+total effects of 1.0 and 0.5. Note what changed: with $L_1$ in the regression,
+$A_0$'s coefficient was 0.545, its *direct* effect. Weighting instead of
+conditioning lets $A_0$ keep its effect through $L_1$, and the coefficient
+roughly doubles.
+
 The weighted population is constructed so treatment is no longer associated
 with past covariates. That is why the MSM targets the total effect. Note the
-trimmed estimate sits a little above the truth while the untrimmed one is
-closer: the weight models here are correctly specified, so the untrimmed
+trimmed total of 1.652 sits above the truth of 1.5, while the untrimmed 1.560
+is closer: the weight models here are correctly specified, so the untrimmed
 weights are consistent, and capping the top 1% of weights reintroduces a
 bit of confounding bias in exchange for lower variance. Trimming is a
 bias--variance trade, not a free lunch.
@@ -316,6 +355,15 @@ ltmle_fit <- ltmle(
 summary(ltmle_fit)
 ```
 
+Read the printed 1.5106 carefully. With a single `abar`, `ltmle` returns the
+counterfactual **mean** $E[Y(1,1)]$, not a treatment effect. It sits next to a
+true total effect of 1.5 and looks like a correctly recovered effect, but that
+is a coincidence of this DGP: $E[Y(0,0)] = 0$ here, because with both
+treatments set to zero the outcome reduces to $0.5L_1 + 0.5L_0 + \varepsilon$
+with $L_1 = 0.5L_0 + \nu$, and $L_0$ is mean zero. When the never-treated mean
+is zero, the mean under treatment and the effect are the same number. Change
+the intercept of the outcome model and they would not be.
+
 Comparing the TMLE estimate with its IPTW and g-computation counterparts
 (via the options above) is a useful check on how much the answer depends on
 the modeling choices.
@@ -340,8 +388,21 @@ ltmle_contrast <- ltmle(
 summary(ltmle_contrast)
 ```
 
-The contrast output gives the effect of always treating versus never
-treating. In this simulation it should be close to 1.5.
+Now all three quantities are printed. The treated mean is 1.5106, the control
+mean is $-0.0263$, and the additive treatment effect is 1.5369 with a standard
+error of 0.0476 and a 95% interval of $[1.444, 1.630]$, which covers the true
+1.5. The control mean confirms the point above: it is essentially zero, which
+is why the single-regime call looked like an effect estimate.
+
+One oddity in that output: the control arm reports $p < 2 \times 10^{-16}$
+beside a 95% interval of $[-0.085, 0.033]$ that contains zero. The two
+disagree because that $p$-value is not testing the counterfactual mean against
+zero. Read the interval.
+
+Collecting the estimates of the always-versus-never effect: the g-formula gives
+1.548, the MSM 1.652 trimmed and 1.560 untrimmed, and LTMLE 1.537, against a
+truth of 1.5. The two naive regressions gave 1.813 and 1.048. Every g-method
+lands within about 0.15 of the truth; neither regression comes close.
 
 ## Choosing among the approaches
 

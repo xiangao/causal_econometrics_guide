@@ -460,6 +460,7 @@ window.Quarto = {
 </div>
 </div>
 <p><code>dagitty</code> finds <code>{X}</code> as the minimal adjustment set. Adjusting on <span class="math inline">\(X\)</span> blocks the only open backdoor path <span class="math inline">\(A \leftarrow X \rightarrow Y\)</span>.</p>
+<p>We simulate data matching that graph. We draw <span class="math inline">\(n = 2000\)</span> observations with <span class="math inline">\(X \sim N(0,1)\)</span>, treatment <span class="math inline">\(A \sim \text{Bernoulli}(\Lambda(X))\)</span>, and outcome <span class="math inline">\(Y = 2A + X + 0.5\varepsilon\)</span> with <span class="math inline">\(\varepsilon \sim N(0,1)\)</span>. The effect is constant, so the true ACE is 2. We then estimate it with AIPW using the adjustment set the graph chose, and take a 95% interval from 500 bootstrap resamples.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">n</span>     <span class="op">&lt;-</span> <span class="fl">2000</span></span>
@@ -502,7 +503,7 @@ window.Quarto = {
 <pre><code>95% CI: [1.942, 2.043]</code></pre>
 </div>
 </div>
-<p>The AIPW estimator is consistent if either the outcome model or the propensity score is correctly specified.</p>
+<p>AIPW returns 1.990 with a 95% bootstrap interval of <span class="math inline">\([1.942, 2.043]\)</span>, covering the true 2. The AIPW estimator is consistent if either the outcome model or the propensity score is correctly specified; here both are, since the DGP is linear in the outcome and logistic in the treatment.</p>
 </section><section id="front-door-p-fixable-effects" class="level2" data-number="21.2"><h2 data-number="21.2" class="anchored" data-anchor-id="front-door-p-fixable-effects">
 <span class="header-section-number">21.2</span> Front-door: p-fixable effects</h2>
 <p>Now suppose <span class="math inline">\(A\)</span> and <span class="math inline">\(Y\)</span> have an unmeasured common cause <span class="math inline">\(U\)</span>, but there is a measured mediator <span class="math inline">\(M\)</span> on the path <span class="math inline">\(A \rightarrow M \rightarrow Y\)</span>. Backdoor adjustment fails because <span class="math inline">\(U\)</span> is unobserved. The front-door formula can still identify the effect.</p>
@@ -513,13 +514,14 @@ window.Quarto = {
 <span><span class="fu"><a href="https://rdrr.io/pkg/dagitty/man/VariableStatus.html">exposures</a></span><span class="op">(</span><span class="va">g_fd</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"A"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/pkg/dagitty/man/VariableStatus.html">outcomes</a></span><span class="op">(</span><span class="va">g_fd</span><span class="op">)</span>  <span class="op">&lt;-</span> <span class="st">"Y"</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="st">"Backdoor adjustment sets (should be empty):\n"</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span><span class="co"># An empty dagitty adjustment-set list prints nothing at all, so report the</span></span>
+<span><span class="co"># count rather than calling print() on it and appearing to produce no output.</span></span>
+<span><span class="va">sets_fd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/dagitty/man/adjustmentSets.html">adjustmentSets</a></span><span class="op">(</span><span class="va">g_fd</span>, exposure <span class="op">=</span> <span class="st">"A"</span>, outcome <span class="op">=</span> <span class="st">"Y"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="st">"Valid backdoor adjustment sets:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">sets_fd</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details><div class="cell-output cell-output-stdout">
-<pre><code>Backdoor adjustment sets (should be empty):</code></pre>
+<pre><code>Valid backdoor adjustment sets: 0 </code></pre>
 </div>
-<details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/dagitty/man/adjustmentSets.html">adjustmentSets</a></span><span class="op">(</span><span class="va">g_fd</span>, exposure <span class="op">=</span> <span class="st">"A"</span>, outcome <span class="op">=</span> <span class="st">"Y"</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># causaleffect for ID algorithm: bidirected A &lt;-&gt; Y = two directed edges + description "U"</span></span>
+<details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># causaleffect for ID algorithm: bidirected A &lt;-&gt; Y = two directed edges + description "U"</span></span>
 <span><span class="va">g_fd_ig</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://r.igraph.org/reference/graph_from_literal.html">graph_from_literal</a></span><span class="op">(</span><span class="va">A</span> <span class="op">-</span><span class="op">+</span> <span class="va">M</span>, <span class="va">M</span> <span class="op">-</span><span class="op">+</span> <span class="va">Y</span>, <span class="va">A</span> <span class="op">-</span><span class="op">+</span> <span class="va">Y</span>, <span class="va">Y</span> <span class="op">-</span><span class="op">+</span> <span class="va">A</span><span class="op">)</span></span>
 <span><span class="co"># Mark the A&lt;-&gt;Y bidirected edge by endpoint name rather than a hardcoded</span></span>
 <span><span class="co"># edge index: igraph happens to sort edges by source vertex today (giving</span></span>
@@ -542,7 +544,10 @@ Identifying expression:</code></pre>
 <pre><code>\sum_{M}P(M|A)\left(\sum_{A}P(Y|A,M)P(A)\right) </code></pre>
 </div>
 </div>
-<p>The expression returned is the front-door formula: <span class="math inline">\(\sum_M P(M \mid A) \sum_{A'} P(Y \mid A', M)\, P(A')\)</span>. We now estimate it directly.</p>
+<p>There are no valid backdoor adjustment sets, as expected: <span class="math inline">\(U\)</span> is unobserved, so no set of measured variables blocks the path it opens. And the expression <code>causal.effect</code> returns is the front-door formula, <span class="math inline">\(\sum_M P(M \mid A) \sum_{A'} P(Y \mid A', M)\, P(A')\)</span>.</p>
+<p>We now simulate data for it. We draw <span class="math inline">\(n = 3000\)</span> observations with an unmeasured confounder <span class="math inline">\(U \sim N(0,1)\)</span>, treatment <span class="math inline">\(A \sim \text{Bernoulli}(\Lambda(U))\)</span>, mediator <span class="math inline">\(M \sim \text{Bernoulli}(\Lambda(0.5 + 2A))\)</span>, and outcome <span class="math inline">\(Y = 1.5M + 2U + 0.5\varepsilon\)</span> with <span class="math inline">\(\varepsilon \sim N(0,1)\)</span>. The mediator depends on <span class="math inline">\(A\)</span> alone and the outcome depends on <span class="math inline">\(M\)</span> and <span class="math inline">\(U\)</span> but not directly on <span class="math inline">\(A\)</span>, which is what the front-door criterion requires.</p>
+<p>The truth follows from the DGP. Intervening on <span class="math inline">\(A\)</span> changes <span class="math inline">\(Y\)</span> only through <span class="math inline">\(M\)</span>, so the ACE is <span class="math inline">\(1.5 \times [P(M=1 \mid A=1) - P(M=1 \mid A=0)]
+= 1.5 \times [\Lambda(2.5) - \Lambda(0.5)] = 1.5 \times 0.302 = 0.453\)</span>.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
 <span><span class="va">n</span>     <span class="op">&lt;-</span> <span class="fl">3000</span></span>
@@ -607,10 +612,11 @@ Identifying expression:</code></pre>
 <pre><code>True ACE:                        0.453</code></pre>
 </div>
 </div>
-<p>The front-door formula recovers the effect even though <span class="math inline">\(U\)</span> is unobserved. The naive mean difference is biased by the path through <span class="math inline">\(U\)</span>.</p>
+<p>The front-door estimate is 0.499 with a 95% bootstrap interval of <span class="math inline">\([0.432, 0.577]\)</span>, which covers the true 0.453. The naive mean difference is 2.083 — more than four times the truth, and outside the front-door interval by a factor of four. The formula recovers the effect even though <span class="math inline">\(U\)</span> is never measured; the naive comparison is picking up the path through <span class="math inline">\(U\)</span>, which enters the outcome with coefficient 2 and the treatment through the logit.</p>
+<p>The bias here is far larger than in the front-door example of the <a href="./graphs-identification-estimation.html">graphs chapter</a>, where the naive contrast was 0.14 against a truth of 0.055. The difference is the strength of the confounding: <span class="math inline">\(U\)</span> enters <span class="math inline">\(Y\)</span> with coefficient 2 here against 0.7 there. Nothing about the front-door formula changes; what changes is how much work it is doing.</p>
 </section><section id="when-identification-fails" class="level2" data-number="21.3"><h2 data-number="21.3" class="anchored" data-anchor-id="when-identification-fails">
 <span class="header-section-number">21.3</span> When identification fails</h2>
-<p>Not every graph identifies the effect. If <span class="math inline">\(A\)</span> and <span class="math inline">\(Y\)</span> have a hidden common cause and there is no front-door variable, the effect is not identified.</p>
+<p>Not every graph identifies the effect. If <span class="math inline">\(A\)</span> and <span class="math inline">\(Y\)</span> have a hidden common cause and there is no front-door variable, the effect is not identified. The graph below is the <strong>bow</strong>: a directed edge <span class="math inline">\(A \to Y\)</span> plus a bidirected <span class="math inline">\(A \leftrightarrow Y\)</span>, and nothing else. Remove the mediator <span class="math inline">\(M\)</span> from the front-door graph and this is what is left.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># A → Y with unmeasured confounding (A &lt;-&gt; Y) and no mediator: the "bow"</span></span>
 <span><span class="co"># graph needs THREE igraph edges — the directed A → Y plus the</span></span>
@@ -640,7 +646,8 @@ Identifying expression:</code></pre>
  Not identifiable. </code></pre>
 </div>
 </div>
-<p><code>causaleffect</code> raises an error (“Not identifiable”), which the <code>tryCatch</code> captures, indicating the effect is not identifiable. The honest response in applied work is to report the non-identifiability, then either:</p>
+<p><code>causaleffect</code> raises an error, printed above as “Not identifiable.”, which the <code>tryCatch</code> captures. This is a useful failure. The algorithm did not return a formula that would quietly estimate the wrong thing; it reported that no function of the observed distribution equals the causal effect under this graph. No amount of data helps, because the obstacle is the graph and not the sample size.</p>
+<p>The honest response in applied work is to report the non-identifiability, then either:</p>
 <ol type="1">
 <li>Find additional variables that close the unmeasured-confounding paths</li>
 <li>Apply sensitivity analysis to bound the effect under maintained assumptions</li>
@@ -1227,272 +1234,316 @@ Identifying expression:</code></pre>
 <span id="cb28-60"><a href="#cb28-60" aria-hidden="true" tabindex="-1"></a><span class="in">`dagitty`</span> finds <span class="in">`{X}`</span> as the minimal adjustment set. Adjusting on $X$</span>
 <span id="cb28-61"><a href="#cb28-61" aria-hidden="true" tabindex="-1"></a>blocks the only open backdoor path $A \leftarrow X \rightarrow Y$.</span>
 <span id="cb28-62"><a href="#cb28-62" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-65"><a href="#cb28-65" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb28-66"><a href="#cb28-66" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: backdoor-sim</span></span>
-<span id="cb28-67"><a href="#cb28-67" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb28-68"><a href="#cb28-68" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-69"><a href="#cb28-69" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
-<span id="cb28-70"><a href="#cb28-70" aria-hidden="true" tabindex="-1"></a>n     <span class="ot">&lt;-</span> <span class="dv">2000</span></span>
-<span id="cb28-71"><a href="#cb28-71" aria-hidden="true" tabindex="-1"></a>X     <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n)</span>
-<span id="cb28-72"><a href="#cb28-72" aria-hidden="true" tabindex="-1"></a>A     <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">runif</span>(n) <span class="sc">&lt;</span> <span class="dv">1</span> <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">+</span> <span class="fu">exp</span>(<span class="sc">-</span>X)))  <span class="co"># logistic: A depends on X</span></span>
-<span id="cb28-73"><a href="#cb28-73" aria-hidden="true" tabindex="-1"></a>Y     <span class="ot">&lt;-</span> <span class="dv">2</span> <span class="sc">*</span> A <span class="sc">+</span> X <span class="sc">+</span> <span class="fl">0.5</span> <span class="sc">*</span> <span class="fu">rnorm</span>(n)                 <span class="co"># true ACE = 2</span></span>
-<span id="cb28-74"><a href="#cb28-74" aria-hidden="true" tabindex="-1"></a>data_bd <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">X =</span> X, <span class="at">A =</span> A, <span class="at">Y =</span> Y)</span>
+<span id="cb28-63"><a href="#cb28-63" aria-hidden="true" tabindex="-1"></a>We simulate data matching that graph. We draw $n = 2000$ observations with</span>
+<span id="cb28-64"><a href="#cb28-64" aria-hidden="true" tabindex="-1"></a>$X \sim N(0,1)$, treatment $A \sim \text{Bernoulli}(\Lambda(X))$, and outcome</span>
+<span id="cb28-65"><a href="#cb28-65" aria-hidden="true" tabindex="-1"></a>$Y = 2A + X + 0.5\varepsilon$ with $\varepsilon \sim N(0,1)$. The effect is</span>
+<span id="cb28-66"><a href="#cb28-66" aria-hidden="true" tabindex="-1"></a>constant, so the true ACE is 2. We then estimate it with AIPW using the</span>
+<span id="cb28-67"><a href="#cb28-67" aria-hidden="true" tabindex="-1"></a>adjustment set the graph chose, and take a 95% interval from 500 bootstrap</span>
+<span id="cb28-68"><a href="#cb28-68" aria-hidden="true" tabindex="-1"></a>resamples.</span>
+<span id="cb28-69"><a href="#cb28-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-72"><a href="#cb28-72" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb28-73"><a href="#cb28-73" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: backdoor-sim</span></span>
+<span id="cb28-74"><a href="#cb28-74" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
 <span id="cb28-75"><a href="#cb28-75" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-76"><a href="#cb28-76" aria-hidden="true" tabindex="-1"></a><span class="co"># AIPW (doubly-robust) estimator for the backdoor-adjusted ACE</span></span>
-<span id="cb28-77"><a href="#cb28-77" aria-hidden="true" tabindex="-1"></a><span class="co"># Outcome model: E[Y | A, X]</span></span>
-<span id="cb28-78"><a href="#cb28-78" aria-hidden="true" tabindex="-1"></a>mu1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(<span class="fu">lm</span>(Y <span class="sc">~</span> A <span class="sc">+</span> X, <span class="at">data =</span> data_bd), <span class="at">newdata =</span> <span class="fu">transform</span>(data_bd, <span class="at">A =</span> <span class="dv">1</span>))</span>
-<span id="cb28-79"><a href="#cb28-79" aria-hidden="true" tabindex="-1"></a>mu0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(<span class="fu">lm</span>(Y <span class="sc">~</span> A <span class="sc">+</span> X, <span class="at">data =</span> data_bd), <span class="at">newdata =</span> <span class="fu">transform</span>(data_bd, <span class="at">A =</span> <span class="dv">0</span>))</span>
-<span id="cb28-80"><a href="#cb28-80" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-81"><a href="#cb28-81" aria-hidden="true" tabindex="-1"></a><span class="co"># Propensity score: P(A = 1 | X)</span></span>
-<span id="cb28-82"><a href="#cb28-82" aria-hidden="true" tabindex="-1"></a>ps  <span class="ot">&lt;-</span> <span class="fu">predict</span>(<span class="fu">glm</span>(A <span class="sc">~</span> X, <span class="at">data =</span> data_bd, <span class="at">family =</span> binomial), <span class="at">type =</span> <span class="st">"response"</span>)</span>
-<span id="cb28-83"><a href="#cb28-83" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-84"><a href="#cb28-84" aria-hidden="true" tabindex="-1"></a><span class="co"># AIPW influence function</span></span>
-<span id="cb28-85"><a href="#cb28-85" aria-hidden="true" tabindex="-1"></a>aipw <span class="ot">&lt;-</span> <span class="fu">mean</span>(</span>
-<span id="cb28-86"><a href="#cb28-86" aria-hidden="true" tabindex="-1"></a>  (data_bd<span class="sc">$</span>A <span class="sc">/</span> ps) <span class="sc">*</span> (Y <span class="sc">-</span> mu1) <span class="sc">-</span> ((<span class="dv">1</span> <span class="sc">-</span> data_bd<span class="sc">$</span>A) <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">-</span> ps)) <span class="sc">*</span> (Y <span class="sc">-</span> mu0) <span class="sc">+</span></span>
-<span id="cb28-87"><a href="#cb28-87" aria-hidden="true" tabindex="-1"></a>  mu1 <span class="sc">-</span> mu0</span>
-<span id="cb28-88"><a href="#cb28-88" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb28-89"><a href="#cb28-89" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-90"><a href="#cb28-90" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Backdoor AIPW ACE (true = 2.0): %.3f</span><span class="sc">\n</span><span class="st">"</span>, aipw))</span>
-<span id="cb28-91"><a href="#cb28-91" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-92"><a href="#cb28-92" aria-hidden="true" tabindex="-1"></a><span class="co"># Bootstrap 95% CI</span></span>
-<span id="cb28-93"><a href="#cb28-93" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">99</span>)</span>
-<span id="cb28-94"><a href="#cb28-94" aria-hidden="true" tabindex="-1"></a>boot_bd <span class="ot">&lt;-</span> <span class="fu">replicate</span>(<span class="dv">500</span>, {</span>
-<span id="cb28-95"><a href="#cb28-95" aria-hidden="true" tabindex="-1"></a>  idx  <span class="ot">&lt;-</span> <span class="fu">sample.int</span>(n, <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb28-96"><a href="#cb28-96" aria-hidden="true" tabindex="-1"></a>  bd   <span class="ot">&lt;-</span> data_bd[idx, ]</span>
-<span id="cb28-97"><a href="#cb28-97" aria-hidden="true" tabindex="-1"></a>  m1   <span class="ot">&lt;-</span> <span class="fu">predict</span>(<span class="fu">lm</span>(Y <span class="sc">~</span> A <span class="sc">+</span> X, <span class="at">data =</span> bd), <span class="at">newdata =</span> <span class="fu">transform</span>(bd, <span class="at">A =</span> <span class="dv">1</span>))</span>
-<span id="cb28-98"><a href="#cb28-98" aria-hidden="true" tabindex="-1"></a>  m0   <span class="ot">&lt;-</span> <span class="fu">predict</span>(<span class="fu">lm</span>(Y <span class="sc">~</span> A <span class="sc">+</span> X, <span class="at">data =</span> bd), <span class="at">newdata =</span> <span class="fu">transform</span>(bd, <span class="at">A =</span> <span class="dv">0</span>))</span>
-<span id="cb28-99"><a href="#cb28-99" aria-hidden="true" tabindex="-1"></a>  p    <span class="ot">&lt;-</span> <span class="fu">predict</span>(<span class="fu">glm</span>(A <span class="sc">~</span> X, <span class="at">data =</span> bd, <span class="at">family =</span> binomial), <span class="at">type =</span> <span class="st">"response"</span>)</span>
-<span id="cb28-100"><a href="#cb28-100" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mean</span>((bd<span class="sc">$</span>A <span class="sc">/</span> p) <span class="sc">*</span> (bd<span class="sc">$</span>Y <span class="sc">-</span> m1) <span class="sc">-</span> ((<span class="dv">1</span> <span class="sc">-</span> bd<span class="sc">$</span>A) <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">-</span> p)) <span class="sc">*</span> (bd<span class="sc">$</span>Y <span class="sc">-</span> m0) <span class="sc">+</span> m1 <span class="sc">-</span> m0)</span>
-<span id="cb28-101"><a href="#cb28-101" aria-hidden="true" tabindex="-1"></a>})</span>
-<span id="cb28-102"><a href="#cb28-102" aria-hidden="true" tabindex="-1"></a>ci_bd <span class="ot">&lt;-</span> <span class="fu">quantile</span>(boot_bd, <span class="fu">c</span>(<span class="fl">0.025</span>, <span class="fl">0.975</span>))</span>
-<span id="cb28-103"><a href="#cb28-103" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"95%% CI: [%.3f, %.3f]</span><span class="sc">\n</span><span class="st">"</span>, ci_bd[<span class="dv">1</span>], ci_bd[<span class="dv">2</span>]))</span>
-<span id="cb28-104"><a href="#cb28-104" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb28-105"><a href="#cb28-105" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-106"><a href="#cb28-106" aria-hidden="true" tabindex="-1"></a>The AIPW estimator is consistent if either the outcome model or the</span>
-<span id="cb28-107"><a href="#cb28-107" aria-hidden="true" tabindex="-1"></a>propensity score is correctly specified.</span>
-<span id="cb28-108"><a href="#cb28-108" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-109"><a href="#cb28-109" aria-hidden="true" tabindex="-1"></a><span class="fu">## Front-door: p-fixable effects</span></span>
-<span id="cb28-110"><a href="#cb28-110" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-111"><a href="#cb28-111" aria-hidden="true" tabindex="-1"></a>Now suppose $A$ and $Y$ have an unmeasured common cause $U$, but there is a</span>
-<span id="cb28-112"><a href="#cb28-112" aria-hidden="true" tabindex="-1"></a>measured mediator $M$ on the path $A \rightarrow M \rightarrow Y$. Backdoor</span>
-<span id="cb28-113"><a href="#cb28-113" aria-hidden="true" tabindex="-1"></a>adjustment fails because $U$ is unobserved. The front-door formula can still</span>
-<span id="cb28-114"><a href="#cb28-114" aria-hidden="true" tabindex="-1"></a>identify the effect.</span>
-<span id="cb28-115"><a href="#cb28-115" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-116"><a href="#cb28-116" aria-hidden="true" tabindex="-1"></a>In <span class="in">`dagitty`</span>, the bidirected edge $A \leftrightarrow Y$ (representing the</span>
-<span id="cb28-117"><a href="#cb28-117" aria-hidden="true" tabindex="-1"></a>latent $U$) appears as <span class="in">`A &lt;-&gt; Y`</span>. For <span class="in">`causaleffect`</span>, the same edge is</span>
-<span id="cb28-118"><a href="#cb28-118" aria-hidden="true" tabindex="-1"></a>encoded as two directed edges <span class="in">`A -&gt; Y`</span> and <span class="in">`Y -&gt; A`</span> both marked with</span>
-<span id="cb28-119"><a href="#cb28-119" aria-hidden="true" tabindex="-1"></a><span class="in">`description = "U"`</span> in the igraph object.</span>
-<span id="cb28-120"><a href="#cb28-120" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-123"><a href="#cb28-123" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb28-124"><a href="#cb28-124" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: frontdoor-graph</span></span>
-<span id="cb28-125"><a href="#cb28-125" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb28-126"><a href="#cb28-126" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-127"><a href="#cb28-127" aria-hidden="true" tabindex="-1"></a><span class="co"># dagitty for display and adjustment-set check</span></span>
-<span id="cb28-128"><a href="#cb28-128" aria-hidden="true" tabindex="-1"></a>g_fd <span class="ot">&lt;-</span> <span class="fu">dagitty</span>(<span class="st">"dag { A -&gt; M; M -&gt; Y; A &lt;-&gt; Y }"</span>)</span>
-<span id="cb28-129"><a href="#cb28-129" aria-hidden="true" tabindex="-1"></a><span class="fu">exposures</span>(g_fd) <span class="ot">&lt;-</span> <span class="st">"A"</span></span>
-<span id="cb28-130"><a href="#cb28-130" aria-hidden="true" tabindex="-1"></a><span class="fu">outcomes</span>(g_fd)  <span class="ot">&lt;-</span> <span class="st">"Y"</span></span>
-<span id="cb28-131"><a href="#cb28-131" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-132"><a href="#cb28-132" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Backdoor adjustment sets (should be empty):</span><span class="sc">\n</span><span class="st">"</span>)</span>
-<span id="cb28-133"><a href="#cb28-133" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">adjustmentSets</span>(g_fd, <span class="at">exposure =</span> <span class="st">"A"</span>, <span class="at">outcome =</span> <span class="st">"Y"</span>))</span>
-<span id="cb28-134"><a href="#cb28-134" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-135"><a href="#cb28-135" aria-hidden="true" tabindex="-1"></a><span class="co"># causaleffect for ID algorithm: bidirected A &lt;-&gt; Y = two directed edges + description "U"</span></span>
-<span id="cb28-136"><a href="#cb28-136" aria-hidden="true" tabindex="-1"></a>g_fd_ig <span class="ot">&lt;-</span> <span class="fu">graph_from_literal</span>(A <span class="sc">-+</span> M, M <span class="sc">-+</span> Y, A <span class="sc">-+</span> Y, Y <span class="sc">-+</span> A)</span>
-<span id="cb28-137"><a href="#cb28-137" aria-hidden="true" tabindex="-1"></a><span class="co"># Mark the A&lt;-&gt;Y bidirected edge by endpoint name rather than a hardcoded</span></span>
-<span id="cb28-138"><a href="#cb28-138" aria-hidden="true" tabindex="-1"></a><span class="co"># edge index: igraph happens to sort edges by source vertex today (giving</span></span>
-<span id="cb28-139"><a href="#cb28-139" aria-hidden="true" tabindex="-1"></a><span class="co"># order A-&gt;M(1), A-&gt;Y(2), M-&gt;Y(3), Y-&gt;A(4)), but that ordering isn't part of</span></span>
-<span id="cb28-140"><a href="#cb28-140" aria-hidden="true" tabindex="-1"></a><span class="co"># igraph's documented contract, so indices like c(2,4) can silently break if</span></span>
-<span id="cb28-141"><a href="#cb28-141" aria-hidden="true" tabindex="-1"></a><span class="co"># igraph's internals or this graph's construction ever changes.</span></span>
-<span id="cb28-142"><a href="#cb28-142" aria-hidden="true" tabindex="-1"></a>edge_ends <span class="ot">&lt;-</span> <span class="fu">ends</span>(g_fd_ig, <span class="fu">E</span>(g_fd_ig))</span>
-<span id="cb28-143"><a href="#cb28-143" aria-hidden="true" tabindex="-1"></a>confounded <span class="ot">&lt;-</span> (edge_ends[, <span class="dv">1</span>] <span class="sc">==</span> <span class="st">"A"</span> <span class="sc">&amp;</span> edge_ends[, <span class="dv">2</span>] <span class="sc">==</span> <span class="st">"Y"</span>) <span class="sc">|</span></span>
-<span id="cb28-144"><a href="#cb28-144" aria-hidden="true" tabindex="-1"></a>              (edge_ends[, <span class="dv">1</span>] <span class="sc">==</span> <span class="st">"Y"</span> <span class="sc">&amp;</span> edge_ends[, <span class="dv">2</span>] <span class="sc">==</span> <span class="st">"A"</span>)</span>
-<span id="cb28-145"><a href="#cb28-145" aria-hidden="true" tabindex="-1"></a>g_fd_ig <span class="ot">&lt;-</span> <span class="fu">set_edge_attr</span>(g_fd_ig, <span class="st">"description"</span>, <span class="at">index =</span> <span class="fu">which</span>(confounded), <span class="at">value =</span> <span class="st">"U"</span>)</span>
-<span id="cb28-146"><a href="#cb28-146" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-147"><a href="#cb28-147" aria-hidden="true" tabindex="-1"></a>expr_fd <span class="ot">&lt;-</span> <span class="fu">causal.effect</span>(<span class="at">y =</span> <span class="st">"Y"</span>, <span class="at">x =</span> <span class="st">"A"</span>, <span class="at">G =</span> g_fd_ig, <span class="at">simp =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb28-148"><a href="#cb28-148" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Identifying expression:</span><span class="sc">\n</span><span class="st">"</span>)</span>
-<span id="cb28-149"><a href="#cb28-149" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(expr_fd, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
-<span id="cb28-150"><a href="#cb28-150" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb28-151"><a href="#cb28-151" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-152"><a href="#cb28-152" aria-hidden="true" tabindex="-1"></a>The expression returned is the front-door formula:</span>
-<span id="cb28-153"><a href="#cb28-153" aria-hidden="true" tabindex="-1"></a>$\sum_M P(M \mid A) \sum_{A'} P(Y \mid A', M)\, P(A')$. We now estimate it directly.</span>
-<span id="cb28-154"><a href="#cb28-154" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-157"><a href="#cb28-157" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb28-158"><a href="#cb28-158" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: frontdoor-sim</span></span>
-<span id="cb28-159"><a href="#cb28-159" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb28-160"><a href="#cb28-160" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-161"><a href="#cb28-161" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2</span>)</span>
-<span id="cb28-162"><a href="#cb28-162" aria-hidden="true" tabindex="-1"></a>n     <span class="ot">&lt;-</span> <span class="dv">3000</span></span>
-<span id="cb28-163"><a href="#cb28-163" aria-hidden="true" tabindex="-1"></a>U     <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n)                                     <span class="co"># unmeasured confounder</span></span>
-<span id="cb28-164"><a href="#cb28-164" aria-hidden="true" tabindex="-1"></a>A_fd  <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">runif</span>(n) <span class="sc">&lt;</span> <span class="dv">1</span> <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">+</span> <span class="fu">exp</span>(<span class="sc">-</span>U)))     <span class="co"># A depends on U</span></span>
-<span id="cb28-165"><a href="#cb28-165" aria-hidden="true" tabindex="-1"></a>M_fd  <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">runif</span>(n) <span class="sc">&lt;</span> <span class="dv">1</span> <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">+</span> <span class="fu">exp</span>(<span class="sc">-</span>(<span class="fl">0.5</span> <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> A_fd))))  <span class="co"># M depends on A only</span></span>
-<span id="cb28-166"><a href="#cb28-166" aria-hidden="true" tabindex="-1"></a>Y_fd  <span class="ot">&lt;-</span> <span class="fl">1.5</span> <span class="sc">*</span> M_fd <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> U <span class="sc">+</span> <span class="fl">0.5</span> <span class="sc">*</span> <span class="fu">rnorm</span>(n)          <span class="co"># Y depends on M and U</span></span>
+<span id="cb28-76"><a href="#cb28-76" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb28-77"><a href="#cb28-77" aria-hidden="true" tabindex="-1"></a>n     <span class="ot">&lt;-</span> <span class="dv">2000</span></span>
+<span id="cb28-78"><a href="#cb28-78" aria-hidden="true" tabindex="-1"></a>X     <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n)</span>
+<span id="cb28-79"><a href="#cb28-79" aria-hidden="true" tabindex="-1"></a>A     <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">runif</span>(n) <span class="sc">&lt;</span> <span class="dv">1</span> <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">+</span> <span class="fu">exp</span>(<span class="sc">-</span>X)))  <span class="co"># logistic: A depends on X</span></span>
+<span id="cb28-80"><a href="#cb28-80" aria-hidden="true" tabindex="-1"></a>Y     <span class="ot">&lt;-</span> <span class="dv">2</span> <span class="sc">*</span> A <span class="sc">+</span> X <span class="sc">+</span> <span class="fl">0.5</span> <span class="sc">*</span> <span class="fu">rnorm</span>(n)                 <span class="co"># true ACE = 2</span></span>
+<span id="cb28-81"><a href="#cb28-81" aria-hidden="true" tabindex="-1"></a>data_bd <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">X =</span> X, <span class="at">A =</span> A, <span class="at">Y =</span> Y)</span>
+<span id="cb28-82"><a href="#cb28-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-83"><a href="#cb28-83" aria-hidden="true" tabindex="-1"></a><span class="co"># AIPW (doubly-robust) estimator for the backdoor-adjusted ACE</span></span>
+<span id="cb28-84"><a href="#cb28-84" aria-hidden="true" tabindex="-1"></a><span class="co"># Outcome model: E[Y | A, X]</span></span>
+<span id="cb28-85"><a href="#cb28-85" aria-hidden="true" tabindex="-1"></a>mu1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(<span class="fu">lm</span>(Y <span class="sc">~</span> A <span class="sc">+</span> X, <span class="at">data =</span> data_bd), <span class="at">newdata =</span> <span class="fu">transform</span>(data_bd, <span class="at">A =</span> <span class="dv">1</span>))</span>
+<span id="cb28-86"><a href="#cb28-86" aria-hidden="true" tabindex="-1"></a>mu0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(<span class="fu">lm</span>(Y <span class="sc">~</span> A <span class="sc">+</span> X, <span class="at">data =</span> data_bd), <span class="at">newdata =</span> <span class="fu">transform</span>(data_bd, <span class="at">A =</span> <span class="dv">0</span>))</span>
+<span id="cb28-87"><a href="#cb28-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-88"><a href="#cb28-88" aria-hidden="true" tabindex="-1"></a><span class="co"># Propensity score: P(A = 1 | X)</span></span>
+<span id="cb28-89"><a href="#cb28-89" aria-hidden="true" tabindex="-1"></a>ps  <span class="ot">&lt;-</span> <span class="fu">predict</span>(<span class="fu">glm</span>(A <span class="sc">~</span> X, <span class="at">data =</span> data_bd, <span class="at">family =</span> binomial), <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb28-90"><a href="#cb28-90" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-91"><a href="#cb28-91" aria-hidden="true" tabindex="-1"></a><span class="co"># AIPW influence function</span></span>
+<span id="cb28-92"><a href="#cb28-92" aria-hidden="true" tabindex="-1"></a>aipw <span class="ot">&lt;-</span> <span class="fu">mean</span>(</span>
+<span id="cb28-93"><a href="#cb28-93" aria-hidden="true" tabindex="-1"></a>  (data_bd<span class="sc">$</span>A <span class="sc">/</span> ps) <span class="sc">*</span> (Y <span class="sc">-</span> mu1) <span class="sc">-</span> ((<span class="dv">1</span> <span class="sc">-</span> data_bd<span class="sc">$</span>A) <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">-</span> ps)) <span class="sc">*</span> (Y <span class="sc">-</span> mu0) <span class="sc">+</span></span>
+<span id="cb28-94"><a href="#cb28-94" aria-hidden="true" tabindex="-1"></a>  mu1 <span class="sc">-</span> mu0</span>
+<span id="cb28-95"><a href="#cb28-95" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb28-96"><a href="#cb28-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-97"><a href="#cb28-97" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Backdoor AIPW ACE (true = 2.0): %.3f</span><span class="sc">\n</span><span class="st">"</span>, aipw))</span>
+<span id="cb28-98"><a href="#cb28-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-99"><a href="#cb28-99" aria-hidden="true" tabindex="-1"></a><span class="co"># Bootstrap 95% CI</span></span>
+<span id="cb28-100"><a href="#cb28-100" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">99</span>)</span>
+<span id="cb28-101"><a href="#cb28-101" aria-hidden="true" tabindex="-1"></a>boot_bd <span class="ot">&lt;-</span> <span class="fu">replicate</span>(<span class="dv">500</span>, {</span>
+<span id="cb28-102"><a href="#cb28-102" aria-hidden="true" tabindex="-1"></a>  idx  <span class="ot">&lt;-</span> <span class="fu">sample.int</span>(n, <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb28-103"><a href="#cb28-103" aria-hidden="true" tabindex="-1"></a>  bd   <span class="ot">&lt;-</span> data_bd[idx, ]</span>
+<span id="cb28-104"><a href="#cb28-104" aria-hidden="true" tabindex="-1"></a>  m1   <span class="ot">&lt;-</span> <span class="fu">predict</span>(<span class="fu">lm</span>(Y <span class="sc">~</span> A <span class="sc">+</span> X, <span class="at">data =</span> bd), <span class="at">newdata =</span> <span class="fu">transform</span>(bd, <span class="at">A =</span> <span class="dv">1</span>))</span>
+<span id="cb28-105"><a href="#cb28-105" aria-hidden="true" tabindex="-1"></a>  m0   <span class="ot">&lt;-</span> <span class="fu">predict</span>(<span class="fu">lm</span>(Y <span class="sc">~</span> A <span class="sc">+</span> X, <span class="at">data =</span> bd), <span class="at">newdata =</span> <span class="fu">transform</span>(bd, <span class="at">A =</span> <span class="dv">0</span>))</span>
+<span id="cb28-106"><a href="#cb28-106" aria-hidden="true" tabindex="-1"></a>  p    <span class="ot">&lt;-</span> <span class="fu">predict</span>(<span class="fu">glm</span>(A <span class="sc">~</span> X, <span class="at">data =</span> bd, <span class="at">family =</span> binomial), <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb28-107"><a href="#cb28-107" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mean</span>((bd<span class="sc">$</span>A <span class="sc">/</span> p) <span class="sc">*</span> (bd<span class="sc">$</span>Y <span class="sc">-</span> m1) <span class="sc">-</span> ((<span class="dv">1</span> <span class="sc">-</span> bd<span class="sc">$</span>A) <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">-</span> p)) <span class="sc">*</span> (bd<span class="sc">$</span>Y <span class="sc">-</span> m0) <span class="sc">+</span> m1 <span class="sc">-</span> m0)</span>
+<span id="cb28-108"><a href="#cb28-108" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb28-109"><a href="#cb28-109" aria-hidden="true" tabindex="-1"></a>ci_bd <span class="ot">&lt;-</span> <span class="fu">quantile</span>(boot_bd, <span class="fu">c</span>(<span class="fl">0.025</span>, <span class="fl">0.975</span>))</span>
+<span id="cb28-110"><a href="#cb28-110" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"95%% CI: [%.3f, %.3f]</span><span class="sc">\n</span><span class="st">"</span>, ci_bd[<span class="dv">1</span>], ci_bd[<span class="dv">2</span>]))</span>
+<span id="cb28-111"><a href="#cb28-111" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb28-112"><a href="#cb28-112" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-113"><a href="#cb28-113" aria-hidden="true" tabindex="-1"></a>AIPW returns 1.990 with a 95% bootstrap interval of $<span class="co">[</span><span class="ot">1.942, 2.043</span><span class="co">]</span>$, covering</span>
+<span id="cb28-114"><a href="#cb28-114" aria-hidden="true" tabindex="-1"></a>the true 2. The AIPW estimator is consistent if either the outcome model or the</span>
+<span id="cb28-115"><a href="#cb28-115" aria-hidden="true" tabindex="-1"></a>propensity score is correctly specified; here both are, since the DGP is linear</span>
+<span id="cb28-116"><a href="#cb28-116" aria-hidden="true" tabindex="-1"></a>in the outcome and logistic in the treatment.</span>
+<span id="cb28-117"><a href="#cb28-117" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-118"><a href="#cb28-118" aria-hidden="true" tabindex="-1"></a><span class="fu">## Front-door: p-fixable effects</span></span>
+<span id="cb28-119"><a href="#cb28-119" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-120"><a href="#cb28-120" aria-hidden="true" tabindex="-1"></a>Now suppose $A$ and $Y$ have an unmeasured common cause $U$, but there is a</span>
+<span id="cb28-121"><a href="#cb28-121" aria-hidden="true" tabindex="-1"></a>measured mediator $M$ on the path $A \rightarrow M \rightarrow Y$. Backdoor</span>
+<span id="cb28-122"><a href="#cb28-122" aria-hidden="true" tabindex="-1"></a>adjustment fails because $U$ is unobserved. The front-door formula can still</span>
+<span id="cb28-123"><a href="#cb28-123" aria-hidden="true" tabindex="-1"></a>identify the effect.</span>
+<span id="cb28-124"><a href="#cb28-124" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-125"><a href="#cb28-125" aria-hidden="true" tabindex="-1"></a>In <span class="in">`dagitty`</span>, the bidirected edge $A \leftrightarrow Y$ (representing the</span>
+<span id="cb28-126"><a href="#cb28-126" aria-hidden="true" tabindex="-1"></a>latent $U$) appears as <span class="in">`A &lt;-&gt; Y`</span>. For <span class="in">`causaleffect`</span>, the same edge is</span>
+<span id="cb28-127"><a href="#cb28-127" aria-hidden="true" tabindex="-1"></a>encoded as two directed edges <span class="in">`A -&gt; Y`</span> and <span class="in">`Y -&gt; A`</span> both marked with</span>
+<span id="cb28-128"><a href="#cb28-128" aria-hidden="true" tabindex="-1"></a><span class="in">`description = "U"`</span> in the igraph object.</span>
+<span id="cb28-129"><a href="#cb28-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-132"><a href="#cb28-132" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb28-133"><a href="#cb28-133" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: frontdoor-graph</span></span>
+<span id="cb28-134"><a href="#cb28-134" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb28-135"><a href="#cb28-135" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-136"><a href="#cb28-136" aria-hidden="true" tabindex="-1"></a><span class="co"># dagitty for display and adjustment-set check</span></span>
+<span id="cb28-137"><a href="#cb28-137" aria-hidden="true" tabindex="-1"></a>g_fd <span class="ot">&lt;-</span> <span class="fu">dagitty</span>(<span class="st">"dag { A -&gt; M; M -&gt; Y; A &lt;-&gt; Y }"</span>)</span>
+<span id="cb28-138"><a href="#cb28-138" aria-hidden="true" tabindex="-1"></a><span class="fu">exposures</span>(g_fd) <span class="ot">&lt;-</span> <span class="st">"A"</span></span>
+<span id="cb28-139"><a href="#cb28-139" aria-hidden="true" tabindex="-1"></a><span class="fu">outcomes</span>(g_fd)  <span class="ot">&lt;-</span> <span class="st">"Y"</span></span>
+<span id="cb28-140"><a href="#cb28-140" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-141"><a href="#cb28-141" aria-hidden="true" tabindex="-1"></a><span class="co"># An empty dagitty adjustment-set list prints nothing at all, so report the</span></span>
+<span id="cb28-142"><a href="#cb28-142" aria-hidden="true" tabindex="-1"></a><span class="co"># count rather than calling print() on it and appearing to produce no output.</span></span>
+<span id="cb28-143"><a href="#cb28-143" aria-hidden="true" tabindex="-1"></a>sets_fd <span class="ot">&lt;-</span> <span class="fu">adjustmentSets</span>(g_fd, <span class="at">exposure =</span> <span class="st">"A"</span>, <span class="at">outcome =</span> <span class="st">"Y"</span>)</span>
+<span id="cb28-144"><a href="#cb28-144" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Valid backdoor adjustment sets:"</span>, <span class="fu">length</span>(sets_fd), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb28-145"><a href="#cb28-145" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-146"><a href="#cb28-146" aria-hidden="true" tabindex="-1"></a><span class="co"># causaleffect for ID algorithm: bidirected A &lt;-&gt; Y = two directed edges + description "U"</span></span>
+<span id="cb28-147"><a href="#cb28-147" aria-hidden="true" tabindex="-1"></a>g_fd_ig <span class="ot">&lt;-</span> <span class="fu">graph_from_literal</span>(A <span class="sc">-+</span> M, M <span class="sc">-+</span> Y, A <span class="sc">-+</span> Y, Y <span class="sc">-+</span> A)</span>
+<span id="cb28-148"><a href="#cb28-148" aria-hidden="true" tabindex="-1"></a><span class="co"># Mark the A&lt;-&gt;Y bidirected edge by endpoint name rather than a hardcoded</span></span>
+<span id="cb28-149"><a href="#cb28-149" aria-hidden="true" tabindex="-1"></a><span class="co"># edge index: igraph happens to sort edges by source vertex today (giving</span></span>
+<span id="cb28-150"><a href="#cb28-150" aria-hidden="true" tabindex="-1"></a><span class="co"># order A-&gt;M(1), A-&gt;Y(2), M-&gt;Y(3), Y-&gt;A(4)), but that ordering isn't part of</span></span>
+<span id="cb28-151"><a href="#cb28-151" aria-hidden="true" tabindex="-1"></a><span class="co"># igraph's documented contract, so indices like c(2,4) can silently break if</span></span>
+<span id="cb28-152"><a href="#cb28-152" aria-hidden="true" tabindex="-1"></a><span class="co"># igraph's internals or this graph's construction ever changes.</span></span>
+<span id="cb28-153"><a href="#cb28-153" aria-hidden="true" tabindex="-1"></a>edge_ends <span class="ot">&lt;-</span> <span class="fu">ends</span>(g_fd_ig, <span class="fu">E</span>(g_fd_ig))</span>
+<span id="cb28-154"><a href="#cb28-154" aria-hidden="true" tabindex="-1"></a>confounded <span class="ot">&lt;-</span> (edge_ends[, <span class="dv">1</span>] <span class="sc">==</span> <span class="st">"A"</span> <span class="sc">&amp;</span> edge_ends[, <span class="dv">2</span>] <span class="sc">==</span> <span class="st">"Y"</span>) <span class="sc">|</span></span>
+<span id="cb28-155"><a href="#cb28-155" aria-hidden="true" tabindex="-1"></a>              (edge_ends[, <span class="dv">1</span>] <span class="sc">==</span> <span class="st">"Y"</span> <span class="sc">&amp;</span> edge_ends[, <span class="dv">2</span>] <span class="sc">==</span> <span class="st">"A"</span>)</span>
+<span id="cb28-156"><a href="#cb28-156" aria-hidden="true" tabindex="-1"></a>g_fd_ig <span class="ot">&lt;-</span> <span class="fu">set_edge_attr</span>(g_fd_ig, <span class="st">"description"</span>, <span class="at">index =</span> <span class="fu">which</span>(confounded), <span class="at">value =</span> <span class="st">"U"</span>)</span>
+<span id="cb28-157"><a href="#cb28-157" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-158"><a href="#cb28-158" aria-hidden="true" tabindex="-1"></a>expr_fd <span class="ot">&lt;-</span> <span class="fu">causal.effect</span>(<span class="at">y =</span> <span class="st">"Y"</span>, <span class="at">x =</span> <span class="st">"A"</span>, <span class="at">G =</span> g_fd_ig, <span class="at">simp =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb28-159"><a href="#cb28-159" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Identifying expression:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb28-160"><a href="#cb28-160" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(expr_fd, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb28-161"><a href="#cb28-161" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb28-162"><a href="#cb28-162" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-163"><a href="#cb28-163" aria-hidden="true" tabindex="-1"></a>There are no valid backdoor adjustment sets, as expected: $U$ is unobserved, so</span>
+<span id="cb28-164"><a href="#cb28-164" aria-hidden="true" tabindex="-1"></a>no set of measured variables blocks the path it opens. And the expression</span>
+<span id="cb28-165"><a href="#cb28-165" aria-hidden="true" tabindex="-1"></a><span class="in">`causal.effect`</span> returns is the front-door formula,</span>
+<span id="cb28-166"><a href="#cb28-166" aria-hidden="true" tabindex="-1"></a>$\sum_M P(M \mid A) \sum_{A'} P(Y \mid A', M)\, P(A')$.</span>
 <span id="cb28-167"><a href="#cb28-167" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-168"><a href="#cb28-168" aria-hidden="true" tabindex="-1"></a><span class="co"># True ACE: E[Y | do(A=1)] - E[Y | do(A=0)]</span></span>
-<span id="cb28-169"><a href="#cb28-169" aria-hidden="true" tabindex="-1"></a><span class="co"># = 1.5 * (E[M | A=1] - E[M | A=0])</span></span>
-<span id="cb28-170"><a href="#cb28-170" aria-hidden="true" tabindex="-1"></a>true_EMA1  <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">+</span> <span class="fu">exp</span>(<span class="sc">-</span>(<span class="fl">0.5</span> <span class="sc">+</span> <span class="dv">2</span>)))   <span class="co"># scalar P(M=1 | A=1)</span></span>
-<span id="cb28-171"><a href="#cb28-171" aria-hidden="true" tabindex="-1"></a>true_EMA0  <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">+</span> <span class="fu">exp</span>(<span class="sc">-</span><span class="fl">0.5</span>))         <span class="co"># scalar P(M=1 | A=0)</span></span>
-<span id="cb28-172"><a href="#cb28-172" aria-hidden="true" tabindex="-1"></a>true_ace_fd <span class="ot">&lt;-</span> <span class="fl">1.5</span> <span class="sc">*</span> (true_EMA1 <span class="sc">-</span> true_EMA0)</span>
-<span id="cb28-173"><a href="#cb28-173" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"True front-door ACE = %.3f</span><span class="sc">\n</span><span class="st">"</span>, true_ace_fd))</span>
+<span id="cb28-168"><a href="#cb28-168" aria-hidden="true" tabindex="-1"></a>We now simulate data for it. We draw $n = 3000$ observations with an unmeasured</span>
+<span id="cb28-169"><a href="#cb28-169" aria-hidden="true" tabindex="-1"></a>confounder $U \sim N(0,1)$, treatment $A \sim \text{Bernoulli}(\Lambda(U))$,</span>
+<span id="cb28-170"><a href="#cb28-170" aria-hidden="true" tabindex="-1"></a>mediator $M \sim \text{Bernoulli}(\Lambda(0.5 + 2A))$, and outcome</span>
+<span id="cb28-171"><a href="#cb28-171" aria-hidden="true" tabindex="-1"></a>$Y = 1.5M + 2U + 0.5\varepsilon$ with $\varepsilon \sim N(0,1)$. The mediator</span>
+<span id="cb28-172"><a href="#cb28-172" aria-hidden="true" tabindex="-1"></a>depends on $A$ alone and the outcome depends on $M$ and $U$ but not directly on</span>
+<span id="cb28-173"><a href="#cb28-173" aria-hidden="true" tabindex="-1"></a>$A$, which is what the front-door criterion requires.</span>
 <span id="cb28-174"><a href="#cb28-174" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-175"><a href="#cb28-175" aria-hidden="true" tabindex="-1"></a>data_fd <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">A =</span> A_fd, <span class="at">M =</span> M_fd, <span class="at">Y =</span> Y_fd)</span>
-<span id="cb28-176"><a href="#cb28-176" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb28-177"><a href="#cb28-177" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-178"><a href="#cb28-178" aria-hidden="true" tabindex="-1"></a>Estimate the front-door functional using the plug-in formula:</span>
-<span id="cb28-179"><a href="#cb28-179" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-182"><a href="#cb28-182" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb28-183"><a href="#cb28-183" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: frontdoor-est</span></span>
-<span id="cb28-184"><a href="#cb28-184" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb28-185"><a href="#cb28-185" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-186"><a href="#cb28-186" aria-hidden="true" tabindex="-1"></a>front_door_ace <span class="ot">&lt;-</span> <span class="cf">function</span>(data) {</span>
-<span id="cb28-187"><a href="#cb28-187" aria-hidden="true" tabindex="-1"></a>  pA <span class="ot">&lt;-</span> <span class="fu">mean</span>(data<span class="sc">$</span>A)</span>
-<span id="cb28-188"><a href="#cb28-188" aria-hidden="true" tabindex="-1"></a>  pM_given_A <span class="ot">&lt;-</span> <span class="fu">prop.table</span>(<span class="fu">table</span>(data<span class="sc">$</span>A, data<span class="sc">$</span>M), <span class="at">margin =</span> <span class="dv">1</span>)</span>
-<span id="cb28-189"><a href="#cb28-189" aria-hidden="true" tabindex="-1"></a>  pY_given_AM <span class="ot">&lt;-</span> <span class="fu">with</span>(data, <span class="fu">tapply</span>(Y, <span class="fu">list</span>(A, M), mean))</span>
-<span id="cb28-190"><a href="#cb28-190" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-191"><a href="#cb28-191" aria-hidden="true" tabindex="-1"></a>  ey_do <span class="ot">&lt;-</span> <span class="cf">function</span>(a) {</span>
-<span id="cb28-192"><a href="#cb28-192" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>(<span class="fu">sapply</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>), <span class="cf">function</span>(m) {</span>
-<span id="cb28-193"><a href="#cb28-193" aria-hidden="true" tabindex="-1"></a>      p_m_given_a <span class="ot">&lt;-</span> pM_given_A[<span class="fu">as.character</span>(a), <span class="fu">as.character</span>(m)]</span>
-<span id="cb28-194"><a href="#cb28-194" aria-hidden="true" tabindex="-1"></a>      inner <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">sapply</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>), <span class="cf">function</span>(ap)</span>
-<span id="cb28-195"><a href="#cb28-195" aria-hidden="true" tabindex="-1"></a>        pY_given_AM[<span class="fu">as.character</span>(ap), <span class="fu">as.character</span>(m)] <span class="sc">*</span></span>
-<span id="cb28-196"><a href="#cb28-196" aria-hidden="true" tabindex="-1"></a>          <span class="fu">ifelse</span>(ap <span class="sc">==</span> <span class="dv">1</span>, pA, <span class="dv">1</span> <span class="sc">-</span> pA)))</span>
-<span id="cb28-197"><a href="#cb28-197" aria-hidden="true" tabindex="-1"></a>      p_m_given_a <span class="sc">*</span> inner</span>
-<span id="cb28-198"><a href="#cb28-198" aria-hidden="true" tabindex="-1"></a>    }))</span>
-<span id="cb28-199"><a href="#cb28-199" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb28-200"><a href="#cb28-200" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ey_do</span>(<span class="dv">1</span>) <span class="sc">-</span> <span class="fu">ey_do</span>(<span class="dv">0</span>)</span>
-<span id="cb28-201"><a href="#cb28-201" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb28-202"><a href="#cb28-202" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-203"><a href="#cb28-203" aria-hidden="true" tabindex="-1"></a>est_fd <span class="ot">&lt;-</span> <span class="fu">front_door_ace</span>(data_fd)</span>
-<span id="cb28-204"><a href="#cb28-204" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-205"><a href="#cb28-205" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">77</span>)</span>
-<span id="cb28-206"><a href="#cb28-206" aria-hidden="true" tabindex="-1"></a>boot_fd <span class="ot">&lt;-</span> <span class="fu">replicate</span>(<span class="dv">500</span>, {</span>
-<span id="cb28-207"><a href="#cb28-207" aria-hidden="true" tabindex="-1"></a>  idx <span class="ot">&lt;-</span> <span class="fu">sample.int</span>(<span class="fu">nrow</span>(data_fd), <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb28-208"><a href="#cb28-208" aria-hidden="true" tabindex="-1"></a>  <span class="fu">front_door_ace</span>(data_fd[idx, ])</span>
-<span id="cb28-209"><a href="#cb28-209" aria-hidden="true" tabindex="-1"></a>})</span>
-<span id="cb28-210"><a href="#cb28-210" aria-hidden="true" tabindex="-1"></a>ci_fd  <span class="ot">&lt;-</span> <span class="fu">quantile</span>(boot_fd, <span class="fu">c</span>(<span class="fl">0.025</span>, <span class="fl">0.975</span>))</span>
-<span id="cb28-211"><a href="#cb28-211" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-212"><a href="#cb28-212" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Front-door ACE: %.3f  [95%% CI: %.3f, %.3f]</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb28-213"><a href="#cb28-213" aria-hidden="true" tabindex="-1"></a>            est_fd, ci_fd[<span class="dv">1</span>], ci_fd[<span class="dv">2</span>]))</span>
+<span id="cb28-175"><a href="#cb28-175" aria-hidden="true" tabindex="-1"></a>The truth follows from the DGP. Intervening on $A$ changes $Y$ only through</span>
+<span id="cb28-176"><a href="#cb28-176" aria-hidden="true" tabindex="-1"></a>$M$, so the ACE is $1.5 \times <span class="co">[</span><span class="ot">P(M=1 \mid A=1) - P(M=1 \mid A=0)</span><span class="co">]</span></span>
+<span id="cb28-177"><a href="#cb28-177" aria-hidden="true" tabindex="-1"></a>= 1.5 \times <span class="co">[</span><span class="ot">\Lambda(2.5) - \Lambda(0.5)</span><span class="co">]</span> = 1.5 \times 0.302 = 0.453$.</span>
+<span id="cb28-178"><a href="#cb28-178" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-181"><a href="#cb28-181" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb28-182"><a href="#cb28-182" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: frontdoor-sim</span></span>
+<span id="cb28-183"><a href="#cb28-183" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb28-184"><a href="#cb28-184" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-185"><a href="#cb28-185" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2</span>)</span>
+<span id="cb28-186"><a href="#cb28-186" aria-hidden="true" tabindex="-1"></a>n     <span class="ot">&lt;-</span> <span class="dv">3000</span></span>
+<span id="cb28-187"><a href="#cb28-187" aria-hidden="true" tabindex="-1"></a>U     <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n)                                     <span class="co"># unmeasured confounder</span></span>
+<span id="cb28-188"><a href="#cb28-188" aria-hidden="true" tabindex="-1"></a>A_fd  <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">runif</span>(n) <span class="sc">&lt;</span> <span class="dv">1</span> <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">+</span> <span class="fu">exp</span>(<span class="sc">-</span>U)))     <span class="co"># A depends on U</span></span>
+<span id="cb28-189"><a href="#cb28-189" aria-hidden="true" tabindex="-1"></a>M_fd  <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">runif</span>(n) <span class="sc">&lt;</span> <span class="dv">1</span> <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">+</span> <span class="fu">exp</span>(<span class="sc">-</span>(<span class="fl">0.5</span> <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> A_fd))))  <span class="co"># M depends on A only</span></span>
+<span id="cb28-190"><a href="#cb28-190" aria-hidden="true" tabindex="-1"></a>Y_fd  <span class="ot">&lt;-</span> <span class="fl">1.5</span> <span class="sc">*</span> M_fd <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> U <span class="sc">+</span> <span class="fl">0.5</span> <span class="sc">*</span> <span class="fu">rnorm</span>(n)          <span class="co"># Y depends on M and U</span></span>
+<span id="cb28-191"><a href="#cb28-191" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-192"><a href="#cb28-192" aria-hidden="true" tabindex="-1"></a><span class="co"># True ACE: E[Y | do(A=1)] - E[Y | do(A=0)]</span></span>
+<span id="cb28-193"><a href="#cb28-193" aria-hidden="true" tabindex="-1"></a><span class="co"># = 1.5 * (E[M | A=1] - E[M | A=0])</span></span>
+<span id="cb28-194"><a href="#cb28-194" aria-hidden="true" tabindex="-1"></a>true_EMA1  <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">+</span> <span class="fu">exp</span>(<span class="sc">-</span>(<span class="fl">0.5</span> <span class="sc">+</span> <span class="dv">2</span>)))   <span class="co"># scalar P(M=1 | A=1)</span></span>
+<span id="cb28-195"><a href="#cb28-195" aria-hidden="true" tabindex="-1"></a>true_EMA0  <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">+</span> <span class="fu">exp</span>(<span class="sc">-</span><span class="fl">0.5</span>))         <span class="co"># scalar P(M=1 | A=0)</span></span>
+<span id="cb28-196"><a href="#cb28-196" aria-hidden="true" tabindex="-1"></a>true_ace_fd <span class="ot">&lt;-</span> <span class="fl">1.5</span> <span class="sc">*</span> (true_EMA1 <span class="sc">-</span> true_EMA0)</span>
+<span id="cb28-197"><a href="#cb28-197" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"True front-door ACE = %.3f</span><span class="sc">\n</span><span class="st">"</span>, true_ace_fd))</span>
+<span id="cb28-198"><a href="#cb28-198" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-199"><a href="#cb28-199" aria-hidden="true" tabindex="-1"></a>data_fd <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">A =</span> A_fd, <span class="at">M =</span> M_fd, <span class="at">Y =</span> Y_fd)</span>
+<span id="cb28-200"><a href="#cb28-200" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb28-201"><a href="#cb28-201" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-202"><a href="#cb28-202" aria-hidden="true" tabindex="-1"></a>Estimate the front-door functional using the plug-in formula:</span>
+<span id="cb28-203"><a href="#cb28-203" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-206"><a href="#cb28-206" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb28-207"><a href="#cb28-207" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: frontdoor-est</span></span>
+<span id="cb28-208"><a href="#cb28-208" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb28-209"><a href="#cb28-209" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-210"><a href="#cb28-210" aria-hidden="true" tabindex="-1"></a>front_door_ace <span class="ot">&lt;-</span> <span class="cf">function</span>(data) {</span>
+<span id="cb28-211"><a href="#cb28-211" aria-hidden="true" tabindex="-1"></a>  pA <span class="ot">&lt;-</span> <span class="fu">mean</span>(data<span class="sc">$</span>A)</span>
+<span id="cb28-212"><a href="#cb28-212" aria-hidden="true" tabindex="-1"></a>  pM_given_A <span class="ot">&lt;-</span> <span class="fu">prop.table</span>(<span class="fu">table</span>(data<span class="sc">$</span>A, data<span class="sc">$</span>M), <span class="at">margin =</span> <span class="dv">1</span>)</span>
+<span id="cb28-213"><a href="#cb28-213" aria-hidden="true" tabindex="-1"></a>  pY_given_AM <span class="ot">&lt;-</span> <span class="fu">with</span>(data, <span class="fu">tapply</span>(Y, <span class="fu">list</span>(A, M), mean))</span>
 <span id="cb28-214"><a href="#cb28-214" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-215"><a href="#cb28-215" aria-hidden="true" tabindex="-1"></a><span class="co"># Naïve mean difference for comparison</span></span>
-<span id="cb28-216"><a href="#cb28-216" aria-hidden="true" tabindex="-1"></a>naive_ace <span class="ot">&lt;-</span> <span class="fu">mean</span>(Y_fd[A_fd <span class="sc">==</span> <span class="dv">1</span>]) <span class="sc">-</span> <span class="fu">mean</span>(Y_fd[A_fd <span class="sc">==</span> <span class="dv">0</span>])</span>
-<span id="cb28-217"><a href="#cb28-217" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Naïve mean difference (biased!): %.3f</span><span class="sc">\n</span><span class="st">"</span>, naive_ace))</span>
-<span id="cb28-218"><a href="#cb28-218" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"True ACE:                        %.3f</span><span class="sc">\n</span><span class="st">"</span>, true_ace_fd))</span>
-<span id="cb28-219"><a href="#cb28-219" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb28-220"><a href="#cb28-220" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-221"><a href="#cb28-221" aria-hidden="true" tabindex="-1"></a>The front-door formula recovers the effect even though $U$ is unobserved.</span>
-<span id="cb28-222"><a href="#cb28-222" aria-hidden="true" tabindex="-1"></a>The naive mean difference is biased by the path through $U$.</span>
-<span id="cb28-223"><a href="#cb28-223" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-224"><a href="#cb28-224" aria-hidden="true" tabindex="-1"></a><span class="fu">## When identification fails</span></span>
-<span id="cb28-225"><a href="#cb28-225" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-226"><a href="#cb28-226" aria-hidden="true" tabindex="-1"></a>Not every graph identifies the effect. If $A$ and $Y$ have a hidden common</span>
-<span id="cb28-227"><a href="#cb28-227" aria-hidden="true" tabindex="-1"></a>cause and there is no front-door variable, the effect is not identified.</span>
+<span id="cb28-215"><a href="#cb28-215" aria-hidden="true" tabindex="-1"></a>  ey_do <span class="ot">&lt;-</span> <span class="cf">function</span>(a) {</span>
+<span id="cb28-216"><a href="#cb28-216" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>(<span class="fu">sapply</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>), <span class="cf">function</span>(m) {</span>
+<span id="cb28-217"><a href="#cb28-217" aria-hidden="true" tabindex="-1"></a>      p_m_given_a <span class="ot">&lt;-</span> pM_given_A[<span class="fu">as.character</span>(a), <span class="fu">as.character</span>(m)]</span>
+<span id="cb28-218"><a href="#cb28-218" aria-hidden="true" tabindex="-1"></a>      inner <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">sapply</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>), <span class="cf">function</span>(ap)</span>
+<span id="cb28-219"><a href="#cb28-219" aria-hidden="true" tabindex="-1"></a>        pY_given_AM[<span class="fu">as.character</span>(ap), <span class="fu">as.character</span>(m)] <span class="sc">*</span></span>
+<span id="cb28-220"><a href="#cb28-220" aria-hidden="true" tabindex="-1"></a>          <span class="fu">ifelse</span>(ap <span class="sc">==</span> <span class="dv">1</span>, pA, <span class="dv">1</span> <span class="sc">-</span> pA)))</span>
+<span id="cb28-221"><a href="#cb28-221" aria-hidden="true" tabindex="-1"></a>      p_m_given_a <span class="sc">*</span> inner</span>
+<span id="cb28-222"><a href="#cb28-222" aria-hidden="true" tabindex="-1"></a>    }))</span>
+<span id="cb28-223"><a href="#cb28-223" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb28-224"><a href="#cb28-224" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ey_do</span>(<span class="dv">1</span>) <span class="sc">-</span> <span class="fu">ey_do</span>(<span class="dv">0</span>)</span>
+<span id="cb28-225"><a href="#cb28-225" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb28-226"><a href="#cb28-226" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-227"><a href="#cb28-227" aria-hidden="true" tabindex="-1"></a>est_fd <span class="ot">&lt;-</span> <span class="fu">front_door_ace</span>(data_fd)</span>
 <span id="cb28-228"><a href="#cb28-228" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-231"><a href="#cb28-231" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb28-232"><a href="#cb28-232" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: not-identified</span></span>
-<span id="cb28-233"><a href="#cb28-233" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb28-234"><a href="#cb28-234" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-235"><a href="#cb28-235" aria-hidden="true" tabindex="-1"></a><span class="co"># A → Y with unmeasured confounding (A &lt;-&gt; Y) and no mediator: the "bow"</span></span>
-<span id="cb28-236"><a href="#cb28-236" aria-hidden="true" tabindex="-1"></a><span class="co"># graph needs THREE igraph edges — the directed A → Y plus the</span></span>
-<span id="cb28-237"><a href="#cb28-237" aria-hidden="true" tabindex="-1"></a><span class="co"># bidirected pair (encoded as two opposite edges marked "U").</span></span>
-<span id="cb28-238"><a href="#cb28-238" aria-hidden="true" tabindex="-1"></a><span class="co"># graph_from_literal() silently collapses a duplicated A -+ Y, so we</span></span>
-<span id="cb28-239"><a href="#cb28-239" aria-hidden="true" tabindex="-1"></a><span class="co"># build the multigraph with make_graph().</span></span>
-<span id="cb28-240"><a href="#cb28-240" aria-hidden="true" tabindex="-1"></a>g_unident_ig <span class="ot">&lt;-</span> <span class="fu">make_graph</span>(<span class="fu">c</span>(<span class="st">"A"</span>,<span class="st">"Y"</span>,  <span class="st">"A"</span>,<span class="st">"Y"</span>,  <span class="st">"Y"</span>,<span class="st">"A"</span>), <span class="at">directed =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb28-241"><a href="#cb28-241" aria-hidden="true" tabindex="-1"></a><span class="co"># make_graph() preserves the literal edge order given above (unlike</span></span>
-<span id="cb28-242"><a href="#cb28-242" aria-hidden="true" tabindex="-1"></a><span class="co"># graph_from_literal(), which re-sorts), so index 2:3 is reliable as long as</span></span>
-<span id="cb28-243"><a href="#cb28-243" aria-hidden="true" tabindex="-1"></a><span class="co"># the c(...) vector above isn't reordered -- mark by endpoint pair anyway so</span></span>
-<span id="cb28-244"><a href="#cb28-244" aria-hidden="true" tabindex="-1"></a><span class="co"># a future edit to that vector can't silently mismark the real A-&gt;Y edge.</span></span>
-<span id="cb28-245"><a href="#cb28-245" aria-hidden="true" tabindex="-1"></a>edge_ends <span class="ot">&lt;-</span> <span class="fu">ends</span>(g_unident_ig, <span class="fu">E</span>(g_unident_ig))</span>
-<span id="cb28-246"><a href="#cb28-246" aria-hidden="true" tabindex="-1"></a><span class="co"># The first A-&gt;Y edge is the real causal edge; the second (a duplicate,</span></span>
-<span id="cb28-247"><a href="#cb28-247" aria-hidden="true" tabindex="-1"></a><span class="co"># per `duplicated()`) together with Y-&gt;A forms the bidirected U pair.</span></span>
-<span id="cb28-248"><a href="#cb28-248" aria-hidden="true" tabindex="-1"></a>u_edges <span class="ot">&lt;-</span> <span class="fu">which</span>(((edge_ends[,<span class="dv">1</span>]<span class="sc">==</span><span class="st">"A"</span> <span class="sc">&amp;</span> edge_ends[,<span class="dv">2</span>]<span class="sc">==</span><span class="st">"Y"</span>) <span class="sc">&amp;</span> <span class="fu">duplicated</span>(edge_ends)) <span class="sc">|</span></span>
-<span id="cb28-249"><a href="#cb28-249" aria-hidden="true" tabindex="-1"></a>                  (edge_ends[,<span class="dv">1</span>]<span class="sc">==</span><span class="st">"Y"</span> <span class="sc">&amp;</span> edge_ends[,<span class="dv">2</span>]<span class="sc">==</span><span class="st">"A"</span>))</span>
-<span id="cb28-250"><a href="#cb28-250" aria-hidden="true" tabindex="-1"></a>g_unident_ig <span class="ot">&lt;-</span> <span class="fu">set_edge_attr</span>(g_unident_ig, <span class="st">"description"</span>,</span>
-<span id="cb28-251"><a href="#cb28-251" aria-hidden="true" tabindex="-1"></a>                               <span class="at">index =</span> u_edges, <span class="at">value =</span> <span class="st">"U"</span>)</span>
-<span id="cb28-252"><a href="#cb28-252" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-253"><a href="#cb28-253" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(</span>
-<span id="cb28-254"><a href="#cb28-254" aria-hidden="true" tabindex="-1"></a>  <span class="fu">causal.effect</span>(<span class="at">y =</span> <span class="st">"Y"</span>, <span class="at">x =</span> <span class="st">"A"</span>, <span class="at">G =</span> g_unident_ig, <span class="at">simp =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb28-255"><a href="#cb28-255" aria-hidden="true" tabindex="-1"></a>  <span class="at">error =</span> <span class="cf">function</span>(e) <span class="fu">conditionMessage</span>(e)</span>
-<span id="cb28-256"><a href="#cb28-256" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb28-257"><a href="#cb28-257" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Result from causal.effect:</span><span class="sc">\n</span><span class="st">"</span>, result, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
-<span id="cb28-258"><a href="#cb28-258" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb28-259"><a href="#cb28-259" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-260"><a href="#cb28-260" aria-hidden="true" tabindex="-1"></a><span class="in">`causaleffect`</span> raises an error ("Not identifiable"), which the <span class="in">`tryCatch`</span></span>
-<span id="cb28-261"><a href="#cb28-261" aria-hidden="true" tabindex="-1"></a>captures, indicating the effect is not identifiable. The honest response in applied work is to report the</span>
-<span id="cb28-262"><a href="#cb28-262" aria-hidden="true" tabindex="-1"></a>non-identifiability, then either:</span>
-<span id="cb28-263"><a href="#cb28-263" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-264"><a href="#cb28-264" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Find additional variables that close the unmeasured-confounding paths</span>
-<span id="cb28-265"><a href="#cb28-265" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Apply sensitivity analysis to bound the effect under maintained assumptions</span>
-<span id="cb28-266"><a href="#cb28-266" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Find an instrumental variable for a LATE-style identification (IV chapter)</span>
-<span id="cb28-267"><a href="#cb28-267" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-268"><a href="#cb28-268" aria-hidden="true" tabindex="-1"></a>Saying that the hidden confounding is probably small is sensitivity analysis,</span>
-<span id="cb28-269"><a href="#cb28-269" aria-hidden="true" tabindex="-1"></a>not identification.</span>
-<span id="cb28-270"><a href="#cb28-270" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-271"><a href="#cb28-271" aria-hidden="true" tabindex="-1"></a><span class="fu">## End-to-end: discover, identify, estimate</span></span>
+<span id="cb28-229"><a href="#cb28-229" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">77</span>)</span>
+<span id="cb28-230"><a href="#cb28-230" aria-hidden="true" tabindex="-1"></a>boot_fd <span class="ot">&lt;-</span> <span class="fu">replicate</span>(<span class="dv">500</span>, {</span>
+<span id="cb28-231"><a href="#cb28-231" aria-hidden="true" tabindex="-1"></a>  idx <span class="ot">&lt;-</span> <span class="fu">sample.int</span>(<span class="fu">nrow</span>(data_fd), <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb28-232"><a href="#cb28-232" aria-hidden="true" tabindex="-1"></a>  <span class="fu">front_door_ace</span>(data_fd[idx, ])</span>
+<span id="cb28-233"><a href="#cb28-233" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb28-234"><a href="#cb28-234" aria-hidden="true" tabindex="-1"></a>ci_fd  <span class="ot">&lt;-</span> <span class="fu">quantile</span>(boot_fd, <span class="fu">c</span>(<span class="fl">0.025</span>, <span class="fl">0.975</span>))</span>
+<span id="cb28-235"><a href="#cb28-235" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-236"><a href="#cb28-236" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Front-door ACE: %.3f  [95%% CI: %.3f, %.3f]</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb28-237"><a href="#cb28-237" aria-hidden="true" tabindex="-1"></a>            est_fd, ci_fd[<span class="dv">1</span>], ci_fd[<span class="dv">2</span>]))</span>
+<span id="cb28-238"><a href="#cb28-238" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-239"><a href="#cb28-239" aria-hidden="true" tabindex="-1"></a><span class="co"># Naïve mean difference for comparison</span></span>
+<span id="cb28-240"><a href="#cb28-240" aria-hidden="true" tabindex="-1"></a>naive_ace <span class="ot">&lt;-</span> <span class="fu">mean</span>(Y_fd[A_fd <span class="sc">==</span> <span class="dv">1</span>]) <span class="sc">-</span> <span class="fu">mean</span>(Y_fd[A_fd <span class="sc">==</span> <span class="dv">0</span>])</span>
+<span id="cb28-241"><a href="#cb28-241" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Naïve mean difference (biased!): %.3f</span><span class="sc">\n</span><span class="st">"</span>, naive_ace))</span>
+<span id="cb28-242"><a href="#cb28-242" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"True ACE:                        %.3f</span><span class="sc">\n</span><span class="st">"</span>, true_ace_fd))</span>
+<span id="cb28-243"><a href="#cb28-243" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb28-244"><a href="#cb28-244" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-245"><a href="#cb28-245" aria-hidden="true" tabindex="-1"></a>The front-door estimate is 0.499 with a 95% bootstrap interval of</span>
+<span id="cb28-246"><a href="#cb28-246" aria-hidden="true" tabindex="-1"></a>$<span class="co">[</span><span class="ot">0.432, 0.577</span><span class="co">]</span>$, which covers the true 0.453. The naive mean difference is</span>
+<span id="cb28-247"><a href="#cb28-247" aria-hidden="true" tabindex="-1"></a>2.083 --- more than four times the truth, and outside the front-door interval</span>
+<span id="cb28-248"><a href="#cb28-248" aria-hidden="true" tabindex="-1"></a>by a factor of four. The formula recovers the effect even though $U$ is never</span>
+<span id="cb28-249"><a href="#cb28-249" aria-hidden="true" tabindex="-1"></a>measured; the naive comparison is picking up the path through $U$, which enters</span>
+<span id="cb28-250"><a href="#cb28-250" aria-hidden="true" tabindex="-1"></a>the outcome with coefficient 2 and the treatment through the logit.</span>
+<span id="cb28-251"><a href="#cb28-251" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-252"><a href="#cb28-252" aria-hidden="true" tabindex="-1"></a>The bias here is far larger than in the front-door example of the</span>
+<span id="cb28-253"><a href="#cb28-253" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">graphs chapter</span><span class="co">](graphs-identification-estimation.qmd)</span>, where the naive</span>
+<span id="cb28-254"><a href="#cb28-254" aria-hidden="true" tabindex="-1"></a>contrast was 0.14 against a truth of 0.055. The difference is the strength of</span>
+<span id="cb28-255"><a href="#cb28-255" aria-hidden="true" tabindex="-1"></a>the confounding: $U$ enters $Y$ with coefficient 2 here against 0.7 there.</span>
+<span id="cb28-256"><a href="#cb28-256" aria-hidden="true" tabindex="-1"></a>Nothing about the front-door formula changes; what changes is how much work it</span>
+<span id="cb28-257"><a href="#cb28-257" aria-hidden="true" tabindex="-1"></a>is doing.</span>
+<span id="cb28-258"><a href="#cb28-258" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-259"><a href="#cb28-259" aria-hidden="true" tabindex="-1"></a><span class="fu">## When identification fails</span></span>
+<span id="cb28-260"><a href="#cb28-260" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-261"><a href="#cb28-261" aria-hidden="true" tabindex="-1"></a>Not every graph identifies the effect. If $A$ and $Y$ have a hidden common</span>
+<span id="cb28-262"><a href="#cb28-262" aria-hidden="true" tabindex="-1"></a>cause and there is no front-door variable, the effect is not identified. The</span>
+<span id="cb28-263"><a href="#cb28-263" aria-hidden="true" tabindex="-1"></a>graph below is the **bow**: a directed edge $A \to Y$ plus a bidirected</span>
+<span id="cb28-264"><a href="#cb28-264" aria-hidden="true" tabindex="-1"></a>$A \leftrightarrow Y$, and nothing else. Remove the mediator $M$ from the</span>
+<span id="cb28-265"><a href="#cb28-265" aria-hidden="true" tabindex="-1"></a>front-door graph and this is what is left.</span>
+<span id="cb28-266"><a href="#cb28-266" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-269"><a href="#cb28-269" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb28-270"><a href="#cb28-270" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: not-identified</span></span>
+<span id="cb28-271"><a href="#cb28-271" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
 <span id="cb28-272"><a href="#cb28-272" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-273"><a href="#cb28-273" aria-hidden="true" tabindex="-1"></a>Discovery algorithms return graphs that can be passed to the identification</span>
-<span id="cb28-274"><a href="#cb28-274" aria-hidden="true" tabindex="-1"></a>step:</span>
-<span id="cb28-275"><a href="#cb28-275" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-278"><a href="#cb28-278" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb28-279"><a href="#cb28-279" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span>
-<span id="cb28-280"><a href="#cb28-280" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: true</span></span>
-<span id="cb28-281"><a href="#cb28-281" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-282"><a href="#cb28-282" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pcalg)</span>
-<span id="cb28-283"><a href="#cb28-283" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-284"><a href="#cb28-284" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1: discover the graph (chapters on causal discovery)</span></span>
-<span id="cb28-285"><a href="#cb28-285" aria-hidden="true" tabindex="-1"></a>suffStat <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">C =</span> <span class="fu">cor</span>(data_obs), <span class="at">n =</span> <span class="fu">nrow</span>(data_obs))</span>
-<span id="cb28-286"><a href="#cb28-286" aria-hidden="true" tabindex="-1"></a>pc_fit   <span class="ot">&lt;-</span> <span class="fu">pc</span>(suffStat, <span class="at">indepTest =</span> gaussCItest,</span>
-<span id="cb28-287"><a href="#cb28-287" aria-hidden="true" tabindex="-1"></a>               <span class="at">alpha =</span> <span class="fl">0.05</span>, <span class="at">p =</span> <span class="fu">ncol</span>(data_obs))</span>
-<span id="cb28-288"><a href="#cb28-288" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-289"><a href="#cb28-289" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 2: check for backdoor adjustment set using dagitty</span></span>
-<span id="cb28-290"><a href="#cb28-290" aria-hidden="true" tabindex="-1"></a><span class="co"># (convert pcalg CPDAG → dagitty for convenience).</span></span>
-<span id="cb28-291"><a href="#cb28-291" aria-hidden="true" tabindex="-1"></a><span class="co"># </span><span class="al">NOTE</span><span class="co"> the t(): as(graphNEL, "matrix") is from→to, but pcalg2dagitty</span></span>
-<span id="cb28-292"><a href="#cb28-292" aria-hidden="true" tabindex="-1"></a><span class="co"># expects the amat.cpdag coding, which is its transpose — without it</span></span>
-<span id="cb28-293"><a href="#cb28-293" aria-hidden="true" tabindex="-1"></a><span class="co"># every directed edge is silently reversed.</span></span>
-<span id="cb28-294"><a href="#cb28-294" aria-hidden="true" tabindex="-1"></a>g_dag <span class="ot">&lt;-</span> <span class="fu">pcalg2dagitty</span>(<span class="fu">t</span>(<span class="fu">as</span>(pc_fit<span class="sc">@</span>graph, <span class="st">"matrix"</span>)),</span>
-<span id="cb28-295"><a href="#cb28-295" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">colnames</span>(data_obs), <span class="at">type =</span> <span class="st">"cpdag"</span>)</span>
-<span id="cb28-296"><a href="#cb28-296" aria-hidden="true" tabindex="-1"></a>sets  <span class="ot">&lt;-</span> <span class="fu">adjustmentSets</span>(g_dag, <span class="at">exposure =</span> <span class="st">"A"</span>, <span class="at">outcome =</span> <span class="st">"Y"</span>)</span>
+<span id="cb28-273"><a href="#cb28-273" aria-hidden="true" tabindex="-1"></a><span class="co"># A → Y with unmeasured confounding (A &lt;-&gt; Y) and no mediator: the "bow"</span></span>
+<span id="cb28-274"><a href="#cb28-274" aria-hidden="true" tabindex="-1"></a><span class="co"># graph needs THREE igraph edges — the directed A → Y plus the</span></span>
+<span id="cb28-275"><a href="#cb28-275" aria-hidden="true" tabindex="-1"></a><span class="co"># bidirected pair (encoded as two opposite edges marked "U").</span></span>
+<span id="cb28-276"><a href="#cb28-276" aria-hidden="true" tabindex="-1"></a><span class="co"># graph_from_literal() silently collapses a duplicated A -+ Y, so we</span></span>
+<span id="cb28-277"><a href="#cb28-277" aria-hidden="true" tabindex="-1"></a><span class="co"># build the multigraph with make_graph().</span></span>
+<span id="cb28-278"><a href="#cb28-278" aria-hidden="true" tabindex="-1"></a>g_unident_ig <span class="ot">&lt;-</span> <span class="fu">make_graph</span>(<span class="fu">c</span>(<span class="st">"A"</span>,<span class="st">"Y"</span>,  <span class="st">"A"</span>,<span class="st">"Y"</span>,  <span class="st">"Y"</span>,<span class="st">"A"</span>), <span class="at">directed =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb28-279"><a href="#cb28-279" aria-hidden="true" tabindex="-1"></a><span class="co"># make_graph() preserves the literal edge order given above (unlike</span></span>
+<span id="cb28-280"><a href="#cb28-280" aria-hidden="true" tabindex="-1"></a><span class="co"># graph_from_literal(), which re-sorts), so index 2:3 is reliable as long as</span></span>
+<span id="cb28-281"><a href="#cb28-281" aria-hidden="true" tabindex="-1"></a><span class="co"># the c(...) vector above isn't reordered -- mark by endpoint pair anyway so</span></span>
+<span id="cb28-282"><a href="#cb28-282" aria-hidden="true" tabindex="-1"></a><span class="co"># a future edit to that vector can't silently mismark the real A-&gt;Y edge.</span></span>
+<span id="cb28-283"><a href="#cb28-283" aria-hidden="true" tabindex="-1"></a>edge_ends <span class="ot">&lt;-</span> <span class="fu">ends</span>(g_unident_ig, <span class="fu">E</span>(g_unident_ig))</span>
+<span id="cb28-284"><a href="#cb28-284" aria-hidden="true" tabindex="-1"></a><span class="co"># The first A-&gt;Y edge is the real causal edge; the second (a duplicate,</span></span>
+<span id="cb28-285"><a href="#cb28-285" aria-hidden="true" tabindex="-1"></a><span class="co"># per `duplicated()`) together with Y-&gt;A forms the bidirected U pair.</span></span>
+<span id="cb28-286"><a href="#cb28-286" aria-hidden="true" tabindex="-1"></a>u_edges <span class="ot">&lt;-</span> <span class="fu">which</span>(((edge_ends[,<span class="dv">1</span>]<span class="sc">==</span><span class="st">"A"</span> <span class="sc">&amp;</span> edge_ends[,<span class="dv">2</span>]<span class="sc">==</span><span class="st">"Y"</span>) <span class="sc">&amp;</span> <span class="fu">duplicated</span>(edge_ends)) <span class="sc">|</span></span>
+<span id="cb28-287"><a href="#cb28-287" aria-hidden="true" tabindex="-1"></a>                  (edge_ends[,<span class="dv">1</span>]<span class="sc">==</span><span class="st">"Y"</span> <span class="sc">&amp;</span> edge_ends[,<span class="dv">2</span>]<span class="sc">==</span><span class="st">"A"</span>))</span>
+<span id="cb28-288"><a href="#cb28-288" aria-hidden="true" tabindex="-1"></a>g_unident_ig <span class="ot">&lt;-</span> <span class="fu">set_edge_attr</span>(g_unident_ig, <span class="st">"description"</span>,</span>
+<span id="cb28-289"><a href="#cb28-289" aria-hidden="true" tabindex="-1"></a>                               <span class="at">index =</span> u_edges, <span class="at">value =</span> <span class="st">"U"</span>)</span>
+<span id="cb28-290"><a href="#cb28-290" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-291"><a href="#cb28-291" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(</span>
+<span id="cb28-292"><a href="#cb28-292" aria-hidden="true" tabindex="-1"></a>  <span class="fu">causal.effect</span>(<span class="at">y =</span> <span class="st">"Y"</span>, <span class="at">x =</span> <span class="st">"A"</span>, <span class="at">G =</span> g_unident_ig, <span class="at">simp =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb28-293"><a href="#cb28-293" aria-hidden="true" tabindex="-1"></a>  <span class="at">error =</span> <span class="cf">function</span>(e) <span class="fu">conditionMessage</span>(e)</span>
+<span id="cb28-294"><a href="#cb28-294" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb28-295"><a href="#cb28-295" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Result from causal.effect:</span><span class="sc">\n</span><span class="st">"</span>, result, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb28-296"><a href="#cb28-296" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb28-297"><a href="#cb28-297" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-298"><a href="#cb28-298" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 3: if backdoor set found, estimate with AIPW</span></span>
-<span id="cb28-299"><a href="#cb28-299" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 4: if not, call causaleffect::causal.effect() for the ID expression</span></span>
-<span id="cb28-300"><a href="#cb28-300" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 5: estimate the returned functional by plug-in or regression</span></span>
-<span id="cb28-301"><a href="#cb28-301" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb28-302"><a href="#cb28-302" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-303"><a href="#cb28-303" aria-hidden="true" tabindex="-1"></a>In applied work, I would not trust the discovered graph blindly. A more</span>
-<span id="cb28-304"><a href="#cb28-304" aria-hidden="true" tabindex="-1"></a>reasonable workflow is:</span>
-<span id="cb28-305"><a href="#cb28-305" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-306"><a href="#cb28-306" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Hypothesise** a graph based on subject-matter knowledge</span>
-<span id="cb28-307"><a href="#cb28-307" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Discover** a data-driven graph using PC/GES/FCI</span>
-<span id="cb28-308"><a href="#cb28-308" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Compare** the two — disagreement points to substantive questions</span>
-<span id="cb28-309"><a href="#cb28-309" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Identify** under both graphs separately</span>
-<span id="cb28-310"><a href="#cb28-310" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>**Estimate** under both, and report the range as part of the result</span>
+<span id="cb28-298"><a href="#cb28-298" aria-hidden="true" tabindex="-1"></a><span class="in">`causaleffect`</span> raises an error, printed above as "Not identifiable.", which the</span>
+<span id="cb28-299"><a href="#cb28-299" aria-hidden="true" tabindex="-1"></a><span class="in">`tryCatch`</span> captures. This is a useful failure. The algorithm did not return a</span>
+<span id="cb28-300"><a href="#cb28-300" aria-hidden="true" tabindex="-1"></a>formula that would quietly estimate the wrong thing; it reported that no</span>
+<span id="cb28-301"><a href="#cb28-301" aria-hidden="true" tabindex="-1"></a>function of the observed distribution equals the causal effect under this</span>
+<span id="cb28-302"><a href="#cb28-302" aria-hidden="true" tabindex="-1"></a>graph. No amount of data helps, because the obstacle is the graph and not the</span>
+<span id="cb28-303"><a href="#cb28-303" aria-hidden="true" tabindex="-1"></a>sample size.</span>
+<span id="cb28-304"><a href="#cb28-304" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-305"><a href="#cb28-305" aria-hidden="true" tabindex="-1"></a>The honest response in applied work is to report the</span>
+<span id="cb28-306"><a href="#cb28-306" aria-hidden="true" tabindex="-1"></a>non-identifiability, then either:</span>
+<span id="cb28-307"><a href="#cb28-307" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-308"><a href="#cb28-308" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Find additional variables that close the unmeasured-confounding paths</span>
+<span id="cb28-309"><a href="#cb28-309" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Apply sensitivity analysis to bound the effect under maintained assumptions</span>
+<span id="cb28-310"><a href="#cb28-310" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Find an instrumental variable for a LATE-style identification (IV chapter)</span>
 <span id="cb28-311"><a href="#cb28-311" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-312"><a href="#cb28-312" aria-hidden="true" tabindex="-1"></a>If the estimate changes a lot across plausible graphs, the data alone is not</span>
-<span id="cb28-313"><a href="#cb28-313" aria-hidden="true" tabindex="-1"></a>settling the question.</span>
+<span id="cb28-312"><a href="#cb28-312" aria-hidden="true" tabindex="-1"></a>Saying that the hidden confounding is probably small is sensitivity analysis,</span>
+<span id="cb28-313"><a href="#cb28-313" aria-hidden="true" tabindex="-1"></a>not identification.</span>
 <span id="cb28-314"><a href="#cb28-314" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-315"><a href="#cb28-315" aria-hidden="true" tabindex="-1"></a><span class="fu">## Why this matters</span></span>
+<span id="cb28-315"><a href="#cb28-315" aria-hidden="true" tabindex="-1"></a><span class="fu">## End-to-end: discover, identify, estimate</span></span>
 <span id="cb28-316"><a href="#cb28-316" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-317"><a href="#cb28-317" aria-hidden="true" tabindex="-1"></a>The graph-identification-estimation sequence matters because:</span>
-<span id="cb28-318"><a href="#cb28-318" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-319"><a href="#cb28-319" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Backdoor adjustment is not always available.** Many real DAGs have</span>
-<span id="cb28-320"><a href="#cb28-320" aria-hidden="true" tabindex="-1"></a>  hidden confounders. Front-door, nested, and general ID algorithms are</span>
-<span id="cb28-321"><a href="#cb28-321" aria-hidden="true" tabindex="-1"></a>  the recourse, but they are too complex to derive by hand for non-trivial</span>
-<span id="cb28-322"><a href="#cb28-322" aria-hidden="true" tabindex="-1"></a>  graphs.</span>
-<span id="cb28-323"><a href="#cb28-323" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The right estimator depends on the identification strategy.**</span>
-<span id="cb28-324"><a href="#cb28-324" aria-hidden="true" tabindex="-1"></a>  AIPW-for-backdoor uses a different formula than the front-door plug-in.</span>
-<span id="cb28-325"><a href="#cb28-325" aria-hidden="true" tabindex="-1"></a>  Matching the estimator to the identification result avoids the common</span>
-<span id="cb28-326"><a href="#cb28-326" aria-hidden="true" tabindex="-1"></a>  mistake of plugging a graph into the wrong estimator.</span>
-<span id="cb28-327"><a href="#cb28-327" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Reporting becomes more disciplined.** Once the workflow forces you to</span>
-<span id="cb28-328"><a href="#cb28-328" aria-hidden="true" tabindex="-1"></a>  specify a graph, it becomes harder to wave hands about "unconfoundedness"</span>
-<span id="cb28-329"><a href="#cb28-329" aria-hidden="true" tabindex="-1"></a>  — you have to say exactly which variables are doing the unconfounding</span>
-<span id="cb28-330"><a href="#cb28-330" aria-hidden="true" tabindex="-1"></a>  work.</span>
-<span id="cb28-331"><a href="#cb28-331" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-332"><a href="#cb28-332" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
-<span id="cb28-333"><a href="#cb28-333" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-334"><a href="#cb28-334" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A graph is not an estimate. Identification is the bridge.</span>
-<span id="cb28-335"><a href="#cb28-335" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`dagitty`</span> handles backdoor and front-door checks; <span class="in">`causaleffect`</span> handles</span>
-<span id="cb28-336"><a href="#cb28-336" aria-hidden="true" tabindex="-1"></a>  general ADMG identification.</span>
-<span id="cb28-337"><a href="#cb28-337" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Backdoor effects can be estimated with AIPW.</span>
-<span id="cb28-338"><a href="#cb28-338" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Front-door effects require estimating the front-door functional.</span>
-<span id="cb28-339"><a href="#cb28-339" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>If the effect is not identified, report that instead of forcing a biased</span>
-<span id="cb28-340"><a href="#cb28-340" aria-hidden="true" tabindex="-1"></a>  regression estimate.</span>
+<span id="cb28-317"><a href="#cb28-317" aria-hidden="true" tabindex="-1"></a>Discovery algorithms return graphs that can be passed to the identification</span>
+<span id="cb28-318"><a href="#cb28-318" aria-hidden="true" tabindex="-1"></a>step:</span>
+<span id="cb28-319"><a href="#cb28-319" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-322"><a href="#cb28-322" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb28-323"><a href="#cb28-323" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span>
+<span id="cb28-324"><a href="#cb28-324" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: true</span></span>
+<span id="cb28-325"><a href="#cb28-325" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-326"><a href="#cb28-326" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pcalg)</span>
+<span id="cb28-327"><a href="#cb28-327" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-328"><a href="#cb28-328" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1: discover the graph (chapters on causal discovery)</span></span>
+<span id="cb28-329"><a href="#cb28-329" aria-hidden="true" tabindex="-1"></a>suffStat <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">C =</span> <span class="fu">cor</span>(data_obs), <span class="at">n =</span> <span class="fu">nrow</span>(data_obs))</span>
+<span id="cb28-330"><a href="#cb28-330" aria-hidden="true" tabindex="-1"></a>pc_fit   <span class="ot">&lt;-</span> <span class="fu">pc</span>(suffStat, <span class="at">indepTest =</span> gaussCItest,</span>
+<span id="cb28-331"><a href="#cb28-331" aria-hidden="true" tabindex="-1"></a>               <span class="at">alpha =</span> <span class="fl">0.05</span>, <span class="at">p =</span> <span class="fu">ncol</span>(data_obs))</span>
+<span id="cb28-332"><a href="#cb28-332" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-333"><a href="#cb28-333" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 2: check for backdoor adjustment set using dagitty</span></span>
+<span id="cb28-334"><a href="#cb28-334" aria-hidden="true" tabindex="-1"></a><span class="co"># (convert pcalg CPDAG → dagitty for convenience).</span></span>
+<span id="cb28-335"><a href="#cb28-335" aria-hidden="true" tabindex="-1"></a><span class="co"># </span><span class="al">NOTE</span><span class="co"> the t(): as(graphNEL, "matrix") is from→to, but pcalg2dagitty</span></span>
+<span id="cb28-336"><a href="#cb28-336" aria-hidden="true" tabindex="-1"></a><span class="co"># expects the amat.cpdag coding, which is its transpose — without it</span></span>
+<span id="cb28-337"><a href="#cb28-337" aria-hidden="true" tabindex="-1"></a><span class="co"># every directed edge is silently reversed.</span></span>
+<span id="cb28-338"><a href="#cb28-338" aria-hidden="true" tabindex="-1"></a>g_dag <span class="ot">&lt;-</span> <span class="fu">pcalg2dagitty</span>(<span class="fu">t</span>(<span class="fu">as</span>(pc_fit<span class="sc">@</span>graph, <span class="st">"matrix"</span>)),</span>
+<span id="cb28-339"><a href="#cb28-339" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">colnames</span>(data_obs), <span class="at">type =</span> <span class="st">"cpdag"</span>)</span>
+<span id="cb28-340"><a href="#cb28-340" aria-hidden="true" tabindex="-1"></a>sets  <span class="ot">&lt;-</span> <span class="fu">adjustmentSets</span>(g_dag, <span class="at">exposure =</span> <span class="st">"A"</span>, <span class="at">outcome =</span> <span class="st">"Y"</span>)</span>
+<span id="cb28-341"><a href="#cb28-341" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-342"><a href="#cb28-342" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 3: if backdoor set found, estimate with AIPW</span></span>
+<span id="cb28-343"><a href="#cb28-343" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 4: if not, call causaleffect::causal.effect() for the ID expression</span></span>
+<span id="cb28-344"><a href="#cb28-344" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 5: estimate the returned functional by plug-in or regression</span></span>
+<span id="cb28-345"><a href="#cb28-345" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb28-346"><a href="#cb28-346" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-347"><a href="#cb28-347" aria-hidden="true" tabindex="-1"></a>In applied work, I would not trust the discovered graph blindly. A more</span>
+<span id="cb28-348"><a href="#cb28-348" aria-hidden="true" tabindex="-1"></a>reasonable workflow is:</span>
+<span id="cb28-349"><a href="#cb28-349" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-350"><a href="#cb28-350" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Hypothesise** a graph based on subject-matter knowledge</span>
+<span id="cb28-351"><a href="#cb28-351" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Discover** a data-driven graph using PC/GES/FCI</span>
+<span id="cb28-352"><a href="#cb28-352" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Compare** the two — disagreement points to substantive questions</span>
+<span id="cb28-353"><a href="#cb28-353" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Identify** under both graphs separately</span>
+<span id="cb28-354"><a href="#cb28-354" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>**Estimate** under both, and report the range as part of the result</span>
+<span id="cb28-355"><a href="#cb28-355" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-356"><a href="#cb28-356" aria-hidden="true" tabindex="-1"></a>If the estimate changes a lot across plausible graphs, the data alone is not</span>
+<span id="cb28-357"><a href="#cb28-357" aria-hidden="true" tabindex="-1"></a>settling the question.</span>
+<span id="cb28-358"><a href="#cb28-358" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-359"><a href="#cb28-359" aria-hidden="true" tabindex="-1"></a><span class="fu">## Why this matters</span></span>
+<span id="cb28-360"><a href="#cb28-360" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-361"><a href="#cb28-361" aria-hidden="true" tabindex="-1"></a>The graph-identification-estimation sequence matters because:</span>
+<span id="cb28-362"><a href="#cb28-362" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-363"><a href="#cb28-363" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Backdoor adjustment is not always available.** Many real DAGs have</span>
+<span id="cb28-364"><a href="#cb28-364" aria-hidden="true" tabindex="-1"></a>  hidden confounders. Front-door, nested, and general ID algorithms are</span>
+<span id="cb28-365"><a href="#cb28-365" aria-hidden="true" tabindex="-1"></a>  the recourse, but they are too complex to derive by hand for non-trivial</span>
+<span id="cb28-366"><a href="#cb28-366" aria-hidden="true" tabindex="-1"></a>  graphs.</span>
+<span id="cb28-367"><a href="#cb28-367" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The right estimator depends on the identification strategy.**</span>
+<span id="cb28-368"><a href="#cb28-368" aria-hidden="true" tabindex="-1"></a>  AIPW-for-backdoor uses a different formula than the front-door plug-in.</span>
+<span id="cb28-369"><a href="#cb28-369" aria-hidden="true" tabindex="-1"></a>  Matching the estimator to the identification result avoids the common</span>
+<span id="cb28-370"><a href="#cb28-370" aria-hidden="true" tabindex="-1"></a>  mistake of plugging a graph into the wrong estimator.</span>
+<span id="cb28-371"><a href="#cb28-371" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Reporting becomes more disciplined.** Once the workflow forces you to</span>
+<span id="cb28-372"><a href="#cb28-372" aria-hidden="true" tabindex="-1"></a>  specify a graph, it becomes harder to wave hands about "unconfoundedness"</span>
+<span id="cb28-373"><a href="#cb28-373" aria-hidden="true" tabindex="-1"></a>  — you have to say exactly which variables are doing the unconfounding</span>
+<span id="cb28-374"><a href="#cb28-374" aria-hidden="true" tabindex="-1"></a>  work.</span>
+<span id="cb28-375"><a href="#cb28-375" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-376"><a href="#cb28-376" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb28-377"><a href="#cb28-377" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-378"><a href="#cb28-378" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A graph is not an estimate. Identification is the bridge.</span>
+<span id="cb28-379"><a href="#cb28-379" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`dagitty`</span> handles backdoor and front-door checks; <span class="in">`causaleffect`</span> handles</span>
+<span id="cb28-380"><a href="#cb28-380" aria-hidden="true" tabindex="-1"></a>  general ADMG identification.</span>
+<span id="cb28-381"><a href="#cb28-381" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Backdoor effects can be estimated with AIPW.</span>
+<span id="cb28-382"><a href="#cb28-382" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Front-door effects require estimating the front-door functional.</span>
+<span id="cb28-383"><a href="#cb28-383" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>If the effect is not identified, report that instead of forcing a biased</span>
+<span id="cb28-384"><a href="#cb28-384" aria-hidden="true" tabindex="-1"></a>  regression estimate.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

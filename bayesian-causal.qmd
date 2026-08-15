@@ -36,8 +36,18 @@ I use two models:
 
 ## Setup
 
-I use the same simulation as in the [Heterogeneous Treatment Effects](heterogeneous-effects.qmd)
-chapter. The true treatment effect varies with `X1`.
+We reuse the simulation from the [Heterogeneous Treatment Effects](heterogeneous-effects.qmd)
+chapter, at $n = 2000$ rather than 5000. Five covariates are drawn
+independently from $U(0,1)$. Treatment is
+$D \sim \text{Bernoulli}(\Lambda(-0.3 + 1.5X_2))$, the individual effect is
+$\tau(x) = 1 + 2x_1$, and the potential outcomes are
+$Y(0) = 0.5X_2 + \varepsilon$ with $\varepsilon \sim N(0,1)$ and
+$Y(1) = Y(0) + \tau(X)$. Only $X_1$ modifies the effect, only $X_2$ confounds,
+and $X_2$ is observed, so both models below are identified.
+
+The aim is to see what a posterior adds over a point estimate: an interval for
+the ATE that requires no asymptotic argument, and an interval for every
+individual effect.
 
 ```{r}
 #| label: dgp
@@ -62,6 +72,8 @@ df <- data.frame(Y = Y, D = D, X)
 cat(sprintf("True ATE = %.3f\n", mean(tau)))
 ```
 
+The realized ATE in this draw is 1.985, against a population value of 2.
+
 ## BART for causal inference (Hill 2011)
 
 BART is a sum of many small regression trees. The prior keeps each tree
@@ -73,6 +85,10 @@ For causal inference, the recipe is:
 2. For each unit $i$, predict counterfactuals $\mu(1, x_i)$ and $\mu(0, x_i)$.
 3. The individual treatment effect (ITE) is $\hat\tau_i = \mu(1, x_i) - \mu(0, x_i)$.
 4. Average the posterior draws to get the posterior for ATE or ITEs.
+
+We run 1000 posterior draws after 200 burn-in, with $D$ and the five covariates
+as the design matrix. Each draw gives an ATE, and the spread across draws is
+the posterior uncertainty.
 
 ```{r}
 #| label: bart-fit
@@ -113,7 +129,10 @@ cat(sprintf("  95%% CrI: [%.3f, %.3f]\n", ate_post_ci[1], ate_post_ci[2]))
 cat(sprintf("  True ATE: %.3f\n", mean(tau)))
 ```
 
-The posterior draws give the uncertainty in the ATE directly.
+The posterior mean is 1.977 with a posterior standard deviation of 0.048 and a
+95% credible interval of $[1.880, 2.071]$, which covers the realized 1.985. The
+posterior draws give the uncertainty directly: no asymptotic variance formula
+and no bootstrap, just the spread of the 1000 draws.
 
 ### Individual-level credible intervals
 
@@ -151,8 +170,10 @@ ggplot(df_ite, aes(x = X1)) +
   theme_minimal()
 ```
 
-The blue ribbon is the pointwise 95% credible interval. The red dashed line
-is the true treatment-effect function.
+The blue points are posterior means, the blue ribbon is the pointwise 95%
+credible interval, and the red dashed line is the true $\tau(x) = 1+2x_1$. This
+is what a frequentist CATE estimator does not hand you for free: an interval
+for each individual, not only for the average.
 
 ## Bayesian Causal Forests (BCF)
 
@@ -188,11 +209,18 @@ piHat  <- predict(ps_fit, type = "response")
 # Use SEPARATE input and output files so a failed subprocess can never leave
 # the input list sitting where we expect the result, and check the exit
 # status and object names before trusting it.
+#
+# The subprocess needs its OWN set.seed(): a seed set in this session does not
+# reach a separate R process, so without the seed below BCF's posterior draws
+# change every time the chunk actually executes. The knitr cache hides that --
+# the numbers look stable until someone clears the cache, and then every BCF
+# figure in this chapter moves. Seed the worker so the chapter is reproducible.
 tmp_in  <- tempfile(fileext = ".rds")
 tmp_out <- tempfile(fileext = ".rds")
 tmp_err <- tempfile(fileext = ".log")
 saveRDS(list(Y = df$Y, D = df$D, X = X, piHat = piHat), tmp_in)
 status <- system(paste0("Rscript -e '",
+  "set.seed(42); ",
   "args <- readRDS(\"", tmp_in, "\"); ",
   "suppressMessages(library(bcf)); ",
   "f <- bcf(y=args$Y, z=args$D, x_control=args$X, x_moderate=args$X, ",
@@ -212,7 +240,10 @@ if (is.null(bcf_fit$tau)) {
 unlink(c(tmp_in, tmp_out, tmp_err))
 ```
 
-Now extract the posterior treatment effects:
+The propensity score enters BCF as data, so we fit it first by logistic
+regression on all five covariates. BCF then runs 1000 draws after 200 burn-in
+on one chain. We extract the posterior treatment effects and summarise them the
+same way as for BART:
 
 ```{r}
 #| label: bcf-summary
@@ -232,14 +263,23 @@ cat(sprintf("  95%% CrI: [%.3f, %.3f]\n",
 cat(sprintf("  True ATE: %.3f\n", mean(tau)))
 ```
 
+BCF gives a posterior mean of 1.984 with a posterior standard deviation of
+0.044 and a 95% credible interval of $[1.903, 2.072]$. Against BART's 1.977 and
+0.048, and a realized truth of 1.985, the two are indistinguishable at the level
+of the ATE. That is expected: the separation prior is aimed at the
+treatment-effect *function*, and averaging over units washes out most of what
+it does.
+
 ### BART vs BCF: individual treatment effects
 
-Compare the estimated CATEs:
+The difference, if there is one, should appear in the individual effects. Each
+panel plots the posterior-mean ITE against $X_1$, with a loess fit and the true
+$\tau(x)$ as the dashed red line.
 
 ```{r}
 #| label: compare-ite
 #| cache: true
-#| fig-cap: "BCF (left) vs BART (right) individual treatment effect estimates. BCF's separation prior gives tighter, less noisy CATE estimates."
+#| fig-cap: "BCF (left) vs BART (right) posterior-mean individual treatment effects against the true τ(x) = 1 + 2 X₁."
 #| fig-width: 9
 #| fig-height: 4
 
@@ -260,8 +300,18 @@ ggplot(df_compare, aes(X1, est)) +
   theme_minimal()
 ```
 
-BCF is usually smoother because it separates the prognostic and treatment
-effect parts of the model.
+Both clouds follow the true line. BCF is usually the smoother of the two,
+because separating the prognostic part $\mu(X)$ from the effect part $\tau(X)$
+lets the prior regularise the effect function harder without also flattening
+the baseline. In this DGP the baseline is nearly flat --- $Y(0) = 0.5X_2 +
+\varepsilon$ --- so there is little prognostic signal for BART to confuse with
+the effect, and the two methods have less to separate them than they would with
+a strong, treatment-correlated baseline.
+
+Both sets of numbers here are reproducible. BART is seeded in this session, and
+the BCF worker seeds itself --- a seed set in the parent session does not reach
+a separate R process, so the `set.seed(42)` inside the `Rscript` call is what
+makes the posterior stable across renders.
 
 ## When to use Bayesian methods
 

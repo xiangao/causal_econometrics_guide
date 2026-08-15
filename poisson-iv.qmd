@@ -58,6 +58,29 @@ Three practical consequences:
 
 We simulate a panel where `time` (continuous, e.g. minutes on site) is endogenous: it is correlated with an unobserved factor `e` that also affects `visits`. The excluded instrument is `phone` (binary, e.g. phone-access indicator). Fixed effects are `ad` (20 groups) and `female`.
 
+There are 20 ad groups of 250 observations each, $n = 5000$. Each group draws a
+fixed effect $\alpha_g \sim N(0, 0.5^2)$. At the individual level,
+$\text{female} \sim \text{Bernoulli}(0.5)$,
+$\text{phone} \sim \text{Bernoulli}(0.4)$, $\text{frfam} \sim U(0,1)$, and the
+unobservable is $e \sim N(0,1)$. The endogenous regressor is
+
+$$
+\text{time} = 1.5\,\text{phone} + 0.5\,\text{frfam} + \alpha_g + e,
+$$ {#eq-poisson-iv-7}
+
+and the count is $\text{visits} \sim \text{Poisson}(\lambda)$ with
+
+$$
+\lambda = \exp(0.5 + 0.8\,\text{time} + 0.4\,\text{frfam} + \alpha_g
+          + 0.3\,\text{female} + 0.5\,e).
+$$ {#eq-poisson-iv-8}
+
+The true $\alpha_1$ is 0.8. The same $e$ appears in `time` and in the log mean,
+which is the endogeneity, and `phone` appears only in `time`, which is the
+exclusion restriction. Note that $e$ enters the log mean *linearly inside*
+$\exp(\cdot)$: the control-function assumption holds here by construction, so
+this simulation tests the estimator rather than the assumption.
+
 ```{r}
 #| echo: true
 set.seed(42)
@@ -95,6 +118,15 @@ naive1 <- fepois(visits ~ time + frfam | ad + female, data = df1)
 etable(naive1, title = "Naive Poisson — time is endogenous")
 ```
 
+The naive estimate is 1.139 against a true 0.8, an upward bias of 0.34. The
+sign follows the callout above: $\rho = 0.5 > 0$, so omitting the control
+function leaves a multiplicative $e^{0.5e}$ term positively correlated with
+`time`. The magnitude is roughly predictable too. Conditioning on `frfam`, `ad`
+and `female` but not `phone`, the surviving variation in `time` is
+$1.5\,\text{phone} + e$ with variance $1.5^2(0.4)(0.6) + 1 = 1.54$, so a linear
+approximation puts the bias near $0.5 \times 1/1.54 = 0.32$, close to the 0.34
+observed.
+
 ### Control function approach
 
 The two-step CF procedure:
@@ -117,7 +149,12 @@ etable(m1_cf, title = "CF: linear projection first stage")
 cat(sprintf("time coefficient: %.4f  (true %.1f)\n", coef(m1_cf)["time"], true_alpha))
 ```
 
-The coefficient on `time` is close to the true $\alpha_1 = 0.8$ (within 2.5 percent). The `v2hat` coefficient tests exogeneity — its $t$-statistic is the Hausman-type test.
+The coefficient on `time` is 0.7801, within 2.5 percent of the true
+$\alpha_1 = 0.8$, against the naive 1.139. The coefficient on `v2hat` is 0.5150,
+which is $\rho$, and the DGP sets $\rho = 0.5$ --- the control function
+recovers the endogeneity parameter as well as the structural one. Its
+$t$-statistic of 103 is the Hausman-type test, and it rejects exogeneity
+decisively.
 
 ### Bootstrap standard errors
 
@@ -163,7 +200,9 @@ cat(sprintf("Bootstrap 95%% CI: [%.4f, %.4f]\n",
             quantile(boot1, 0.025), quantile(boot1, 0.975)))
 ```
 
-The bootstrapped SE is larger than the naive second-stage SE, confirming that ignoring first-stage uncertainty understates uncertainty. Note that the 95% interval here happens to just exclude the true 0.8: a Monte Carlo over fresh seeds of this design centers the CF estimator on 0.80 (mean 0.802, sd 0.009), so this draw is simply an unlucky one — and with only 20 clusters the bootstrap interval is itself noisy.
+The bootstrap standard error is 0.0079 against the naive second-stage 0.0041,
+almost twice as large, confirming that ignoring first-stage uncertainty
+understates uncertainty by about half here. Note that the 95% interval here happens to just exclude the true 0.8: a Monte Carlo over fresh seeds of this design centers the CF estimator on 0.80 (mean 0.802, sd 0.009), so this draw is simply an unlucky one — and with only 20 clusters the bootstrap interval is itself noisy.
 
 ---
 
@@ -176,6 +215,25 @@ grounded routes instead.
 ### Data generating process
 
 We use a clean probit DGP for the binary endogenous variable with a fresh structural error `e2` independent of Part 1. The endogeneity coefficient `ρ = 0.2` is kept small so the CF assumption holds approximately well and estimates are close to the true value.
+
+The covariates `phone`, `frfam`, `female` and the group effects $\alpha_g$ are
+carried over from Part 1, and we draw a new $e_2 \sim N(0,1)$. The binary
+endogenous variable is a probit threshold,
+
+$$
+\text{time\_hi} = \mathbb{1}\{1.5\,\text{phone} + 0.4\,\text{frfam} + e_2 \ge 0\},
+$$ {#eq-poisson-iv-9}
+
+and the count is $\text{visits} \sim \text{Poisson}(\lambda_2)$ with
+
+$$
+\lambda_2 = \exp(0.5 + 0.8\,\text{time\_hi} + 0.4\,\text{frfam} + \alpha_g
+            + 0.3\,\text{female} + 0.2\,e_2).
+$$ {#eq-poisson-iv-10}
+
+The true $\alpha_1$ is again 0.8, and $\rho = 0.2$. Because the latent index is
+exactly a probit, the first stage in Approach B is correctly specified by
+construction, which isolates the approximation error from any misspecification.
 
 ```{r}
 #| echo: true
@@ -200,6 +258,11 @@ cat(sprintf("time_hi mean:      %.3f\n", mean(time_hi)))
 cat(sprintf("Cor(time_hi, e2):  %.3f  (endogeneity)\n", cor(time_hi, e2)))
 cat(sprintf("visits mean:       %.2f\n", mean(visits2)))
 ```
+
+73% of observations have `time_hi = 1`, the correlation between `time_hi` and
+$e_2$ is 0.622, and mean visits are 6.18, well below Part 1's 26.4 --- a binary
+regressor cannot generate the exponential variation that a continuous,
+unbounded `time` does.
 
 ### Why Approach A's assumption breaks down for binary $y_2$
 
@@ -386,6 +449,8 @@ m_a <- fepois(visits ~ time_hi + v2hat + frfam | ad + female, data = df2)
 etable(m_a, title = "Approach A: OLS residual as control function")
 ```
 
+Approach A gives 0.8613 with a coefficient of 0.2674 on `v2hat`.
+
 ### Approach B — Probit generalized residuals
 
 ```{r}
@@ -402,6 +467,11 @@ df2$gr2  <- ifelse(df2$time_hi == 1,
 m_b <- fepois(visits ~ time_hi + gr2 + frfam | ad + female, data = df2)
 etable(m_b, title = "Approach B: probit generalized residual")
 ```
+
+Approach B gives 0.8544, slightly closer to the truth than A's 0.8613, with a
+coefficient of 0.1664 on the generalized residual. That coefficient is an
+estimate of $\rho$, whose true value is 0.2; it is not exact because Approach B
+is itself only a first-order approximation.
 
 ### Does the first stage have to be probit? Logit works too — with a caveat
 
@@ -431,6 +501,10 @@ etable(m_b_logit, title = "Approach B with a logit first stage")
 cat(sprintf("Probit-based Approach B: alpha1 = %.4f\n", coef(m_b)["time_hi"]))
 cat(sprintf("Logit-based  Approach B: alpha1 = %.4f\n", coef(m_b_logit)["time_hi"]))
 ```
+
+The logit first stage gives 0.8625 against the probit's 0.8544, a difference of
+0.008 on estimates whose standard errors are 0.032. The choice of link is not
+what matters here.
 
 Two important limits, though:
 
@@ -494,6 +568,11 @@ cat(sprintf("  frfam:    coef = %7.4f   SE = %7.4f   z = %6.3f\n",
             coef_c[2], se_c[2], coef_c[2] / se_c[2]))
 ```
 
+GMM gives 0.7844 with a standard error of 0.0656 on `time_hi`, and 0.4576 on
+`frfam` against a true 0.4. The point estimate is the closest of the three to
+0.8, and the standard error is twice A's and B's --- the trade-off the
+comparison section below takes apart.
+
 ::: {.callout-note}
 **Approach C with FE** requires demeaning the regressor and instrument matrices via within-group centering before solving the Poisson moment conditions. Because Poisson is nonlinear this is not straightforward. Approaches A and B both run unmodified in `feols`/`feglm` + `fepois`, so either is practical when many fixed effects are present; of the two, prefer B (see the takeaway below).
 :::
@@ -513,7 +592,10 @@ cat(sprintf("Approach C  (IV/GMM Poisson, no FE):       α̂₁ = %.4f\n", coef_
 cat(sprintf("True α₁ = %.1f\n", true_alpha))
 ```
 
-The estimates differ despite using the same exclusion restriction, confirming that 2SLS ≠ CF for Poisson.
+The three land at 0.8613, 0.8544 and 0.7844 against a true 0.8. They differ
+despite using the same exclusion restriction, which is the point: in a linear
+model FWL would force A and C to agree exactly, and here they are 0.077 apart.
+2SLS $\ne$ CF for Poisson.
 
 ### Bootstrap for Approach A (binary EEV)
 
@@ -557,6 +639,14 @@ cat(sprintf("  Bootstrap 95%% CI:  [%.4f, %.4f]\n",
             quantile(boot2, 0.025), quantile(boot2, 0.975)))
 ```
 
+The bootstrap standard error is 0.0331 against the naive 0.0321 --- almost
+identical here, unlike Part 1 where the bootstrap was twice the naive figure.
+The reason is that the binary first stage carries much less estimation
+uncertainty into the second stage than the continuous one did. The 95% interval
+$[0.803, 0.931]$ excludes the true 0.8, which is the approximation bias
+discussed above showing up in inference, not a coverage failure of the
+bootstrap.
+
 ### Comparison across all methods
 
 ```{r}
@@ -579,7 +669,9 @@ for (i in seq_along(methods)) {
 }
 ```
 
-Approaches A and B (with FE) recover the true value closely; a small upward
+The naive Poisson gives 1.0832 against a true 0.8, so ignoring the endogeneity
+overstates the effect by 35%. Approaches A and B (with FE) recover the true
+value closely, at 0.8613 and 0.8544; a small upward
 bias from $\rho=0.2$ and the binary EEV is expected — see the derivation
 above (A has no valid first-stage assumption for binary $y_2$; B is correct
 only to first order in $\rho$). Approach C happens to land closest in this

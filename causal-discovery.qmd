@@ -130,6 +130,10 @@ sprintf("Variables: %d   Samples: %d   True edges: %d",
         n_vars, n_samples, sum(adj_true))
 ```
 
+The draw gives 11 edges among the 28 possible pairs of 8 nodes, a density of
+0.39, close to the 0.35 we asked for. Both algorithms below see only
+`data_mat`; `adj_true` is kept aside to score them.
+
 ```{r}
 #| label: fig-true-dag
 #| fig-cap: "True DAG used for simulation."
@@ -288,6 +292,10 @@ sprintf("PC:    skeleton F1 = %.3f   CPDAG F1 = %.3f   CI tests = %d",
         f1_pc["skeleton"], f1_pc["cpdag"], ci_tests_pc)
 ```
 
+PC recovers the skeleton almost perfectly, with an F1 of 0.952, and orients most
+of it correctly, with a CPDAG F1 of 0.857. It needed 293 conditional
+independence tests to get there.
+
 **Computational complexity:** In the worst case PC tests all subsets of neighbors, giving exponential growth with the maximum degree. In sparse graphs this is manageable; in dense graphs it becomes prohibitive.
 
 ## GES Algorithm
@@ -313,6 +321,10 @@ ig_cpdag_ges <- graphnel_to_ig(cpdag_ges)
 sprintf("GES:   skeleton F1 = %.3f   CPDAG F1 = %.3f   (score-based, no CI tests)",
         f1_ges["skeleton"], f1_ges["cpdag"])
 ```
+
+GES gets a skeleton F1 of 0.800 and a CPDAG F1 of 0.720 on this dataset, both
+below PC's 0.952 and 0.857. Do not read that as a general ranking; the Monte
+Carlo below shows what happens when we stop looking at one draw.
 
 PC and GES fail differently. In PC, one wrong CI decision can affect later
 orientation decisions. In GES, a wrong score move is usually more local.
@@ -415,6 +427,21 @@ kable(mc_summary,
       row.names = FALSE)
 ```
 
+The averages change the picture. On skeleton recovery PC gets 0.947 and GES
+0.933 --- a gap of 0.014, against the 0.152 gap on the single dataset shown
+above. That one draw was not representative, and it is the reason this section
+exists. The honest statement is that the two algorithms recover adjacencies
+about equally well on this class of graphs.
+
+The CPDAG gap is larger and does not close: 0.903 for PC against 0.825 for GES.
+Both algorithms target the same CPDAG and the BIC score is score-equivalent, so
+this is not GES orienting *worse* in principle. It follows from the skeleton:
+edges GES fails to recover cannot be oriented at all, and our CPDAG score
+counts those as errors.
+
+PC's average cost is 230.6 CI tests, below the 293 it used on the single
+dataset above --- another sign that draw was on the dense side.
+
 ```{r}
 #| label: fig-mc-ci
 #| fig-cap: "Distribution of PC's CI-test counts across 100 replications. The spread reflects how PC's cost depends on the realized graph density and the order of CI decisions."
@@ -426,6 +453,14 @@ ggplot(mc, aes(x = ci_pc)) +
        title = "PC CI-test counts across 100 replications") +
   theme_minimal()
 ```
+
+The distribution is right-skewed: the mean is 230.6 against a median of 212,
+and the counts run from 40 to 770 across the 100 replications. Nothing changes
+between replications except the random graph and the sample drawn from it, so
+a nineteen-fold spread in cost comes entirely from graph density --- a denser
+draw means larger neighbour sets and therefore more conditioning subsets to
+test. This is the practical face of the exponential worst case noted earlier.
+At 8 nodes it is a nuisance; at 50 it is the binding constraint.
 
 ## Real Data: Student Performance in PISA
 
@@ -489,6 +524,17 @@ sprintf("Raw n = %d   Kish effective n = %.0f", nrow(Xp), neff)
 kable(round(Cwp, 2))
 ```
 
+The weights cost us little information here: the raw sample of 3,890 students
+carries an effective sample size of 3,481, about 89% of it.
+
+The correlation matrix already shows what the graph will have to explain.
+`MATH` correlates 0.40 with `HOMEPOS` and 0.33 with `HISEI`, the two family
+background measures, which themselves correlate 0.42 with each other. `GRADE`
+correlates 0.17 with `MATH` and `GENDER` $-0.09$. `IMMIG` correlates $-0.17$
+and $-0.18$ with the two background measures but only $-0.05$ with `MATH` ---
+its association with achievement runs largely through family background, which
+is the kind of statement a discovery algorithm is meant to formalise.
+
 ### Two algorithms on the weighted data
 
 PC consumes the weighted correlation and effective $n$ directly. GES is
@@ -529,6 +575,16 @@ diag(skp) <- diag(skg) <- 0
 sprintf("Skeleton edges — PC: %d   GES: %d   in both: %d",
         sum(skp)/2, sum(skg)/2, sum(skp & skg)/2)
 ```
+
+The two algorithms find 9 skeleton edges each, and all 9 are the same edges.
+That is the strongest agreement we can ask for without a ground truth: two
+methods with different failure modes, one testing conditional independences and
+one maximising a penalised likelihood, select an identical adjacency structure.
+Nine edges out of 15 possible pairs is also a genuinely sparse answer, not a
+near-complete graph.
+
+Agreement on the skeleton does not extend to orientation, as the next figure
+shows.
 
 ```{r}
 #| label: fig-pisa-cpdags
@@ -661,8 +717,16 @@ ggplot(pairs_df, aes(x = reorder(Edge, Frequency), y = Frequency)) +
   theme_minimal()
 ```
 
-The family-background→math edges (`HISEI`, `HOMEPOS`) are the most stable
-features: the SES gradient in achievement is not an artefact. On real data,
+Six of the nine edges appear in every one of the 200 resamples:
+`HISEI–HOMEPOS`, `HISEI–IMMIG`, `HISEI–MATH`, `HOMEPOS–IMMIG`, `HOMEPOS–MATH`
+and `GRADE–MATH`. `GENDER–MATH` appears in 99.5% and `GRADE–GENDER` in 98.5%.
+The weakest of the nine is `IMMIG–GRADE` at 86.5% --- still stable, but the one
+to hold most loosely. Two edges that the full sample rejected do appear
+occasionally, `HOMEPOS–GENDER` in 14% of resamples and `IMMIG–GENDER` in 0.5%;
+neither is close to the 50% line.
+
+So the family-background-to-math edges are perfectly stable: the SES gradient
+in achievement is not an artefact of this sample. On real data,
 causal discovery is best read as **hypothesis generation** — it proposes a
 skeleton and the orientations the data support, which you then reconcile with
 subject-matter knowledge before estimating effects.

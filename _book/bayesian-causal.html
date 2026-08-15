@@ -444,7 +444,8 @@ window.Quarto = {
 </blockquote>
 <section id="setup" class="level2" data-number="11.1"><h2 data-number="11.1" class="anchored" data-anchor-id="setup">
 <span class="header-section-number">11.1</span> Setup</h2>
-<p>I use the same simulation as in the <a href="./heterogeneous-effects.html">Heterogeneous Treatment Effects</a> chapter. The true treatment effect varies with <code>X1</code>.</p>
+<p>We reuse the simulation from the <a href="./heterogeneous-effects.html">Heterogeneous Treatment Effects</a> chapter, at <span class="math inline">\(n = 2000\)</span> rather than 5000. Five covariates are drawn independently from <span class="math inline">\(U(0,1)\)</span>. Treatment is <span class="math inline">\(D \sim \text{Bernoulli}(\Lambda(-0.3 + 1.5X_2))\)</span>, the individual effect is <span class="math inline">\(\tau(x) = 1 + 2x_1\)</span>, and the potential outcomes are <span class="math inline">\(Y(0) = 0.5X_2 + \varepsilon\)</span> with <span class="math inline">\(\varepsilon \sim N(0,1)\)</span> and <span class="math inline">\(Y(1) = Y(0) + \tau(X)\)</span>. Only <span class="math inline">\(X_1\)</span> modifies the effect, only <span class="math inline">\(X_2\)</span> confounds, and <span class="math inline">\(X_2\)</span> is observed, so both models below are identified.</p>
+<p>The aim is to see what a posterior adds over a point estimate: an interval for the ATE that requires no asymptotic argument, and an interval for every individual effect.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
 <span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">2000</span></span>
@@ -467,6 +468,7 @@ window.Quarto = {
 <pre><code>True ATE = 1.985</code></pre>
 </div>
 </div>
+<p>The realized ATE in this draw is 1.985, against a population value of 2.</p>
 </section><section id="bart-for-causal-inference-hill-2011" class="level2" data-number="11.2"><h2 data-number="11.2" class="anchored" data-anchor-id="bart-for-causal-inference-hill-2011">
 <span class="header-section-number">11.2</span> BART for causal inference (Hill 2011)</h2>
 <p>BART is a sum of many small regression trees. The prior keeps each tree weak, and the sum of trees gives flexibility.</p>
@@ -477,6 +479,7 @@ window.Quarto = {
 <li>The individual treatment effect (ITE) is <span class="math inline">\(\hat\tau_i = \mu(1, x_i) - \mu(0, x_i)\)</span>.</li>
 <li>Average the posterior draws to get the posterior for ATE or ITEs.</li>
 </ol>
+<p>We run 1000 posterior draws after 200 burn-in, with <span class="math inline">\(D\)</span> and the five covariates as the design matrix. Each draw gives an ATE, and the spread across draws is the posterior uncertainty.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># BART::wbart fits a continuous-outcome BART model</span></span>
 <span><span class="co"># Combine D and X as the design matrix</span></span>
@@ -567,7 +570,7 @@ from x,np,p: 6, 2000
 <pre><code>  True ATE: 1.985</code></pre>
 </div>
 </div>
-<p>The posterior draws give the uncertainty in the ATE directly.</p>
+<p>The posterior mean is 1.977 with a posterior standard deviation of 0.048 and a 95% credible interval of <span class="math inline">\([1.880, 2.071]\)</span>, which covers the realized 1.985. The posterior draws give the uncertainty directly: no asymptotic variance formula and no bootstrap, just the spread of the 1000 draws.</p>
 <section id="individual-level-credible-intervals" class="level3" data-number="11.2.1"><h3 data-number="11.2.1" class="anchored" data-anchor-id="individual-level-credible-intervals">
 <span class="header-section-number">11.2.1</span> Individual-level credible intervals</h3>
 <p>BART also gives a posterior for each unit’s treatment effect. Here I plot the posterior mean and pointwise credible intervals against the true <span class="math inline">\(\tau_i\)</span>.</p>
@@ -600,7 +603,7 @@ from x,np,p: 6, 2000
 </div>
 </div>
 </div>
-<p>The blue ribbon is the pointwise 95% credible interval. The red dashed line is the true treatment-effect function.</p>
+<p>The blue points are posterior means, the blue ribbon is the pointwise 95% credible interval, and the red dashed line is the true <span class="math inline">\(\tau(x) = 1+2x_1\)</span>. This is what a frequentist CATE estimator does not hand you for free: an interval for each individual, not only for the average.</p>
 </section></section><section id="bayesian-causal-forests-bcf" class="level2" data-number="11.3"><h2 data-number="11.3" class="anchored" data-anchor-id="bayesian-causal-forests-bcf">
 <span class="header-section-number">11.3</span> Bayesian Causal Forests (BCF)</h2>
 <p>BART models <span class="math inline">\(\mathbb{E}[Y \mid D,X]\)</span> directly. That means the same trees have to learn the baseline outcome and the treatment-effect heterogeneity. When strong predictors of <span class="math inline">\(Y(0)\)</span> are also related to treatment, this can create noisy treatment-effect estimates.</p>
@@ -623,11 +626,18 @@ from x,np,p: 6, 2000
 <span><span class="co"># Use SEPARATE input and output files so a failed subprocess can never leave</span></span>
 <span><span class="co"># the input list sitting where we expect the result, and check the exit</span></span>
 <span><span class="co"># status and object names before trusting it.</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co"># The subprocess needs its OWN set.seed(): a seed set in this session does not</span></span>
+<span><span class="co"># reach a separate R process, so without the seed below BCF's posterior draws</span></span>
+<span><span class="co"># change every time the chunk actually executes. The knitr cache hides that --</span></span>
+<span><span class="co"># the numbers look stable until someone clears the cache, and then every BCF</span></span>
+<span><span class="co"># figure in this chapter moves. Seed the worker so the chapter is reproducible.</span></span>
 <span><span class="va">tmp_in</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".rds"</span><span class="op">)</span></span>
 <span><span class="va">tmp_out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".rds"</span><span class="op">)</span></span>
 <span><span class="va">tmp_err</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".log"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html">saveRDS</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>Y <span class="op">=</span> <span class="va">df</span><span class="op">$</span><span class="va">Y</span>, D <span class="op">=</span> <span class="va">df</span><span class="op">$</span><span class="va">D</span>, X <span class="op">=</span> <span class="va">X</span>, piHat <span class="op">=</span> <span class="va">piHat</span><span class="op">)</span>, <span class="va">tmp_in</span><span class="op">)</span></span>
 <span><span class="va">status</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.html">system</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span><span class="op">(</span><span class="st">"Rscript -e '"</span>,</span>
+<span>  <span class="st">"set.seed(42); "</span>,</span>
 <span>  <span class="st">"args &lt;- readRDS(\""</span>, <span class="va">tmp_in</span>, <span class="st">"\"); "</span>,</span>
 <span>  <span class="st">"suppressMessages(library(bcf)); "</span>,</span>
 <span>  <span class="st">"f &lt;- bcf(y=args$Y, z=args$D, x_control=args$X, x_moderate=args$X, "</span>,</span>
@@ -647,7 +657,7 @@ from x,np,p: 6, 2000
 <span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html">unlink</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">tmp_in</span>, <span class="va">tmp_out</span>, <span class="va">tmp_err</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<p>Now extract the posterior treatment effects:</p>
+<p>The propensity score enters BCF as data, so we fit it first by logistic regression on all five covariates. BCF then runs 1000 draws after 200 burn-in on one chain. We extract the posterior treatment effects and summarise them the same way as for BART:</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tau_post_bcf</span> <span class="op">&lt;-</span> <span class="va">bcf_fit</span><span class="op">$</span><span class="va">tau</span>    <span class="co"># nsim x n matrix of posterior ITEs</span></span>
 <span></span>
@@ -660,26 +670,27 @@ from x,np,p: 6, 2000
 </div>
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"  Mean:    %.3f\n"</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">bcf_ate_post</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details><div class="cell-output cell-output-stdout">
-<pre><code>  Mean:    1.982</code></pre>
+<pre><code>  Mean:    1.984</code></pre>
 </div>
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb26"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"  SD:      %.3f\n"</span>, <span class="fu"><a href="https://rdrr.io/r/stats/sd.html">sd</a></span><span class="op">(</span><span class="va">bcf_ate_post</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details><div class="cell-output cell-output-stdout">
-<pre><code>  SD:      0.046</code></pre>
+<pre><code>  SD:      0.044</code></pre>
 </div>
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb28"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"  95%% CrI: [%.3f, %.3f]\n"</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/stats/quantile.html">quantile</a></span><span class="op">(</span><span class="va">bcf_ate_post</span>, <span class="fl">0.025</span><span class="op">)</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/stats/quantile.html">quantile</a></span><span class="op">(</span><span class="va">bcf_ate_post</span>, <span class="fl">0.975</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details><div class="cell-output cell-output-stdout">
-<pre><code>  95% CrI: [1.897, 2.072]</code></pre>
+<pre><code>  95% CrI: [1.903, 2.072]</code></pre>
 </div>
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb30"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"  True ATE: %.3f\n"</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">tau</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details><div class="cell-output cell-output-stdout">
 <pre><code>  True ATE: 1.985</code></pre>
 </div>
 </div>
+<p>BCF gives a posterior mean of 1.984 with a posterior standard deviation of 0.044 and a 95% credible interval of <span class="math inline">\([1.903, 2.072]\)</span>. Against BART’s 1.977 and 0.048, and a realized truth of 1.985, the two are indistinguishable at the level of the ATE. That is expected: the separation prior is aimed at the treatment-effect <em>function</em>, and averaging over units washes out most of what it does.</p>
 <section id="bart-vs-bcf-individual-treatment-effects" class="level3" data-number="11.3.1"><h3 data-number="11.3.1" class="anchored" data-anchor-id="bart-vs-bcf-individual-treatment-effects">
 <span class="header-section-number">11.3.1</span> BART vs BCF: individual treatment effects</h3>
-<p>Compare the estimated CATEs:</p>
+<p>The difference, if there is one, should appear in the individual effects. Each panel plots the posterior-mean ITE against <span class="math inline">\(X_1\)</span>, with a loess fit and the true <span class="math inline">\(\tau(x)\)</span> as the dashed red line.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb32"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">df_compare</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html">bind_rows</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html">tibble</a></span><span class="op">(</span>X1 <span class="op">=</span> <span class="va">X</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span>, est <span class="op">=</span> <span class="va">bcf_ite_mean</span>, true <span class="op">=</span> <span class="va">tau</span>, method <span class="op">=</span> <span class="st">"BCF"</span><span class="op">)</span>,</span>
@@ -699,11 +710,13 @@ from x,np,p: 6, 2000
 </details><div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure"><p><img src="bayesian-causal_files/figure-html/compare-ite-1.png" class="img-fluid figure-img" width="864"></p>
-<figcaption>BCF (left) vs BART (right) individual treatment effect estimates. BCF’s separation prior gives tighter, less noisy CATE estimates.</figcaption></figure>
+<figcaption>BCF (left) vs BART (right) posterior-mean individual treatment effects against the true τ(x) = 1 + 2 X₁.</figcaption></figure>
 </div>
 </div>
 </div>
-<p>BCF is usually smoother because it separates the prognostic and treatment effect parts of the model.</p>
+<p>Both clouds follow the true line. BCF is usually the smoother of the two, because separating the prognostic part <span class="math inline">\(\mu(X)\)</span> from the effect part <span class="math inline">\(\tau(X)\)</span> lets the prior regularise the effect function harder without also flattening the baseline. In this DGP the baseline is nearly flat — <span class="math inline">\(Y(0) = 0.5X_2 +
+\varepsilon\)</span> — so there is little prognostic signal for BART to confuse with the effect, and the two methods have less to separate them than they would with a strong, treatment-correlated baseline.</p>
+<p>Both sets of numbers here are reproducible. BART is seeded in this session, and the BCF worker seeds itself — a seed set in the parent session does not reach a separate R process, so the <code>set.seed(42)</code> inside the <code>Rscript</code> call is what makes the posterior stable across renders.</p>
 </section></section><section id="when-to-use-bayesian-methods" class="level2" data-number="11.4"><h2 data-number="11.4" class="anchored" data-anchor-id="when-to-use-bayesian-methods">
 <span class="header-section-number">11.4</span> When to use Bayesian methods</h2>
 <table class="caption-top table">
@@ -1263,279 +1276,329 @@ from x,np,p: 6, 2000
 <span id="cb33-40"><a href="#cb33-40" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb33-41"><a href="#cb33-41" aria-hidden="true" tabindex="-1"></a><span class="fu">## Setup</span></span>
 <span id="cb33-42"><a href="#cb33-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-43"><a href="#cb33-43" aria-hidden="true" tabindex="-1"></a>I use the same simulation as in the <span class="co">[</span><span class="ot">Heterogeneous Treatment Effects</span><span class="co">](heterogeneous-effects.qmd)</span></span>
-<span id="cb33-44"><a href="#cb33-44" aria-hidden="true" tabindex="-1"></a>chapter. The true treatment effect varies with <span class="in">`X1`</span>.</span>
-<span id="cb33-45"><a href="#cb33-45" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-48"><a href="#cb33-48" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb33-49"><a href="#cb33-49" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: dgp</span></span>
-<span id="cb33-50"><a href="#cb33-50" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb33-43"><a href="#cb33-43" aria-hidden="true" tabindex="-1"></a>We reuse the simulation from the <span class="co">[</span><span class="ot">Heterogeneous Treatment Effects</span><span class="co">](heterogeneous-effects.qmd)</span></span>
+<span id="cb33-44"><a href="#cb33-44" aria-hidden="true" tabindex="-1"></a>chapter, at $n = 2000$ rather than 5000. Five covariates are drawn</span>
+<span id="cb33-45"><a href="#cb33-45" aria-hidden="true" tabindex="-1"></a>independently from $U(0,1)$. Treatment is</span>
+<span id="cb33-46"><a href="#cb33-46" aria-hidden="true" tabindex="-1"></a>$D \sim \text{Bernoulli}(\Lambda(-0.3 + 1.5X_2))$, the individual effect is</span>
+<span id="cb33-47"><a href="#cb33-47" aria-hidden="true" tabindex="-1"></a>$\tau(x) = 1 + 2x_1$, and the potential outcomes are</span>
+<span id="cb33-48"><a href="#cb33-48" aria-hidden="true" tabindex="-1"></a>$Y(0) = 0.5X_2 + \varepsilon$ with $\varepsilon \sim N(0,1)$ and</span>
+<span id="cb33-49"><a href="#cb33-49" aria-hidden="true" tabindex="-1"></a>$Y(1) = Y(0) + \tau(X)$. Only $X_1$ modifies the effect, only $X_2$ confounds,</span>
+<span id="cb33-50"><a href="#cb33-50" aria-hidden="true" tabindex="-1"></a>and $X_2$ is observed, so both models below are identified.</span>
 <span id="cb33-51"><a href="#cb33-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-52"><a href="#cb33-52" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
-<span id="cb33-53"><a href="#cb33-53" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">2000</span></span>
-<span id="cb33-54"><a href="#cb33-54" aria-hidden="true" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="dv">5</span></span>
+<span id="cb33-52"><a href="#cb33-52" aria-hidden="true" tabindex="-1"></a>The aim is to see what a posterior adds over a point estimate: an interval for</span>
+<span id="cb33-53"><a href="#cb33-53" aria-hidden="true" tabindex="-1"></a>the ATE that requires no asymptotic argument, and an interval for every</span>
+<span id="cb33-54"><a href="#cb33-54" aria-hidden="true" tabindex="-1"></a>individual effect.</span>
 <span id="cb33-55"><a href="#cb33-55" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-56"><a href="#cb33-56" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">runif</span>(n <span class="sc">*</span> p), n, p)</span>
-<span id="cb33-57"><a href="#cb33-57" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(X) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"X"</span>, <span class="dv">1</span><span class="sc">:</span>p)</span>
-<span id="cb33-58"><a href="#cb33-58" aria-hidden="true" tabindex="-1"></a><span class="co"># Treatment depends only on observed covariates, so unconfoundedness given X</span></span>
-<span id="cb33-59"><a href="#cb33-59" aria-hidden="true" tabindex="-1"></a><span class="co"># holds and the "True ATE" comparison measures estimator performance (not bias).</span></span>
-<span id="cb33-60"><a href="#cb33-60" aria-hidden="true" tabindex="-1"></a>ps <span class="ot">&lt;-</span> <span class="fu">plogis</span>(<span class="sc">-</span><span class="fl">0.3</span> <span class="sc">+</span> <span class="fl">1.5</span> <span class="sc">*</span> X[, <span class="dv">2</span>])</span>
-<span id="cb33-61"><a href="#cb33-61" aria-hidden="true" tabindex="-1"></a>D  <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="dv">1</span>, ps)</span>
-<span id="cb33-62"><a href="#cb33-62" aria-hidden="true" tabindex="-1"></a>tau <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> X[, <span class="dv">1</span>]</span>
-<span id="cb33-63"><a href="#cb33-63" aria-hidden="true" tabindex="-1"></a>Y0  <span class="ot">&lt;-</span> <span class="fl">0.5</span> <span class="sc">*</span> X[, <span class="dv">2</span>] <span class="sc">+</span> <span class="fu">rnorm</span>(n)</span>
-<span id="cb33-64"><a href="#cb33-64" aria-hidden="true" tabindex="-1"></a>Y1  <span class="ot">&lt;-</span> Y0 <span class="sc">+</span> tau</span>
-<span id="cb33-65"><a href="#cb33-65" aria-hidden="true" tabindex="-1"></a>Y   <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(D <span class="sc">==</span> <span class="dv">1</span>, Y1, Y0)</span>
-<span id="cb33-66"><a href="#cb33-66" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-67"><a href="#cb33-67" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">Y =</span> Y, <span class="at">D =</span> D, X)</span>
-<span id="cb33-68"><a href="#cb33-68" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"True ATE = %.3f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">mean</span>(tau)))</span>
-<span id="cb33-69"><a href="#cb33-69" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb33-70"><a href="#cb33-70" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-71"><a href="#cb33-71" aria-hidden="true" tabindex="-1"></a><span class="fu">## BART for causal inference (Hill 2011)</span></span>
-<span id="cb33-72"><a href="#cb33-72" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-73"><a href="#cb33-73" aria-hidden="true" tabindex="-1"></a>BART is a sum of many small regression trees. The prior keeps each tree</span>
-<span id="cb33-74"><a href="#cb33-74" aria-hidden="true" tabindex="-1"></a>weak, and the sum of trees gives flexibility.</span>
-<span id="cb33-75"><a href="#cb33-75" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-76"><a href="#cb33-76" aria-hidden="true" tabindex="-1"></a>For causal inference, the recipe is:</span>
-<span id="cb33-77"><a href="#cb33-77" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-78"><a href="#cb33-78" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Fit BART for $\mu(d,x)=\mathbb{E}<span class="co">[</span><span class="ot">Y \mid D=d,X=x</span><span class="co">]</span>$.</span>
-<span id="cb33-79"><a href="#cb33-79" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>For each unit $i$, predict counterfactuals $\mu(1, x_i)$ and $\mu(0, x_i)$.</span>
-<span id="cb33-80"><a href="#cb33-80" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>The individual treatment effect (ITE) is $\hat\tau_i = \mu(1, x_i) - \mu(0, x_i)$.</span>
-<span id="cb33-81"><a href="#cb33-81" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>Average the posterior draws to get the posterior for ATE or ITEs.</span>
+<span id="cb33-58"><a href="#cb33-58" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb33-59"><a href="#cb33-59" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: dgp</span></span>
+<span id="cb33-60"><a href="#cb33-60" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb33-61"><a href="#cb33-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-62"><a href="#cb33-62" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
+<span id="cb33-63"><a href="#cb33-63" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="dv">2000</span></span>
+<span id="cb33-64"><a href="#cb33-64" aria-hidden="true" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="dv">5</span></span>
+<span id="cb33-65"><a href="#cb33-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-66"><a href="#cb33-66" aria-hidden="true" tabindex="-1"></a>X <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">runif</span>(n <span class="sc">*</span> p), n, p)</span>
+<span id="cb33-67"><a href="#cb33-67" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(X) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"X"</span>, <span class="dv">1</span><span class="sc">:</span>p)</span>
+<span id="cb33-68"><a href="#cb33-68" aria-hidden="true" tabindex="-1"></a><span class="co"># Treatment depends only on observed covariates, so unconfoundedness given X</span></span>
+<span id="cb33-69"><a href="#cb33-69" aria-hidden="true" tabindex="-1"></a><span class="co"># holds and the "True ATE" comparison measures estimator performance (not bias).</span></span>
+<span id="cb33-70"><a href="#cb33-70" aria-hidden="true" tabindex="-1"></a>ps <span class="ot">&lt;-</span> <span class="fu">plogis</span>(<span class="sc">-</span><span class="fl">0.3</span> <span class="sc">+</span> <span class="fl">1.5</span> <span class="sc">*</span> X[, <span class="dv">2</span>])</span>
+<span id="cb33-71"><a href="#cb33-71" aria-hidden="true" tabindex="-1"></a>D  <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n, <span class="dv">1</span>, ps)</span>
+<span id="cb33-72"><a href="#cb33-72" aria-hidden="true" tabindex="-1"></a>tau <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">+</span> <span class="dv">2</span> <span class="sc">*</span> X[, <span class="dv">1</span>]</span>
+<span id="cb33-73"><a href="#cb33-73" aria-hidden="true" tabindex="-1"></a>Y0  <span class="ot">&lt;-</span> <span class="fl">0.5</span> <span class="sc">*</span> X[, <span class="dv">2</span>] <span class="sc">+</span> <span class="fu">rnorm</span>(n)</span>
+<span id="cb33-74"><a href="#cb33-74" aria-hidden="true" tabindex="-1"></a>Y1  <span class="ot">&lt;-</span> Y0 <span class="sc">+</span> tau</span>
+<span id="cb33-75"><a href="#cb33-75" aria-hidden="true" tabindex="-1"></a>Y   <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(D <span class="sc">==</span> <span class="dv">1</span>, Y1, Y0)</span>
+<span id="cb33-76"><a href="#cb33-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-77"><a href="#cb33-77" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">Y =</span> Y, <span class="at">D =</span> D, X)</span>
+<span id="cb33-78"><a href="#cb33-78" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"True ATE = %.3f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">mean</span>(tau)))</span>
+<span id="cb33-79"><a href="#cb33-79" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb33-80"><a href="#cb33-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-81"><a href="#cb33-81" aria-hidden="true" tabindex="-1"></a>The realized ATE in this draw is 1.985, against a population value of 2.</span>
 <span id="cb33-82"><a href="#cb33-82" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-85"><a href="#cb33-85" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb33-86"><a href="#cb33-86" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: bart-fit</span></span>
-<span id="cb33-87"><a href="#cb33-87" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb33-88"><a href="#cb33-88" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-89"><a href="#cb33-89" aria-hidden="true" tabindex="-1"></a><span class="co"># BART::wbart fits a continuous-outcome BART model</span></span>
-<span id="cb33-90"><a href="#cb33-90" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine D and X as the design matrix</span></span>
-<span id="cb33-91"><a href="#cb33-91" aria-hidden="true" tabindex="-1"></a>X_train <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="at">D =</span> D, X)</span>
-<span id="cb33-92"><a href="#cb33-92" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
-<span id="cb33-93"><a href="#cb33-93" aria-hidden="true" tabindex="-1"></a>bart_fit <span class="ot">&lt;-</span> <span class="fu">wbart</span>(</span>
-<span id="cb33-94"><a href="#cb33-94" aria-hidden="true" tabindex="-1"></a>  <span class="at">x.train =</span> X_train,</span>
-<span id="cb33-95"><a href="#cb33-95" aria-hidden="true" tabindex="-1"></a>  <span class="at">y.train =</span> Y,</span>
-<span id="cb33-96"><a href="#cb33-96" aria-hidden="true" tabindex="-1"></a>  <span class="at">ndpost =</span> <span class="dv">1000</span>,    <span class="co"># posterior samples after burn-in</span></span>
-<span id="cb33-97"><a href="#cb33-97" aria-hidden="true" tabindex="-1"></a>  <span class="at">nskip  =</span> <span class="dv">200</span>,     <span class="co"># burn-in</span></span>
-<span id="cb33-98"><a href="#cb33-98" aria-hidden="true" tabindex="-1"></a>  <span class="at">printevery =</span> <span class="dv">1000</span></span>
-<span id="cb33-99"><a href="#cb33-99" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb33-100"><a href="#cb33-100" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-101"><a href="#cb33-101" aria-hidden="true" tabindex="-1"></a><span class="co"># Counterfactual predictions</span></span>
-<span id="cb33-102"><a href="#cb33-102" aria-hidden="true" tabindex="-1"></a>X_treat   <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="at">D =</span> <span class="fu">rep</span>(<span class="dv">1</span>, n), X)</span>
-<span id="cb33-103"><a href="#cb33-103" aria-hidden="true" tabindex="-1"></a>X_control <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="at">D =</span> <span class="fu">rep</span>(<span class="dv">0</span>, n), X)</span>
+<span id="cb33-83"><a href="#cb33-83" aria-hidden="true" tabindex="-1"></a><span class="fu">## BART for causal inference (Hill 2011)</span></span>
+<span id="cb33-84"><a href="#cb33-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-85"><a href="#cb33-85" aria-hidden="true" tabindex="-1"></a>BART is a sum of many small regression trees. The prior keeps each tree</span>
+<span id="cb33-86"><a href="#cb33-86" aria-hidden="true" tabindex="-1"></a>weak, and the sum of trees gives flexibility.</span>
+<span id="cb33-87"><a href="#cb33-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-88"><a href="#cb33-88" aria-hidden="true" tabindex="-1"></a>For causal inference, the recipe is:</span>
+<span id="cb33-89"><a href="#cb33-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-90"><a href="#cb33-90" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Fit BART for $\mu(d,x)=\mathbb{E}<span class="co">[</span><span class="ot">Y \mid D=d,X=x</span><span class="co">]</span>$.</span>
+<span id="cb33-91"><a href="#cb33-91" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>For each unit $i$, predict counterfactuals $\mu(1, x_i)$ and $\mu(0, x_i)$.</span>
+<span id="cb33-92"><a href="#cb33-92" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>The individual treatment effect (ITE) is $\hat\tau_i = \mu(1, x_i) - \mu(0, x_i)$.</span>
+<span id="cb33-93"><a href="#cb33-93" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>Average the posterior draws to get the posterior for ATE or ITEs.</span>
+<span id="cb33-94"><a href="#cb33-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-95"><a href="#cb33-95" aria-hidden="true" tabindex="-1"></a>We run 1000 posterior draws after 200 burn-in, with $D$ and the five covariates</span>
+<span id="cb33-96"><a href="#cb33-96" aria-hidden="true" tabindex="-1"></a>as the design matrix. Each draw gives an ATE, and the spread across draws is</span>
+<span id="cb33-97"><a href="#cb33-97" aria-hidden="true" tabindex="-1"></a>the posterior uncertainty.</span>
+<span id="cb33-98"><a href="#cb33-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-101"><a href="#cb33-101" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb33-102"><a href="#cb33-102" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: bart-fit</span></span>
+<span id="cb33-103"><a href="#cb33-103" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
 <span id="cb33-104"><a href="#cb33-104" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-105"><a href="#cb33-105" aria-hidden="true" tabindex="-1"></a>mu1_post <span class="ot">&lt;-</span> <span class="fu">predict</span>(bart_fit, <span class="at">newdata =</span> X_treat)   <span class="co"># 1000 x n posterior draws</span></span>
-<span id="cb33-106"><a href="#cb33-106" aria-hidden="true" tabindex="-1"></a>mu0_post <span class="ot">&lt;-</span> <span class="fu">predict</span>(bart_fit, <span class="at">newdata =</span> X_control)</span>
-<span id="cb33-107"><a href="#cb33-107" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-108"><a href="#cb33-108" aria-hidden="true" tabindex="-1"></a><span class="co"># Posterior of individual treatment effects</span></span>
-<span id="cb33-109"><a href="#cb33-109" aria-hidden="true" tabindex="-1"></a>tau_post <span class="ot">&lt;-</span> mu1_post <span class="sc">-</span> mu0_post   <span class="co"># 1000 x n posterior draws of ITEs</span></span>
-<span id="cb33-110"><a href="#cb33-110" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-111"><a href="#cb33-111" aria-hidden="true" tabindex="-1"></a><span class="co"># Posterior summaries</span></span>
-<span id="cb33-112"><a href="#cb33-112" aria-hidden="true" tabindex="-1"></a>tau_mean <span class="ot">&lt;-</span> <span class="fu">rowMeans</span>(tau_post)    <span class="co"># ATE in each draw</span></span>
-<span id="cb33-113"><a href="#cb33-113" aria-hidden="true" tabindex="-1"></a>ate_post_mean   <span class="ot">&lt;-</span> <span class="fu">mean</span>(tau_mean)</span>
-<span id="cb33-114"><a href="#cb33-114" aria-hidden="true" tabindex="-1"></a>ate_post_sd     <span class="ot">&lt;-</span> <span class="fu">sd</span>(tau_mean)</span>
-<span id="cb33-115"><a href="#cb33-115" aria-hidden="true" tabindex="-1"></a>ate_post_ci     <span class="ot">&lt;-</span> <span class="fu">quantile</span>(tau_mean, <span class="fu">c</span>(<span class="fl">0.025</span>, <span class="fl">0.975</span>))</span>
+<span id="cb33-105"><a href="#cb33-105" aria-hidden="true" tabindex="-1"></a><span class="co"># BART::wbart fits a continuous-outcome BART model</span></span>
+<span id="cb33-106"><a href="#cb33-106" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine D and X as the design matrix</span></span>
+<span id="cb33-107"><a href="#cb33-107" aria-hidden="true" tabindex="-1"></a>X_train <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="at">D =</span> D, X)</span>
+<span id="cb33-108"><a href="#cb33-108" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
+<span id="cb33-109"><a href="#cb33-109" aria-hidden="true" tabindex="-1"></a>bart_fit <span class="ot">&lt;-</span> <span class="fu">wbart</span>(</span>
+<span id="cb33-110"><a href="#cb33-110" aria-hidden="true" tabindex="-1"></a>  <span class="at">x.train =</span> X_train,</span>
+<span id="cb33-111"><a href="#cb33-111" aria-hidden="true" tabindex="-1"></a>  <span class="at">y.train =</span> Y,</span>
+<span id="cb33-112"><a href="#cb33-112" aria-hidden="true" tabindex="-1"></a>  <span class="at">ndpost =</span> <span class="dv">1000</span>,    <span class="co"># posterior samples after burn-in</span></span>
+<span id="cb33-113"><a href="#cb33-113" aria-hidden="true" tabindex="-1"></a>  <span class="at">nskip  =</span> <span class="dv">200</span>,     <span class="co"># burn-in</span></span>
+<span id="cb33-114"><a href="#cb33-114" aria-hidden="true" tabindex="-1"></a>  <span class="at">printevery =</span> <span class="dv">1000</span></span>
+<span id="cb33-115"><a href="#cb33-115" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb33-116"><a href="#cb33-116" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-117"><a href="#cb33-117" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"BART ATE posterior:</span><span class="sc">\n</span><span class="st">"</span>))</span>
-<span id="cb33-118"><a href="#cb33-118" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Mean:    %.3f</span><span class="sc">\n</span><span class="st">"</span>, ate_post_mean))</span>
-<span id="cb33-119"><a href="#cb33-119" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  SD:      %.3f</span><span class="sc">\n</span><span class="st">"</span>, ate_post_sd))</span>
-<span id="cb33-120"><a href="#cb33-120" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  95%% CrI: [%.3f, %.3f]</span><span class="sc">\n</span><span class="st">"</span>, ate_post_ci[<span class="dv">1</span>], ate_post_ci[<span class="dv">2</span>]))</span>
-<span id="cb33-121"><a href="#cb33-121" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  True ATE: %.3f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">mean</span>(tau)))</span>
-<span id="cb33-122"><a href="#cb33-122" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb33-117"><a href="#cb33-117" aria-hidden="true" tabindex="-1"></a><span class="co"># Counterfactual predictions</span></span>
+<span id="cb33-118"><a href="#cb33-118" aria-hidden="true" tabindex="-1"></a>X_treat   <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="at">D =</span> <span class="fu">rep</span>(<span class="dv">1</span>, n), X)</span>
+<span id="cb33-119"><a href="#cb33-119" aria-hidden="true" tabindex="-1"></a>X_control <span class="ot">&lt;-</span> <span class="fu">cbind</span>(<span class="at">D =</span> <span class="fu">rep</span>(<span class="dv">0</span>, n), X)</span>
+<span id="cb33-120"><a href="#cb33-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-121"><a href="#cb33-121" aria-hidden="true" tabindex="-1"></a>mu1_post <span class="ot">&lt;-</span> <span class="fu">predict</span>(bart_fit, <span class="at">newdata =</span> X_treat)   <span class="co"># 1000 x n posterior draws</span></span>
+<span id="cb33-122"><a href="#cb33-122" aria-hidden="true" tabindex="-1"></a>mu0_post <span class="ot">&lt;-</span> <span class="fu">predict</span>(bart_fit, <span class="at">newdata =</span> X_control)</span>
 <span id="cb33-123"><a href="#cb33-123" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-124"><a href="#cb33-124" aria-hidden="true" tabindex="-1"></a>The posterior draws give the uncertainty in the ATE directly.</span>
-<span id="cb33-125"><a href="#cb33-125" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-126"><a href="#cb33-126" aria-hidden="true" tabindex="-1"></a><span class="fu">### Individual-level credible intervals</span></span>
-<span id="cb33-127"><a href="#cb33-127" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-128"><a href="#cb33-128" aria-hidden="true" tabindex="-1"></a>BART also gives a posterior for each unit's treatment effect. Here I plot</span>
-<span id="cb33-129"><a href="#cb33-129" aria-hidden="true" tabindex="-1"></a>the posterior mean and pointwise credible intervals against the true</span>
-<span id="cb33-130"><a href="#cb33-130" aria-hidden="true" tabindex="-1"></a>$\tau_i$.</span>
-<span id="cb33-131"><a href="#cb33-131" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-134"><a href="#cb33-134" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb33-135"><a href="#cb33-135" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: bart-ite</span></span>
-<span id="cb33-136"><a href="#cb33-136" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb33-137"><a href="#cb33-137" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "BART-estimated individual treatment effects (mean of posterior) vs true τ(x) = 1 + 2 X₁. Shaded band shows pointwise 95% credible intervals."</span></span>
-<span id="cb33-138"><a href="#cb33-138" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 8</span></span>
-<span id="cb33-139"><a href="#cb33-139" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 5</span></span>
-<span id="cb33-140"><a href="#cb33-140" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-141"><a href="#cb33-141" aria-hidden="true" tabindex="-1"></a>ite_mean <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(tau_post)</span>
-<span id="cb33-142"><a href="#cb33-142" aria-hidden="true" tabindex="-1"></a>ite_lo   <span class="ot">&lt;-</span> <span class="fu">apply</span>(tau_post, <span class="dv">2</span>, quantile, <span class="fl">0.025</span>)</span>
-<span id="cb33-143"><a href="#cb33-143" aria-hidden="true" tabindex="-1"></a>ite_hi   <span class="ot">&lt;-</span> <span class="fu">apply</span>(tau_post, <span class="dv">2</span>, quantile, <span class="fl">0.975</span>)</span>
+<span id="cb33-124"><a href="#cb33-124" aria-hidden="true" tabindex="-1"></a><span class="co"># Posterior of individual treatment effects</span></span>
+<span id="cb33-125"><a href="#cb33-125" aria-hidden="true" tabindex="-1"></a>tau_post <span class="ot">&lt;-</span> mu1_post <span class="sc">-</span> mu0_post   <span class="co"># 1000 x n posterior draws of ITEs</span></span>
+<span id="cb33-126"><a href="#cb33-126" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-127"><a href="#cb33-127" aria-hidden="true" tabindex="-1"></a><span class="co"># Posterior summaries</span></span>
+<span id="cb33-128"><a href="#cb33-128" aria-hidden="true" tabindex="-1"></a>tau_mean <span class="ot">&lt;-</span> <span class="fu">rowMeans</span>(tau_post)    <span class="co"># ATE in each draw</span></span>
+<span id="cb33-129"><a href="#cb33-129" aria-hidden="true" tabindex="-1"></a>ate_post_mean   <span class="ot">&lt;-</span> <span class="fu">mean</span>(tau_mean)</span>
+<span id="cb33-130"><a href="#cb33-130" aria-hidden="true" tabindex="-1"></a>ate_post_sd     <span class="ot">&lt;-</span> <span class="fu">sd</span>(tau_mean)</span>
+<span id="cb33-131"><a href="#cb33-131" aria-hidden="true" tabindex="-1"></a>ate_post_ci     <span class="ot">&lt;-</span> <span class="fu">quantile</span>(tau_mean, <span class="fu">c</span>(<span class="fl">0.025</span>, <span class="fl">0.975</span>))</span>
+<span id="cb33-132"><a href="#cb33-132" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-133"><a href="#cb33-133" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"BART ATE posterior:</span><span class="sc">\n</span><span class="st">"</span>))</span>
+<span id="cb33-134"><a href="#cb33-134" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Mean:    %.3f</span><span class="sc">\n</span><span class="st">"</span>, ate_post_mean))</span>
+<span id="cb33-135"><a href="#cb33-135" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  SD:      %.3f</span><span class="sc">\n</span><span class="st">"</span>, ate_post_sd))</span>
+<span id="cb33-136"><a href="#cb33-136" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  95%% CrI: [%.3f, %.3f]</span><span class="sc">\n</span><span class="st">"</span>, ate_post_ci[<span class="dv">1</span>], ate_post_ci[<span class="dv">2</span>]))</span>
+<span id="cb33-137"><a href="#cb33-137" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  True ATE: %.3f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">mean</span>(tau)))</span>
+<span id="cb33-138"><a href="#cb33-138" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb33-139"><a href="#cb33-139" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-140"><a href="#cb33-140" aria-hidden="true" tabindex="-1"></a>The posterior mean is 1.977 with a posterior standard deviation of 0.048 and a</span>
+<span id="cb33-141"><a href="#cb33-141" aria-hidden="true" tabindex="-1"></a>95% credible interval of $<span class="co">[</span><span class="ot">1.880, 2.071</span><span class="co">]</span>$, which covers the realized 1.985. The</span>
+<span id="cb33-142"><a href="#cb33-142" aria-hidden="true" tabindex="-1"></a>posterior draws give the uncertainty directly: no asymptotic variance formula</span>
+<span id="cb33-143"><a href="#cb33-143" aria-hidden="true" tabindex="-1"></a>and no bootstrap, just the spread of the 1000 draws.</span>
 <span id="cb33-144"><a href="#cb33-144" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-145"><a href="#cb33-145" aria-hidden="true" tabindex="-1"></a>df_ite <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
-<span id="cb33-146"><a href="#cb33-146" aria-hidden="true" tabindex="-1"></a>  <span class="at">X1     =</span> X[, <span class="dv">1</span>],</span>
-<span id="cb33-147"><a href="#cb33-147" aria-hidden="true" tabindex="-1"></a>  <span class="at">true   =</span> tau,</span>
-<span id="cb33-148"><a href="#cb33-148" aria-hidden="true" tabindex="-1"></a>  <span class="at">est    =</span> ite_mean,</span>
-<span id="cb33-149"><a href="#cb33-149" aria-hidden="true" tabindex="-1"></a>  <span class="at">lo     =</span> ite_lo,</span>
-<span id="cb33-150"><a href="#cb33-150" aria-hidden="true" tabindex="-1"></a>  <span class="at">hi     =</span> ite_hi</span>
-<span id="cb33-151"><a href="#cb33-151" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb33-152"><a href="#cb33-152" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-153"><a href="#cb33-153" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_ite, <span class="fu">aes</span>(<span class="at">x =</span> X1)) <span class="sc">+</span></span>
-<span id="cb33-154"><a href="#cb33-154" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_ribbon</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lo, <span class="at">ymax =</span> hi), <span class="at">alpha =</span> <span class="fl">0.2</span>,</span>
-<span id="cb33-155"><a href="#cb33-155" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
-<span id="cb33-156"><a href="#cb33-156" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">y =</span> est), <span class="at">size =</span> <span class="fl">0.4</span>, <span class="at">alpha =</span> <span class="fl">0.3</span>, <span class="at">colour =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
-<span id="cb33-157"><a href="#cb33-157" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="fu">aes</span>(<span class="at">intercept =</span> <span class="dv">1</span>, <span class="at">slope =</span> <span class="dv">2</span>), <span class="at">colour =</span> <span class="st">"firebrick"</span>,</span>
-<span id="cb33-158"><a href="#cb33-158" aria-hidden="true" tabindex="-1"></a>              <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
-<span id="cb33-159"><a href="#cb33-159" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"X1"</span>, <span class="at">y =</span> <span class="st">"Individual treatment effect"</span>,</span>
-<span id="cb33-160"><a href="#cb33-160" aria-hidden="true" tabindex="-1"></a>       <span class="at">caption =</span> <span class="st">"Red dashed = true τ(x). Blue band = pointwise 95% credible interval."</span>) <span class="sc">+</span></span>
-<span id="cb33-161"><a href="#cb33-161" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb33-162"><a href="#cb33-162" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb33-145"><a href="#cb33-145" aria-hidden="true" tabindex="-1"></a><span class="fu">### Individual-level credible intervals</span></span>
+<span id="cb33-146"><a href="#cb33-146" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-147"><a href="#cb33-147" aria-hidden="true" tabindex="-1"></a>BART also gives a posterior for each unit's treatment effect. Here I plot</span>
+<span id="cb33-148"><a href="#cb33-148" aria-hidden="true" tabindex="-1"></a>the posterior mean and pointwise credible intervals against the true</span>
+<span id="cb33-149"><a href="#cb33-149" aria-hidden="true" tabindex="-1"></a>$\tau_i$.</span>
+<span id="cb33-150"><a href="#cb33-150" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-153"><a href="#cb33-153" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb33-154"><a href="#cb33-154" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: bart-ite</span></span>
+<span id="cb33-155"><a href="#cb33-155" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb33-156"><a href="#cb33-156" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "BART-estimated individual treatment effects (mean of posterior) vs true τ(x) = 1 + 2 X₁. Shaded band shows pointwise 95% credible intervals."</span></span>
+<span id="cb33-157"><a href="#cb33-157" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 8</span></span>
+<span id="cb33-158"><a href="#cb33-158" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 5</span></span>
+<span id="cb33-159"><a href="#cb33-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-160"><a href="#cb33-160" aria-hidden="true" tabindex="-1"></a>ite_mean <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(tau_post)</span>
+<span id="cb33-161"><a href="#cb33-161" aria-hidden="true" tabindex="-1"></a>ite_lo   <span class="ot">&lt;-</span> <span class="fu">apply</span>(tau_post, <span class="dv">2</span>, quantile, <span class="fl">0.025</span>)</span>
+<span id="cb33-162"><a href="#cb33-162" aria-hidden="true" tabindex="-1"></a>ite_hi   <span class="ot">&lt;-</span> <span class="fu">apply</span>(tau_post, <span class="dv">2</span>, quantile, <span class="fl">0.975</span>)</span>
 <span id="cb33-163"><a href="#cb33-163" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-164"><a href="#cb33-164" aria-hidden="true" tabindex="-1"></a>The blue ribbon is the pointwise 95% credible interval. The red dashed line</span>
-<span id="cb33-165"><a href="#cb33-165" aria-hidden="true" tabindex="-1"></a>is the true treatment-effect function.</span>
-<span id="cb33-166"><a href="#cb33-166" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-167"><a href="#cb33-167" aria-hidden="true" tabindex="-1"></a><span class="fu">## Bayesian Causal Forests (BCF)</span></span>
-<span id="cb33-168"><a href="#cb33-168" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-169"><a href="#cb33-169" aria-hidden="true" tabindex="-1"></a>BART models $\mathbb{E}<span class="co">[</span><span class="ot">Y \mid D,X</span><span class="co">]</span>$ directly. That means the same trees</span>
-<span id="cb33-170"><a href="#cb33-170" aria-hidden="true" tabindex="-1"></a>have to learn the baseline outcome and the treatment-effect heterogeneity.</span>
-<span id="cb33-171"><a href="#cb33-171" aria-hidden="true" tabindex="-1"></a>When strong predictors of $Y(0)$ are also related to treatment, this can</span>
-<span id="cb33-172"><a href="#cb33-172" aria-hidden="true" tabindex="-1"></a>create noisy treatment-effect estimates.</span>
-<span id="cb33-173"><a href="#cb33-173" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-174"><a href="#cb33-174" aria-hidden="true" tabindex="-1"></a>BCF writes the conditional mean as</span>
-<span id="cb33-175"><a href="#cb33-175" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-176"><a href="#cb33-176" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb33-177"><a href="#cb33-177" aria-hidden="true" tabindex="-1"></a>\mathbb{E}<span class="co">[</span><span class="ot">Y \mid D, X</span><span class="co">]</span> = \mu(X) + \tau(X)\, D,</span>
-<span id="cb33-178"><a href="#cb33-178" aria-hidden="true" tabindex="-1"></a>$$ {#eq-bayesian-causal-1}</span>
-<span id="cb33-179"><a href="#cb33-179" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-180"><a href="#cb33-180" aria-hidden="true" tabindex="-1"></a>and puts separate priors on $\mu(X)$ and $\tau(X)$. The treatment-effect</span>
-<span id="cb33-181"><a href="#cb33-181" aria-hidden="true" tabindex="-1"></a>part is regularized more strongly, which helps avoid overfitting</span>
-<span id="cb33-182"><a href="#cb33-182" aria-hidden="true" tabindex="-1"></a>heterogeneity.</span>
-<span id="cb33-183"><a href="#cb33-183" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-186"><a href="#cb33-186" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb33-187"><a href="#cb33-187" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: bcf-fit</span></span>
-<span id="cb33-188"><a href="#cb33-188" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb33-164"><a href="#cb33-164" aria-hidden="true" tabindex="-1"></a>df_ite <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb33-165"><a href="#cb33-165" aria-hidden="true" tabindex="-1"></a>  <span class="at">X1     =</span> X[, <span class="dv">1</span>],</span>
+<span id="cb33-166"><a href="#cb33-166" aria-hidden="true" tabindex="-1"></a>  <span class="at">true   =</span> tau,</span>
+<span id="cb33-167"><a href="#cb33-167" aria-hidden="true" tabindex="-1"></a>  <span class="at">est    =</span> ite_mean,</span>
+<span id="cb33-168"><a href="#cb33-168" aria-hidden="true" tabindex="-1"></a>  <span class="at">lo     =</span> ite_lo,</span>
+<span id="cb33-169"><a href="#cb33-169" aria-hidden="true" tabindex="-1"></a>  <span class="at">hi     =</span> ite_hi</span>
+<span id="cb33-170"><a href="#cb33-170" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb33-171"><a href="#cb33-171" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-172"><a href="#cb33-172" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_ite, <span class="fu">aes</span>(<span class="at">x =</span> X1)) <span class="sc">+</span></span>
+<span id="cb33-173"><a href="#cb33-173" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_ribbon</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> lo, <span class="at">ymax =</span> hi), <span class="at">alpha =</span> <span class="fl">0.2</span>,</span>
+<span id="cb33-174"><a href="#cb33-174" aria-hidden="true" tabindex="-1"></a>              <span class="at">fill =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
+<span id="cb33-175"><a href="#cb33-175" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">y =</span> est), <span class="at">size =</span> <span class="fl">0.4</span>, <span class="at">alpha =</span> <span class="fl">0.3</span>, <span class="at">colour =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
+<span id="cb33-176"><a href="#cb33-176" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="fu">aes</span>(<span class="at">intercept =</span> <span class="dv">1</span>, <span class="at">slope =</span> <span class="dv">2</span>), <span class="at">colour =</span> <span class="st">"firebrick"</span>,</span>
+<span id="cb33-177"><a href="#cb33-177" aria-hidden="true" tabindex="-1"></a>              <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb33-178"><a href="#cb33-178" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"X1"</span>, <span class="at">y =</span> <span class="st">"Individual treatment effect"</span>,</span>
+<span id="cb33-179"><a href="#cb33-179" aria-hidden="true" tabindex="-1"></a>       <span class="at">caption =</span> <span class="st">"Red dashed = true τ(x). Blue band = pointwise 95% credible interval."</span>) <span class="sc">+</span></span>
+<span id="cb33-180"><a href="#cb33-180" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb33-181"><a href="#cb33-181" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb33-182"><a href="#cb33-182" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-183"><a href="#cb33-183" aria-hidden="true" tabindex="-1"></a>The blue points are posterior means, the blue ribbon is the pointwise 95%</span>
+<span id="cb33-184"><a href="#cb33-184" aria-hidden="true" tabindex="-1"></a>credible interval, and the red dashed line is the true $\tau(x) = 1+2x_1$. This</span>
+<span id="cb33-185"><a href="#cb33-185" aria-hidden="true" tabindex="-1"></a>is what a frequentist CATE estimator does not hand you for free: an interval</span>
+<span id="cb33-186"><a href="#cb33-186" aria-hidden="true" tabindex="-1"></a>for each individual, not only for the average.</span>
+<span id="cb33-187"><a href="#cb33-187" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-188"><a href="#cb33-188" aria-hidden="true" tabindex="-1"></a><span class="fu">## Bayesian Causal Forests (BCF)</span></span>
 <span id="cb33-189"><a href="#cb33-189" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-190"><a href="#cb33-190" aria-hidden="true" tabindex="-1"></a><span class="co"># BCF requires a propensity score as an input ("piHat")</span></span>
-<span id="cb33-191"><a href="#cb33-191" aria-hidden="true" tabindex="-1"></a>ps_fit <span class="ot">&lt;-</span> <span class="fu">glm</span>(D <span class="sc">~</span> X1 <span class="sc">+</span> X2 <span class="sc">+</span> X3 <span class="sc">+</span> X4 <span class="sc">+</span> X5, <span class="at">data =</span> df, <span class="at">family =</span> binomial)</span>
-<span id="cb33-192"><a href="#cb33-192" aria-hidden="true" tabindex="-1"></a>piHat  <span class="ot">&lt;-</span> <span class="fu">predict</span>(ps_fit, <span class="at">type =</span> <span class="st">"response"</span>)</span>
-<span id="cb33-193"><a href="#cb33-193" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-194"><a href="#cb33-194" aria-hidden="true" tabindex="-1"></a><span class="co"># BCF prints MCMC progress in a way that conflicts with knitr's encoding.</span></span>
-<span id="cb33-195"><a href="#cb33-195" aria-hidden="true" tabindex="-1"></a><span class="co"># Its `verbose=FALSE`/`no_output=TRUE` arguments do not fully suppress this</span></span>
-<span id="cb33-196"><a href="#cb33-196" aria-hidden="true" tabindex="-1"></a><span class="co"># within the SAME R session (the progress output comes from C++ code, not</span></span>
-<span id="cb33-197"><a href="#cb33-197" aria-hidden="true" tabindex="-1"></a><span class="co"># from R's own message()/cat() machinery that sink()/suppressMessages()</span></span>
-<span id="cb33-198"><a href="#cb33-198" aria-hidden="true" tabindex="-1"></a><span class="co"># can intercept) -- so the only reliable fix is running bcf() in its own R</span></span>
-<span id="cb33-199"><a href="#cb33-199" aria-hidden="true" tabindex="-1"></a><span class="co"># process and only reading back the saved result, never its console output.</span></span>
-<span id="cb33-200"><a href="#cb33-200" aria-hidden="true" tabindex="-1"></a><span class="co"># Use SEPARATE input and output files so a failed subprocess can never leave</span></span>
-<span id="cb33-201"><a href="#cb33-201" aria-hidden="true" tabindex="-1"></a><span class="co"># the input list sitting where we expect the result, and check the exit</span></span>
-<span id="cb33-202"><a href="#cb33-202" aria-hidden="true" tabindex="-1"></a><span class="co"># status and object names before trusting it.</span></span>
-<span id="cb33-203"><a href="#cb33-203" aria-hidden="true" tabindex="-1"></a>tmp_in  <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="at">fileext =</span> <span class="st">".rds"</span>)</span>
-<span id="cb33-204"><a href="#cb33-204" aria-hidden="true" tabindex="-1"></a>tmp_out <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="at">fileext =</span> <span class="st">".rds"</span>)</span>
-<span id="cb33-205"><a href="#cb33-205" aria-hidden="true" tabindex="-1"></a>tmp_err <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="at">fileext =</span> <span class="st">".log"</span>)</span>
-<span id="cb33-206"><a href="#cb33-206" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(<span class="fu">list</span>(<span class="at">Y =</span> df<span class="sc">$</span>Y, <span class="at">D =</span> df<span class="sc">$</span>D, <span class="at">X =</span> X, <span class="at">piHat =</span> piHat), tmp_in)</span>
-<span id="cb33-207"><a href="#cb33-207" aria-hidden="true" tabindex="-1"></a>status <span class="ot">&lt;-</span> <span class="fu">system</span>(<span class="fu">paste0</span>(<span class="st">"Rscript -e '"</span>,</span>
-<span id="cb33-208"><a href="#cb33-208" aria-hidden="true" tabindex="-1"></a>  <span class="st">"args &lt;- readRDS(</span><span class="sc">\"</span><span class="st">"</span>, tmp_in, <span class="st">"</span><span class="sc">\"</span><span class="st">); "</span>,</span>
-<span id="cb33-209"><a href="#cb33-209" aria-hidden="true" tabindex="-1"></a>  <span class="st">"suppressMessages(library(bcf)); "</span>,</span>
-<span id="cb33-210"><a href="#cb33-210" aria-hidden="true" tabindex="-1"></a>  <span class="st">"f &lt;- bcf(y=args$Y, z=args$D, x_control=args$X, x_moderate=args$X, "</span>,</span>
-<span id="cb33-211"><a href="#cb33-211" aria-hidden="true" tabindex="-1"></a>  <span class="st">"pihat=args$piHat, nburn=200, nsim=1000, n_chains=1, no_output=TRUE, "</span>,</span>
-<span id="cb33-212"><a href="#cb33-212" aria-hidden="true" tabindex="-1"></a>  <span class="st">"verbose=FALSE); "</span>,</span>
-<span id="cb33-213"><a href="#cb33-213" aria-hidden="true" tabindex="-1"></a>  <span class="st">"saveRDS(list(tau=f$tau), </span><span class="sc">\"</span><span class="st">"</span>, tmp_out, <span class="st">"</span><span class="sc">\"</span><span class="st">)'"</span>),</span>
-<span id="cb33-214"><a href="#cb33-214" aria-hidden="true" tabindex="-1"></a>  <span class="at">ignore.stdout =</span> <span class="cn">TRUE</span>, <span class="at">ignore.stderr =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb33-215"><a href="#cb33-215" aria-hidden="true" tabindex="-1"></a><span class="co"># Surface the real cause instead of failing far downstream on a missing field.</span></span>
-<span id="cb33-216"><a href="#cb33-216" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (status <span class="sc">!=</span> <span class="dv">0</span>L <span class="sc">||</span> <span class="sc">!</span><span class="fu">file.exists</span>(tmp_out)) {</span>
-<span id="cb33-217"><a href="#cb33-217" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">"BCF subprocess failed (exit status "</span>, status, <span class="st">"). "</span>,</span>
-<span id="cb33-218"><a href="#cb33-218" aria-hidden="true" tabindex="-1"></a>       <span class="st">"Check that the 'bcf' package is installed in the worker session."</span>)</span>
-<span id="cb33-219"><a href="#cb33-219" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb33-220"><a href="#cb33-220" aria-hidden="true" tabindex="-1"></a>bcf_fit <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(tmp_out)</span>
-<span id="cb33-221"><a href="#cb33-221" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">is.null</span>(bcf_fit<span class="sc">$</span>tau)) {</span>
-<span id="cb33-222"><a href="#cb33-222" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">"BCF subprocess produced no 'tau' draws; aborting."</span>)</span>
-<span id="cb33-223"><a href="#cb33-223" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb33-224"><a href="#cb33-224" aria-hidden="true" tabindex="-1"></a><span class="fu">unlink</span>(<span class="fu">c</span>(tmp_in, tmp_out, tmp_err))</span>
-<span id="cb33-225"><a href="#cb33-225" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb33-226"><a href="#cb33-226" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-227"><a href="#cb33-227" aria-hidden="true" tabindex="-1"></a>Now extract the posterior treatment effects:</span>
-<span id="cb33-228"><a href="#cb33-228" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-231"><a href="#cb33-231" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb33-232"><a href="#cb33-232" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: bcf-summary</span></span>
-<span id="cb33-233"><a href="#cb33-233" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb33-234"><a href="#cb33-234" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-235"><a href="#cb33-235" aria-hidden="true" tabindex="-1"></a>tau_post_bcf <span class="ot">&lt;-</span> bcf_fit<span class="sc">$</span>tau    <span class="co"># nsim x n matrix of posterior ITEs</span></span>
-<span id="cb33-236"><a href="#cb33-236" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-237"><a href="#cb33-237" aria-hidden="true" tabindex="-1"></a>bcf_ate_post <span class="ot">&lt;-</span> <span class="fu">rowMeans</span>(tau_post_bcf)</span>
-<span id="cb33-238"><a href="#cb33-238" aria-hidden="true" tabindex="-1"></a>bcf_ite_mean <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(tau_post_bcf)</span>
-<span id="cb33-239"><a href="#cb33-239" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-240"><a href="#cb33-240" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"BCF ATE posterior:</span><span class="sc">\n</span><span class="st">"</span>))</span>
-<span id="cb33-241"><a href="#cb33-241" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Mean:    %.3f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">mean</span>(bcf_ate_post)))</span>
-<span id="cb33-242"><a href="#cb33-242" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  SD:      %.3f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">sd</span>(bcf_ate_post)))</span>
-<span id="cb33-243"><a href="#cb33-243" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  95%% CrI: [%.3f, %.3f]</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb33-244"><a href="#cb33-244" aria-hidden="true" tabindex="-1"></a>            <span class="fu">quantile</span>(bcf_ate_post, <span class="fl">0.025</span>),</span>
-<span id="cb33-245"><a href="#cb33-245" aria-hidden="true" tabindex="-1"></a>            <span class="fu">quantile</span>(bcf_ate_post, <span class="fl">0.975</span>)))</span>
-<span id="cb33-246"><a href="#cb33-246" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  True ATE: %.3f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">mean</span>(tau)))</span>
-<span id="cb33-247"><a href="#cb33-247" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb33-248"><a href="#cb33-248" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-249"><a href="#cb33-249" aria-hidden="true" tabindex="-1"></a><span class="fu">### BART vs BCF: individual treatment effects</span></span>
-<span id="cb33-250"><a href="#cb33-250" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-251"><a href="#cb33-251" aria-hidden="true" tabindex="-1"></a>Compare the estimated CATEs:</span>
-<span id="cb33-252"><a href="#cb33-252" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-255"><a href="#cb33-255" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb33-256"><a href="#cb33-256" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: compare-ite</span></span>
-<span id="cb33-257"><a href="#cb33-257" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb33-258"><a href="#cb33-258" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "BCF (left) vs BART (right) individual treatment effect estimates. BCF's separation prior gives tighter, less noisy CATE estimates."</span></span>
-<span id="cb33-259"><a href="#cb33-259" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 9</span></span>
-<span id="cb33-260"><a href="#cb33-260" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4</span></span>
-<span id="cb33-261"><a href="#cb33-261" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-262"><a href="#cb33-262" aria-hidden="true" tabindex="-1"></a>df_compare <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(</span>
-<span id="cb33-263"><a href="#cb33-263" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(<span class="at">X1 =</span> X[, <span class="dv">1</span>], <span class="at">est =</span> bcf_ite_mean, <span class="at">true =</span> tau, <span class="at">method =</span> <span class="st">"BCF"</span>),</span>
-<span id="cb33-264"><a href="#cb33-264" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(<span class="at">X1 =</span> X[, <span class="dv">1</span>], <span class="at">est =</span> ite_mean,     <span class="at">true =</span> tau, <span class="at">method =</span> <span class="st">"BART"</span>)</span>
-<span id="cb33-265"><a href="#cb33-265" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb33-266"><a href="#cb33-266" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-267"><a href="#cb33-267" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_compare, <span class="fu">aes</span>(X1, est)) <span class="sc">+</span></span>
-<span id="cb33-268"><a href="#cb33-268" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.2</span>, <span class="at">size =</span> <span class="fl">0.3</span>, <span class="at">colour =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
-<span id="cb33-269"><a href="#cb33-269" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"loess"</span>, <span class="at">se =</span> <span class="cn">FALSE</span>, <span class="at">colour =</span> <span class="st">"darkblue"</span>,</span>
-<span id="cb33-270"><a href="#cb33-270" aria-hidden="true" tabindex="-1"></a>              <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
-<span id="cb33-271"><a href="#cb33-271" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">intercept =</span> <span class="dv">1</span>, <span class="at">slope =</span> <span class="dv">2</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>,</span>
-<span id="cb33-272"><a href="#cb33-272" aria-hidden="true" tabindex="-1"></a>              <span class="at">colour =</span> <span class="st">"firebrick"</span>) <span class="sc">+</span></span>
-<span id="cb33-273"><a href="#cb33-273" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> method) <span class="sc">+</span></span>
-<span id="cb33-274"><a href="#cb33-274" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"X1"</span>, <span class="at">y =</span> <span class="st">"Estimated ITE"</span>,</span>
-<span id="cb33-275"><a href="#cb33-275" aria-hidden="true" tabindex="-1"></a>       <span class="at">caption =</span> <span class="st">"Red dashed = truth = 1 + 2 X1"</span>) <span class="sc">+</span></span>
-<span id="cb33-276"><a href="#cb33-276" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb33-277"><a href="#cb33-277" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb33-278"><a href="#cb33-278" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-279"><a href="#cb33-279" aria-hidden="true" tabindex="-1"></a>BCF is usually smoother because it separates the prognostic and treatment</span>
-<span id="cb33-280"><a href="#cb33-280" aria-hidden="true" tabindex="-1"></a>effect parts of the model.</span>
-<span id="cb33-281"><a href="#cb33-281" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-282"><a href="#cb33-282" aria-hidden="true" tabindex="-1"></a><span class="fu">## When to use Bayesian methods</span></span>
-<span id="cb33-283"><a href="#cb33-283" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-284"><a href="#cb33-284" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Reason to use Bayesian <span class="pp">|</span> Reason to use Frequentist <span class="pp">|</span></span>
-<span id="cb33-285"><a href="#cb33-285" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
-<span id="cb33-286"><a href="#cb33-286" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Prior information matters <span class="pp">|</span> Asymptotic theory is well-understood <span class="pp">|</span></span>
-<span id="cb33-287"><a href="#cb33-287" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Need full posterior (e.g. for downstream decisions) <span class="pp">|</span> Computational cost matters (BART is slow on large $n$) <span class="pp">|</span></span>
-<span id="cb33-288"><a href="#cb33-288" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Hierarchical / multilevel data structure <span class="pp">|</span> Effects are simple averages <span class="pp">|</span></span>
-<span id="cb33-289"><a href="#cb33-289" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Small sample, weak identification <span class="pp">|</span> Effects are well-identified <span class="pp">|</span></span>
-<span id="cb33-290"><a href="#cb33-290" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Want individual-level CrIs <span class="pp">|</span> Existing frequentist toolkit is sufficient <span class="pp">|</span></span>
-<span id="cb33-291"><a href="#cb33-291" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-292"><a href="#cb33-292" aria-hidden="true" tabindex="-1"></a>Bayesian methods are most useful when the posterior itself will be used:</span>
-<span id="cb33-293"><a href="#cb33-293" aria-hidden="true" tabindex="-1"></a>for individual treatment decisions, policy values, or hierarchical models.</span>
-<span id="cb33-294"><a href="#cb33-294" aria-hidden="true" tabindex="-1"></a>If the target is just a well-identified ATE in a large sample, the</span>
-<span id="cb33-295"><a href="#cb33-295" aria-hidden="true" tabindex="-1"></a>frequentist methods in earlier chapters are often simpler.</span>
-<span id="cb33-296"><a href="#cb33-296" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-297"><a href="#cb33-297" aria-hidden="true" tabindex="-1"></a><span class="fu">## Practical guidance</span></span>
-<span id="cb33-298"><a href="#cb33-298" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-299"><a href="#cb33-299" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Start with BCF if the goal is heterogeneous effects.</span>
-<span id="cb33-300"><a href="#cb33-300" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Check MCMC diagnostics. A bad chain makes the posterior summaries useless.</span>
-<span id="cb33-301"><a href="#cb33-301" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>For BCF, pay attention to <span class="in">`piHat`</span>; it is part of the model input.</span>
-<span id="cb33-302"><a href="#cb33-302" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Report posterior mean, posterior SD, and credible intervals for ATE and</span>
-<span id="cb33-303"><a href="#cb33-303" aria-hidden="true" tabindex="-1"></a>  meaningful CATE summaries.</span>
-<span id="cb33-304"><a href="#cb33-304" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-305"><a href="#cb33-305" aria-hidden="true" tabindex="-1"></a><span class="fu">## Connections</span></span>
+<span id="cb33-190"><a href="#cb33-190" aria-hidden="true" tabindex="-1"></a>BART models $\mathbb{E}<span class="co">[</span><span class="ot">Y \mid D,X</span><span class="co">]</span>$ directly. That means the same trees</span>
+<span id="cb33-191"><a href="#cb33-191" aria-hidden="true" tabindex="-1"></a>have to learn the baseline outcome and the treatment-effect heterogeneity.</span>
+<span id="cb33-192"><a href="#cb33-192" aria-hidden="true" tabindex="-1"></a>When strong predictors of $Y(0)$ are also related to treatment, this can</span>
+<span id="cb33-193"><a href="#cb33-193" aria-hidden="true" tabindex="-1"></a>create noisy treatment-effect estimates.</span>
+<span id="cb33-194"><a href="#cb33-194" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-195"><a href="#cb33-195" aria-hidden="true" tabindex="-1"></a>BCF writes the conditional mean as</span>
+<span id="cb33-196"><a href="#cb33-196" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-197"><a href="#cb33-197" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb33-198"><a href="#cb33-198" aria-hidden="true" tabindex="-1"></a>\mathbb{E}<span class="co">[</span><span class="ot">Y \mid D, X</span><span class="co">]</span> = \mu(X) + \tau(X)\, D,</span>
+<span id="cb33-199"><a href="#cb33-199" aria-hidden="true" tabindex="-1"></a>$$ {#eq-bayesian-causal-1}</span>
+<span id="cb33-200"><a href="#cb33-200" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-201"><a href="#cb33-201" aria-hidden="true" tabindex="-1"></a>and puts separate priors on $\mu(X)$ and $\tau(X)$. The treatment-effect</span>
+<span id="cb33-202"><a href="#cb33-202" aria-hidden="true" tabindex="-1"></a>part is regularized more strongly, which helps avoid overfitting</span>
+<span id="cb33-203"><a href="#cb33-203" aria-hidden="true" tabindex="-1"></a>heterogeneity.</span>
+<span id="cb33-204"><a href="#cb33-204" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-207"><a href="#cb33-207" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb33-208"><a href="#cb33-208" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: bcf-fit</span></span>
+<span id="cb33-209"><a href="#cb33-209" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb33-210"><a href="#cb33-210" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-211"><a href="#cb33-211" aria-hidden="true" tabindex="-1"></a><span class="co"># BCF requires a propensity score as an input ("piHat")</span></span>
+<span id="cb33-212"><a href="#cb33-212" aria-hidden="true" tabindex="-1"></a>ps_fit <span class="ot">&lt;-</span> <span class="fu">glm</span>(D <span class="sc">~</span> X1 <span class="sc">+</span> X2 <span class="sc">+</span> X3 <span class="sc">+</span> X4 <span class="sc">+</span> X5, <span class="at">data =</span> df, <span class="at">family =</span> binomial)</span>
+<span id="cb33-213"><a href="#cb33-213" aria-hidden="true" tabindex="-1"></a>piHat  <span class="ot">&lt;-</span> <span class="fu">predict</span>(ps_fit, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb33-214"><a href="#cb33-214" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-215"><a href="#cb33-215" aria-hidden="true" tabindex="-1"></a><span class="co"># BCF prints MCMC progress in a way that conflicts with knitr's encoding.</span></span>
+<span id="cb33-216"><a href="#cb33-216" aria-hidden="true" tabindex="-1"></a><span class="co"># Its `verbose=FALSE`/`no_output=TRUE` arguments do not fully suppress this</span></span>
+<span id="cb33-217"><a href="#cb33-217" aria-hidden="true" tabindex="-1"></a><span class="co"># within the SAME R session (the progress output comes from C++ code, not</span></span>
+<span id="cb33-218"><a href="#cb33-218" aria-hidden="true" tabindex="-1"></a><span class="co"># from R's own message()/cat() machinery that sink()/suppressMessages()</span></span>
+<span id="cb33-219"><a href="#cb33-219" aria-hidden="true" tabindex="-1"></a><span class="co"># can intercept) -- so the only reliable fix is running bcf() in its own R</span></span>
+<span id="cb33-220"><a href="#cb33-220" aria-hidden="true" tabindex="-1"></a><span class="co"># process and only reading back the saved result, never its console output.</span></span>
+<span id="cb33-221"><a href="#cb33-221" aria-hidden="true" tabindex="-1"></a><span class="co"># Use SEPARATE input and output files so a failed subprocess can never leave</span></span>
+<span id="cb33-222"><a href="#cb33-222" aria-hidden="true" tabindex="-1"></a><span class="co"># the input list sitting where we expect the result, and check the exit</span></span>
+<span id="cb33-223"><a href="#cb33-223" aria-hidden="true" tabindex="-1"></a><span class="co"># status and object names before trusting it.</span></span>
+<span id="cb33-224"><a href="#cb33-224" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb33-225"><a href="#cb33-225" aria-hidden="true" tabindex="-1"></a><span class="co"># The subprocess needs its OWN set.seed(): a seed set in this session does not</span></span>
+<span id="cb33-226"><a href="#cb33-226" aria-hidden="true" tabindex="-1"></a><span class="co"># reach a separate R process, so without the seed below BCF's posterior draws</span></span>
+<span id="cb33-227"><a href="#cb33-227" aria-hidden="true" tabindex="-1"></a><span class="co"># change every time the chunk actually executes. The knitr cache hides that --</span></span>
+<span id="cb33-228"><a href="#cb33-228" aria-hidden="true" tabindex="-1"></a><span class="co"># the numbers look stable until someone clears the cache, and then every BCF</span></span>
+<span id="cb33-229"><a href="#cb33-229" aria-hidden="true" tabindex="-1"></a><span class="co"># figure in this chapter moves. Seed the worker so the chapter is reproducible.</span></span>
+<span id="cb33-230"><a href="#cb33-230" aria-hidden="true" tabindex="-1"></a>tmp_in  <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="at">fileext =</span> <span class="st">".rds"</span>)</span>
+<span id="cb33-231"><a href="#cb33-231" aria-hidden="true" tabindex="-1"></a>tmp_out <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="at">fileext =</span> <span class="st">".rds"</span>)</span>
+<span id="cb33-232"><a href="#cb33-232" aria-hidden="true" tabindex="-1"></a>tmp_err <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="at">fileext =</span> <span class="st">".log"</span>)</span>
+<span id="cb33-233"><a href="#cb33-233" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(<span class="fu">list</span>(<span class="at">Y =</span> df<span class="sc">$</span>Y, <span class="at">D =</span> df<span class="sc">$</span>D, <span class="at">X =</span> X, <span class="at">piHat =</span> piHat), tmp_in)</span>
+<span id="cb33-234"><a href="#cb33-234" aria-hidden="true" tabindex="-1"></a>status <span class="ot">&lt;-</span> <span class="fu">system</span>(<span class="fu">paste0</span>(<span class="st">"Rscript -e '"</span>,</span>
+<span id="cb33-235"><a href="#cb33-235" aria-hidden="true" tabindex="-1"></a>  <span class="st">"set.seed(42); "</span>,</span>
+<span id="cb33-236"><a href="#cb33-236" aria-hidden="true" tabindex="-1"></a>  <span class="st">"args &lt;- readRDS(</span><span class="sc">\"</span><span class="st">"</span>, tmp_in, <span class="st">"</span><span class="sc">\"</span><span class="st">); "</span>,</span>
+<span id="cb33-237"><a href="#cb33-237" aria-hidden="true" tabindex="-1"></a>  <span class="st">"suppressMessages(library(bcf)); "</span>,</span>
+<span id="cb33-238"><a href="#cb33-238" aria-hidden="true" tabindex="-1"></a>  <span class="st">"f &lt;- bcf(y=args$Y, z=args$D, x_control=args$X, x_moderate=args$X, "</span>,</span>
+<span id="cb33-239"><a href="#cb33-239" aria-hidden="true" tabindex="-1"></a>  <span class="st">"pihat=args$piHat, nburn=200, nsim=1000, n_chains=1, no_output=TRUE, "</span>,</span>
+<span id="cb33-240"><a href="#cb33-240" aria-hidden="true" tabindex="-1"></a>  <span class="st">"verbose=FALSE); "</span>,</span>
+<span id="cb33-241"><a href="#cb33-241" aria-hidden="true" tabindex="-1"></a>  <span class="st">"saveRDS(list(tau=f$tau), </span><span class="sc">\"</span><span class="st">"</span>, tmp_out, <span class="st">"</span><span class="sc">\"</span><span class="st">)'"</span>),</span>
+<span id="cb33-242"><a href="#cb33-242" aria-hidden="true" tabindex="-1"></a>  <span class="at">ignore.stdout =</span> <span class="cn">TRUE</span>, <span class="at">ignore.stderr =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb33-243"><a href="#cb33-243" aria-hidden="true" tabindex="-1"></a><span class="co"># Surface the real cause instead of failing far downstream on a missing field.</span></span>
+<span id="cb33-244"><a href="#cb33-244" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (status <span class="sc">!=</span> <span class="dv">0</span>L <span class="sc">||</span> <span class="sc">!</span><span class="fu">file.exists</span>(tmp_out)) {</span>
+<span id="cb33-245"><a href="#cb33-245" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">"BCF subprocess failed (exit status "</span>, status, <span class="st">"). "</span>,</span>
+<span id="cb33-246"><a href="#cb33-246" aria-hidden="true" tabindex="-1"></a>       <span class="st">"Check that the 'bcf' package is installed in the worker session."</span>)</span>
+<span id="cb33-247"><a href="#cb33-247" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb33-248"><a href="#cb33-248" aria-hidden="true" tabindex="-1"></a>bcf_fit <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(tmp_out)</span>
+<span id="cb33-249"><a href="#cb33-249" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">is.null</span>(bcf_fit<span class="sc">$</span>tau)) {</span>
+<span id="cb33-250"><a href="#cb33-250" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">"BCF subprocess produced no 'tau' draws; aborting."</span>)</span>
+<span id="cb33-251"><a href="#cb33-251" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb33-252"><a href="#cb33-252" aria-hidden="true" tabindex="-1"></a><span class="fu">unlink</span>(<span class="fu">c</span>(tmp_in, tmp_out, tmp_err))</span>
+<span id="cb33-253"><a href="#cb33-253" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb33-254"><a href="#cb33-254" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-255"><a href="#cb33-255" aria-hidden="true" tabindex="-1"></a>The propensity score enters BCF as data, so we fit it first by logistic</span>
+<span id="cb33-256"><a href="#cb33-256" aria-hidden="true" tabindex="-1"></a>regression on all five covariates. BCF then runs 1000 draws after 200 burn-in</span>
+<span id="cb33-257"><a href="#cb33-257" aria-hidden="true" tabindex="-1"></a>on one chain. We extract the posterior treatment effects and summarise them the</span>
+<span id="cb33-258"><a href="#cb33-258" aria-hidden="true" tabindex="-1"></a>same way as for BART:</span>
+<span id="cb33-259"><a href="#cb33-259" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-262"><a href="#cb33-262" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb33-263"><a href="#cb33-263" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: bcf-summary</span></span>
+<span id="cb33-264"><a href="#cb33-264" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb33-265"><a href="#cb33-265" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-266"><a href="#cb33-266" aria-hidden="true" tabindex="-1"></a>tau_post_bcf <span class="ot">&lt;-</span> bcf_fit<span class="sc">$</span>tau    <span class="co"># nsim x n matrix of posterior ITEs</span></span>
+<span id="cb33-267"><a href="#cb33-267" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-268"><a href="#cb33-268" aria-hidden="true" tabindex="-1"></a>bcf_ate_post <span class="ot">&lt;-</span> <span class="fu">rowMeans</span>(tau_post_bcf)</span>
+<span id="cb33-269"><a href="#cb33-269" aria-hidden="true" tabindex="-1"></a>bcf_ite_mean <span class="ot">&lt;-</span> <span class="fu">colMeans</span>(tau_post_bcf)</span>
+<span id="cb33-270"><a href="#cb33-270" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-271"><a href="#cb33-271" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"BCF ATE posterior:</span><span class="sc">\n</span><span class="st">"</span>))</span>
+<span id="cb33-272"><a href="#cb33-272" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Mean:    %.3f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">mean</span>(bcf_ate_post)))</span>
+<span id="cb33-273"><a href="#cb33-273" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  SD:      %.3f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">sd</span>(bcf_ate_post)))</span>
+<span id="cb33-274"><a href="#cb33-274" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  95%% CrI: [%.3f, %.3f]</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb33-275"><a href="#cb33-275" aria-hidden="true" tabindex="-1"></a>            <span class="fu">quantile</span>(bcf_ate_post, <span class="fl">0.025</span>),</span>
+<span id="cb33-276"><a href="#cb33-276" aria-hidden="true" tabindex="-1"></a>            <span class="fu">quantile</span>(bcf_ate_post, <span class="fl">0.975</span>)))</span>
+<span id="cb33-277"><a href="#cb33-277" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  True ATE: %.3f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">mean</span>(tau)))</span>
+<span id="cb33-278"><a href="#cb33-278" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb33-279"><a href="#cb33-279" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-280"><a href="#cb33-280" aria-hidden="true" tabindex="-1"></a>BCF gives a posterior mean of 1.984 with a posterior standard deviation of</span>
+<span id="cb33-281"><a href="#cb33-281" aria-hidden="true" tabindex="-1"></a>0.044 and a 95% credible interval of $<span class="co">[</span><span class="ot">1.903, 2.072</span><span class="co">]</span>$. Against BART's 1.977 and</span>
+<span id="cb33-282"><a href="#cb33-282" aria-hidden="true" tabindex="-1"></a>0.048, and a realized truth of 1.985, the two are indistinguishable at the level</span>
+<span id="cb33-283"><a href="#cb33-283" aria-hidden="true" tabindex="-1"></a>of the ATE. That is expected: the separation prior is aimed at the</span>
+<span id="cb33-284"><a href="#cb33-284" aria-hidden="true" tabindex="-1"></a>treatment-effect *function*, and averaging over units washes out most of what</span>
+<span id="cb33-285"><a href="#cb33-285" aria-hidden="true" tabindex="-1"></a>it does.</span>
+<span id="cb33-286"><a href="#cb33-286" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-287"><a href="#cb33-287" aria-hidden="true" tabindex="-1"></a><span class="fu">### BART vs BCF: individual treatment effects</span></span>
+<span id="cb33-288"><a href="#cb33-288" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-289"><a href="#cb33-289" aria-hidden="true" tabindex="-1"></a>The difference, if there is one, should appear in the individual effects. Each</span>
+<span id="cb33-290"><a href="#cb33-290" aria-hidden="true" tabindex="-1"></a>panel plots the posterior-mean ITE against $X_1$, with a loess fit and the true</span>
+<span id="cb33-291"><a href="#cb33-291" aria-hidden="true" tabindex="-1"></a>$\tau(x)$ as the dashed red line.</span>
+<span id="cb33-292"><a href="#cb33-292" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-295"><a href="#cb33-295" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb33-296"><a href="#cb33-296" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: compare-ite</span></span>
+<span id="cb33-297"><a href="#cb33-297" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb33-298"><a href="#cb33-298" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "BCF (left) vs BART (right) posterior-mean individual treatment effects against the true τ(x) = 1 + 2 X₁."</span></span>
+<span id="cb33-299"><a href="#cb33-299" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 9</span></span>
+<span id="cb33-300"><a href="#cb33-300" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4</span></span>
+<span id="cb33-301"><a href="#cb33-301" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-302"><a href="#cb33-302" aria-hidden="true" tabindex="-1"></a>df_compare <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(</span>
+<span id="cb33-303"><a href="#cb33-303" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(<span class="at">X1 =</span> X[, <span class="dv">1</span>], <span class="at">est =</span> bcf_ite_mean, <span class="at">true =</span> tau, <span class="at">method =</span> <span class="st">"BCF"</span>),</span>
+<span id="cb33-304"><a href="#cb33-304" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(<span class="at">X1 =</span> X[, <span class="dv">1</span>], <span class="at">est =</span> ite_mean,     <span class="at">true =</span> tau, <span class="at">method =</span> <span class="st">"BART"</span>)</span>
+<span id="cb33-305"><a href="#cb33-305" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb33-306"><a href="#cb33-306" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-307"><a href="#cb33-307" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">Heterogeneous Treatment Effects</span><span class="co">](heterogeneous-effects.qmd)</span></span>
-<span id="cb33-308"><a href="#cb33-308" aria-hidden="true" tabindex="-1"></a>  chapter covers frequentist meta-learners (S/T/X/R/DR) and causal</span>
-<span id="cb33-309"><a href="#cb33-309" aria-hidden="true" tabindex="-1"></a>  forests via <span class="in">`grf`</span>. BCF can be viewed as the Bayesian counterpart to</span>
-<span id="cb33-310"><a href="#cb33-310" aria-hidden="true" tabindex="-1"></a>  causal forests: both use ensembles of trees, but BCF puts priors on</span>
-<span id="cb33-311"><a href="#cb33-311" aria-hidden="true" tabindex="-1"></a>  the trees while <span class="in">`grf`</span> uses honest sample-splitting.</span>
-<span id="cb33-312"><a href="#cb33-312" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">Sensitivity Analysis</span><span class="co">](sensitivity-analysis.qmd)</span> chapter's</span>
-<span id="cb33-313"><a href="#cb33-313" aria-hidden="true" tabindex="-1"></a>  Cinelli-Hazlett bounds are frequentist; the Bayesian analog is a</span>
-<span id="cb33-314"><a href="#cb33-314" aria-hidden="true" tabindex="-1"></a>  prior on the unmeasured-confounder strength (cf. McCandless et al.</span>
-<span id="cb33-315"><a href="#cb33-315" aria-hidden="true" tabindex="-1"></a>  2007).</span>
-<span id="cb33-316"><a href="#cb33-316" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>For Bayesian *Numpyro*-style hierarchical models, see the [companion</span>
-<span id="cb33-317"><a href="#cb33-317" aria-hidden="true" tabindex="-1"></a>  blog chapter](https://xiangao.github.io/blog_book/numpyro.html).</span>
+<span id="cb33-307"><a href="#cb33-307" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_compare, <span class="fu">aes</span>(X1, est)) <span class="sc">+</span></span>
+<span id="cb33-308"><a href="#cb33-308" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.2</span>, <span class="at">size =</span> <span class="fl">0.3</span>, <span class="at">colour =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
+<span id="cb33-309"><a href="#cb33-309" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"loess"</span>, <span class="at">se =</span> <span class="cn">FALSE</span>, <span class="at">colour =</span> <span class="st">"darkblue"</span>,</span>
+<span id="cb33-310"><a href="#cb33-310" aria-hidden="true" tabindex="-1"></a>              <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb33-311"><a href="#cb33-311" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">intercept =</span> <span class="dv">1</span>, <span class="at">slope =</span> <span class="dv">2</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>,</span>
+<span id="cb33-312"><a href="#cb33-312" aria-hidden="true" tabindex="-1"></a>              <span class="at">colour =</span> <span class="st">"firebrick"</span>) <span class="sc">+</span></span>
+<span id="cb33-313"><a href="#cb33-313" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> method) <span class="sc">+</span></span>
+<span id="cb33-314"><a href="#cb33-314" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"X1"</span>, <span class="at">y =</span> <span class="st">"Estimated ITE"</span>,</span>
+<span id="cb33-315"><a href="#cb33-315" aria-hidden="true" tabindex="-1"></a>       <span class="at">caption =</span> <span class="st">"Red dashed = truth = 1 + 2 X1"</span>) <span class="sc">+</span></span>
+<span id="cb33-316"><a href="#cb33-316" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb33-317"><a href="#cb33-317" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb33-318"><a href="#cb33-318" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-319"><a href="#cb33-319" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
-<span id="cb33-320"><a href="#cb33-320" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-321"><a href="#cb33-321" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>BART estimates counterfactual outcomes by fitting a flexible outcome model.</span>
-<span id="cb33-322"><a href="#cb33-322" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>BCF separates baseline outcome prediction from treatment-effect</span>
-<span id="cb33-323"><a href="#cb33-323" aria-hidden="true" tabindex="-1"></a>  heterogeneity.</span>
-<span id="cb33-324"><a href="#cb33-324" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The main output is the posterior, especially for individual effects or</span>
-<span id="cb33-325"><a href="#cb33-325" aria-hidden="true" tabindex="-1"></a>  policy decisions.</span>
-<span id="cb33-326"><a href="#cb33-326" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Computation is the main cost. For very large data, frequentist HTE methods</span>
-<span id="cb33-327"><a href="#cb33-327" aria-hidden="true" tabindex="-1"></a>  are usually easier.</span>
+<span id="cb33-319"><a href="#cb33-319" aria-hidden="true" tabindex="-1"></a>Both clouds follow the true line. BCF is usually the smoother of the two,</span>
+<span id="cb33-320"><a href="#cb33-320" aria-hidden="true" tabindex="-1"></a>because separating the prognostic part $\mu(X)$ from the effect part $\tau(X)$</span>
+<span id="cb33-321"><a href="#cb33-321" aria-hidden="true" tabindex="-1"></a>lets the prior regularise the effect function harder without also flattening</span>
+<span id="cb33-322"><a href="#cb33-322" aria-hidden="true" tabindex="-1"></a>the baseline. In this DGP the baseline is nearly flat --- $Y(0) = 0.5X_2 +</span>
+<span id="cb33-323"><a href="#cb33-323" aria-hidden="true" tabindex="-1"></a>\varepsilon$ --- so there is little prognostic signal for BART to confuse with</span>
+<span id="cb33-324"><a href="#cb33-324" aria-hidden="true" tabindex="-1"></a>the effect, and the two methods have less to separate them than they would with</span>
+<span id="cb33-325"><a href="#cb33-325" aria-hidden="true" tabindex="-1"></a>a strong, treatment-correlated baseline.</span>
+<span id="cb33-326"><a href="#cb33-326" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-327"><a href="#cb33-327" aria-hidden="true" tabindex="-1"></a>Both sets of numbers here are reproducible. BART is seeded in this session, and</span>
+<span id="cb33-328"><a href="#cb33-328" aria-hidden="true" tabindex="-1"></a>the BCF worker seeds itself --- a seed set in the parent session does not reach</span>
+<span id="cb33-329"><a href="#cb33-329" aria-hidden="true" tabindex="-1"></a>a separate R process, so the <span class="in">`set.seed(42)`</span> inside the <span class="in">`Rscript`</span> call is what</span>
+<span id="cb33-330"><a href="#cb33-330" aria-hidden="true" tabindex="-1"></a>makes the posterior stable across renders.</span>
+<span id="cb33-331"><a href="#cb33-331" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-332"><a href="#cb33-332" aria-hidden="true" tabindex="-1"></a><span class="fu">## When to use Bayesian methods</span></span>
+<span id="cb33-333"><a href="#cb33-333" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-334"><a href="#cb33-334" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Reason to use Bayesian <span class="pp">|</span> Reason to use Frequentist <span class="pp">|</span></span>
+<span id="cb33-335"><a href="#cb33-335" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
+<span id="cb33-336"><a href="#cb33-336" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Prior information matters <span class="pp">|</span> Asymptotic theory is well-understood <span class="pp">|</span></span>
+<span id="cb33-337"><a href="#cb33-337" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Need full posterior (e.g. for downstream decisions) <span class="pp">|</span> Computational cost matters (BART is slow on large $n$) <span class="pp">|</span></span>
+<span id="cb33-338"><a href="#cb33-338" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Hierarchical / multilevel data structure <span class="pp">|</span> Effects are simple averages <span class="pp">|</span></span>
+<span id="cb33-339"><a href="#cb33-339" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Small sample, weak identification <span class="pp">|</span> Effects are well-identified <span class="pp">|</span></span>
+<span id="cb33-340"><a href="#cb33-340" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Want individual-level CrIs <span class="pp">|</span> Existing frequentist toolkit is sufficient <span class="pp">|</span></span>
+<span id="cb33-341"><a href="#cb33-341" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-342"><a href="#cb33-342" aria-hidden="true" tabindex="-1"></a>Bayesian methods are most useful when the posterior itself will be used:</span>
+<span id="cb33-343"><a href="#cb33-343" aria-hidden="true" tabindex="-1"></a>for individual treatment decisions, policy values, or hierarchical models.</span>
+<span id="cb33-344"><a href="#cb33-344" aria-hidden="true" tabindex="-1"></a>If the target is just a well-identified ATE in a large sample, the</span>
+<span id="cb33-345"><a href="#cb33-345" aria-hidden="true" tabindex="-1"></a>frequentist methods in earlier chapters are often simpler.</span>
+<span id="cb33-346"><a href="#cb33-346" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-347"><a href="#cb33-347" aria-hidden="true" tabindex="-1"></a><span class="fu">## Practical guidance</span></span>
+<span id="cb33-348"><a href="#cb33-348" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-349"><a href="#cb33-349" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Start with BCF if the goal is heterogeneous effects.</span>
+<span id="cb33-350"><a href="#cb33-350" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Check MCMC diagnostics. A bad chain makes the posterior summaries useless.</span>
+<span id="cb33-351"><a href="#cb33-351" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>For BCF, pay attention to <span class="in">`piHat`</span>; it is part of the model input.</span>
+<span id="cb33-352"><a href="#cb33-352" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Report posterior mean, posterior SD, and credible intervals for ATE and</span>
+<span id="cb33-353"><a href="#cb33-353" aria-hidden="true" tabindex="-1"></a>  meaningful CATE summaries.</span>
+<span id="cb33-354"><a href="#cb33-354" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-355"><a href="#cb33-355" aria-hidden="true" tabindex="-1"></a><span class="fu">## Connections</span></span>
+<span id="cb33-356"><a href="#cb33-356" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-357"><a href="#cb33-357" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">Heterogeneous Treatment Effects</span><span class="co">](heterogeneous-effects.qmd)</span></span>
+<span id="cb33-358"><a href="#cb33-358" aria-hidden="true" tabindex="-1"></a>  chapter covers frequentist meta-learners (S/T/X/R/DR) and causal</span>
+<span id="cb33-359"><a href="#cb33-359" aria-hidden="true" tabindex="-1"></a>  forests via <span class="in">`grf`</span>. BCF can be viewed as the Bayesian counterpart to</span>
+<span id="cb33-360"><a href="#cb33-360" aria-hidden="true" tabindex="-1"></a>  causal forests: both use ensembles of trees, but BCF puts priors on</span>
+<span id="cb33-361"><a href="#cb33-361" aria-hidden="true" tabindex="-1"></a>  the trees while <span class="in">`grf`</span> uses honest sample-splitting.</span>
+<span id="cb33-362"><a href="#cb33-362" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">Sensitivity Analysis</span><span class="co">](sensitivity-analysis.qmd)</span> chapter's</span>
+<span id="cb33-363"><a href="#cb33-363" aria-hidden="true" tabindex="-1"></a>  Cinelli-Hazlett bounds are frequentist; the Bayesian analog is a</span>
+<span id="cb33-364"><a href="#cb33-364" aria-hidden="true" tabindex="-1"></a>  prior on the unmeasured-confounder strength (cf. McCandless et al.</span>
+<span id="cb33-365"><a href="#cb33-365" aria-hidden="true" tabindex="-1"></a>  2007).</span>
+<span id="cb33-366"><a href="#cb33-366" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>For Bayesian *Numpyro*-style hierarchical models, see the [companion</span>
+<span id="cb33-367"><a href="#cb33-367" aria-hidden="true" tabindex="-1"></a>  blog chapter](https://xiangao.github.io/blog_book/numpyro.html).</span>
+<span id="cb33-368"><a href="#cb33-368" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-369"><a href="#cb33-369" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb33-370"><a href="#cb33-370" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-371"><a href="#cb33-371" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>BART estimates counterfactual outcomes by fitting a flexible outcome model.</span>
+<span id="cb33-372"><a href="#cb33-372" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>BCF separates baseline outcome prediction from treatment-effect</span>
+<span id="cb33-373"><a href="#cb33-373" aria-hidden="true" tabindex="-1"></a>  heterogeneity.</span>
+<span id="cb33-374"><a href="#cb33-374" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The main output is the posterior, especially for individual effects or</span>
+<span id="cb33-375"><a href="#cb33-375" aria-hidden="true" tabindex="-1"></a>  policy decisions.</span>
+<span id="cb33-376"><a href="#cb33-376" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Computation is the main cost. For very large data, frequentist HTE methods</span>
+<span id="cb33-377"><a href="#cb33-377" aria-hidden="true" tabindex="-1"></a>  are usually easier.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

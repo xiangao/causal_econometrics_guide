@@ -77,6 +77,18 @@ Regression Adjustment is basically an imputation estimator. While we observe $E[
 
 Implementation of linear RA is easy. We regress $Y$ on $X$ and $W$ and their interaction. It's shown that we need to de-mean $X$ to get the effect correct.
 
+The data are the 401(k) file distributed with `hdm`, from the 1991 Survey of
+Income and Program Participation. There are 9,915 households. The outcome
+`net_tfa` is net total financial assets in dollars, the treatment `p401` is
+participation in a 401(k) plan, taken by 2,594 households, and we condition on
+household income `inc` and the reference person's `age`. Whether those two
+covariates suffice for unconfoundedness is doubtful, and the point here is the
+mechanics of the estimator rather than the substantive effect.
+
+We de-mean income and age at their treated-group means, then regress net
+financial assets on participation, the two de-meaned covariates, and their
+interactions with participation.
+
 ```{r ra1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 data(pension)
 #  for ATE, de-mean X by deducting the mean of X in the whole sample:
@@ -94,7 +106,16 @@ summary(lm_ra)
 #coeftest(lm_ra, vcov=vcovHC(lm_ra, type='HC2'))[2,]
 ```
 
-After demeaning the covariates, we include all interactions of demeaned covariates with treatment. Because we de-meaned at the treated-group means, the coefficient on $W$ is the average treatment effect on the treated (ATT); de-meaning at the whole-sample means instead would give the ATE.
+The coefficient on `p401` is 14,160 with a standard error of 1,397. Because we
+de-meaned at the treated-group means, that coefficient is the ATT: participants
+hold about \$14,000 more in net financial assets than they would have without a
+401(k), under the assumption that income and age are the only confounders.
+De-meaning at the whole-sample means instead would give the ATE.
+
+Both interaction terms are large and significant, so the effect varies with the
+covariates. A household \$10,000 above the treated-group mean income has an
+effect larger by \$3,300, and each extra year of age adds \$815. This is why
+the interactions are needed at all.
 
 ### Questions on RA
 
@@ -174,6 +195,19 @@ scalar $\psi_w^{AIPW}$ equals $E[Y(w)]$ as long as either the outcome model
 or the propensity score is correctly specified; the ATE is
 $\psi_1^{AIPW}-\psi_0^{AIPW}$.
 
+We switch to the Cattaneo (2010) birth-weight data used in the Stata manuals:
+4,642 births, outcome `bweight` in grams, treatment `mbsmoke` for maternal
+smoking during pregnancy (864 mothers), and covariates `prenatal1` (a prenatal
+visit in the first trimester), `mmarried`, `mage` (mother's age), `fbaby`
+(first baby) and `medu` (mother's education). Smokers' babies weigh 3,137.7 g
+on average and non-smokers' 3,412.9 g, a raw gap of $-275.3$ g.
+
+The outcome model is a linear regression of birth weight on smoking interacted
+with prenatal care, marital status, mother's age and first-baby status. The
+propensity model is a logit of smoking on marital status, mother's age,
+first-baby status and education. We form the AIPW summand for each arm and
+average the difference.
+
 ```{r aipw1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 data <- read_dta(file="https://www.stata-press.com/data/r18/cattaneo2.dta")
 mu <- lm(bweight ~ mbsmoke*(prenatal1 + mmarried + mage + fbaby), data=data)
@@ -189,6 +223,10 @@ data2 <- data %>%
 data2 %>% summarise(mean(tau))
 ```
 
+AIPW gives $-234$ g. Adjustment moves the estimate about 41 g toward zero from
+the raw $-275$ g, so part of the raw gap is composition: smokers differ from
+non-smokers in age, education and marital status.
+
 ### IPWRA
 
 The idea of IPWRA is to combine RA and IPW. Basically RA with IPW weights.
@@ -199,6 +237,10 @@ Implementation:
 -   Estimate outcome model with the IPW weights: two separate equations, one for treated (weights $1/\hat \pi(X)$) and one for control (weights $1/(1-\hat \pi(X))$). Equivalently, one weighted regression with full treatment–covariate interaction — the interacted design matrix is block-diagonal across the two groups, so the weighted normal equations decouple and the two routes give identical fits.
 -   Get predicted values for setting everyone treated. Get predicted values for setting everyone control. These are the two potential outcomes.
 -   Take difference. The average is the ATE.
+
+We run this on the same birth-weight data and the same propensity model as
+AIPW, so the two estimates differ only in how the outcome and treatment models
+are combined.
 
 ```{r ipwra1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 data <- read_dta(file="https://www.stata-press.com/data/r18/cattaneo2.dta")
@@ -218,3 +260,9 @@ data2 <- data %>%
   mutate(tau=m1-m0)
 data2 %>% summarise(mean(tau))
 ```
+
+IPWRA gives $-233$ g, within a gram of the AIPW estimate. The agreement is not
+automatic. Both are doubly robust and both use the same two nuisance models
+here, so they can only differ in how the models are combined. When the outcome
+and propensity models point in different directions, the two estimators
+separate.

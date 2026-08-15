@@ -46,8 +46,14 @@ I use three approaches:
 
 ## The continuous-treatment setup
 
-Start with a simple simulation. Treatment is a dose, and the dose depends on
-covariates:
+The aim is to recover a known dose-response curve from data in which the dose
+is chosen partly on covariates that also move the outcome.
+
+We simulate $n = 2000$ units with two covariates, $X_1, X_2 \sim N(0,1)$,
+independent of each other. The dose is $D = 2 + 0.5X_1 + 0.5X_2 + \nu$ with
+$\nu \sim N(0,1)$. The dose-response curve is $\mu(d) = 1 + 2d - 0.15d^2$, and
+the outcome is $Y = \mu(D) + 0.3X_1 - 0.3X_2 + \varepsilon$ with
+$\varepsilon \sim N(0,1)$.
 
 ```{r}
 #| label: dgp
@@ -69,8 +75,10 @@ cat(sprintf("True μ(d=2) = %.2f, μ(d=4) = %.2f, μ(d=6) = %.2f\n",
             true_mu(2), true_mu(4), true_mu(6)))
 ```
 
-The true dose-response curve is $\mu(d) = 1 + 2d - 0.15d^2$: concave, with
-clearly diminishing returns. It is worth being precise about the shape rather
+The observed doses run from $-1.82$ to 6.39, and the true curve gives
+$\mu(2) = 4.40$, $\mu(4) = 6.60$ and $\mu(6) = 7.60$.
+
+The dose-response curve is concave, with clearly diminishing returns. It is worth being precise about the shape rather
 than calling it hump-shaped, because the vertex sits at $d = 2/0.3 \approx 6.67$,
 just *beyond* the largest dose in the sample. Over the observed range the curve is
 therefore increasing throughout --- its slope $2 - 0.3d$ is still positive
@@ -80,8 +88,19 @@ that is in range when the observed dose is confounded by $X$.
 
 ## Naive regression vs adjusted regression
 
-A linear regression of $Y$ on $D$ has two problems: it ignores confounding
-by $X$, and it imposes a straight line on a nonlinear dose-response curve.
+We fit three models and compare their implied dose-response curves against the
+truth: $Y$ on $D$ alone, $Y$ on $D$ and the covariates, and $Y$ on a quadratic
+in $D$ and the covariates. All three are evaluated at $X_1 = X_2 = 0$ over
+$d \in [0,10]$.
+
+One feature of this DGP is worth stating before reading the plot. $X_1$ and
+$X_2$ are confounders in the graph, since each raises the dose and each moves
+the outcome. But their linear bias cancels: each raises $D$ by 0.5, while they
+enter $Y$ with $+0.3$ and $-0.3$, so the omitted-variable term
+$\text{Cov}(D,\, 0.3X_1 - 0.3X_2)/\text{Var}(D)$ is
+$0.3(0.5) - 0.3(0.5) = 0$ exactly. The naive slope is 1.421 and the adjusted
+slope 1.409. Adjusting for $X$ changes almost nothing here, and the one problem
+left for the linear models is functional form.
 
 ```{r}
 #| label: naive
@@ -128,9 +147,17 @@ ggplot() +
   theme_minimal()
 ```
 
-The quadratic adjusted model is better in this simulation because the true
-curve is quadratic. In real applications, the functional form is usually not
-known.
+The two linear fits lie almost on top of each other, as the cancellation above
+implies, and both run straight through the curvature. At $d = 2$ they give 4.13
+against a true 4.40; at $d = 6$ they give 9.82 and 9.77 against a true 7.60.
+Their common slope of about 1.41 is close to the average of the true slope
+$2 - 0.3d$ over the observed doses, which is 1.403 --- a straight line through
+a concave curve recovers the average derivative, not the curve.
+
+The quadratic adjusted fit gives 4.34, 6.61 and 7.83 at $d = 2, 4, 6$ against
+the true 4.40, 6.60 and 7.60. It is better here because the true curve is
+quadratic and we fitted a quadratic. In real applications the functional form
+is not known, which is what motivates the next two sections.
 
 ## Generalized propensity score (GPS)
 
@@ -145,6 +172,10 @@ Under unconfoundedness, the GPS plays the same role as the propensity score
 for binary treatment. In practice we often start with a normal model for
 $D \mid X$:
 $D \mid X \sim \mathcal{N}(\beta_0+\beta'X,\sigma^2)$.
+
+We fit $D$ on $X_1$ and $X_2$ by OLS and read the GPS off the normal density at
+each unit's own dose. The weights printed below are a diagnostic only: they are
+the marginal density of $D$ divided by the GPS, trimmed at the 99th percentile.
 
 ```{r}
 #| label: gps
@@ -172,9 +203,14 @@ cat(sprintf("Weight summary: min=%.3f, mean=%.3f, max=%.3f\n",
             min(df$sw_cont), mean(df$sw_cont), max(df$sw_cont)))
 ```
 
+The weights run from 0.039 to 4.390 with a mean of 0.947. No unit carries an
+extreme weight, so overlap along the dose is good and the estimators below are
+not resting on a handful of observations.
+
 The Hirano-Imbens estimator has two steps. First regress $Y$ on flexible
 functions of $D$ and the estimated GPS. Then, for each dose $d$, average the
-predicted outcome over the sample.
+predicted outcome over the sample. The plot compares the resulting curve
+against the truth.
 
 ```{r}
 #| label: hi-est
@@ -206,8 +242,10 @@ ggplot() +
   theme_minimal()
 ```
 
-In this example the GPS estimator tracks the nonlinear curve much better
-than the naive linear regression.
+The GPS curve tracks the concavity that the linear fits missed. It is fitted
+with a quadratic in $D$ and in the GPS, so it is not assumption-free either,
+but the assumption is now about how the outcome depends on the dose and the
+score rather than about a straight line.
 
 ## Doubly-robust dose-response estimation
 
@@ -230,7 +268,10 @@ nearby observed doses contribute to the estimate. (The code below uses the
 weight-normalized — Hájek — version of the correction term, dividing the
 weights by their mean; the population limit is unchanged.)
 
-Using the GPS already estimated above, the implementation is short:
+Using the GPS already estimated above, the implementation is short. The outcome
+model is a quadratic in $D$ with both covariates and their interactions with
+$D$; the kernel is Gaussian with bandwidth $h = 0.5$. The plot puts this curve
+next to the GPS curve and the truth.
 
 ```{r}
 #| label: drf
@@ -292,6 +333,20 @@ keeps the counterfactual treatment closer to the observed support.
 
 ### A two-period example
 
+We simulate $N = 1500$ units over two periods. The first covariate is
+$L_1 \sim U(0,1)$ and the first treatment is a coin flip,
+$A_1 \sim \text{Bernoulli}(0.5)$. The second covariate is
+$L_2 \sim N(0.25L_1,\, 0.5^2)$, and the second treatment depends on both the
+first treatment and the current covariate,
+$A_2 \sim \text{Bernoulli}(\Lambda(0.5 - 0.2A_1 + 0.1L_2))$. The outcome is
+$Y \sim N(A_2 + L_2,\, 0.3^2)$.
+
+The truths follow from the DGP without simulation. $L_2$ does not depend on
+$A_1$, so setting both treatments to 0 leaves
+$E[Y] = E[L_2] = 0.25 \cdot E[L_1] = 0.125$. Setting both to 1 gives
+$1 + 0.125 = 1.125$. And $A_1$ affects $Y$ only through $A_2$, which the policy
+fixes, so the contrast between the two policies is exactly 1.
+
 ```{r}
 #| label: lmtp-sim
 #| cache: true
@@ -352,9 +407,13 @@ lmtp_fit <- lmtp_tmle(
 tidy(lmtp_fit)
 ```
 
+The set-to-zero policy gives 0.118 with a standard error of 0.0252 and a 95%
+interval of $[0.068, 0.167]$, which covers the true 0.125.
+
 The useful part of `lmtp` is that it handles the time-ordering of
-covariates, treatments, and outcomes. The output gives the TMLE estimate
-with its standard error and confidence interval.
+covariates, treatments, and outcomes: $L_2$ is a post-treatment covariate for
+$A_1$ and a pre-treatment covariate for $A_2$, and the estimator has to respect
+that ordering rather than conditioning on $L_2$ throughout.
 
 ### Contrasts between policies
 
@@ -387,8 +446,11 @@ contrast <- lmtp_contrast(lmtp_one, ref = lmtp_fit)
 as.data.frame(contrast$estimates)
 ```
 
-The contrast is the difference between the two policy-specific mean
-outcomes.
+The contrast is the difference between the two policy-specific mean outcomes.
+Treat-always gives 1.103 against a true 1.125, treat-never gives 0.118 against
+a true 0.125, and their difference is 0.9855 with a standard error of 0.0349
+and a 95% interval of $[0.917, 1.054]$. The true contrast is exactly 1, and the
+interval covers it.
 
 ## Choosing among the three
 

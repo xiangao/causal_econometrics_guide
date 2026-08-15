@@ -448,7 +448,7 @@ window.Quarto = {
 </ol>
 <section id="the-nhefs-smoking-cessation-example" class="level2" data-number="5.1"><h2 data-number="5.1" class="anchored" data-anchor-id="the-nhefs-smoking-cessation-example">
 <span class="header-section-number">5.1</span> The NHEFS smoking-cessation example</h2>
-<p>We use the National Health and Nutrition Examination Survey I Epidemiologic Follow-up Study (NHEFS) data — the same dataset used in the <a href="./smoking-cessation-graphs.html">applied DAG-workflow chapter</a>. The question: what is the effect of quitting smoking (<code>qsmk</code>) on weight gain over 10 years (<code>wt82_71</code>)?</p>
+<p>We use the National Health and Nutrition Examination Survey I Epidemiologic Follow-up Study (NHEFS) data — the same dataset used in the <a href="./smoking-cessation-graphs.html">applied DAG-workflow chapter</a>. The question: what is the effect of quitting smoking (<code>qsmk</code>) on weight gain over 10 years (<code>wt82_71</code>)? We start from the raw comparison.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">nhefs</span> <span class="op">&lt;-</span> <span class="fu">causaldata</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/causaldata/man/nhefs_complete.html">nhefs_complete</a></span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html">filter</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html">is.na</a></span><span class="op">(</span><span class="va">wt82_71</span><span class="op">)</span><span class="op">)</span></span>
@@ -472,7 +472,7 @@ window.Quarto = {
 <pre><code>Mean weight gain (untreated): 1.98 kg</code></pre>
 </div>
 </div>
-<p>A naive comparison says quitters gained <span class="math inline">\(\approx\)</span> 2.5 kg more than non-quitters, but smokers and quitters differ on many baseline characteristics. Adjust for the standard set of confounders (age, sex, race, education, baseline weight, smoking intensity, exercise, activity):</p>
+<p>Of the 1,566 complete cases, 403 quit. Quitters gained 4.53 kg on average and continuing smokers 1.98 kg, a naive difference of 2.55 kg. But quitters and continuers differ on many baseline characteristics. We adjust for the standard set by OLS — sex, age, race, education, smoking intensity, years smoked, exercise, activity and baseline weight — and print the first three coefficients along with the treatment estimate:</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">ols</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html">lm</a></span><span class="op">(</span><span class="va">wt82_71</span> <span class="op">~</span> <span class="va">qsmk</span> <span class="op">+</span> <span class="va">sex</span> <span class="op">+</span> <span class="va">age</span> <span class="op">+</span> <span class="va">race</span> <span class="op">+</span> <span class="va">education</span> <span class="op">+</span> <span class="va">smokeintensity</span> <span class="op">+</span></span>
 <span>                    <span class="va">smokeyrs</span> <span class="op">+</span> <span class="va">exercise</span> <span class="op">+</span> <span class="va">active</span> <span class="op">+</span> <span class="va">wt71</span>,</span>
@@ -520,7 +520,7 @@ window.Quarto = {
 Adjusted ACE estimate: 3.381 kg  (SE = 0.441)</code></pre>
 </div>
 </div>
-<p>The adjusted estimate is around 3.4 kg, larger than the unadjusted difference. But the identification assumption requires that we have controlled for <em>all</em> relevant confounders. What if we missed one — say, a propensity to gain weight that also correlates with quitting decisions? Sensitivity analysis addresses this directly.</p>
+<p>The adjusted estimate is 3.381 kg with a standard error of 0.441, larger than the naive 2.55 kg. Adjustment moved the answer away from zero, not toward it. But the identification assumption requires that we have controlled for <em>all</em> relevant confounders. What if we missed one — say, a propensity to gain weight that also correlates with quitting decisions? Sensitivity analysis addresses this directly.</p>
 </section><section id="cinelli-hazlett-ovb-bounds" class="level2" data-number="5.2"><h2 data-number="5.2" class="anchored" data-anchor-id="cinelli-hazlett-ovb-bounds">
 <span class="header-section-number">5.2</span> Cinelli-Hazlett OVB bounds</h2>
 <p><code>sensemakr</code> implements the Cinelli-Hazlett (2020) approach. The key inputs are:</p>
@@ -599,6 +599,9 @@ Bounds on omitted variable bias:
 <li>
 <strong>Benchmark comparisons</strong>: how the RV compares to multiples of the observed covariates.</li>
 </ul>
+<p>For this regression the partial <span class="math inline">\(R^2\)</span> of quitting with weight change is 3.65%. The robustness value at <span class="math inline">\(q=1\)</span> is 17.67%: a confounder orthogonal to the covariates would have to explain more than 17.67% of the residual variance of both quitting and weight change to bring the estimate to zero. To leave it merely statistically indistinguishable from zero at the 5% level, 13.47% would be enough.</p>
+<p>The benchmark rows put those numbers on a scale. Smoking intensity explains 1.43% of the residual variance of quitting and 0.10% of the residual variance of weight change. A confounder three times as strong on both margins would move the estimate from 3.381 to 3.182, with a 95% interval of <span class="math inline">\([2.30, 4.07]\)</span>. None of the measured covariates comes near the 17.67% that would be needed, so the estimate is robust to a confounder resembling the ones we already control for.</p>
+<p>The same information is easier to read as a contour plot. The horizontal axis is the confounder’s partial <span class="math inline">\(R^2\)</span> with the treatment, the vertical axis its partial <span class="math inline">\(R^2\)</span> with the outcome, and the contours give the adjusted estimate at each combination. The benchmark dots mark 1x, 2x and 3x smoking intensity and years smoked.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html">plot</a></span><span class="op">(</span><span class="va">sens</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details><div class="cell-output-display">
@@ -608,11 +611,11 @@ Bounds on omitted variable bias:
 </div>
 </div>
 </div>
-<p>The contour plot shows how strong an unobserved confounder would have to be with the treatment and outcome to reduce the estimate to zero. The benchmark dots compare that hypothetical confounder to observed covariates.</p>
+<p>All six benchmark points sit below 0.05 on the treatment axis and below 0.005 on the outcome axis, in the region where the adjusted estimate stays above 3 kg. The contour that reaches zero is a long way out.</p>
 </section><section id="e-values-for-risk-ratios" class="level2" data-number="5.3"><h2 data-number="5.3" class="anchored" data-anchor-id="e-values-for-risk-ratios">
 <span class="header-section-number">5.3</span> E-values for risk ratios</h2>
 <p>For binary outcomes and risk-ratio-type estimands, VanderWeele and Ding (2017) propose the <strong>E-value</strong>: the minimum strength of association on the risk-ratio scale that an unmeasured confounder would need to have with both the treatment and the outcome to fully explain the observed risk ratio.</p>
-<p>To illustrate, dichotomize weight gain (“any” gain vs no gain) and fit a risk-ratio model:</p>
+<p>To illustrate, we dichotomize weight change into any gain versus none, fit the risk ratio by Poisson regression with a log link on the same nine covariates, and take the confidence interval from robust standard errors:</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">nhefs</span><span class="op">$</span><span class="va">gain</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="va">nhefs</span><span class="op">$</span><span class="va">wt82_71</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span></span>
 <span></span>
@@ -650,14 +653,15 @@ E-values 1.732578 1.526206       NA</code></pre>
 <li>
 <strong>E-value (confidence interval)</strong>: the minimum strength needed to shift the lower confidence bound to 1.</li>
 </ul>
-<p>An E-value much greater than 1 suggests the result is hard to explain by unmeasured confounding. An E-value close to 1 means a modest unmeasured confounder could overturn the conclusion.</p>
+<p>The adjusted risk ratio is 1.218, with a 95% interval of <span class="math inline">\([1.135, 1.307]\)</span>. Quitters are about 22% more likely to gain any weight. The E-value for the point estimate is 1.73: an unmeasured confounder would need risk-ratio associations of at least 1.73 with both quitting and weight gain, beyond the nine measured covariates, to account for the whole association. The E-value for the confidence limit is 1.53, the strength that would push the lower bound to 1.</p>
+<p>An E-value much greater than 1 suggests the result is hard to explain by unmeasured confounding. An E-value close to 1 means a modest unmeasured confounder could overturn the conclusion. At 1.73 this result sits in between: a confounder as strong as that is not implausible, but it would have to be unrelated to everything already in the model.</p>
 <p>The useful part of the E-value is that it is on the risk-ratio scale. It can be explained without specifying a model for the unobserved confounder.</p>
 </section><section id="rosenbaum-bounds-matched-estimators" class="level2" data-number="5.4"><h2 data-number="5.4" class="anchored" data-anchor-id="rosenbaum-bounds-matched-estimators">
 <span class="header-section-number">5.4</span> Rosenbaum bounds (matched estimators)</h2>
 <p>For matching estimators, <strong>Rosenbaum bounds</strong> (Rosenbaum 2002) provide a sensitivity analysis based on the maximum deviation from random assignment within matched pairs.</p>
 <p>Suppose units in a matched pair are observationally identical, but one might still be more likely than the other to receive treatment due to unobserved factors. Let <span class="math inline">\(\Gamma\)</span> bound the ratio of treatment odds between the two units of a pair: <span class="math inline">\(\Gamma = 1\)</span> means matched pairs are perfectly randomised (both units equally likely to be the treated one); <span class="math inline">\(\Gamma = 2\)</span> means hidden bias could make one unit’s odds of treatment up to twice the other’s.</p>
 <p>Rosenbaum bounds compute the range of <span class="math inline">\(p\)</span>-values for the matched test under each value of <span class="math inline">\(\Gamma\)</span>. The <strong>critical <span class="math inline">\(\Gamma\)</span></strong> is the smallest value at which the test becomes insignificant.</p>
-<p>Here is a worked example using simple pair matching on propensity score and a Wilcoxon signed-rank test (the original Rosenbaum bound calculation):</p>
+<p>Here is a worked example on the same NHEFS data. We fit the propensity score by logistic regression on the nine baseline covariates, match each of the 403 quitters to its nearest unmatched control on that score, take the paired differences in weight change, and compute the upper-bound Wilcoxon signed-rank <span class="math inline">\(p\)</span>-value on a grid <span class="math inline">\(\Gamma \in [1, 4]\)</span> in steps of 0.25:</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># Estimate propensity score</span></span>
 <span><span class="va">ps_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/glm.html">glm</a></span><span class="op">(</span><span class="va">qsmk</span> <span class="op">~</span> <span class="va">sex</span> <span class="op">+</span> <span class="va">age</span> <span class="op">+</span> <span class="va">race</span> <span class="op">+</span> <span class="va">education</span> <span class="op">+</span> <span class="va">smokeintensity</span> <span class="op">+</span></span>
@@ -788,7 +792,8 @@ E-values 1.732578 1.526206       NA</code></pre>
 </table>
 </div>
 </div>
-<p>The <strong>critical <span class="math inline">\(\Gamma\)</span></strong> is the value at which the upper-bound <span class="math inline">\(p\)</span>-value crosses 0.05. In the table above, locate where this happens — if the critical <span class="math inline">\(\Gamma\)</span> is around 2 or higher, the result is robust to moderate hidden bias. If it is close to 1, even small unmeasured confounding could overturn the conclusion.</p>
+<p>Matching gives 403 pairs, one per quitter, with a mean paired difference of 2.926 kg. The upper-bound <span class="math inline">\(p\)</span>-value is 0.0334 at <span class="math inline">\(\Gamma = 1.50\)</span> and 0.2905 at <span class="math inline">\(\Gamma = 1.75\)</span>, so the crossing of 0.05 falls between those two grid points.</p>
+<p>The <strong>critical <span class="math inline">\(\Gamma\)</span></strong> is the value at which the upper-bound <span class="math inline">\(p\)</span>-value crosses 0.05. If it is around 2 or higher, the result is robust to moderate hidden bias. If it is close to 1, even small unmeasured confounding could overturn the conclusion. We read it off the grid:</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">sig_idx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/which.html">which</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">p_value_upper</span> <span class="op">&gt;</span> <span class="fl">0.05</span><span class="op">)</span></span>
 <span><span class="va">critical_gamma</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">sig_idx</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span> <span class="va">result</span><span class="op">$</span><span class="va">Gamma</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">sig_idx</span><span class="op">)</span><span class="op">]</span> <span class="kw">else</span> <span class="cn">NA</span></span>
@@ -801,7 +806,9 @@ E-values 1.732578 1.526206       NA</code></pre>
 <pre><code>Critical Gamma (p &gt; 0.05): 1.75</code></pre>
 </div>
 </div>
-<p>This reports the first value <em>on the 0.25 grid</em> at which significance is lost; the actual crossing lies between this value and the preceding grid point (a finer grid, or interpolation, would locate it more precisely — the convention in applied work is often to report the largest <span class="math inline">\(\Gamma\)</span> at which significance is retained).</p>
+<p>The critical <span class="math inline">\(\Gamma\)</span> is 1.75. This is the first value <em>on the 0.25 grid</em> at which significance is lost; the true crossing lies between 1.50 and 1.75, and a finer grid would locate it more precisely. The convention in applied work is often to report the largest <span class="math inline">\(\Gamma\)</span> at which significance is retained, which here is 1.50.</p>
+<p>So hidden bias that made one member of a matched pair up to about 1.5 times more likely to quit than the other would leave the result significant, and bias beyond that would not.</p>
+<p>The three analyses do not share a scale. <span class="math inline">\(\Gamma\)</span> bounds an odds ratio within a matched pair, the E-value bounds a risk ratio, and the robustness value is a partial <span class="math inline">\(R^2\)</span>. They also ask different questions: <span class="math inline">\(\Gamma\)</span> and the E-value ask when the result stops being significant, the robustness value asks when the point estimate reaches zero. Reporting one of them is normal practice; the numbers should not be averaged or compared directly.</p>
 </section><section id="what-about-partial-identification" class="level2" data-number="5.5"><h2 data-number="5.5" class="anchored" data-anchor-id="what-about-partial-identification">
 <span class="header-section-number">5.5</span> What about partial identification?</h2>
 <p>When sensitivity analysis shows the point estimate is fragile, partial identification is often the next step. Instead of one estimate, report bounds under weaker assumptions.</p>
@@ -1337,7 +1344,7 @@ E-values 1.732578 1.526206       NA</code></pre>
 <span id="cb27-53"><a href="#cb27-53" aria-hidden="true" tabindex="-1"></a>Follow-up Study (NHEFS) data — the same dataset used in the</span>
 <span id="cb27-54"><a href="#cb27-54" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">applied DAG-workflow chapter</span><span class="co">](smoking-cessation-graphs.qmd)</span>. The question:</span>
 <span id="cb27-55"><a href="#cb27-55" aria-hidden="true" tabindex="-1"></a>what is the effect of quitting smoking (<span class="in">`qsmk`</span>) on weight gain over</span>
-<span id="cb27-56"><a href="#cb27-56" aria-hidden="true" tabindex="-1"></a>10 years (<span class="in">`wt82_71`</span>)?</span>
+<span id="cb27-56"><a href="#cb27-56" aria-hidden="true" tabindex="-1"></a>10 years (<span class="in">`wt82_71`</span>)? We start from the raw comparison.</span>
 <span id="cb27-57"><a href="#cb27-57" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb27-60"><a href="#cb27-60" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
 <span id="cb27-61"><a href="#cb27-61" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: data</span></span>
@@ -1354,283 +1361,333 @@ E-values 1.732578 1.526206       NA</code></pre>
 <span id="cb27-72"><a href="#cb27-72" aria-hidden="true" tabindex="-1"></a>            <span class="fu">mean</span>(nhefs<span class="sc">$</span>wt82_71[nhefs<span class="sc">$</span>qsmk <span class="sc">==</span> <span class="dv">0</span>])))</span>
 <span id="cb27-73"><a href="#cb27-73" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb27-74"><a href="#cb27-74" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-75"><a href="#cb27-75" aria-hidden="true" tabindex="-1"></a>A naive comparison says quitters gained $\approx$ 2.5 kg more than non-quitters,</span>
-<span id="cb27-76"><a href="#cb27-76" aria-hidden="true" tabindex="-1"></a>but smokers and quitters differ on many baseline characteristics. Adjust for</span>
-<span id="cb27-77"><a href="#cb27-77" aria-hidden="true" tabindex="-1"></a>the standard set of confounders (age, sex, race, education, baseline weight,</span>
-<span id="cb27-78"><a href="#cb27-78" aria-hidden="true" tabindex="-1"></a>smoking intensity, exercise, activity):</span>
-<span id="cb27-79"><a href="#cb27-79" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-82"><a href="#cb27-82" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb27-83"><a href="#cb27-83" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: ols</span></span>
-<span id="cb27-84"><a href="#cb27-84" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb27-85"><a href="#cb27-85" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-86"><a href="#cb27-86" aria-hidden="true" tabindex="-1"></a>ols <span class="ot">&lt;-</span> <span class="fu">lm</span>(wt82_71 <span class="sc">~</span> qsmk <span class="sc">+</span> sex <span class="sc">+</span> age <span class="sc">+</span> race <span class="sc">+</span> education <span class="sc">+</span> smokeintensity <span class="sc">+</span></span>
-<span id="cb27-87"><a href="#cb27-87" aria-hidden="true" tabindex="-1"></a>                    smokeyrs <span class="sc">+</span> exercise <span class="sc">+</span> active <span class="sc">+</span> wt71,</span>
-<span id="cb27-88"><a href="#cb27-88" aria-hidden="true" tabindex="-1"></a>          <span class="at">data =</span> nhefs)</span>
-<span id="cb27-89"><a href="#cb27-89" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-90"><a href="#cb27-90" aria-hidden="true" tabindex="-1"></a><span class="fu">tidy</span>(ols)[<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, ] <span class="sc">|&gt;</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span>
-<span id="cb27-91"><a href="#cb27-91" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Adjusted ACE estimate: %.3f kg  (SE = %.3f)</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb27-92"><a href="#cb27-92" aria-hidden="true" tabindex="-1"></a>            <span class="fu">coef</span>(ols)[<span class="st">"qsmk"</span>], <span class="fu">summary</span>(ols)<span class="sc">$</span>coefficients[<span class="st">"qsmk"</span>, <span class="dv">2</span>]))</span>
-<span id="cb27-93"><a href="#cb27-93" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb27-94"><a href="#cb27-94" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-95"><a href="#cb27-95" aria-hidden="true" tabindex="-1"></a>The adjusted estimate is around 3.4 kg, larger than the unadjusted difference.</span>
-<span id="cb27-96"><a href="#cb27-96" aria-hidden="true" tabindex="-1"></a>But the identification assumption requires that we have controlled for *all*</span>
-<span id="cb27-97"><a href="#cb27-97" aria-hidden="true" tabindex="-1"></a>relevant confounders. What if we missed one — say, a propensity to gain</span>
-<span id="cb27-98"><a href="#cb27-98" aria-hidden="true" tabindex="-1"></a>weight that also correlates with quitting decisions? Sensitivity analysis</span>
-<span id="cb27-99"><a href="#cb27-99" aria-hidden="true" tabindex="-1"></a>addresses this directly.</span>
-<span id="cb27-100"><a href="#cb27-100" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-101"><a href="#cb27-101" aria-hidden="true" tabindex="-1"></a><span class="fu">## Cinelli-Hazlett OVB bounds</span></span>
-<span id="cb27-102"><a href="#cb27-102" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-103"><a href="#cb27-103" aria-hidden="true" tabindex="-1"></a><span class="in">`sensemakr`</span> implements the Cinelli-Hazlett (2020) approach. The key inputs</span>
-<span id="cb27-104"><a href="#cb27-104" aria-hidden="true" tabindex="-1"></a>are:</span>
+<span id="cb27-75"><a href="#cb27-75" aria-hidden="true" tabindex="-1"></a>Of the 1,566 complete cases, 403 quit. Quitters gained 4.53 kg on average and</span>
+<span id="cb27-76"><a href="#cb27-76" aria-hidden="true" tabindex="-1"></a>continuing smokers 1.98 kg, a naive difference of 2.55 kg. But quitters and</span>
+<span id="cb27-77"><a href="#cb27-77" aria-hidden="true" tabindex="-1"></a>continuers differ on many baseline characteristics. We adjust for the standard</span>
+<span id="cb27-78"><a href="#cb27-78" aria-hidden="true" tabindex="-1"></a>set by OLS --- sex, age, race, education, smoking intensity, years smoked,</span>
+<span id="cb27-79"><a href="#cb27-79" aria-hidden="true" tabindex="-1"></a>exercise, activity and baseline weight --- and print the first three</span>
+<span id="cb27-80"><a href="#cb27-80" aria-hidden="true" tabindex="-1"></a>coefficients along with the treatment estimate:</span>
+<span id="cb27-81"><a href="#cb27-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-84"><a href="#cb27-84" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb27-85"><a href="#cb27-85" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: ols</span></span>
+<span id="cb27-86"><a href="#cb27-86" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb27-87"><a href="#cb27-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-88"><a href="#cb27-88" aria-hidden="true" tabindex="-1"></a>ols <span class="ot">&lt;-</span> <span class="fu">lm</span>(wt82_71 <span class="sc">~</span> qsmk <span class="sc">+</span> sex <span class="sc">+</span> age <span class="sc">+</span> race <span class="sc">+</span> education <span class="sc">+</span> smokeintensity <span class="sc">+</span></span>
+<span id="cb27-89"><a href="#cb27-89" aria-hidden="true" tabindex="-1"></a>                    smokeyrs <span class="sc">+</span> exercise <span class="sc">+</span> active <span class="sc">+</span> wt71,</span>
+<span id="cb27-90"><a href="#cb27-90" aria-hidden="true" tabindex="-1"></a>          <span class="at">data =</span> nhefs)</span>
+<span id="cb27-91"><a href="#cb27-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-92"><a href="#cb27-92" aria-hidden="true" tabindex="-1"></a><span class="fu">tidy</span>(ols)[<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, ] <span class="sc">|&gt;</span> knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span>
+<span id="cb27-93"><a href="#cb27-93" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Adjusted ACE estimate: %.3f kg  (SE = %.3f)</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb27-94"><a href="#cb27-94" aria-hidden="true" tabindex="-1"></a>            <span class="fu">coef</span>(ols)[<span class="st">"qsmk"</span>], <span class="fu">summary</span>(ols)<span class="sc">$</span>coefficients[<span class="st">"qsmk"</span>, <span class="dv">2</span>]))</span>
+<span id="cb27-95"><a href="#cb27-95" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb27-96"><a href="#cb27-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-97"><a href="#cb27-97" aria-hidden="true" tabindex="-1"></a>The adjusted estimate is 3.381 kg with a standard error of 0.441, larger than</span>
+<span id="cb27-98"><a href="#cb27-98" aria-hidden="true" tabindex="-1"></a>the naive 2.55 kg. Adjustment moved the answer away from zero, not toward it.</span>
+<span id="cb27-99"><a href="#cb27-99" aria-hidden="true" tabindex="-1"></a>But the identification assumption requires that we have controlled for *all*</span>
+<span id="cb27-100"><a href="#cb27-100" aria-hidden="true" tabindex="-1"></a>relevant confounders. What if we missed one — say, a propensity to gain</span>
+<span id="cb27-101"><a href="#cb27-101" aria-hidden="true" tabindex="-1"></a>weight that also correlates with quitting decisions? Sensitivity analysis</span>
+<span id="cb27-102"><a href="#cb27-102" aria-hidden="true" tabindex="-1"></a>addresses this directly.</span>
+<span id="cb27-103"><a href="#cb27-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-104"><a href="#cb27-104" aria-hidden="true" tabindex="-1"></a><span class="fu">## Cinelli-Hazlett OVB bounds</span></span>
 <span id="cb27-105"><a href="#cb27-105" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-106"><a href="#cb27-106" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>a fitted regression</span>
-<span id="cb27-107"><a href="#cb27-107" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>the treatment variable name</span>
-<span id="cb27-108"><a href="#cb27-108" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>one or more *benchmark covariates* whose strength serves as a reference</span>
-<span id="cb27-109"><a href="#cb27-109" aria-hidden="true" tabindex="-1"></a>  for how strong a hypothetical unobserved confounder might be</span>
-<span id="cb27-110"><a href="#cb27-110" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-113"><a href="#cb27-113" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb27-114"><a href="#cb27-114" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: sensemakr</span></span>
-<span id="cb27-115"><a href="#cb27-115" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb27-116"><a href="#cb27-116" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-117"><a href="#cb27-117" aria-hidden="true" tabindex="-1"></a>sens <span class="ot">&lt;-</span> <span class="fu">sensemakr</span>(</span>
-<span id="cb27-118"><a href="#cb27-118" aria-hidden="true" tabindex="-1"></a>  <span class="at">model =</span> ols,</span>
-<span id="cb27-119"><a href="#cb27-119" aria-hidden="true" tabindex="-1"></a>  <span class="at">treatment =</span> <span class="st">"qsmk"</span>,</span>
-<span id="cb27-120"><a href="#cb27-120" aria-hidden="true" tabindex="-1"></a>  <span class="at">benchmark_covariates =</span> <span class="fu">c</span>(<span class="st">"smokeintensity"</span>, <span class="st">"smokeyrs"</span>),</span>
-<span id="cb27-121"><a href="#cb27-121" aria-hidden="true" tabindex="-1"></a>  <span class="at">kd =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>,                 <span class="co"># benchmark: 1×, 2×, 3× as strong as the benchmark</span></span>
-<span id="cb27-122"><a href="#cb27-122" aria-hidden="true" tabindex="-1"></a>  <span class="at">ky =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>,</span>
-<span id="cb27-123"><a href="#cb27-123" aria-hidden="true" tabindex="-1"></a>  <span class="at">q  =</span> <span class="dv">1</span>,                   <span class="co"># the "bias proportion" at which to flag a problem</span></span>
-<span id="cb27-124"><a href="#cb27-124" aria-hidden="true" tabindex="-1"></a>  <span class="at">alpha =</span> <span class="fl">0.05</span>,</span>
-<span id="cb27-125"><a href="#cb27-125" aria-hidden="true" tabindex="-1"></a>  <span class="at">reduce =</span> <span class="cn">TRUE</span></span>
-<span id="cb27-126"><a href="#cb27-126" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb27-127"><a href="#cb27-127" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-128"><a href="#cb27-128" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(sens)</span>
-<span id="cb27-129"><a href="#cb27-129" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb27-106"><a href="#cb27-106" aria-hidden="true" tabindex="-1"></a><span class="in">`sensemakr`</span> implements the Cinelli-Hazlett (2020) approach. The key inputs</span>
+<span id="cb27-107"><a href="#cb27-107" aria-hidden="true" tabindex="-1"></a>are:</span>
+<span id="cb27-108"><a href="#cb27-108" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-109"><a href="#cb27-109" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>a fitted regression</span>
+<span id="cb27-110"><a href="#cb27-110" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>the treatment variable name</span>
+<span id="cb27-111"><a href="#cb27-111" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>one or more *benchmark covariates* whose strength serves as a reference</span>
+<span id="cb27-112"><a href="#cb27-112" aria-hidden="true" tabindex="-1"></a>  for how strong a hypothetical unobserved confounder might be</span>
+<span id="cb27-113"><a href="#cb27-113" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-116"><a href="#cb27-116" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb27-117"><a href="#cb27-117" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: sensemakr</span></span>
+<span id="cb27-118"><a href="#cb27-118" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb27-119"><a href="#cb27-119" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-120"><a href="#cb27-120" aria-hidden="true" tabindex="-1"></a>sens <span class="ot">&lt;-</span> <span class="fu">sensemakr</span>(</span>
+<span id="cb27-121"><a href="#cb27-121" aria-hidden="true" tabindex="-1"></a>  <span class="at">model =</span> ols,</span>
+<span id="cb27-122"><a href="#cb27-122" aria-hidden="true" tabindex="-1"></a>  <span class="at">treatment =</span> <span class="st">"qsmk"</span>,</span>
+<span id="cb27-123"><a href="#cb27-123" aria-hidden="true" tabindex="-1"></a>  <span class="at">benchmark_covariates =</span> <span class="fu">c</span>(<span class="st">"smokeintensity"</span>, <span class="st">"smokeyrs"</span>),</span>
+<span id="cb27-124"><a href="#cb27-124" aria-hidden="true" tabindex="-1"></a>  <span class="at">kd =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>,                 <span class="co"># benchmark: 1×, 2×, 3× as strong as the benchmark</span></span>
+<span id="cb27-125"><a href="#cb27-125" aria-hidden="true" tabindex="-1"></a>  <span class="at">ky =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>,</span>
+<span id="cb27-126"><a href="#cb27-126" aria-hidden="true" tabindex="-1"></a>  <span class="at">q  =</span> <span class="dv">1</span>,                   <span class="co"># the "bias proportion" at which to flag a problem</span></span>
+<span id="cb27-127"><a href="#cb27-127" aria-hidden="true" tabindex="-1"></a>  <span class="at">alpha =</span> <span class="fl">0.05</span>,</span>
+<span id="cb27-128"><a href="#cb27-128" aria-hidden="true" tabindex="-1"></a>  <span class="at">reduce =</span> <span class="cn">TRUE</span></span>
+<span id="cb27-129"><a href="#cb27-129" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb27-130"><a href="#cb27-130" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-131"><a href="#cb27-131" aria-hidden="true" tabindex="-1"></a>The summary tells us:</span>
-<span id="cb27-132"><a href="#cb27-132" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-133"><a href="#cb27-133" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Robustness value (RV)**: the minimum strength of association (in terms of</span>
-<span id="cb27-134"><a href="#cb27-134" aria-hidden="true" tabindex="-1"></a>  partial $R^2$) that an unmeasured confounder would need with both the</span>
-<span id="cb27-135"><a href="#cb27-135" aria-hidden="true" tabindex="-1"></a>  treatment and the outcome to reduce the estimate to zero. Higher = more</span>
-<span id="cb27-136"><a href="#cb27-136" aria-hidden="true" tabindex="-1"></a>  robust.</span>
-<span id="cb27-137"><a href="#cb27-137" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**RV_q**: the strength needed to "explain away" a fraction $q$ of the</span>
-<span id="cb27-138"><a href="#cb27-138" aria-hidden="true" tabindex="-1"></a>  estimate (here $q = 1$ means complete explanation).</span>
-<span id="cb27-139"><a href="#cb27-139" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Benchmark comparisons**: how the RV compares to multiples of the</span>
-<span id="cb27-140"><a href="#cb27-140" aria-hidden="true" tabindex="-1"></a>  observed covariates.</span>
-<span id="cb27-141"><a href="#cb27-141" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-144"><a href="#cb27-144" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb27-145"><a href="#cb27-145" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: sens-plot</span></span>
-<span id="cb27-146"><a href="#cb27-146" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb27-147"><a href="#cb27-147" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Cinelli-Hazlett sensitivity contour. The dashed lines show benchmarks based on smokeintensity and smokeyrs at 1x, 2x, and 3x strength. Confounders falling in the shaded region would reduce the estimate to zero."</span></span>
-<span id="cb27-148"><a href="#cb27-148" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
-<span id="cb27-149"><a href="#cb27-149" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 5</span></span>
-<span id="cb27-150"><a href="#cb27-150" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-151"><a href="#cb27-151" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(sens)</span>
-<span id="cb27-152"><a href="#cb27-152" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb27-153"><a href="#cb27-153" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-154"><a href="#cb27-154" aria-hidden="true" tabindex="-1"></a>The contour plot shows how strong an unobserved confounder would have to be</span>
-<span id="cb27-155"><a href="#cb27-155" aria-hidden="true" tabindex="-1"></a>with the treatment and outcome to reduce the estimate to zero. The benchmark</span>
-<span id="cb27-156"><a href="#cb27-156" aria-hidden="true" tabindex="-1"></a>dots compare that hypothetical confounder to observed covariates.</span>
-<span id="cb27-157"><a href="#cb27-157" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-158"><a href="#cb27-158" aria-hidden="true" tabindex="-1"></a><span class="fu">## E-values for risk ratios</span></span>
-<span id="cb27-159"><a href="#cb27-159" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-160"><a href="#cb27-160" aria-hidden="true" tabindex="-1"></a>For binary outcomes and risk-ratio-type estimands, VanderWeele and Ding</span>
-<span id="cb27-161"><a href="#cb27-161" aria-hidden="true" tabindex="-1"></a>(2017) propose the **E-value**: the minimum strength of association on the</span>
-<span id="cb27-162"><a href="#cb27-162" aria-hidden="true" tabindex="-1"></a>risk-ratio scale that an unmeasured confounder would need to have with both</span>
-<span id="cb27-163"><a href="#cb27-163" aria-hidden="true" tabindex="-1"></a>the treatment and the outcome to fully explain the observed risk ratio.</span>
+<span id="cb27-131"><a href="#cb27-131" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(sens)</span>
+<span id="cb27-132"><a href="#cb27-132" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb27-133"><a href="#cb27-133" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-134"><a href="#cb27-134" aria-hidden="true" tabindex="-1"></a>The summary tells us:</span>
+<span id="cb27-135"><a href="#cb27-135" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-136"><a href="#cb27-136" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Robustness value (RV)**: the minimum strength of association (in terms of</span>
+<span id="cb27-137"><a href="#cb27-137" aria-hidden="true" tabindex="-1"></a>  partial $R^2$) that an unmeasured confounder would need with both the</span>
+<span id="cb27-138"><a href="#cb27-138" aria-hidden="true" tabindex="-1"></a>  treatment and the outcome to reduce the estimate to zero. Higher = more</span>
+<span id="cb27-139"><a href="#cb27-139" aria-hidden="true" tabindex="-1"></a>  robust.</span>
+<span id="cb27-140"><a href="#cb27-140" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**RV_q**: the strength needed to "explain away" a fraction $q$ of the</span>
+<span id="cb27-141"><a href="#cb27-141" aria-hidden="true" tabindex="-1"></a>  estimate (here $q = 1$ means complete explanation).</span>
+<span id="cb27-142"><a href="#cb27-142" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Benchmark comparisons**: how the RV compares to multiples of the</span>
+<span id="cb27-143"><a href="#cb27-143" aria-hidden="true" tabindex="-1"></a>  observed covariates.</span>
+<span id="cb27-144"><a href="#cb27-144" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-145"><a href="#cb27-145" aria-hidden="true" tabindex="-1"></a>For this regression the partial $R^2$ of quitting with weight change is 3.65%.</span>
+<span id="cb27-146"><a href="#cb27-146" aria-hidden="true" tabindex="-1"></a>The robustness value at $q=1$ is 17.67%: a confounder orthogonal to the</span>
+<span id="cb27-147"><a href="#cb27-147" aria-hidden="true" tabindex="-1"></a>covariates would have to explain more than 17.67% of the residual variance of</span>
+<span id="cb27-148"><a href="#cb27-148" aria-hidden="true" tabindex="-1"></a>both quitting and weight change to bring the estimate to zero. To leave it</span>
+<span id="cb27-149"><a href="#cb27-149" aria-hidden="true" tabindex="-1"></a>merely statistically indistinguishable from zero at the 5% level, 13.47% would</span>
+<span id="cb27-150"><a href="#cb27-150" aria-hidden="true" tabindex="-1"></a>be enough.</span>
+<span id="cb27-151"><a href="#cb27-151" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-152"><a href="#cb27-152" aria-hidden="true" tabindex="-1"></a>The benchmark rows put those numbers on a scale. Smoking intensity explains</span>
+<span id="cb27-153"><a href="#cb27-153" aria-hidden="true" tabindex="-1"></a>1.43% of the residual variance of quitting and 0.10% of the residual variance</span>
+<span id="cb27-154"><a href="#cb27-154" aria-hidden="true" tabindex="-1"></a>of weight change. A confounder three times as strong on both margins would move</span>
+<span id="cb27-155"><a href="#cb27-155" aria-hidden="true" tabindex="-1"></a>the estimate from 3.381 to 3.182, with a 95% interval of $<span class="co">[</span><span class="ot">2.30, 4.07</span><span class="co">]</span>$. None</span>
+<span id="cb27-156"><a href="#cb27-156" aria-hidden="true" tabindex="-1"></a>of the measured covariates comes near the 17.67% that would be needed, so the</span>
+<span id="cb27-157"><a href="#cb27-157" aria-hidden="true" tabindex="-1"></a>estimate is robust to a confounder resembling the ones we already control for.</span>
+<span id="cb27-158"><a href="#cb27-158" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-159"><a href="#cb27-159" aria-hidden="true" tabindex="-1"></a>The same information is easier to read as a contour plot. The horizontal axis</span>
+<span id="cb27-160"><a href="#cb27-160" aria-hidden="true" tabindex="-1"></a>is the confounder's partial $R^2$ with the treatment, the vertical axis its</span>
+<span id="cb27-161"><a href="#cb27-161" aria-hidden="true" tabindex="-1"></a>partial $R^2$ with the outcome, and the contours give the adjusted estimate at</span>
+<span id="cb27-162"><a href="#cb27-162" aria-hidden="true" tabindex="-1"></a>each combination. The benchmark dots mark 1x, 2x and 3x smoking intensity and</span>
+<span id="cb27-163"><a href="#cb27-163" aria-hidden="true" tabindex="-1"></a>years smoked.</span>
 <span id="cb27-164"><a href="#cb27-164" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-165"><a href="#cb27-165" aria-hidden="true" tabindex="-1"></a>To illustrate, dichotomize weight gain ("any" gain vs no gain) and fit a</span>
-<span id="cb27-166"><a href="#cb27-166" aria-hidden="true" tabindex="-1"></a>risk-ratio model:</span>
-<span id="cb27-167"><a href="#cb27-167" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-170"><a href="#cb27-170" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb27-171"><a href="#cb27-171" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: evalue</span></span>
-<span id="cb27-172"><a href="#cb27-172" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb27-167"><a href="#cb27-167" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb27-168"><a href="#cb27-168" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: sens-plot</span></span>
+<span id="cb27-169"><a href="#cb27-169" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb27-170"><a href="#cb27-170" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Cinelli-Hazlett sensitivity contour. The dashed lines show benchmarks based on smokeintensity and smokeyrs at 1x, 2x, and 3x strength. Confounders falling in the shaded region would reduce the estimate to zero."</span></span>
+<span id="cb27-171"><a href="#cb27-171" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
+<span id="cb27-172"><a href="#cb27-172" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 5</span></span>
 <span id="cb27-173"><a href="#cb27-173" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-174"><a href="#cb27-174" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>gain <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(nhefs<span class="sc">$</span>wt82_71 <span class="sc">&gt;</span> <span class="dv">0</span>)</span>
-<span id="cb27-175"><a href="#cb27-175" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-176"><a href="#cb27-176" aria-hidden="true" tabindex="-1"></a>rr_fit <span class="ot">&lt;-</span> <span class="fu">glm</span>(gain <span class="sc">~</span> qsmk <span class="sc">+</span> sex <span class="sc">+</span> age <span class="sc">+</span> race <span class="sc">+</span> education <span class="sc">+</span> smokeintensity <span class="sc">+</span></span>
-<span id="cb27-177"><a href="#cb27-177" aria-hidden="true" tabindex="-1"></a>                     smokeyrs <span class="sc">+</span> exercise <span class="sc">+</span> active <span class="sc">+</span> wt71,</span>
-<span id="cb27-178"><a href="#cb27-178" aria-hidden="true" tabindex="-1"></a>              <span class="at">data =</span> nhefs, <span class="at">family =</span> <span class="fu">poisson</span>(<span class="at">link =</span> <span class="st">"log"</span>))</span>
-<span id="cb27-179"><a href="#cb27-179" aria-hidden="true" tabindex="-1"></a>rr_summary <span class="ot">&lt;-</span> <span class="fu">tidy</span>(rr_fit, <span class="at">exp =</span> <span class="cn">TRUE</span>, <span class="at">conf.int =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb27-174"><a href="#cb27-174" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(sens)</span>
+<span id="cb27-175"><a href="#cb27-175" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb27-176"><a href="#cb27-176" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-177"><a href="#cb27-177" aria-hidden="true" tabindex="-1"></a>All six benchmark points sit below 0.05 on the treatment axis and below 0.005</span>
+<span id="cb27-178"><a href="#cb27-178" aria-hidden="true" tabindex="-1"></a>on the outcome axis, in the region where the adjusted estimate stays above</span>
+<span id="cb27-179"><a href="#cb27-179" aria-hidden="true" tabindex="-1"></a>3 kg. The contour that reaches zero is a long way out.</span>
 <span id="cb27-180"><a href="#cb27-180" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-181"><a href="#cb27-181" aria-hidden="true" tabindex="-1"></a>rr_est <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="fu">coef</span>(rr_fit)[<span class="st">"qsmk"</span>])</span>
-<span id="cb27-182"><a href="#cb27-182" aria-hidden="true" tabindex="-1"></a><span class="co"># The Poisson likelihood is misspecified for a binary outcome (the Zou 2004</span></span>
-<span id="cb27-183"><a href="#cb27-183" aria-hidden="true" tabindex="-1"></a><span class="co"># log-binomial-via-Poisson trick), so the model-based variance is wrong.</span></span>
-<span id="cb27-184"><a href="#cb27-184" aria-hidden="true" tabindex="-1"></a><span class="co"># Use robust (sandwich/HC) standard errors for the RR confidence interval.</span></span>
-<span id="cb27-185"><a href="#cb27-185" aria-hidden="true" tabindex="-1"></a>rr_ci  <span class="ot">&lt;-</span> lmtest<span class="sc">::</span><span class="fu">coefci</span>(rr_fit, <span class="at">parm =</span> <span class="st">"qsmk"</span>,</span>
-<span id="cb27-186"><a href="#cb27-186" aria-hidden="true" tabindex="-1"></a>                         <span class="at">vcov. =</span> sandwich<span class="sc">::</span><span class="fu">vcovHC</span>(rr_fit, <span class="at">type =</span> <span class="st">"HC0"</span>))</span>
-<span id="cb27-187"><a href="#cb27-187" aria-hidden="true" tabindex="-1"></a>rr_lo  <span class="ot">&lt;-</span> <span class="fu">exp</span>(rr_ci[<span class="dv">1</span>])</span>
-<span id="cb27-188"><a href="#cb27-188" aria-hidden="true" tabindex="-1"></a>rr_hi  <span class="ot">&lt;-</span> <span class="fu">exp</span>(rr_ci[<span class="dv">2</span>])</span>
-<span id="cb27-189"><a href="#cb27-189" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-190"><a href="#cb27-190" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Adjusted RR (quit vs not): %.3f  [%.3f, %.3f]</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb27-191"><a href="#cb27-191" aria-hidden="true" tabindex="-1"></a>            rr_est, rr_lo, rr_hi))</span>
-<span id="cb27-192"><a href="#cb27-192" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-193"><a href="#cb27-193" aria-hidden="true" tabindex="-1"></a>ev <span class="ot">&lt;-</span> <span class="fu">evalues.RR</span>(<span class="at">est =</span> rr_est, <span class="at">lo =</span> rr_lo, <span class="at">hi =</span> rr_hi)</span>
-<span id="cb27-194"><a href="#cb27-194" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(ev)</span>
-<span id="cb27-195"><a href="#cb27-195" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb27-196"><a href="#cb27-196" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-197"><a href="#cb27-197" aria-hidden="true" tabindex="-1"></a>The E-value reports two numbers:</span>
-<span id="cb27-198"><a href="#cb27-198" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-199"><a href="#cb27-199" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**E-value (point estimate)**: an unmeasured confounder would need to be</span>
-<span id="cb27-200"><a href="#cb27-200" aria-hidden="true" tabindex="-1"></a>  associated with both treatment and outcome by risk ratios of at least</span>
-<span id="cb27-201"><a href="#cb27-201" aria-hidden="true" tabindex="-1"></a>  this value, above and beyond the measured confounders, to fully explain</span>
-<span id="cb27-202"><a href="#cb27-202" aria-hidden="true" tabindex="-1"></a>  away the observed effect.</span>
-<span id="cb27-203"><a href="#cb27-203" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**E-value (confidence interval)**: the minimum strength needed to shift</span>
-<span id="cb27-204"><a href="#cb27-204" aria-hidden="true" tabindex="-1"></a>  the lower confidence bound to 1.</span>
-<span id="cb27-205"><a href="#cb27-205" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-206"><a href="#cb27-206" aria-hidden="true" tabindex="-1"></a>An E-value much greater than 1 suggests the result is hard to explain by</span>
-<span id="cb27-207"><a href="#cb27-207" aria-hidden="true" tabindex="-1"></a>unmeasured confounding. An E-value close to 1 means a modest unmeasured</span>
-<span id="cb27-208"><a href="#cb27-208" aria-hidden="true" tabindex="-1"></a>confounder could overturn the conclusion.</span>
-<span id="cb27-209"><a href="#cb27-209" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-210"><a href="#cb27-210" aria-hidden="true" tabindex="-1"></a>The useful part of the E-value is that it is on the risk-ratio scale. It can</span>
-<span id="cb27-211"><a href="#cb27-211" aria-hidden="true" tabindex="-1"></a>be explained without specifying a model for the unobserved confounder.</span>
-<span id="cb27-212"><a href="#cb27-212" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-213"><a href="#cb27-213" aria-hidden="true" tabindex="-1"></a><span class="fu">## Rosenbaum bounds (matched estimators)</span></span>
-<span id="cb27-214"><a href="#cb27-214" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-215"><a href="#cb27-215" aria-hidden="true" tabindex="-1"></a>For matching estimators, **Rosenbaum bounds** (Rosenbaum 2002) provide a</span>
-<span id="cb27-216"><a href="#cb27-216" aria-hidden="true" tabindex="-1"></a>sensitivity analysis based on the maximum deviation from random assignment</span>
-<span id="cb27-217"><a href="#cb27-217" aria-hidden="true" tabindex="-1"></a>within matched pairs.</span>
-<span id="cb27-218"><a href="#cb27-218" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-219"><a href="#cb27-219" aria-hidden="true" tabindex="-1"></a>Suppose units in a matched pair are observationally identical, but one</span>
-<span id="cb27-220"><a href="#cb27-220" aria-hidden="true" tabindex="-1"></a>might still be more likely than the other to receive treatment due to</span>
-<span id="cb27-221"><a href="#cb27-221" aria-hidden="true" tabindex="-1"></a>unobserved factors. Let $\Gamma$ bound the ratio of treatment odds between</span>
-<span id="cb27-222"><a href="#cb27-222" aria-hidden="true" tabindex="-1"></a>the two units of a pair: $\Gamma = 1$ means matched pairs are perfectly</span>
-<span id="cb27-223"><a href="#cb27-223" aria-hidden="true" tabindex="-1"></a>randomised (both units equally likely to be the treated one); $\Gamma = 2$</span>
-<span id="cb27-224"><a href="#cb27-224" aria-hidden="true" tabindex="-1"></a>means hidden bias could make one unit's odds of treatment up to twice the</span>
-<span id="cb27-225"><a href="#cb27-225" aria-hidden="true" tabindex="-1"></a>other's.</span>
-<span id="cb27-226"><a href="#cb27-226" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-227"><a href="#cb27-227" aria-hidden="true" tabindex="-1"></a>Rosenbaum bounds compute the range of $p$-values for the matched test</span>
-<span id="cb27-228"><a href="#cb27-228" aria-hidden="true" tabindex="-1"></a>under each value of $\Gamma$. The **critical $\Gamma$** is the smallest</span>
-<span id="cb27-229"><a href="#cb27-229" aria-hidden="true" tabindex="-1"></a>value at which the test becomes insignificant.</span>
-<span id="cb27-230"><a href="#cb27-230" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-231"><a href="#cb27-231" aria-hidden="true" tabindex="-1"></a>Here is a worked example using simple pair matching on propensity score and</span>
-<span id="cb27-232"><a href="#cb27-232" aria-hidden="true" tabindex="-1"></a>a Wilcoxon signed-rank test (the original Rosenbaum bound calculation):</span>
-<span id="cb27-233"><a href="#cb27-233" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-236"><a href="#cb27-236" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb27-237"><a href="#cb27-237" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: rosenbaum</span></span>
-<span id="cb27-238"><a href="#cb27-238" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb27-239"><a href="#cb27-239" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-240"><a href="#cb27-240" aria-hidden="true" tabindex="-1"></a><span class="co"># Estimate propensity score</span></span>
-<span id="cb27-241"><a href="#cb27-241" aria-hidden="true" tabindex="-1"></a>ps_fit <span class="ot">&lt;-</span> <span class="fu">glm</span>(qsmk <span class="sc">~</span> sex <span class="sc">+</span> age <span class="sc">+</span> race <span class="sc">+</span> education <span class="sc">+</span> smokeintensity <span class="sc">+</span></span>
-<span id="cb27-242"><a href="#cb27-242" aria-hidden="true" tabindex="-1"></a>                     smokeyrs <span class="sc">+</span> exercise <span class="sc">+</span> active <span class="sc">+</span> wt71,</span>
-<span id="cb27-243"><a href="#cb27-243" aria-hidden="true" tabindex="-1"></a>              <span class="at">data =</span> nhefs, <span class="at">family =</span> binomial)</span>
-<span id="cb27-244"><a href="#cb27-244" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>ps <span class="ot">&lt;-</span> <span class="fu">predict</span>(ps_fit, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb27-181"><a href="#cb27-181" aria-hidden="true" tabindex="-1"></a><span class="fu">## E-values for risk ratios</span></span>
+<span id="cb27-182"><a href="#cb27-182" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-183"><a href="#cb27-183" aria-hidden="true" tabindex="-1"></a>For binary outcomes and risk-ratio-type estimands, VanderWeele and Ding</span>
+<span id="cb27-184"><a href="#cb27-184" aria-hidden="true" tabindex="-1"></a>(2017) propose the **E-value**: the minimum strength of association on the</span>
+<span id="cb27-185"><a href="#cb27-185" aria-hidden="true" tabindex="-1"></a>risk-ratio scale that an unmeasured confounder would need to have with both</span>
+<span id="cb27-186"><a href="#cb27-186" aria-hidden="true" tabindex="-1"></a>the treatment and the outcome to fully explain the observed risk ratio.</span>
+<span id="cb27-187"><a href="#cb27-187" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-188"><a href="#cb27-188" aria-hidden="true" tabindex="-1"></a>To illustrate, we dichotomize weight change into any gain versus none, fit the</span>
+<span id="cb27-189"><a href="#cb27-189" aria-hidden="true" tabindex="-1"></a>risk ratio by Poisson regression with a log link on the same nine covariates,</span>
+<span id="cb27-190"><a href="#cb27-190" aria-hidden="true" tabindex="-1"></a>and take the confidence interval from robust standard errors:</span>
+<span id="cb27-191"><a href="#cb27-191" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-194"><a href="#cb27-194" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb27-195"><a href="#cb27-195" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: evalue</span></span>
+<span id="cb27-196"><a href="#cb27-196" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb27-197"><a href="#cb27-197" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-198"><a href="#cb27-198" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>gain <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(nhefs<span class="sc">$</span>wt82_71 <span class="sc">&gt;</span> <span class="dv">0</span>)</span>
+<span id="cb27-199"><a href="#cb27-199" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-200"><a href="#cb27-200" aria-hidden="true" tabindex="-1"></a>rr_fit <span class="ot">&lt;-</span> <span class="fu">glm</span>(gain <span class="sc">~</span> qsmk <span class="sc">+</span> sex <span class="sc">+</span> age <span class="sc">+</span> race <span class="sc">+</span> education <span class="sc">+</span> smokeintensity <span class="sc">+</span></span>
+<span id="cb27-201"><a href="#cb27-201" aria-hidden="true" tabindex="-1"></a>                     smokeyrs <span class="sc">+</span> exercise <span class="sc">+</span> active <span class="sc">+</span> wt71,</span>
+<span id="cb27-202"><a href="#cb27-202" aria-hidden="true" tabindex="-1"></a>              <span class="at">data =</span> nhefs, <span class="at">family =</span> <span class="fu">poisson</span>(<span class="at">link =</span> <span class="st">"log"</span>))</span>
+<span id="cb27-203"><a href="#cb27-203" aria-hidden="true" tabindex="-1"></a>rr_summary <span class="ot">&lt;-</span> <span class="fu">tidy</span>(rr_fit, <span class="at">exp =</span> <span class="cn">TRUE</span>, <span class="at">conf.int =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb27-204"><a href="#cb27-204" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-205"><a href="#cb27-205" aria-hidden="true" tabindex="-1"></a>rr_est <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="fu">coef</span>(rr_fit)[<span class="st">"qsmk"</span>])</span>
+<span id="cb27-206"><a href="#cb27-206" aria-hidden="true" tabindex="-1"></a><span class="co"># The Poisson likelihood is misspecified for a binary outcome (the Zou 2004</span></span>
+<span id="cb27-207"><a href="#cb27-207" aria-hidden="true" tabindex="-1"></a><span class="co"># log-binomial-via-Poisson trick), so the model-based variance is wrong.</span></span>
+<span id="cb27-208"><a href="#cb27-208" aria-hidden="true" tabindex="-1"></a><span class="co"># Use robust (sandwich/HC) standard errors for the RR confidence interval.</span></span>
+<span id="cb27-209"><a href="#cb27-209" aria-hidden="true" tabindex="-1"></a>rr_ci  <span class="ot">&lt;-</span> lmtest<span class="sc">::</span><span class="fu">coefci</span>(rr_fit, <span class="at">parm =</span> <span class="st">"qsmk"</span>,</span>
+<span id="cb27-210"><a href="#cb27-210" aria-hidden="true" tabindex="-1"></a>                         <span class="at">vcov. =</span> sandwich<span class="sc">::</span><span class="fu">vcovHC</span>(rr_fit, <span class="at">type =</span> <span class="st">"HC0"</span>))</span>
+<span id="cb27-211"><a href="#cb27-211" aria-hidden="true" tabindex="-1"></a>rr_lo  <span class="ot">&lt;-</span> <span class="fu">exp</span>(rr_ci[<span class="dv">1</span>])</span>
+<span id="cb27-212"><a href="#cb27-212" aria-hidden="true" tabindex="-1"></a>rr_hi  <span class="ot">&lt;-</span> <span class="fu">exp</span>(rr_ci[<span class="dv">2</span>])</span>
+<span id="cb27-213"><a href="#cb27-213" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-214"><a href="#cb27-214" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Adjusted RR (quit vs not): %.3f  [%.3f, %.3f]</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb27-215"><a href="#cb27-215" aria-hidden="true" tabindex="-1"></a>            rr_est, rr_lo, rr_hi))</span>
+<span id="cb27-216"><a href="#cb27-216" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-217"><a href="#cb27-217" aria-hidden="true" tabindex="-1"></a>ev <span class="ot">&lt;-</span> <span class="fu">evalues.RR</span>(<span class="at">est =</span> rr_est, <span class="at">lo =</span> rr_lo, <span class="at">hi =</span> rr_hi)</span>
+<span id="cb27-218"><a href="#cb27-218" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(ev)</span>
+<span id="cb27-219"><a href="#cb27-219" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb27-220"><a href="#cb27-220" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-221"><a href="#cb27-221" aria-hidden="true" tabindex="-1"></a>The E-value reports two numbers:</span>
+<span id="cb27-222"><a href="#cb27-222" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-223"><a href="#cb27-223" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**E-value (point estimate)**: an unmeasured confounder would need to be</span>
+<span id="cb27-224"><a href="#cb27-224" aria-hidden="true" tabindex="-1"></a>  associated with both treatment and outcome by risk ratios of at least</span>
+<span id="cb27-225"><a href="#cb27-225" aria-hidden="true" tabindex="-1"></a>  this value, above and beyond the measured confounders, to fully explain</span>
+<span id="cb27-226"><a href="#cb27-226" aria-hidden="true" tabindex="-1"></a>  away the observed effect.</span>
+<span id="cb27-227"><a href="#cb27-227" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**E-value (confidence interval)**: the minimum strength needed to shift</span>
+<span id="cb27-228"><a href="#cb27-228" aria-hidden="true" tabindex="-1"></a>  the lower confidence bound to 1.</span>
+<span id="cb27-229"><a href="#cb27-229" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-230"><a href="#cb27-230" aria-hidden="true" tabindex="-1"></a>The adjusted risk ratio is 1.218, with a 95% interval of $<span class="co">[</span><span class="ot">1.135, 1.307</span><span class="co">]</span>$.</span>
+<span id="cb27-231"><a href="#cb27-231" aria-hidden="true" tabindex="-1"></a>Quitters are about 22% more likely to gain any weight. The E-value for the</span>
+<span id="cb27-232"><a href="#cb27-232" aria-hidden="true" tabindex="-1"></a>point estimate is 1.73: an unmeasured confounder would need risk-ratio</span>
+<span id="cb27-233"><a href="#cb27-233" aria-hidden="true" tabindex="-1"></a>associations of at least 1.73 with both quitting and weight gain, beyond the</span>
+<span id="cb27-234"><a href="#cb27-234" aria-hidden="true" tabindex="-1"></a>nine measured covariates, to account for the whole association. The E-value for</span>
+<span id="cb27-235"><a href="#cb27-235" aria-hidden="true" tabindex="-1"></a>the confidence limit is 1.53, the strength that would push the lower bound to 1.</span>
+<span id="cb27-236"><a href="#cb27-236" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-237"><a href="#cb27-237" aria-hidden="true" tabindex="-1"></a>An E-value much greater than 1 suggests the result is hard to explain by</span>
+<span id="cb27-238"><a href="#cb27-238" aria-hidden="true" tabindex="-1"></a>unmeasured confounding. An E-value close to 1 means a modest unmeasured</span>
+<span id="cb27-239"><a href="#cb27-239" aria-hidden="true" tabindex="-1"></a>confounder could overturn the conclusion. At 1.73 this result sits in between:</span>
+<span id="cb27-240"><a href="#cb27-240" aria-hidden="true" tabindex="-1"></a>a confounder as strong as that is not implausible, but it would have to be</span>
+<span id="cb27-241"><a href="#cb27-241" aria-hidden="true" tabindex="-1"></a>unrelated to everything already in the model.</span>
+<span id="cb27-242"><a href="#cb27-242" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-243"><a href="#cb27-243" aria-hidden="true" tabindex="-1"></a>The useful part of the E-value is that it is on the risk-ratio scale. It can</span>
+<span id="cb27-244"><a href="#cb27-244" aria-hidden="true" tabindex="-1"></a>be explained without specifying a model for the unobserved confounder.</span>
 <span id="cb27-245"><a href="#cb27-245" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-246"><a href="#cb27-246" aria-hidden="true" tabindex="-1"></a><span class="co"># Simple 1:1 nearest-neighbour matching on propensity score</span></span>
-<span id="cb27-247"><a href="#cb27-247" aria-hidden="true" tabindex="-1"></a>treated_idx <span class="ot">&lt;-</span> <span class="fu">which</span>(nhefs<span class="sc">$</span>qsmk <span class="sc">==</span> <span class="dv">1</span>)</span>
-<span id="cb27-248"><a href="#cb27-248" aria-hidden="true" tabindex="-1"></a>control_idx <span class="ot">&lt;-</span> <span class="fu">which</span>(nhefs<span class="sc">$</span>qsmk <span class="sc">==</span> <span class="dv">0</span>)</span>
-<span id="cb27-249"><a href="#cb27-249" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-250"><a href="#cb27-250" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
-<span id="cb27-251"><a href="#cb27-251" aria-hidden="true" tabindex="-1"></a>matched_pairs <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">t_idx =</span> <span class="fu">integer</span>(), <span class="at">c_idx =</span> <span class="fu">integer</span>())</span>
-<span id="cb27-252"><a href="#cb27-252" aria-hidden="true" tabindex="-1"></a>available_controls <span class="ot">&lt;-</span> control_idx</span>
-<span id="cb27-253"><a href="#cb27-253" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (ti <span class="cf">in</span> treated_idx) {</span>
-<span id="cb27-254"><a href="#cb27-254" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(available_controls) <span class="sc">==</span> <span class="dv">0</span>) <span class="cf">break</span></span>
-<span id="cb27-255"><a href="#cb27-255" aria-hidden="true" tabindex="-1"></a>  dists <span class="ot">&lt;-</span> <span class="fu">abs</span>(nhefs<span class="sc">$</span>ps[ti] <span class="sc">-</span> nhefs<span class="sc">$</span>ps[available_controls])</span>
-<span id="cb27-256"><a href="#cb27-256" aria-hidden="true" tabindex="-1"></a>  best  <span class="ot">&lt;-</span> <span class="fu">which.min</span>(dists)</span>
-<span id="cb27-257"><a href="#cb27-257" aria-hidden="true" tabindex="-1"></a>  matched_pairs <span class="ot">&lt;-</span> <span class="fu">rbind</span>(matched_pairs,</span>
-<span id="cb27-258"><a href="#cb27-258" aria-hidden="true" tabindex="-1"></a>                         <span class="fu">data.frame</span>(<span class="at">t_idx =</span> ti,</span>
-<span id="cb27-259"><a href="#cb27-259" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">c_idx =</span> available_controls[best]))</span>
-<span id="cb27-260"><a href="#cb27-260" aria-hidden="true" tabindex="-1"></a>  available_controls <span class="ot">&lt;-</span> available_controls[<span class="sc">-</span>best]</span>
-<span id="cb27-261"><a href="#cb27-261" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb27-262"><a href="#cb27-262" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-263"><a href="#cb27-263" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute paired differences in outcome</span></span>
-<span id="cb27-264"><a href="#cb27-264" aria-hidden="true" tabindex="-1"></a>paired_diff <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>wt82_71[matched_pairs<span class="sc">$</span>t_idx] <span class="sc">-</span></span>
-<span id="cb27-265"><a href="#cb27-265" aria-hidden="true" tabindex="-1"></a>               nhefs<span class="sc">$</span>wt82_71[matched_pairs<span class="sc">$</span>c_idx]</span>
-<span id="cb27-266"><a href="#cb27-266" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"N matched pairs: %d</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">nrow</span>(matched_pairs)))</span>
-<span id="cb27-267"><a href="#cb27-267" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Mean paired difference (matched ATT): %.3f kg</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb27-268"><a href="#cb27-268" aria-hidden="true" tabindex="-1"></a>            <span class="fu">mean</span>(paired_diff)))</span>
+<span id="cb27-246"><a href="#cb27-246" aria-hidden="true" tabindex="-1"></a><span class="fu">## Rosenbaum bounds (matched estimators)</span></span>
+<span id="cb27-247"><a href="#cb27-247" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-248"><a href="#cb27-248" aria-hidden="true" tabindex="-1"></a>For matching estimators, **Rosenbaum bounds** (Rosenbaum 2002) provide a</span>
+<span id="cb27-249"><a href="#cb27-249" aria-hidden="true" tabindex="-1"></a>sensitivity analysis based on the maximum deviation from random assignment</span>
+<span id="cb27-250"><a href="#cb27-250" aria-hidden="true" tabindex="-1"></a>within matched pairs.</span>
+<span id="cb27-251"><a href="#cb27-251" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-252"><a href="#cb27-252" aria-hidden="true" tabindex="-1"></a>Suppose units in a matched pair are observationally identical, but one</span>
+<span id="cb27-253"><a href="#cb27-253" aria-hidden="true" tabindex="-1"></a>might still be more likely than the other to receive treatment due to</span>
+<span id="cb27-254"><a href="#cb27-254" aria-hidden="true" tabindex="-1"></a>unobserved factors. Let $\Gamma$ bound the ratio of treatment odds between</span>
+<span id="cb27-255"><a href="#cb27-255" aria-hidden="true" tabindex="-1"></a>the two units of a pair: $\Gamma = 1$ means matched pairs are perfectly</span>
+<span id="cb27-256"><a href="#cb27-256" aria-hidden="true" tabindex="-1"></a>randomised (both units equally likely to be the treated one); $\Gamma = 2$</span>
+<span id="cb27-257"><a href="#cb27-257" aria-hidden="true" tabindex="-1"></a>means hidden bias could make one unit's odds of treatment up to twice the</span>
+<span id="cb27-258"><a href="#cb27-258" aria-hidden="true" tabindex="-1"></a>other's.</span>
+<span id="cb27-259"><a href="#cb27-259" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-260"><a href="#cb27-260" aria-hidden="true" tabindex="-1"></a>Rosenbaum bounds compute the range of $p$-values for the matched test</span>
+<span id="cb27-261"><a href="#cb27-261" aria-hidden="true" tabindex="-1"></a>under each value of $\Gamma$. The **critical $\Gamma$** is the smallest</span>
+<span id="cb27-262"><a href="#cb27-262" aria-hidden="true" tabindex="-1"></a>value at which the test becomes insignificant.</span>
+<span id="cb27-263"><a href="#cb27-263" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-264"><a href="#cb27-264" aria-hidden="true" tabindex="-1"></a>Here is a worked example on the same NHEFS data. We fit the propensity score by</span>
+<span id="cb27-265"><a href="#cb27-265" aria-hidden="true" tabindex="-1"></a>logistic regression on the nine baseline covariates, match each of the 403</span>
+<span id="cb27-266"><a href="#cb27-266" aria-hidden="true" tabindex="-1"></a>quitters to its nearest unmatched control on that score, take the paired</span>
+<span id="cb27-267"><a href="#cb27-267" aria-hidden="true" tabindex="-1"></a>differences in weight change, and compute the upper-bound Wilcoxon</span>
+<span id="cb27-268"><a href="#cb27-268" aria-hidden="true" tabindex="-1"></a>signed-rank $p$-value on a grid $\Gamma \in <span class="co">[</span><span class="ot">1, 4</span><span class="co">]</span>$ in steps of 0.25:</span>
 <span id="cb27-269"><a href="#cb27-269" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-270"><a href="#cb27-270" aria-hidden="true" tabindex="-1"></a><span class="co"># Rosenbaum bound calculation: range of p-values for Wilcoxon signed-rank</span></span>
-<span id="cb27-271"><a href="#cb27-271" aria-hidden="true" tabindex="-1"></a><span class="co"># under each Gamma. We compute this directly rather than using a package</span></span>
-<span id="cb27-272"><a href="#cb27-272" aria-hidden="true" tabindex="-1"></a><span class="co"># to keep the dependency footprint small.</span></span>
-<span id="cb27-273"><a href="#cb27-273" aria-hidden="true" tabindex="-1"></a>rosenbaum_pvalue <span class="ot">&lt;-</span> <span class="cf">function</span>(diffs, gamma) {</span>
-<span id="cb27-274"><a href="#cb27-274" aria-hidden="true" tabindex="-1"></a>  <span class="co"># The Wilcoxon signed-rank protocol discards exact-zero paired differences</span></span>
-<span id="cb27-275"><a href="#cb27-275" aria-hidden="true" tabindex="-1"></a>  <span class="co"># before ranking (a zero carries no information about the sign) and</span></span>
-<span id="cb27-276"><a href="#cb27-276" aria-hidden="true" tabindex="-1"></a>  <span class="co"># reduces the effective sample size accordingly; including them would</span></span>
-<span id="cb27-277"><a href="#cb27-277" aria-hidden="true" tabindex="-1"></a>  <span class="co"># skew both the rank sum and its null variance.</span></span>
-<span id="cb27-278"><a href="#cb27-278" aria-hidden="true" tabindex="-1"></a>  diffs <span class="ot">&lt;-</span> diffs[diffs <span class="sc">!=</span> <span class="dv">0</span>]</span>
-<span id="cb27-279"><a href="#cb27-279" aria-hidden="true" tabindex="-1"></a>  abs_d <span class="ot">&lt;-</span> <span class="fu">abs</span>(diffs)</span>
-<span id="cb27-280"><a href="#cb27-280" aria-hidden="true" tabindex="-1"></a>  signs <span class="ot">&lt;-</span> <span class="fu">sign</span>(diffs)</span>
-<span id="cb27-281"><a href="#cb27-281" aria-hidden="true" tabindex="-1"></a>  ranks <span class="ot">&lt;-</span> <span class="fu">rank</span>(abs_d)</span>
-<span id="cb27-282"><a href="#cb27-282" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Under Gamma, P(positive sign) is bounded between 1/(1+Γ) and Γ/(1+Γ).</span></span>
-<span id="cb27-283"><a href="#cb27-283" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Upper-bound p-value: assume P(positive) = Γ/(1+Γ) (against null of zero)</span></span>
-<span id="cb27-284"><a href="#cb27-284" aria-hidden="true" tabindex="-1"></a>  p_pos_upper <span class="ot">&lt;-</span> gamma <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">+</span> gamma)</span>
-<span id="cb27-285"><a href="#cb27-285" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Test statistic: sum of positive ranks</span></span>
-<span id="cb27-286"><a href="#cb27-286" aria-hidden="true" tabindex="-1"></a>  T_obs <span class="ot">&lt;-</span> <span class="fu">sum</span>(ranks[signs <span class="sc">&gt;</span> <span class="dv">0</span>])</span>
-<span id="cb27-287"><a href="#cb27-287" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">length</span>(diffs)</span>
-<span id="cb27-288"><a href="#cb27-288" aria-hidden="true" tabindex="-1"></a>  mu_upper  <span class="ot">&lt;-</span> p_pos_upper <span class="sc">*</span> <span class="fu">sum</span>(ranks)</span>
-<span id="cb27-289"><a href="#cb27-289" aria-hidden="true" tabindex="-1"></a>  var_upper <span class="ot">&lt;-</span> p_pos_upper <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> p_pos_upper) <span class="sc">*</span> <span class="fu">sum</span>(ranks<span class="sc">^</span><span class="dv">2</span>)</span>
-<span id="cb27-290"><a href="#cb27-290" aria-hidden="true" tabindex="-1"></a>  z <span class="ot">&lt;-</span> (T_obs <span class="sc">-</span> mu_upper) <span class="sc">/</span> <span class="fu">sqrt</span>(var_upper)</span>
-<span id="cb27-291"><a href="#cb27-291" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1</span> <span class="sc">-</span> <span class="fu">pnorm</span>(z)</span>
-<span id="cb27-292"><a href="#cb27-292" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb27-293"><a href="#cb27-293" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-294"><a href="#cb27-294" aria-hidden="true" tabindex="-1"></a>gammas <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">1</span>, <span class="dv">4</span>, <span class="at">by =</span> <span class="fl">0.25</span>)</span>
-<span id="cb27-295"><a href="#cb27-295" aria-hidden="true" tabindex="-1"></a>pvals  <span class="ot">&lt;-</span> <span class="fu">sapply</span>(gammas, <span class="cf">function</span>(g) <span class="fu">rosenbaum_pvalue</span>(paired_diff, g))</span>
-<span id="cb27-296"><a href="#cb27-296" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-297"><a href="#cb27-297" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">Gamma =</span> gammas, <span class="at">p_value_upper =</span> pvals)</span>
-<span id="cb27-298"><a href="#cb27-298" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(result, <span class="at">digits =</span> <span class="dv">4</span>,</span>
-<span id="cb27-299"><a href="#cb27-299" aria-hidden="true" tabindex="-1"></a>             <span class="at">caption =</span> <span class="st">"Upper-bound p-values from Rosenbaum sensitivity analysis"</span>)</span>
-<span id="cb27-300"><a href="#cb27-300" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb27-301"><a href="#cb27-301" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-302"><a href="#cb27-302" aria-hidden="true" tabindex="-1"></a>The **critical $\Gamma$** is the value at which the upper-bound $p$-value</span>
-<span id="cb27-303"><a href="#cb27-303" aria-hidden="true" tabindex="-1"></a>crosses 0.05. In the table above, locate where this happens — if the</span>
-<span id="cb27-304"><a href="#cb27-304" aria-hidden="true" tabindex="-1"></a>critical $\Gamma$ is around 2 or higher, the result is robust to moderate</span>
-<span id="cb27-305"><a href="#cb27-305" aria-hidden="true" tabindex="-1"></a>hidden bias. If it is close to 1, even small unmeasured confounding could</span>
-<span id="cb27-306"><a href="#cb27-306" aria-hidden="true" tabindex="-1"></a>overturn the conclusion.</span>
-<span id="cb27-307"><a href="#cb27-307" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-310"><a href="#cb27-310" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb27-311"><a href="#cb27-311" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: critical-gamma</span></span>
-<span id="cb27-312"><a href="#cb27-312" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb27-313"><a href="#cb27-313" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-314"><a href="#cb27-314" aria-hidden="true" tabindex="-1"></a>sig_idx <span class="ot">&lt;-</span> <span class="fu">which</span>(result<span class="sc">$</span>p_value_upper <span class="sc">&gt;</span> <span class="fl">0.05</span>)</span>
-<span id="cb27-315"><a href="#cb27-315" aria-hidden="true" tabindex="-1"></a>critical_gamma <span class="ot">&lt;-</span> <span class="cf">if</span> (<span class="fu">length</span>(sig_idx) <span class="sc">&gt;</span> <span class="dv">0</span>) result<span class="sc">$</span>Gamma[<span class="fu">min</span>(sig_idx)] <span class="cf">else</span> <span class="cn">NA</span></span>
-<span id="cb27-316"><a href="#cb27-316" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">is.na</span>(critical_gamma)) {</span>
-<span id="cb27-317"><a href="#cb27-317" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"No Gamma up to %.2f pushed the p-value above 0.05 -- the result is robust across the whole grid tested; extend `gammas` to find the true crossing.</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">max</span>(result<span class="sc">$</span>Gamma)))</span>
-<span id="cb27-318"><a href="#cb27-318" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
-<span id="cb27-319"><a href="#cb27-319" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Critical Gamma (p &gt; 0.05): %.2f</span><span class="sc">\n</span><span class="st">"</span>, critical_gamma))</span>
-<span id="cb27-320"><a href="#cb27-320" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb27-321"><a href="#cb27-321" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb27-322"><a href="#cb27-322" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-323"><a href="#cb27-323" aria-hidden="true" tabindex="-1"></a>This reports the first value *on the 0.25 grid* at which significance is</span>
-<span id="cb27-324"><a href="#cb27-324" aria-hidden="true" tabindex="-1"></a>lost; the actual crossing lies between this value and the preceding grid</span>
-<span id="cb27-325"><a href="#cb27-325" aria-hidden="true" tabindex="-1"></a>point (a finer grid, or interpolation, would locate it more precisely —</span>
-<span id="cb27-326"><a href="#cb27-326" aria-hidden="true" tabindex="-1"></a>the convention in applied work is often to report the largest $\Gamma$ at</span>
-<span id="cb27-327"><a href="#cb27-327" aria-hidden="true" tabindex="-1"></a>which significance is retained).</span>
-<span id="cb27-328"><a href="#cb27-328" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-329"><a href="#cb27-329" aria-hidden="true" tabindex="-1"></a><span class="fu">## What about partial identification?</span></span>
-<span id="cb27-330"><a href="#cb27-330" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-331"><a href="#cb27-331" aria-hidden="true" tabindex="-1"></a>When sensitivity analysis shows the point estimate is fragile, partial</span>
-<span id="cb27-332"><a href="#cb27-332" aria-hidden="true" tabindex="-1"></a>identification is often the next step. Instead of one estimate, report bounds</span>
-<span id="cb27-333"><a href="#cb27-333" aria-hidden="true" tabindex="-1"></a>under weaker assumptions.</span>
-<span id="cb27-334"><a href="#cb27-334" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-335"><a href="#cb27-335" aria-hidden="true" tabindex="-1"></a>The Manski (1990) "no-assumption" bounds say:</span>
-<span id="cb27-336"><a href="#cb27-336" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-337"><a href="#cb27-337" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb27-338"><a href="#cb27-338" aria-hidden="true" tabindex="-1"></a>\text{ATE} \in \Big<span class="co">[</span><span class="ot">\; \mathbb{E}[Y|D{=}1</span><span class="co">]</span>P(D{=}1) - \big(\mathbb{E}<span class="co">[</span><span class="ot">Y|D{=}0</span><span class="co">]</span>P(D{=}0) + K\,P(D{=}1)\big),\;\;</span>
-<span id="cb27-339"><a href="#cb27-339" aria-hidden="true" tabindex="-1"></a>\big(\mathbb{E}<span class="co">[</span><span class="ot">Y|D{=}1</span><span class="co">]</span>P(D{=}1) + K\,P(D{=}0)\big) - \mathbb{E}<span class="co">[</span><span class="ot">Y|D{=}0</span><span class="co">]</span>P(D{=}0) \;\Big].</span>
-<span id="cb27-340"><a href="#cb27-340" aria-hidden="true" tabindex="-1"></a>$$ {#eq-sensitivity-analysis-1}</span>
+<span id="cb27-272"><a href="#cb27-272" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb27-273"><a href="#cb27-273" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: rosenbaum</span></span>
+<span id="cb27-274"><a href="#cb27-274" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb27-275"><a href="#cb27-275" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-276"><a href="#cb27-276" aria-hidden="true" tabindex="-1"></a><span class="co"># Estimate propensity score</span></span>
+<span id="cb27-277"><a href="#cb27-277" aria-hidden="true" tabindex="-1"></a>ps_fit <span class="ot">&lt;-</span> <span class="fu">glm</span>(qsmk <span class="sc">~</span> sex <span class="sc">+</span> age <span class="sc">+</span> race <span class="sc">+</span> education <span class="sc">+</span> smokeintensity <span class="sc">+</span></span>
+<span id="cb27-278"><a href="#cb27-278" aria-hidden="true" tabindex="-1"></a>                     smokeyrs <span class="sc">+</span> exercise <span class="sc">+</span> active <span class="sc">+</span> wt71,</span>
+<span id="cb27-279"><a href="#cb27-279" aria-hidden="true" tabindex="-1"></a>              <span class="at">data =</span> nhefs, <span class="at">family =</span> binomial)</span>
+<span id="cb27-280"><a href="#cb27-280" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>ps <span class="ot">&lt;-</span> <span class="fu">predict</span>(ps_fit, <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb27-281"><a href="#cb27-281" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-282"><a href="#cb27-282" aria-hidden="true" tabindex="-1"></a><span class="co"># Simple 1:1 nearest-neighbour matching on propensity score</span></span>
+<span id="cb27-283"><a href="#cb27-283" aria-hidden="true" tabindex="-1"></a>treated_idx <span class="ot">&lt;-</span> <span class="fu">which</span>(nhefs<span class="sc">$</span>qsmk <span class="sc">==</span> <span class="dv">1</span>)</span>
+<span id="cb27-284"><a href="#cb27-284" aria-hidden="true" tabindex="-1"></a>control_idx <span class="ot">&lt;-</span> <span class="fu">which</span>(nhefs<span class="sc">$</span>qsmk <span class="sc">==</span> <span class="dv">0</span>)</span>
+<span id="cb27-285"><a href="#cb27-285" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-286"><a href="#cb27-286" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb27-287"><a href="#cb27-287" aria-hidden="true" tabindex="-1"></a>matched_pairs <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">t_idx =</span> <span class="fu">integer</span>(), <span class="at">c_idx =</span> <span class="fu">integer</span>())</span>
+<span id="cb27-288"><a href="#cb27-288" aria-hidden="true" tabindex="-1"></a>available_controls <span class="ot">&lt;-</span> control_idx</span>
+<span id="cb27-289"><a href="#cb27-289" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (ti <span class="cf">in</span> treated_idx) {</span>
+<span id="cb27-290"><a href="#cb27-290" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(available_controls) <span class="sc">==</span> <span class="dv">0</span>) <span class="cf">break</span></span>
+<span id="cb27-291"><a href="#cb27-291" aria-hidden="true" tabindex="-1"></a>  dists <span class="ot">&lt;-</span> <span class="fu">abs</span>(nhefs<span class="sc">$</span>ps[ti] <span class="sc">-</span> nhefs<span class="sc">$</span>ps[available_controls])</span>
+<span id="cb27-292"><a href="#cb27-292" aria-hidden="true" tabindex="-1"></a>  best  <span class="ot">&lt;-</span> <span class="fu">which.min</span>(dists)</span>
+<span id="cb27-293"><a href="#cb27-293" aria-hidden="true" tabindex="-1"></a>  matched_pairs <span class="ot">&lt;-</span> <span class="fu">rbind</span>(matched_pairs,</span>
+<span id="cb27-294"><a href="#cb27-294" aria-hidden="true" tabindex="-1"></a>                         <span class="fu">data.frame</span>(<span class="at">t_idx =</span> ti,</span>
+<span id="cb27-295"><a href="#cb27-295" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">c_idx =</span> available_controls[best]))</span>
+<span id="cb27-296"><a href="#cb27-296" aria-hidden="true" tabindex="-1"></a>  available_controls <span class="ot">&lt;-</span> available_controls[<span class="sc">-</span>best]</span>
+<span id="cb27-297"><a href="#cb27-297" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb27-298"><a href="#cb27-298" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-299"><a href="#cb27-299" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute paired differences in outcome</span></span>
+<span id="cb27-300"><a href="#cb27-300" aria-hidden="true" tabindex="-1"></a>paired_diff <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>wt82_71[matched_pairs<span class="sc">$</span>t_idx] <span class="sc">-</span></span>
+<span id="cb27-301"><a href="#cb27-301" aria-hidden="true" tabindex="-1"></a>               nhefs<span class="sc">$</span>wt82_71[matched_pairs<span class="sc">$</span>c_idx]</span>
+<span id="cb27-302"><a href="#cb27-302" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"N matched pairs: %d</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">nrow</span>(matched_pairs)))</span>
+<span id="cb27-303"><a href="#cb27-303" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Mean paired difference (matched ATT): %.3f kg</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb27-304"><a href="#cb27-304" aria-hidden="true" tabindex="-1"></a>            <span class="fu">mean</span>(paired_diff)))</span>
+<span id="cb27-305"><a href="#cb27-305" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-306"><a href="#cb27-306" aria-hidden="true" tabindex="-1"></a><span class="co"># Rosenbaum bound calculation: range of p-values for Wilcoxon signed-rank</span></span>
+<span id="cb27-307"><a href="#cb27-307" aria-hidden="true" tabindex="-1"></a><span class="co"># under each Gamma. We compute this directly rather than using a package</span></span>
+<span id="cb27-308"><a href="#cb27-308" aria-hidden="true" tabindex="-1"></a><span class="co"># to keep the dependency footprint small.</span></span>
+<span id="cb27-309"><a href="#cb27-309" aria-hidden="true" tabindex="-1"></a>rosenbaum_pvalue <span class="ot">&lt;-</span> <span class="cf">function</span>(diffs, gamma) {</span>
+<span id="cb27-310"><a href="#cb27-310" aria-hidden="true" tabindex="-1"></a>  <span class="co"># The Wilcoxon signed-rank protocol discards exact-zero paired differences</span></span>
+<span id="cb27-311"><a href="#cb27-311" aria-hidden="true" tabindex="-1"></a>  <span class="co"># before ranking (a zero carries no information about the sign) and</span></span>
+<span id="cb27-312"><a href="#cb27-312" aria-hidden="true" tabindex="-1"></a>  <span class="co"># reduces the effective sample size accordingly; including them would</span></span>
+<span id="cb27-313"><a href="#cb27-313" aria-hidden="true" tabindex="-1"></a>  <span class="co"># skew both the rank sum and its null variance.</span></span>
+<span id="cb27-314"><a href="#cb27-314" aria-hidden="true" tabindex="-1"></a>  diffs <span class="ot">&lt;-</span> diffs[diffs <span class="sc">!=</span> <span class="dv">0</span>]</span>
+<span id="cb27-315"><a href="#cb27-315" aria-hidden="true" tabindex="-1"></a>  abs_d <span class="ot">&lt;-</span> <span class="fu">abs</span>(diffs)</span>
+<span id="cb27-316"><a href="#cb27-316" aria-hidden="true" tabindex="-1"></a>  signs <span class="ot">&lt;-</span> <span class="fu">sign</span>(diffs)</span>
+<span id="cb27-317"><a href="#cb27-317" aria-hidden="true" tabindex="-1"></a>  ranks <span class="ot">&lt;-</span> <span class="fu">rank</span>(abs_d)</span>
+<span id="cb27-318"><a href="#cb27-318" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Under Gamma, P(positive sign) is bounded between 1/(1+Γ) and Γ/(1+Γ).</span></span>
+<span id="cb27-319"><a href="#cb27-319" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Upper-bound p-value: assume P(positive) = Γ/(1+Γ) (against null of zero)</span></span>
+<span id="cb27-320"><a href="#cb27-320" aria-hidden="true" tabindex="-1"></a>  p_pos_upper <span class="ot">&lt;-</span> gamma <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">+</span> gamma)</span>
+<span id="cb27-321"><a href="#cb27-321" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Test statistic: sum of positive ranks</span></span>
+<span id="cb27-322"><a href="#cb27-322" aria-hidden="true" tabindex="-1"></a>  T_obs <span class="ot">&lt;-</span> <span class="fu">sum</span>(ranks[signs <span class="sc">&gt;</span> <span class="dv">0</span>])</span>
+<span id="cb27-323"><a href="#cb27-323" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">length</span>(diffs)</span>
+<span id="cb27-324"><a href="#cb27-324" aria-hidden="true" tabindex="-1"></a>  mu_upper  <span class="ot">&lt;-</span> p_pos_upper <span class="sc">*</span> <span class="fu">sum</span>(ranks)</span>
+<span id="cb27-325"><a href="#cb27-325" aria-hidden="true" tabindex="-1"></a>  var_upper <span class="ot">&lt;-</span> p_pos_upper <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> p_pos_upper) <span class="sc">*</span> <span class="fu">sum</span>(ranks<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb27-326"><a href="#cb27-326" aria-hidden="true" tabindex="-1"></a>  z <span class="ot">&lt;-</span> (T_obs <span class="sc">-</span> mu_upper) <span class="sc">/</span> <span class="fu">sqrt</span>(var_upper)</span>
+<span id="cb27-327"><a href="#cb27-327" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1</span> <span class="sc">-</span> <span class="fu">pnorm</span>(z)</span>
+<span id="cb27-328"><a href="#cb27-328" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb27-329"><a href="#cb27-329" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-330"><a href="#cb27-330" aria-hidden="true" tabindex="-1"></a>gammas <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">1</span>, <span class="dv">4</span>, <span class="at">by =</span> <span class="fl">0.25</span>)</span>
+<span id="cb27-331"><a href="#cb27-331" aria-hidden="true" tabindex="-1"></a>pvals  <span class="ot">&lt;-</span> <span class="fu">sapply</span>(gammas, <span class="cf">function</span>(g) <span class="fu">rosenbaum_pvalue</span>(paired_diff, g))</span>
+<span id="cb27-332"><a href="#cb27-332" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-333"><a href="#cb27-333" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">Gamma =</span> gammas, <span class="at">p_value_upper =</span> pvals)</span>
+<span id="cb27-334"><a href="#cb27-334" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(result, <span class="at">digits =</span> <span class="dv">4</span>,</span>
+<span id="cb27-335"><a href="#cb27-335" aria-hidden="true" tabindex="-1"></a>             <span class="at">caption =</span> <span class="st">"Upper-bound p-values from Rosenbaum sensitivity analysis"</span>)</span>
+<span id="cb27-336"><a href="#cb27-336" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb27-337"><a href="#cb27-337" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-338"><a href="#cb27-338" aria-hidden="true" tabindex="-1"></a>Matching gives 403 pairs, one per quitter, with a mean paired difference of</span>
+<span id="cb27-339"><a href="#cb27-339" aria-hidden="true" tabindex="-1"></a>2.926 kg. The upper-bound $p$-value is 0.0334 at $\Gamma = 1.50$ and 0.2905 at</span>
+<span id="cb27-340"><a href="#cb27-340" aria-hidden="true" tabindex="-1"></a>$\Gamma = 1.75$, so the crossing of 0.05 falls between those two grid points.</span>
 <span id="cb27-341"><a href="#cb27-341" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-342"><a href="#cb27-342" aria-hidden="true" tabindex="-1"></a>Each potential-outcome mean is split by the law of total expectation, filling</span>
-<span id="cb27-343"><a href="#cb27-343" aria-hidden="true" tabindex="-1"></a>in the unobserved arm with its worst/best case. With outcomes bounded in</span>
-<span id="cb27-344"><a href="#cb27-344" aria-hidden="true" tabindex="-1"></a>$Y \in <span class="co">[</span><span class="ot">0, K</span><span class="co">]</span>$, this is a single interval of width exactly $K$ — bounded, but</span>
-<span id="cb27-345"><a href="#cb27-345" aria-hidden="true" tabindex="-1"></a>often too wide to be useful. Tighter bounds come from adding structure to a</span>
-<span id="cb27-346"><a href="#cb27-346" aria-hidden="true" tabindex="-1"></a>specific problem: Lee (2009) bounds address sample selection/attrition (the</span>
-<span id="cb27-347"><a href="#cb27-347" aria-hidden="true" tabindex="-1"></a>outcome is observed only for selected units) by combining random assignment</span>
-<span id="cb27-348"><a href="#cb27-348" aria-hidden="true" tabindex="-1"></a>with monotone selection and trimming the over-selected arm. For IV settings,</span>
-<span id="cb27-349"><a href="#cb27-349" aria-hidden="true" tabindex="-1"></a>Mourifié and Wan (2017) provide a test of the LATE identifying assumptions</span>
-<span id="cb27-350"><a href="#cb27-350" aria-hidden="true" tabindex="-1"></a>(instrument validity plus monotonicity).</span>
-<span id="cb27-351"><a href="#cb27-351" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-352"><a href="#cb27-352" aria-hidden="true" tabindex="-1"></a>These bounds usually complement a point estimate. They are useful when the</span>
-<span id="cb27-353"><a href="#cb27-353" aria-hidden="true" tabindex="-1"></a>point estimate depends too much on an untestable assumption.</span>
-<span id="cb27-354"><a href="#cb27-354" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-355"><a href="#cb27-355" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
-<span id="cb27-356"><a href="#cb27-356" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-357"><a href="#cb27-357" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Sensitivity analysis asks how strong hidden confounding must be to change</span>
-<span id="cb27-358"><a href="#cb27-358" aria-hidden="true" tabindex="-1"></a>  the result.</span>
-<span id="cb27-359"><a href="#cb27-359" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Cinelli-Hazlett bounds are useful for regression estimates.</span>
-<span id="cb27-360"><a href="#cb27-360" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>E-values are useful for risk ratios.</span>
-<span id="cb27-361"><a href="#cb27-361" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Rosenbaum bounds are useful for matched pairs.</span>
-<span id="cb27-362"><a href="#cb27-362" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Observational causal estimates should usually include at least one</span>
-<span id="cb27-363"><a href="#cb27-363" aria-hidden="true" tabindex="-1"></a>  sensitivity analysis.</span>
+<span id="cb27-342"><a href="#cb27-342" aria-hidden="true" tabindex="-1"></a>The **critical $\Gamma$** is the value at which the upper-bound $p$-value</span>
+<span id="cb27-343"><a href="#cb27-343" aria-hidden="true" tabindex="-1"></a>crosses 0.05. If it is around 2 or higher, the result is robust to moderate</span>
+<span id="cb27-344"><a href="#cb27-344" aria-hidden="true" tabindex="-1"></a>hidden bias. If it is close to 1, even small unmeasured confounding could</span>
+<span id="cb27-345"><a href="#cb27-345" aria-hidden="true" tabindex="-1"></a>overturn the conclusion. We read it off the grid:</span>
+<span id="cb27-346"><a href="#cb27-346" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-349"><a href="#cb27-349" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb27-350"><a href="#cb27-350" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: critical-gamma</span></span>
+<span id="cb27-351"><a href="#cb27-351" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb27-352"><a href="#cb27-352" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-353"><a href="#cb27-353" aria-hidden="true" tabindex="-1"></a>sig_idx <span class="ot">&lt;-</span> <span class="fu">which</span>(result<span class="sc">$</span>p_value_upper <span class="sc">&gt;</span> <span class="fl">0.05</span>)</span>
+<span id="cb27-354"><a href="#cb27-354" aria-hidden="true" tabindex="-1"></a>critical_gamma <span class="ot">&lt;-</span> <span class="cf">if</span> (<span class="fu">length</span>(sig_idx) <span class="sc">&gt;</span> <span class="dv">0</span>) result<span class="sc">$</span>Gamma[<span class="fu">min</span>(sig_idx)] <span class="cf">else</span> <span class="cn">NA</span></span>
+<span id="cb27-355"><a href="#cb27-355" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">is.na</span>(critical_gamma)) {</span>
+<span id="cb27-356"><a href="#cb27-356" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"No Gamma up to %.2f pushed the p-value above 0.05 -- the result is robust across the whole grid tested; extend `gammas` to find the true crossing.</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">max</span>(result<span class="sc">$</span>Gamma)))</span>
+<span id="cb27-357"><a href="#cb27-357" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb27-358"><a href="#cb27-358" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Critical Gamma (p &gt; 0.05): %.2f</span><span class="sc">\n</span><span class="st">"</span>, critical_gamma))</span>
+<span id="cb27-359"><a href="#cb27-359" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb27-360"><a href="#cb27-360" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb27-361"><a href="#cb27-361" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-362"><a href="#cb27-362" aria-hidden="true" tabindex="-1"></a>The critical $\Gamma$ is 1.75. This is the first value *on the 0.25 grid* at</span>
+<span id="cb27-363"><a href="#cb27-363" aria-hidden="true" tabindex="-1"></a>which significance is lost; the true crossing lies between 1.50 and 1.75, and a</span>
+<span id="cb27-364"><a href="#cb27-364" aria-hidden="true" tabindex="-1"></a>finer grid would locate it more precisely. The convention in applied work is</span>
+<span id="cb27-365"><a href="#cb27-365" aria-hidden="true" tabindex="-1"></a>often to report the largest $\Gamma$ at which significance is retained, which</span>
+<span id="cb27-366"><a href="#cb27-366" aria-hidden="true" tabindex="-1"></a>here is 1.50.</span>
+<span id="cb27-367"><a href="#cb27-367" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-368"><a href="#cb27-368" aria-hidden="true" tabindex="-1"></a>So hidden bias that made one member of a matched pair up to about 1.5 times</span>
+<span id="cb27-369"><a href="#cb27-369" aria-hidden="true" tabindex="-1"></a>more likely to quit than the other would leave the result significant, and bias</span>
+<span id="cb27-370"><a href="#cb27-370" aria-hidden="true" tabindex="-1"></a>beyond that would not.</span>
+<span id="cb27-371"><a href="#cb27-371" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-372"><a href="#cb27-372" aria-hidden="true" tabindex="-1"></a>The three analyses do not share a scale. $\Gamma$ bounds an odds ratio within a</span>
+<span id="cb27-373"><a href="#cb27-373" aria-hidden="true" tabindex="-1"></a>matched pair, the E-value bounds a risk ratio, and the robustness value is a</span>
+<span id="cb27-374"><a href="#cb27-374" aria-hidden="true" tabindex="-1"></a>partial $R^2$. They also ask different questions: $\Gamma$ and the E-value ask</span>
+<span id="cb27-375"><a href="#cb27-375" aria-hidden="true" tabindex="-1"></a>when the result stops being significant, the robustness value asks when the</span>
+<span id="cb27-376"><a href="#cb27-376" aria-hidden="true" tabindex="-1"></a>point estimate reaches zero. Reporting one of them is normal practice; the</span>
+<span id="cb27-377"><a href="#cb27-377" aria-hidden="true" tabindex="-1"></a>numbers should not be averaged or compared directly.</span>
+<span id="cb27-378"><a href="#cb27-378" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-379"><a href="#cb27-379" aria-hidden="true" tabindex="-1"></a><span class="fu">## What about partial identification?</span></span>
+<span id="cb27-380"><a href="#cb27-380" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-381"><a href="#cb27-381" aria-hidden="true" tabindex="-1"></a>When sensitivity analysis shows the point estimate is fragile, partial</span>
+<span id="cb27-382"><a href="#cb27-382" aria-hidden="true" tabindex="-1"></a>identification is often the next step. Instead of one estimate, report bounds</span>
+<span id="cb27-383"><a href="#cb27-383" aria-hidden="true" tabindex="-1"></a>under weaker assumptions.</span>
+<span id="cb27-384"><a href="#cb27-384" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-385"><a href="#cb27-385" aria-hidden="true" tabindex="-1"></a>The Manski (1990) "no-assumption" bounds say:</span>
+<span id="cb27-386"><a href="#cb27-386" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-387"><a href="#cb27-387" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb27-388"><a href="#cb27-388" aria-hidden="true" tabindex="-1"></a>\text{ATE} \in \Big<span class="co">[</span><span class="ot">\; \mathbb{E}[Y|D{=}1</span><span class="co">]</span>P(D{=}1) - \big(\mathbb{E}<span class="co">[</span><span class="ot">Y|D{=}0</span><span class="co">]</span>P(D{=}0) + K\,P(D{=}1)\big),\;\;</span>
+<span id="cb27-389"><a href="#cb27-389" aria-hidden="true" tabindex="-1"></a>\big(\mathbb{E}<span class="co">[</span><span class="ot">Y|D{=}1</span><span class="co">]</span>P(D{=}1) + K\,P(D{=}0)\big) - \mathbb{E}<span class="co">[</span><span class="ot">Y|D{=}0</span><span class="co">]</span>P(D{=}0) \;\Big].</span>
+<span id="cb27-390"><a href="#cb27-390" aria-hidden="true" tabindex="-1"></a>$$ {#eq-sensitivity-analysis-1}</span>
+<span id="cb27-391"><a href="#cb27-391" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-392"><a href="#cb27-392" aria-hidden="true" tabindex="-1"></a>Each potential-outcome mean is split by the law of total expectation, filling</span>
+<span id="cb27-393"><a href="#cb27-393" aria-hidden="true" tabindex="-1"></a>in the unobserved arm with its worst/best case. With outcomes bounded in</span>
+<span id="cb27-394"><a href="#cb27-394" aria-hidden="true" tabindex="-1"></a>$Y \in <span class="co">[</span><span class="ot">0, K</span><span class="co">]</span>$, this is a single interval of width exactly $K$ — bounded, but</span>
+<span id="cb27-395"><a href="#cb27-395" aria-hidden="true" tabindex="-1"></a>often too wide to be useful. Tighter bounds come from adding structure to a</span>
+<span id="cb27-396"><a href="#cb27-396" aria-hidden="true" tabindex="-1"></a>specific problem: Lee (2009) bounds address sample selection/attrition (the</span>
+<span id="cb27-397"><a href="#cb27-397" aria-hidden="true" tabindex="-1"></a>outcome is observed only for selected units) by combining random assignment</span>
+<span id="cb27-398"><a href="#cb27-398" aria-hidden="true" tabindex="-1"></a>with monotone selection and trimming the over-selected arm. For IV settings,</span>
+<span id="cb27-399"><a href="#cb27-399" aria-hidden="true" tabindex="-1"></a>Mourifié and Wan (2017) provide a test of the LATE identifying assumptions</span>
+<span id="cb27-400"><a href="#cb27-400" aria-hidden="true" tabindex="-1"></a>(instrument validity plus monotonicity).</span>
+<span id="cb27-401"><a href="#cb27-401" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-402"><a href="#cb27-402" aria-hidden="true" tabindex="-1"></a>These bounds usually complement a point estimate. They are useful when the</span>
+<span id="cb27-403"><a href="#cb27-403" aria-hidden="true" tabindex="-1"></a>point estimate depends too much on an untestable assumption.</span>
+<span id="cb27-404"><a href="#cb27-404" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-405"><a href="#cb27-405" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb27-406"><a href="#cb27-406" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-407"><a href="#cb27-407" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Sensitivity analysis asks how strong hidden confounding must be to change</span>
+<span id="cb27-408"><a href="#cb27-408" aria-hidden="true" tabindex="-1"></a>  the result.</span>
+<span id="cb27-409"><a href="#cb27-409" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Cinelli-Hazlett bounds are useful for regression estimates.</span>
+<span id="cb27-410"><a href="#cb27-410" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>E-values are useful for risk ratios.</span>
+<span id="cb27-411"><a href="#cb27-411" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Rosenbaum bounds are useful for matched pairs.</span>
+<span id="cb27-412"><a href="#cb27-412" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Observational causal estimates should usually include at least one</span>
+<span id="cb27-413"><a href="#cb27-413" aria-hidden="true" tabindex="-1"></a>  sensitivity analysis.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

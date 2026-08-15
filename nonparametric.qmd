@@ -53,6 +53,25 @@ In this estimator, both $\hat \mu$ and $\hat \pi$ can be done using any estimato
 
 ### Simulation Setup
 
+The aim is to run one estimand through five estimators on a single data set ---
+a plug-in outcome regression, AIPW computed by hand, AIPW from `npcausal`,
+TMLE, and DoubleML --- and compare them against a truth we can compute exactly.
+
+We simulate $n = 1000$ people with four covariates: $w_1, w_2 \sim
+\text{Bernoulli}(0.5)$, $w_3 \sim U(0,4)$ and $w_4 \sim U(0,5)$, the last two
+rounded to three decimals. Treatment is
+$A \sim \text{Bernoulli}(\Lambda(-0.4 + 0.2w_2 + 0.15w_3 + 0.2w_4 + 0.15w_2w_4))$.
+Both potential outcomes are Bernoulli with the same logit index,
+$Y(d) \sim \text{Bernoulli}(\Lambda(-1 + d - 0.1w_1 + 0.3w_2 + 0.25w_3 + 0.2w_4 + 0.15w_2w_4))$,
+and we observe $Y = AY(1) + (1-A)Y(0)$.
+
+Treatment shifts the logit index by exactly 1, so the individual effect
+$\Lambda(\text{lin} + 1) - \Lambda(\text{lin})$ varies across people even though
+the shift is constant. Note also that $w_1$ enters the outcome but not the
+treatment, and that both the propensity and the outcome carry a $w_2 w_4$
+interaction. Neither nuisance function is linear in the covariates, which is
+why flexible estimators are worth using here.
+
 ```{r npcausal2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 set.seed(1)
 n=1000
@@ -97,7 +116,15 @@ cat(sprintf("Realized-sample ATE (this draw): %.4f\n", True_Psi))
 cat(sprintf("Exact population ATE:           %.4f\n", pop_ate))
 ```
 
-Compare the estimators below against 0.2028, not against the realized draw.
+The realized draw is 0.2100 and the population value is 0.2028. Compare the
+estimators below against 0.2028.
+
+All of them need estimates of the outcome regression $\mu$ and the propensity
+score $\pi$. We estimate both with the same super-learner library: MARS
+(`SL.earth`), a generalised additive model, the lasso, logistic regression with
+pairwise interactions, the sample mean, a random forest, and gradient boosting.
+The super learner takes a cross-validated convex combination of these, so no
+single functional form has to be right.
 
 ```{r npcausal3, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 SL.library <- c("SL.earth","SL.gam","SL.glmnet","SL.glm.interaction", "SL.mean","SL.ranger", "SL.xgboost")
@@ -109,6 +136,11 @@ SL.library <- c("SL.earth","SL.gam","SL.glmnet","SL.glm.interaction", "SL.mean",
 **For illustration only -- do not use in-sample ML nuisance predictions in applied work.** The manual `mu1hat`/`mu0hat`/`pi1hat` estimators below reuse the same data to fit and evaluate the outcome-regression and propensity models (no cross-fitting). With flexible machine-learning nuisance estimators this causes overfitting bias that invalidates the estimator's asymptotic normality and the validity of standard-error calculations based on it (Chernozhukov et al., 2018). Always use sample splitting / cross-fitting with ML nuisances -- as the `npcausal` calls below do (`nsplits=2`), and as DoubleML does later in this chapter.
 :::
 
+We fit the outcome regression on all four covariates and treatment, then
+predict each unit's outcome twice, once with $A$ set to 1 and once with $A$ set
+to 0, and average the difference. This is the plug-in, or g-computation,
+estimator: no propensity score anywhere.
+
 ```{r npcausal4, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 set.seed(1)
 mufit <- SuperLearner(Y=data$Y, X=data %>% dplyr::select(w1,w2,w3,w4,A),
@@ -119,7 +151,20 @@ mu0hat<- predict(mufit, newdata=data %>% dplyr::select(w1,w2,w3,w4,A) %>% mutate
 mean(mu1hat-mu0hat)
 ```
 
+The plug-in gives 0.1825 against the true 0.2028. It comes with no standard
+error, and this is the point of the section: the super learner's regularisation
+bias passes straight into the average, and there is no correction term to
+remove it.
+
 ### AIPW ATE
+
+We now add the augmentation term. We fit the propensity score with the same
+library, form the two arm summands
+$\frac{A}{\hat\pi}(Y - \hat\mu_1) + \hat\mu_1$ and
+$\frac{1-A}{1-\hat\pi}(Y - \hat\mu_0) + \hat\mu_0$, and average their
+difference. The standard error is the sample standard deviation of that
+difference divided by $\sqrt{n}$, the influence-function standard error. The
+printed vector is the estimate followed by the lower and upper 95% bounds.
 
 ```{r npcausal6, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 set.seed(123)
@@ -138,13 +183,26 @@ res.manual.aipw<-c(aipw.manual,ci.lb, ci.ub)
 res.manual.aipw
 ```
 
+AIPW gives 0.1894 with a 95% interval of $[0.1292, 0.2495]$, which covers the
+true 0.2028. The augmentation term moved the estimate from 0.1825 to 0.1894 and
+supplied an interval the plug-in could not.
+
 ### AIPW ATE Using npcausal
+
+The same estimator from a package, with one change that matters: `nsplits=2`
+cross-fits the nuisances, so each unit's $\hat\mu$ and $\hat\pi$ come from a
+model fitted without it. The output reports both arm means and their difference.
 
 ```{r npcausal7, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 library(npcausal)
 set.seed(1)
 aipw<- ate(y=Y, a=A, x=W, nsplits=2, sl.lib=SL.library)
 ```
+
+Cross-fitting gives $E[Y(0)] = 0.5625$, $E[Y(1)] = 0.7568$, and a difference of
+0.1943 with a standard error of 0.0316 and an interval of $[0.1324, 0.2563]$.
+That is closer to the true 0.2028 than the in-sample version, and the standard
+error is the one to trust.
 
 ### AIPW ATT
 
@@ -158,6 +216,10 @@ enter with the odds weight $\pi(X)/(1-\pi(X))$, which reweights them to
 the covariate distribution of the treated. Note the correction term
 uses the CONTROL units — an estimator computed on the treated
 subsample alone would silently reduce to regression adjustment.
+
+So we fit $\mu_0$ on the controls only, predict it for everyone, and build the
+summand above from the propensity score already estimated. The printed vector
+is again the estimate and the two 95% bounds.
 
 ```{r npcausal8b, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 # npcausal (attached above) exports its own SL.ranger, whose fit object is
@@ -185,6 +247,8 @@ res.manual.aipw.att<-c(aipw.manual.att,ci.lb, ci.ub)
 res.manual.aipw.att
 ```
 
+The ATT comes out at 0.1818 with an interval of $[0.1204, 0.2431]$.
+
 ### AIPW ATT Using npcausal
 
 ```{r npcausal10, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
@@ -193,11 +257,23 @@ set.seed(1)
 aipw<- att(y=Y, a=A, x=W, nsplits=2, sl.lib=SL.library)
 ```
 
+Cross-fitted, the ATT is 0.1730 with a standard error of 0.0529 and an interval
+of $[0.0693, 0.2767]$.
+
+The ATT is a different estimand from the ATE, and here they genuinely differ:
+the treatment probability rises with $w_2$, $w_3$ and $w_4$, and the individual
+effect varies with those same covariates, so averaging over the treated is not
+the same as averaging over everyone. The two estimates are 0.1730 and 0.1943,
+and with standard errors of 0.0529 and 0.0316 the data cannot separate them.
+Note that the ATT standard error is two-thirds larger, because only the
+treated units contribute to the average.
+
 ## TMLE
 
 TMLE is a variant of IF based estimator. It is also a doubly robust estimator. See Mark van der Laan and his coauthors for the recent development of TMLE.
 
-We should expect npcausal and tmle give similar answers.
+TMLE targets the same ATE with the same nuisance library, so we should expect
+it to agree with `npcausal`.
 
 ```{r tmle1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 library(tmle)
@@ -205,6 +281,11 @@ TMLE<- tmle(Y=data$Y,A=data$A,W=W, family="binomial", Q.SL.library=SL.library, g
 
 TMLE$estimates$ATE
 ```
+
+TMLE gives 0.1893 with an interval of $[0.1288, 0.2498]$, against AIPW's 0.1894
+and `npcausal`'s 0.1943. The three agree to well within a standard error, which
+is what the theory predicts: they share an efficient influence function and
+differ only in how they solve its estimating equation.
 
 ## DoubleML
 
@@ -230,6 +311,9 @@ The estimator $\hat \theta$ solves the equation that the sample mean of this sco
 
 The estimator's variance comes from the usual sandwich formula built on the score, $\hat\sigma^2 = \hat J^{-1}\, \widehat{E[\psi^2]}\, \hat J^{-1}$ with $\hat J = -\frac{1}{n}\sum_i (D_i-\hat m(X_i))^2$.
 
+We set up the data object first, naming the outcome, the treatment and the four
+covariates:
+
 ```{r doubleml1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 library(DoubleML)
 dml_data = DoubleMLData$new(data,
@@ -238,6 +322,10 @@ dml_data = DoubleMLData$new(data,
                              x_cols = c("w1","w2","w3","w4"))
 print(dml_data)
 ```
+
+Both nuisance functions are estimated by a random forest with 500 trees, depth
+at most 5, and a minimum node size of 2. DoubleML cross-fits them and solves
+the partialling-out score.
 
 ```{r doubleml2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 library(mlr3)
@@ -255,3 +343,17 @@ obj_dml_plr = DoubleMLPLR$new(dml_data, ml_l=ml_l, ml_m=ml_m)
 obj_dml_plr$fit()
 obj_dml_plr$summary()
 ```
+
+DoubleML returns 0.19257 with a standard error of 0.03136, in line with AIPW's
+0.1894 and TMLE's 0.1893.
+
+One caveat on what this number is. The partially linear model has no
+treatment-covariate interaction, so its $\theta$ is not the ATE when effects are
+heterogeneous, and in this DGP they are: the individual effect
+$\Lambda(\text{lin}+1) - \Lambda(\text{lin})$ depends on the covariates. By the
+Frisch-Waugh-Lovell argument behind the partialling-out score, $\theta$ is the
+average of the conditional effects weighted by the conditional variance of
+treatment, $\text{Var}(A \mid X)$, so people whose treatment is hardest to
+predict count most. It equals the ATE only when the effect is constant. Here
+the two are close, 0.193 against 0.203, but that is a property of this DGP and
+not a general result.

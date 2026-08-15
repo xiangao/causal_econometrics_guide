@@ -471,8 +471,8 @@ $ re75     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 $ re78     &lt;dbl&gt; 9930.0460, 3595.8940, 24909.4500, 7506.1460, 289.7899, 4056.4…</code></pre>
 </div>
 </div>
-<p>The treatment is <code>treat</code>; the outcome is <code>re78</code>; the covariates are <code>age</code>, <code>educ</code>, <code>race</code>, <code>married</code>, <code>nodegree</code>, <code>re74</code>, and <code>re75</code>.</p>
-<p>First check balance before doing any matching:</p>
+<p>There are 614 observations, 185 treated and 429 control. The treatment is <code>treat</code>; the outcome is <code>re78</code>, 1978 earnings in dollars; the covariates are <code>age</code>, <code>educ</code> (years of schooling), <code>race</code> (black, hispanic, white), <code>married</code>, <code>nodegree</code> (no high-school degree), and <code>re74</code> and <code>re75</code>, earnings in 1974 and 1975. The earnings variables matter most here, because they pile up at zero and differ sharply between the groups.</p>
+<p>Before matching anything we check balance. <code>bal.tab</code> reports the standardized mean difference for each covariate and flags any above 0.1:</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># Construct a pre-match MatchIt object for balance reporting</span></span>
 <span><span class="va">m.pre</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://kosukeimai.github.io/MatchIt/reference/matchit.html">matchit</a></span><span class="op">(</span><span class="va">treat</span> <span class="op">~</span> <span class="va">age</span> <span class="op">+</span> <span class="va">educ</span> <span class="op">+</span> <span class="va">race</span> <span class="op">+</span> <span class="va">married</span> <span class="op">+</span> <span class="va">nodegree</span> <span class="op">+</span> <span class="va">re74</span> <span class="op">+</span> <span class="va">re75</span>,</span>
@@ -507,7 +507,7 @@ Sample sizes
 All     429     185</code></pre>
 </div>
 </div>
-<p>Several standardized mean differences are larger than 0.1. That is usually too large to call the sample balanced.</p>
+<p>Seven of the nine contrasts exceed 0.1. Earnings in 1974 differ by <span class="math inline">\(-0.72\)</span> standard deviations, the black indicator by 0.64, the white indicator by <span class="math inline">\(-0.56\)</span>, marital status by <span class="math inline">\(-0.32\)</span>, age by <span class="math inline">\(-0.31\)</span>, earnings in 1975 by <span class="math inline">\(-0.29\)</span>. Only <code>educ</code> (0.055) and the hispanic indicator (<span class="math inline">\(-0.083\)</span>) pass. The propensity score itself differs by 1.79 standard deviations. This sample is nowhere near balanced.</p>
 </section><section id="distance-measures" class="level2" data-number="7.3"><h2 data-number="7.3" class="anchored" data-anchor-id="distance-measures">
 <span class="header-section-number">7.3</span> Distance measures</h2>
 <p>Matching needs a distance metric. The usual choices are:</p>
@@ -522,6 +522,7 @@ All     429     185</code></pre>
 <span class="header-section-number">7.4</span> Matching methods</h2>
 <section id="nearest-neighbour-matching-on-a-propensity-score" class="level3" data-number="7.4.1"><h3 data-number="7.4.1" class="anchored" data-anchor-id="nearest-neighbour-matching-on-a-propensity-score">
 <span class="header-section-number">7.4.1</span> Nearest-neighbour matching on a propensity score</h3>
+<p>We fit the propensity score by logistic regression, take its linear index, and match each treated unit to the single closest control, without replacement.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">m.nn</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://kosukeimai.github.io/MatchIt/reference/matchit.html">matchit</a></span><span class="op">(</span><span class="va">treat</span> <span class="op">~</span> <span class="va">age</span> <span class="op">+</span> <span class="va">educ</span> <span class="op">+</span> <span class="va">race</span> <span class="op">+</span> <span class="va">married</span> <span class="op">+</span> <span class="va">nodegree</span> <span class="op">+</span> <span class="va">re74</span> <span class="op">+</span> <span class="va">re75</span>,</span>
 <span>                data <span class="op">=</span> <span class="va">lalonde</span>,</span>
@@ -541,6 +542,7 @@ All     429     185</code></pre>
  - covariates: age, educ, race, married, nodegree, re74, re75</code></pre>
 </div>
 </div>
+<p>All 185 treated units are matched, so 370 of the 614 observations are used and 244 controls are discarded. The target estimand is the ATT.</p>
 <p>Now check balance again:</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://ngreifer.github.io/cobalt/reference/bal.tab.html">bal.tab</a></span><span class="op">(</span><span class="va">m.nn</span>, thresholds <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>m <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -574,7 +576,7 @@ Matched       185     185
 Unmatched     244       0</code></pre>
 </div>
 </div>
-<p>Some covariates are still not balanced. Nearest-neighbor matching on a logit propensity score is simple, but it is not automatically good.</p>
+<p>Five of nine now pass, up from two. The earnings histories are repaired: <code>re74</code> goes from <span class="math inline">\(-0.72\)</span> to <span class="math inline">\(-0.05\)</span> and <code>re75</code> from <span class="math inline">\(-0.29\)</span> to <span class="math inline">\(-0.03\)</span>. Race is not: the black indicator is still 0.373 and the white indicator <span class="math inline">\(-0.216\)</span>. And <code>educ</code> has got worse, from 0.055 to <span class="math inline">\(-0.129\)</span>. This is what matching on a scalar score does: it balances the score, not the covariates. Two units with the same score can differ on individual covariates in offsetting ways, and nothing in the procedure prevents that.</p>
 </section><section id="full-matching" class="level3" data-number="7.4.2"><h3 data-number="7.4.2" class="anchored" data-anchor-id="full-matching">
 <span class="header-section-number">7.4.2</span> Full matching</h3>
 <p>Full matching forms subclasses with treated and control observations inside each subclass. It can put one treated unit with several controls, or one control with several treated units. It uses all observations and then assigns weights.</p>
@@ -616,7 +618,8 @@ Matched (ESS)          50.76     185
 Matched (Unweighted)  429.       185</code></pre>
 </div>
 </div>
-<p>In this example full matching gives better balance than simple 1:1 matching.</p>
+<p>All ten contrasts now pass, the largest being <code>educ</code> at <span class="math inline">\(-0.096\)</span>, and no observation is discarded. The cost is in the weights: the control effective sample size falls from 429 to 50.8, because full matching concentrates weight on the controls that resemble treated units.</p>
+<p>The effective sample size is the number of equally weighted observations that would carry the same precision. An unweighted mean of <span class="math inline">\(m\)</span> observations has variance <span class="math inline">\(\sigma^2/m\)</span>; a weighted mean with weights summing to one has variance <span class="math inline">\(\sigma^2 \sum_i w_i^2\)</span>. Setting the two equal gives <span class="math inline">\(m = 1/\sum_i w_i^2\)</span>. So 50.8 means these 429 controls carry about as much information as 51 equally weighted ones. Balance improved and precision did not.</p>
 </section><section id="mahalanobis-matching" class="level3" data-number="7.4.3"><h3 data-number="7.4.3" class="anchored" data-anchor-id="mahalanobis-matching">
 <span class="header-section-number">7.4.3</span> Mahalanobis matching</h3>
 <p>When the number of covariates is small, it is reasonable to match directly on the covariates with Mahalanobis distance.</p>
@@ -654,6 +657,7 @@ Matched       185     185
 Unmatched     244       0</code></pre>
 </div>
 </div>
+<p>Mahalanobis matching balances only four of nine. The black and white indicators sit at <span class="math inline">\(\pm 0.378\)</span>, <code>re74</code> at <span class="math inline">\(-0.248\)</span>, <code>re75</code> at <span class="math inline">\(-0.132\)</span>, and <code>age</code> at 0.127. It does worse than the propensity score did on earnings. With a three-level race factor and two earnings variables that pile up at zero, the covariance matrix is a poor description of the covariate space, and the metric it defines is a poor guide to who resembles whom.</p>
 </section><section id="coarsened-exact-matching-cem" class="level3" data-number="7.4.4"><h3 data-number="7.4.4" class="anchored" data-anchor-id="coarsened-exact-matching-cem">
 <span class="header-section-number">7.4.4</span> Coarsened Exact Matching (CEM)</h3>
 <p>CEM coarsens covariates into bins and then exact-matches on the binned values. This is very transparent: if a treated observation has no comparable control in the binned covariate space, it is dropped.</p>
@@ -692,7 +696,8 @@ Matched (Unweighted)   75.        65
 Unmatched             354.       120</code></pre>
 </div>
 </div>
-<p>CEM can drop many observations. That is not necessarily a problem. It is often telling us that the original sample does not support the target comparison.</p>
+<p>All nine contrasts pass, and the largest is <code>age</code> at 0.049. Read the sample sizes before celebrating: only 65 of the 185 treated units are matched, and 120 are dropped, along with 354 of the 429 controls. The control effective sample size is 41.3.</p>
+<p>CEM can drop many observations. That is not necessarily a problem. It is often telling us that the original sample does not support the target comparison. But it does change the question. The estimand is now the average effect for the 65 treated units that had a comparable control, not the ATT for all 185, and those two need not be the same number.</p>
 </section></section><section id="estimation-after-matching" class="level2" data-number="7.5"><h2 data-number="7.5" class="anchored" data-anchor-id="estimation-after-matching">
 <span class="header-section-number">7.5</span> Estimation after matching</h2>
 <p>After matching, we estimate the effect on the matched data. The matching weights come from <code>MatchIt</code>. With subclass matching, standard errors should be clustered by subclass: units within the same matched subclass are not independent draws – they were selected together specifically because they resemble each other on the matching covariates, and (for many-to-one or full matching) a single unit’s outcome can appear, re-weighted, in the “observation” for more than one comparison. Treating them as independent (ordinary or heteroskedasticity-robust SEs) understates the true sampling variability; clustering by subclass accounts for that within-subclass correlation.</p>
@@ -718,6 +723,7 @@ Type: response
 Comparison: 1 - 0</code></pre>
 </div>
 </div>
+<p>The full-matching ATT is $1,977 with a subclass-clustered standard error of $704, a 95% interval of <span class="math inline">\([596, 3357]\)</span>, and <span class="math inline">\(p = 0.005\)</span>. Training raised 1978 earnings for the trained.</p>
 <p>The point is not that matching mechanically produces the “right” answer. The point is that after improving balance, the estimate is much less driven by obvious covariate differences.</p>
 </section><section id="balance-plots" class="level2" data-number="7.6"><h2 data-number="7.6" class="anchored" data-anchor-id="balance-plots">
 <span class="header-section-number">7.6</span> Balance plots</h2>
@@ -732,10 +738,11 @@ Comparison: 1 - 0</code></pre>
 </details><div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure"><p><img src="matching_files/figure-html/love-plot-1.png" class="img-fluid figure-img" width="768"></p>
-<figcaption>Balance improvement from nearest-neighbour and full matching.</figcaption></figure>
+<figcaption>Balance before and after full matching, as absolute standardized mean differences.</figcaption></figure>
 </div>
 </div>
 </div>
+<p>Each variable appears twice, unadjusted and adjusted, with the variables ordered by their unadjusted difference and differences plotted in absolute value. Every point moves toward zero except <code>educ</code>, which starts at 0.055 and ends at 0.096 — it was already balanced, and full matching traded a little of it for the rest. <code>re74</code>, the worst offender before matching at <span class="math inline">\(-0.72\)</span>, moves furthest, ending at <span class="math inline">\(-0.0009\)</span>.</p>
 <p>A useful rule is that standardized mean differences should be below 0.1, or below 0.05 if we want to be stricter.</p>
 </section><section id="matching-with-replacement-vs-without" class="level2" data-number="7.7"><h2 data-number="7.7" class="anchored" data-anchor-id="matching-with-replacement-vs-without">
 <span class="header-section-number">7.7</span> Matching with replacement vs without</h2>
@@ -778,6 +785,7 @@ Matched (Unweighted)   82.       185
 Unmatched             347.         0</code></pre>
 </div>
 </div>
+<p>With replacement, nine of ten contrasts pass, against five of nine without. <code>age</code> is the exception, at 0.240. Only 82 distinct controls are used, and their effective sample size is 46.3. Compared with the 1:1 match without replacement, which used 185 distinct controls, the same good controls are being reused.</p>
 <p>If matching without replacement cannot balance the sample, matching with replacement is a reasonable next step.</p>
 </section><section id="ate-att-atc-choose-carefully" class="level2" data-number="7.8"><h2 data-number="7.8" class="anchored" data-anchor-id="ate-att-atc-choose-carefully">
 <span class="header-section-number">7.8</span> ATE, ATT, ATC — choose carefully</h2>
@@ -833,6 +841,7 @@ Unadjusted  429.       185
 Adjusted     99.82     185</code></pre>
 </div>
 </div>
+<p>Note the stricter 0.05 threshold from here on. IPW balances nine of ten; <code>age</code> fails at 0.119. The control effective sample size is 99.8 out of 429, better than any of the matching methods above.</p>
 </section><section id="covariate-balancing-propensity-score-cbps" class="level3" data-number="7.11.2"><h3 data-number="7.11.2" class="anchored" data-anchor-id="covariate-balancing-propensity-score-cbps">
 <span class="header-section-number">7.11.2</span> Covariate balancing propensity score (CBPS)</h3>
 <p>CBPS estimates the propensity score while also trying to balance covariate means. So the propensity-score model is not judged only by likelihood; it is also judged by balance.</p>
@@ -869,6 +878,7 @@ Unadjusted  429.       185
 Adjusted     98.46     185</code></pre>
 </div>
 </div>
+<p>Every covariate mean difference is zero to three decimals, and the control effective sample size is 98.5.</p>
 </section><section id="entropy-balancing" class="level3" data-number="7.11.3"><h3 data-number="7.11.3" class="anchored" data-anchor-id="entropy-balancing">
 <span class="header-section-number">7.11.3</span> Entropy balancing</h3>
 <p>Entropy balancing chooses weights so that the weighted control group matches the treated group on covariate means. It is useful because the balance constraint is explicit.</p>
@@ -904,7 +914,8 @@ Unadjusted  429.       185
 Adjusted     98.46     185</code></pre>
 </div>
 </div>
-<p>The standardized mean differences are essentially zero because entropy balancing imposes mean balance directly.</p>
+<p>The standardized mean differences are essentially zero because entropy balancing imposes mean balance directly. The effective sample size is 98.5.</p>
+<p>That is the same table CBPS produced, and it is not a coincidence: the two sets of control weights are numerically identical here, agreeing to twelve decimal places. Just-identified CBPS for the ATT solves the exact mean-balance moment conditions with a logistic link, which makes the control weights proportional to <span class="math inline">\(\exp(x'\lambda)\)</span>. Entropy balancing minimises the Kullback-Leibler divergence from uniform weights subject to the same exact mean-balance constraints, and its solution has the same <span class="math inline">\(\exp(x'\lambda)\)</span> form. Same constraints, same functional form, same weights. The two methods are motivated differently and arrive at one answer.</p>
 </section><section id="energy-balancing" class="level3" data-number="7.11.4"><h3 data-number="7.11.4" class="anchored" data-anchor-id="energy-balancing">
 <span class="header-section-number">7.11.4</span> Energy balancing</h3>
 <p>Energy balancing targets the whole covariate distribution, not just means. It is more ambitious than entropy balancing, and usually more computationally expensive.</p>
@@ -940,6 +951,7 @@ Unadjusted  429.       185
 Adjusted     41.82     185</code></pre>
 </div>
 </div>
+<p>All nine contrasts pass, the largest being <code>re75</code> at 0.023 — close to zero but not exactly zero, because energy balancing does not impose mean balance as a constraint. The control effective sample size is 41.8, less than half of entropy balancing’s 98.5. That is the price of targeting the whole covariate distribution rather than its means.</p>
 </section><section id="estimation-with-weighted-aware-regression" class="level3" data-number="7.11.5"><h3 data-number="7.11.5" class="anchored" data-anchor-id="estimation-with-weighted-aware-regression">
 <span class="header-section-number">7.11.5</span> Estimation with weighted-aware regression</h3>
 <p>After computing weights, use <code><a href="https://ngreifer.github.io/WeightIt/reference/glm_weightit.html">lm_weightit()</a></code> instead of plain <code>lm</code> if we want standard errors that account for the estimated weights.</p>
@@ -962,7 +974,7 @@ Type: probs
 Comparison: 1 - 0</code></pre>
 </div>
 </div>
-<p>This gives the entropy-balanced ATT and a sandwich-style standard error.</p>
+<p>The entropy-balanced ATT is $1,273 with a sandwich standard error of $770, a 95% interval of <span class="math inline">\([-236, 2783]\)</span>, and <span class="math inline">\(p = 0.098\)</span>. The interval includes zero.</p>
 </section><section id="when-to-use-each-weighting-method" class="level3" data-number="7.11.6"><h3 data-number="7.11.6" class="anchored" data-anchor-id="when-to-use-each-weighting-method">
 <span class="header-section-number">7.11.6</span> When to use each weighting method</h3>
 <table class="caption-top table">
@@ -1605,394 +1617,478 @@ Comparison: 1 - 0</code></pre>
 <span id="cb32-74"><a href="#cb32-74" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(lalonde)</span>
 <span id="cb32-75"><a href="#cb32-75" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb32-76"><a href="#cb32-76" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-77"><a href="#cb32-77" aria-hidden="true" tabindex="-1"></a>The treatment is <span class="in">`treat`</span>; the outcome is <span class="in">`re78`</span>; the covariates are <span class="in">`age`</span>,</span>
-<span id="cb32-78"><a href="#cb32-78" aria-hidden="true" tabindex="-1"></a><span class="in">`educ`</span>, <span class="in">`race`</span>, <span class="in">`married`</span>, <span class="in">`nodegree`</span>, <span class="in">`re74`</span>, and <span class="in">`re75`</span>.</span>
-<span id="cb32-79"><a href="#cb32-79" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-80"><a href="#cb32-80" aria-hidden="true" tabindex="-1"></a>First check balance before doing any matching:</span>
-<span id="cb32-81"><a href="#cb32-81" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-84"><a href="#cb32-84" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb32-85"><a href="#cb32-85" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: pre-balance</span></span>
-<span id="cb32-86"><a href="#cb32-86" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb32-87"><a href="#cb32-87" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-88"><a href="#cb32-88" aria-hidden="true" tabindex="-1"></a><span class="co"># Construct a pre-match MatchIt object for balance reporting</span></span>
-<span id="cb32-89"><a href="#cb32-89" aria-hidden="true" tabindex="-1"></a>m.pre <span class="ot">&lt;-</span> <span class="fu">matchit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
-<span id="cb32-90"><a href="#cb32-90" aria-hidden="true" tabindex="-1"></a>                 <span class="at">data =</span> lalonde, <span class="at">method =</span> <span class="cn">NULL</span>,</span>
-<span id="cb32-91"><a href="#cb32-91" aria-hidden="true" tabindex="-1"></a>                 <span class="at">distance =</span> <span class="st">"glm"</span>)</span>
-<span id="cb32-92"><a href="#cb32-92" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(m.pre, <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.1</span>))</span>
-<span id="cb32-93"><a href="#cb32-93" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb32-94"><a href="#cb32-94" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-95"><a href="#cb32-95" aria-hidden="true" tabindex="-1"></a>Several standardized mean differences are larger than 0.1. That is usually</span>
-<span id="cb32-96"><a href="#cb32-96" aria-hidden="true" tabindex="-1"></a>too large to call the sample balanced.</span>
-<span id="cb32-97"><a href="#cb32-97" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-98"><a href="#cb32-98" aria-hidden="true" tabindex="-1"></a><span class="fu">## Distance measures</span></span>
+<span id="cb32-77"><a href="#cb32-77" aria-hidden="true" tabindex="-1"></a>There are 614 observations, 185 treated and 429 control. The treatment is</span>
+<span id="cb32-78"><a href="#cb32-78" aria-hidden="true" tabindex="-1"></a><span class="in">`treat`</span>; the outcome is <span class="in">`re78`</span>, 1978 earnings in dollars; the covariates are</span>
+<span id="cb32-79"><a href="#cb32-79" aria-hidden="true" tabindex="-1"></a><span class="in">`age`</span>, <span class="in">`educ`</span> (years of schooling), <span class="in">`race`</span> (black, hispanic, white), <span class="in">`married`</span>,</span>
+<span id="cb32-80"><a href="#cb32-80" aria-hidden="true" tabindex="-1"></a><span class="in">`nodegree`</span> (no high-school degree), and <span class="in">`re74`</span> and <span class="in">`re75`</span>, earnings in 1974 and</span>
+<span id="cb32-81"><a href="#cb32-81" aria-hidden="true" tabindex="-1"></a><span class="ss">1975. </span>The earnings variables matter most here, because they pile up at zero and</span>
+<span id="cb32-82"><a href="#cb32-82" aria-hidden="true" tabindex="-1"></a>differ sharply between the groups.</span>
+<span id="cb32-83"><a href="#cb32-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-84"><a href="#cb32-84" aria-hidden="true" tabindex="-1"></a>Before matching anything we check balance. <span class="in">`bal.tab`</span> reports the standardized</span>
+<span id="cb32-85"><a href="#cb32-85" aria-hidden="true" tabindex="-1"></a>mean difference for each covariate and flags any above 0.1:</span>
+<span id="cb32-86"><a href="#cb32-86" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-89"><a href="#cb32-89" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb32-90"><a href="#cb32-90" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: pre-balance</span></span>
+<span id="cb32-91"><a href="#cb32-91" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb32-92"><a href="#cb32-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-93"><a href="#cb32-93" aria-hidden="true" tabindex="-1"></a><span class="co"># Construct a pre-match MatchIt object for balance reporting</span></span>
+<span id="cb32-94"><a href="#cb32-94" aria-hidden="true" tabindex="-1"></a>m.pre <span class="ot">&lt;-</span> <span class="fu">matchit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
+<span id="cb32-95"><a href="#cb32-95" aria-hidden="true" tabindex="-1"></a>                 <span class="at">data =</span> lalonde, <span class="at">method =</span> <span class="cn">NULL</span>,</span>
+<span id="cb32-96"><a href="#cb32-96" aria-hidden="true" tabindex="-1"></a>                 <span class="at">distance =</span> <span class="st">"glm"</span>)</span>
+<span id="cb32-97"><a href="#cb32-97" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(m.pre, <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.1</span>))</span>
+<span id="cb32-98"><a href="#cb32-98" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb32-99"><a href="#cb32-99" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-100"><a href="#cb32-100" aria-hidden="true" tabindex="-1"></a>Matching needs a distance metric. The usual choices are:</span>
-<span id="cb32-101"><a href="#cb32-101" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-102"><a href="#cb32-102" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Propensity score**: estimate $\hat e(x)=P(D=1 \mid X=x)$ and match on</span>
-<span id="cb32-103"><a href="#cb32-103" aria-hidden="true" tabindex="-1"></a>   the fitted probability. This turns many covariates into one score.</span>
-<span id="cb32-104"><a href="#cb32-104" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Mahalanobis distance**: match on the raw covariates using the squared</span>
-<span id="cb32-105"><a href="#cb32-105" aria-hidden="true" tabindex="-1"></a>   distance $(x_i-x_j)'\Sigma^{-1}(x_i-x_j)$ (rankings are unchanged by the</span>
-<span id="cb32-106"><a href="#cb32-106" aria-hidden="true" tabindex="-1"></a>   square root). This works better in low dimension.</span>
-<span id="cb32-107"><a href="#cb32-107" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Hybrid**: impose a propensity-score caliper, then use Mahalanobis</span>
-<span id="cb32-108"><a href="#cb32-108" aria-hidden="true" tabindex="-1"></a>   distance inside the caliper.</span>
-<span id="cb32-109"><a href="#cb32-109" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-110"><a href="#cb32-110" aria-hidden="true" tabindex="-1"></a><span class="fu">## Matching methods</span></span>
-<span id="cb32-111"><a href="#cb32-111" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-112"><a href="#cb32-112" aria-hidden="true" tabindex="-1"></a><span class="fu">### Nearest-neighbour matching on a propensity score</span></span>
-<span id="cb32-113"><a href="#cb32-113" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-116"><a href="#cb32-116" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb32-117"><a href="#cb32-117" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: nn-match</span></span>
-<span id="cb32-118"><a href="#cb32-118" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb32-119"><a href="#cb32-119" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-120"><a href="#cb32-120" aria-hidden="true" tabindex="-1"></a>m.nn <span class="ot">&lt;-</span> <span class="fu">matchit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
-<span id="cb32-121"><a href="#cb32-121" aria-hidden="true" tabindex="-1"></a>                <span class="at">data =</span> lalonde,</span>
-<span id="cb32-122"><a href="#cb32-122" aria-hidden="true" tabindex="-1"></a>                <span class="at">method =</span> <span class="st">"nearest"</span>,</span>
-<span id="cb32-123"><a href="#cb32-123" aria-hidden="true" tabindex="-1"></a>                <span class="at">distance =</span> <span class="st">"glm"</span>,</span>
-<span id="cb32-124"><a href="#cb32-124" aria-hidden="true" tabindex="-1"></a>                <span class="at">link =</span> <span class="st">"linear.logit"</span>,</span>
-<span id="cb32-125"><a href="#cb32-125" aria-hidden="true" tabindex="-1"></a>                <span class="at">ratio =</span> <span class="dv">1</span>)</span>
-<span id="cb32-126"><a href="#cb32-126" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-127"><a href="#cb32-127" aria-hidden="true" tabindex="-1"></a>m.nn</span>
-<span id="cb32-128"><a href="#cb32-128" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb32-129"><a href="#cb32-129" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-130"><a href="#cb32-130" aria-hidden="true" tabindex="-1"></a>Now check balance again:</span>
+<span id="cb32-100"><a href="#cb32-100" aria-hidden="true" tabindex="-1"></a>Seven of the nine contrasts exceed 0.1. Earnings in 1974 differ by $-0.72$</span>
+<span id="cb32-101"><a href="#cb32-101" aria-hidden="true" tabindex="-1"></a>standard deviations, the black indicator by 0.64, the white indicator by</span>
+<span id="cb32-102"><a href="#cb32-102" aria-hidden="true" tabindex="-1"></a>$-0.56$, marital status by $-0.32$, age by $-0.31$, earnings in 1975 by</span>
+<span id="cb32-103"><a href="#cb32-103" aria-hidden="true" tabindex="-1"></a>$-0.29$. Only <span class="in">`educ`</span> (0.055) and the hispanic indicator ($-0.083$) pass. The</span>
+<span id="cb32-104"><a href="#cb32-104" aria-hidden="true" tabindex="-1"></a>propensity score itself differs by 1.79 standard deviations. This sample is</span>
+<span id="cb32-105"><a href="#cb32-105" aria-hidden="true" tabindex="-1"></a>nowhere near balanced.</span>
+<span id="cb32-106"><a href="#cb32-106" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-107"><a href="#cb32-107" aria-hidden="true" tabindex="-1"></a><span class="fu">## Distance measures</span></span>
+<span id="cb32-108"><a href="#cb32-108" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-109"><a href="#cb32-109" aria-hidden="true" tabindex="-1"></a>Matching needs a distance metric. The usual choices are:</span>
+<span id="cb32-110"><a href="#cb32-110" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-111"><a href="#cb32-111" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Propensity score**: estimate $\hat e(x)=P(D=1 \mid X=x)$ and match on</span>
+<span id="cb32-112"><a href="#cb32-112" aria-hidden="true" tabindex="-1"></a>   the fitted probability. This turns many covariates into one score.</span>
+<span id="cb32-113"><a href="#cb32-113" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Mahalanobis distance**: match on the raw covariates using the squared</span>
+<span id="cb32-114"><a href="#cb32-114" aria-hidden="true" tabindex="-1"></a>   distance $(x_i-x_j)'\Sigma^{-1}(x_i-x_j)$ (rankings are unchanged by the</span>
+<span id="cb32-115"><a href="#cb32-115" aria-hidden="true" tabindex="-1"></a>   square root). This works better in low dimension.</span>
+<span id="cb32-116"><a href="#cb32-116" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Hybrid**: impose a propensity-score caliper, then use Mahalanobis</span>
+<span id="cb32-117"><a href="#cb32-117" aria-hidden="true" tabindex="-1"></a>   distance inside the caliper.</span>
+<span id="cb32-118"><a href="#cb32-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-119"><a href="#cb32-119" aria-hidden="true" tabindex="-1"></a><span class="fu">## Matching methods</span></span>
+<span id="cb32-120"><a href="#cb32-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-121"><a href="#cb32-121" aria-hidden="true" tabindex="-1"></a><span class="fu">### Nearest-neighbour matching on a propensity score</span></span>
+<span id="cb32-122"><a href="#cb32-122" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-123"><a href="#cb32-123" aria-hidden="true" tabindex="-1"></a>We fit the propensity score by logistic regression, take its linear index, and</span>
+<span id="cb32-124"><a href="#cb32-124" aria-hidden="true" tabindex="-1"></a>match each treated unit to the single closest control, without replacement.</span>
+<span id="cb32-125"><a href="#cb32-125" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-128"><a href="#cb32-128" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb32-129"><a href="#cb32-129" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: nn-match</span></span>
+<span id="cb32-130"><a href="#cb32-130" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
 <span id="cb32-131"><a href="#cb32-131" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-134"><a href="#cb32-134" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb32-135"><a href="#cb32-135" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: nn-balance</span></span>
-<span id="cb32-136"><a href="#cb32-136" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb32-137"><a href="#cb32-137" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-138"><a href="#cb32-138" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(m.nn, <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.1</span>))</span>
-<span id="cb32-139"><a href="#cb32-139" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb32-140"><a href="#cb32-140" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-141"><a href="#cb32-141" aria-hidden="true" tabindex="-1"></a>Some covariates are still not balanced. Nearest-neighbor matching on a</span>
-<span id="cb32-142"><a href="#cb32-142" aria-hidden="true" tabindex="-1"></a>logit propensity score is simple, but it is not automatically good.</span>
-<span id="cb32-143"><a href="#cb32-143" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-144"><a href="#cb32-144" aria-hidden="true" tabindex="-1"></a><span class="fu">### Full matching</span></span>
-<span id="cb32-145"><a href="#cb32-145" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-146"><a href="#cb32-146" aria-hidden="true" tabindex="-1"></a>Full matching forms subclasses with treated and control observations inside</span>
-<span id="cb32-147"><a href="#cb32-147" aria-hidden="true" tabindex="-1"></a>each subclass. It can put one treated unit with several controls, or one</span>
-<span id="cb32-148"><a href="#cb32-148" aria-hidden="true" tabindex="-1"></a>control with several treated units. It uses all observations and then assigns</span>
-<span id="cb32-149"><a href="#cb32-149" aria-hidden="true" tabindex="-1"></a>weights.</span>
-<span id="cb32-150"><a href="#cb32-150" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-153"><a href="#cb32-153" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb32-154"><a href="#cb32-154" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: full-match</span></span>
-<span id="cb32-155"><a href="#cb32-155" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb32-156"><a href="#cb32-156" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-157"><a href="#cb32-157" aria-hidden="true" tabindex="-1"></a>m.full <span class="ot">&lt;-</span> <span class="fu">matchit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
-<span id="cb32-158"><a href="#cb32-158" aria-hidden="true" tabindex="-1"></a>                  <span class="at">data =</span> lalonde,</span>
-<span id="cb32-159"><a href="#cb32-159" aria-hidden="true" tabindex="-1"></a>                  <span class="at">method =</span> <span class="st">"full"</span>,</span>
-<span id="cb32-160"><a href="#cb32-160" aria-hidden="true" tabindex="-1"></a>                  <span class="at">distance =</span> <span class="st">"glm"</span>,</span>
-<span id="cb32-161"><a href="#cb32-161" aria-hidden="true" tabindex="-1"></a>                  <span class="at">link =</span> <span class="st">"probit"</span>)</span>
-<span id="cb32-162"><a href="#cb32-162" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-163"><a href="#cb32-163" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(m.full, <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.1</span>))</span>
-<span id="cb32-164"><a href="#cb32-164" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb32-132"><a href="#cb32-132" aria-hidden="true" tabindex="-1"></a>m.nn <span class="ot">&lt;-</span> <span class="fu">matchit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
+<span id="cb32-133"><a href="#cb32-133" aria-hidden="true" tabindex="-1"></a>                <span class="at">data =</span> lalonde,</span>
+<span id="cb32-134"><a href="#cb32-134" aria-hidden="true" tabindex="-1"></a>                <span class="at">method =</span> <span class="st">"nearest"</span>,</span>
+<span id="cb32-135"><a href="#cb32-135" aria-hidden="true" tabindex="-1"></a>                <span class="at">distance =</span> <span class="st">"glm"</span>,</span>
+<span id="cb32-136"><a href="#cb32-136" aria-hidden="true" tabindex="-1"></a>                <span class="at">link =</span> <span class="st">"linear.logit"</span>,</span>
+<span id="cb32-137"><a href="#cb32-137" aria-hidden="true" tabindex="-1"></a>                <span class="at">ratio =</span> <span class="dv">1</span>)</span>
+<span id="cb32-138"><a href="#cb32-138" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-139"><a href="#cb32-139" aria-hidden="true" tabindex="-1"></a>m.nn</span>
+<span id="cb32-140"><a href="#cb32-140" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb32-141"><a href="#cb32-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-142"><a href="#cb32-142" aria-hidden="true" tabindex="-1"></a>All 185 treated units are matched, so 370 of the 614 observations are used and</span>
+<span id="cb32-143"><a href="#cb32-143" aria-hidden="true" tabindex="-1"></a>244 controls are discarded. The target estimand is the ATT.</span>
+<span id="cb32-144"><a href="#cb32-144" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-145"><a href="#cb32-145" aria-hidden="true" tabindex="-1"></a>Now check balance again:</span>
+<span id="cb32-146"><a href="#cb32-146" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-149"><a href="#cb32-149" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb32-150"><a href="#cb32-150" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: nn-balance</span></span>
+<span id="cb32-151"><a href="#cb32-151" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb32-152"><a href="#cb32-152" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-153"><a href="#cb32-153" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(m.nn, <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.1</span>))</span>
+<span id="cb32-154"><a href="#cb32-154" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb32-155"><a href="#cb32-155" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-156"><a href="#cb32-156" aria-hidden="true" tabindex="-1"></a>Five of nine now pass, up from two. The earnings histories are repaired: <span class="in">`re74`</span></span>
+<span id="cb32-157"><a href="#cb32-157" aria-hidden="true" tabindex="-1"></a>goes from $-0.72$ to $-0.05$ and <span class="in">`re75`</span> from $-0.29$ to $-0.03$. Race is not:</span>
+<span id="cb32-158"><a href="#cb32-158" aria-hidden="true" tabindex="-1"></a>the black indicator is still 0.373 and the white indicator $-0.216$. And <span class="in">`educ`</span></span>
+<span id="cb32-159"><a href="#cb32-159" aria-hidden="true" tabindex="-1"></a>has got worse, from 0.055 to $-0.129$. This is what matching on a scalar score</span>
+<span id="cb32-160"><a href="#cb32-160" aria-hidden="true" tabindex="-1"></a>does: it balances the score, not the covariates. Two units with the same score</span>
+<span id="cb32-161"><a href="#cb32-161" aria-hidden="true" tabindex="-1"></a>can differ on individual covariates in offsetting ways, and nothing in the</span>
+<span id="cb32-162"><a href="#cb32-162" aria-hidden="true" tabindex="-1"></a>procedure prevents that.</span>
+<span id="cb32-163"><a href="#cb32-163" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-164"><a href="#cb32-164" aria-hidden="true" tabindex="-1"></a><span class="fu">### Full matching</span></span>
 <span id="cb32-165"><a href="#cb32-165" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-166"><a href="#cb32-166" aria-hidden="true" tabindex="-1"></a>In this example full matching gives better balance than simple 1:1 matching.</span>
-<span id="cb32-167"><a href="#cb32-167" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-168"><a href="#cb32-168" aria-hidden="true" tabindex="-1"></a><span class="fu">### Mahalanobis matching</span></span>
-<span id="cb32-169"><a href="#cb32-169" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-170"><a href="#cb32-170" aria-hidden="true" tabindex="-1"></a>When the number of covariates is small, it is reasonable to match directly</span>
-<span id="cb32-171"><a href="#cb32-171" aria-hidden="true" tabindex="-1"></a>on the covariates with Mahalanobis distance.</span>
-<span id="cb32-172"><a href="#cb32-172" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-175"><a href="#cb32-175" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb32-176"><a href="#cb32-176" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: maha-match</span></span>
-<span id="cb32-177"><a href="#cb32-177" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb32-178"><a href="#cb32-178" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-179"><a href="#cb32-179" aria-hidden="true" tabindex="-1"></a>m.maha <span class="ot">&lt;-</span> <span class="fu">matchit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
-<span id="cb32-180"><a href="#cb32-180" aria-hidden="true" tabindex="-1"></a>                  <span class="at">data =</span> lalonde,</span>
-<span id="cb32-181"><a href="#cb32-181" aria-hidden="true" tabindex="-1"></a>                  <span class="at">distance =</span> <span class="st">"mahalanobis"</span>)</span>
-<span id="cb32-182"><a href="#cb32-182" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(m.maha, <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.1</span>))</span>
-<span id="cb32-183"><a href="#cb32-183" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb32-184"><a href="#cb32-184" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-185"><a href="#cb32-185" aria-hidden="true" tabindex="-1"></a><span class="fu">### Coarsened Exact Matching (CEM)</span></span>
-<span id="cb32-186"><a href="#cb32-186" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-187"><a href="#cb32-187" aria-hidden="true" tabindex="-1"></a>CEM coarsens covariates into bins and then exact-matches on the binned</span>
-<span id="cb32-188"><a href="#cb32-188" aria-hidden="true" tabindex="-1"></a>values. This is very transparent: if a treated observation has no comparable</span>
-<span id="cb32-189"><a href="#cb32-189" aria-hidden="true" tabindex="-1"></a>control in the binned covariate space, it is dropped.</span>
+<span id="cb32-166"><a href="#cb32-166" aria-hidden="true" tabindex="-1"></a>Full matching forms subclasses with treated and control observations inside</span>
+<span id="cb32-167"><a href="#cb32-167" aria-hidden="true" tabindex="-1"></a>each subclass. It can put one treated unit with several controls, or one</span>
+<span id="cb32-168"><a href="#cb32-168" aria-hidden="true" tabindex="-1"></a>control with several treated units. It uses all observations and then assigns</span>
+<span id="cb32-169"><a href="#cb32-169" aria-hidden="true" tabindex="-1"></a>weights.</span>
+<span id="cb32-170"><a href="#cb32-170" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-173"><a href="#cb32-173" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb32-174"><a href="#cb32-174" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: full-match</span></span>
+<span id="cb32-175"><a href="#cb32-175" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb32-176"><a href="#cb32-176" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-177"><a href="#cb32-177" aria-hidden="true" tabindex="-1"></a>m.full <span class="ot">&lt;-</span> <span class="fu">matchit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
+<span id="cb32-178"><a href="#cb32-178" aria-hidden="true" tabindex="-1"></a>                  <span class="at">data =</span> lalonde,</span>
+<span id="cb32-179"><a href="#cb32-179" aria-hidden="true" tabindex="-1"></a>                  <span class="at">method =</span> <span class="st">"full"</span>,</span>
+<span id="cb32-180"><a href="#cb32-180" aria-hidden="true" tabindex="-1"></a>                  <span class="at">distance =</span> <span class="st">"glm"</span>,</span>
+<span id="cb32-181"><a href="#cb32-181" aria-hidden="true" tabindex="-1"></a>                  <span class="at">link =</span> <span class="st">"probit"</span>)</span>
+<span id="cb32-182"><a href="#cb32-182" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-183"><a href="#cb32-183" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(m.full, <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.1</span>))</span>
+<span id="cb32-184"><a href="#cb32-184" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb32-185"><a href="#cb32-185" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-186"><a href="#cb32-186" aria-hidden="true" tabindex="-1"></a>All ten contrasts now pass, the largest being <span class="in">`educ`</span> at $-0.096$, and no</span>
+<span id="cb32-187"><a href="#cb32-187" aria-hidden="true" tabindex="-1"></a>observation is discarded. The cost is in the weights: the control effective</span>
+<span id="cb32-188"><a href="#cb32-188" aria-hidden="true" tabindex="-1"></a>sample size falls from 429 to 50.8, because full matching concentrates weight</span>
+<span id="cb32-189"><a href="#cb32-189" aria-hidden="true" tabindex="-1"></a>on the controls that resemble treated units.</span>
 <span id="cb32-190"><a href="#cb32-190" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-193"><a href="#cb32-193" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb32-194"><a href="#cb32-194" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: cem-match</span></span>
-<span id="cb32-195"><a href="#cb32-195" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb32-196"><a href="#cb32-196" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-197"><a href="#cb32-197" aria-hidden="true" tabindex="-1"></a>m.cem <span class="ot">&lt;-</span> <span class="fu">matchit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
-<span id="cb32-198"><a href="#cb32-198" aria-hidden="true" tabindex="-1"></a>                 <span class="at">data =</span> lalonde,</span>
-<span id="cb32-199"><a href="#cb32-199" aria-hidden="true" tabindex="-1"></a>                 <span class="at">method =</span> <span class="st">"cem"</span>)</span>
-<span id="cb32-200"><a href="#cb32-200" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(m.cem, <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.1</span>))</span>
-<span id="cb32-201"><a href="#cb32-201" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb32-191"><a href="#cb32-191" aria-hidden="true" tabindex="-1"></a>The effective sample size is the number of equally weighted observations that</span>
+<span id="cb32-192"><a href="#cb32-192" aria-hidden="true" tabindex="-1"></a>would carry the same precision. An unweighted mean of $m$ observations has</span>
+<span id="cb32-193"><a href="#cb32-193" aria-hidden="true" tabindex="-1"></a>variance $\sigma^2/m$; a weighted mean with weights summing to one has variance</span>
+<span id="cb32-194"><a href="#cb32-194" aria-hidden="true" tabindex="-1"></a>$\sigma^2 \sum_i w_i^2$. Setting the two equal gives $m = 1/\sum_i w_i^2$. So</span>
+<span id="cb32-195"><a href="#cb32-195" aria-hidden="true" tabindex="-1"></a>50.8 means these 429 controls carry about as much information as 51 equally</span>
+<span id="cb32-196"><a href="#cb32-196" aria-hidden="true" tabindex="-1"></a>weighted ones. Balance improved and precision did not.</span>
+<span id="cb32-197"><a href="#cb32-197" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-198"><a href="#cb32-198" aria-hidden="true" tabindex="-1"></a><span class="fu">### Mahalanobis matching</span></span>
+<span id="cb32-199"><a href="#cb32-199" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-200"><a href="#cb32-200" aria-hidden="true" tabindex="-1"></a>When the number of covariates is small, it is reasonable to match directly</span>
+<span id="cb32-201"><a href="#cb32-201" aria-hidden="true" tabindex="-1"></a>on the covariates with Mahalanobis distance.</span>
 <span id="cb32-202"><a href="#cb32-202" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-203"><a href="#cb32-203" aria-hidden="true" tabindex="-1"></a>CEM can drop many observations. That is not necessarily a problem. It is</span>
-<span id="cb32-204"><a href="#cb32-204" aria-hidden="true" tabindex="-1"></a>often telling us that the original sample does not support the target</span>
-<span id="cb32-205"><a href="#cb32-205" aria-hidden="true" tabindex="-1"></a>comparison.</span>
-<span id="cb32-206"><a href="#cb32-206" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-207"><a href="#cb32-207" aria-hidden="true" tabindex="-1"></a><span class="fu">## Estimation after matching</span></span>
+<span id="cb32-205"><a href="#cb32-205" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb32-206"><a href="#cb32-206" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: maha-match</span></span>
+<span id="cb32-207"><a href="#cb32-207" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
 <span id="cb32-208"><a href="#cb32-208" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-209"><a href="#cb32-209" aria-hidden="true" tabindex="-1"></a>After matching, we estimate the effect on the matched data. The matching</span>
-<span id="cb32-210"><a href="#cb32-210" aria-hidden="true" tabindex="-1"></a>weights come from <span class="in">`MatchIt`</span>. With subclass matching, standard errors should</span>
-<span id="cb32-211"><a href="#cb32-211" aria-hidden="true" tabindex="-1"></a>be clustered by subclass: units within the same matched subclass are not</span>
-<span id="cb32-212"><a href="#cb32-212" aria-hidden="true" tabindex="-1"></a>independent draws -- they were selected together specifically because they</span>
-<span id="cb32-213"><a href="#cb32-213" aria-hidden="true" tabindex="-1"></a>resemble each other on the matching covariates, and (for many-to-one or</span>
-<span id="cb32-214"><a href="#cb32-214" aria-hidden="true" tabindex="-1"></a>full matching) a single unit's outcome can appear, re-weighted, in the</span>
-<span id="cb32-215"><a href="#cb32-215" aria-hidden="true" tabindex="-1"></a>"observation" for more than one comparison. Treating them as independent</span>
-<span id="cb32-216"><a href="#cb32-216" aria-hidden="true" tabindex="-1"></a>(ordinary or heteroskedasticity-robust SEs) understates the true sampling</span>
-<span id="cb32-217"><a href="#cb32-217" aria-hidden="true" tabindex="-1"></a>variability; clustering by subclass accounts for that within-subclass</span>
-<span id="cb32-218"><a href="#cb32-218" aria-hidden="true" tabindex="-1"></a>correlation.</span>
-<span id="cb32-219"><a href="#cb32-219" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-222"><a href="#cb32-222" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb32-223"><a href="#cb32-223" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: estimate</span></span>
-<span id="cb32-224"><a href="#cb32-224" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb32-225"><a href="#cb32-225" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-226"><a href="#cb32-226" aria-hidden="true" tabindex="-1"></a>m.data <span class="ot">&lt;-</span> <span class="fu">match_data</span>(m.full)</span>
+<span id="cb32-209"><a href="#cb32-209" aria-hidden="true" tabindex="-1"></a>m.maha <span class="ot">&lt;-</span> <span class="fu">matchit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
+<span id="cb32-210"><a href="#cb32-210" aria-hidden="true" tabindex="-1"></a>                  <span class="at">data =</span> lalonde,</span>
+<span id="cb32-211"><a href="#cb32-211" aria-hidden="true" tabindex="-1"></a>                  <span class="at">distance =</span> <span class="st">"mahalanobis"</span>)</span>
+<span id="cb32-212"><a href="#cb32-212" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(m.maha, <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.1</span>))</span>
+<span id="cb32-213"><a href="#cb32-213" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb32-214"><a href="#cb32-214" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-215"><a href="#cb32-215" aria-hidden="true" tabindex="-1"></a>Mahalanobis matching balances only four of nine. The black and white indicators</span>
+<span id="cb32-216"><a href="#cb32-216" aria-hidden="true" tabindex="-1"></a>sit at $\pm 0.378$, <span class="in">`re74`</span> at $-0.248$, <span class="in">`re75`</span> at $-0.132$, and <span class="in">`age`</span> at 0.127.</span>
+<span id="cb32-217"><a href="#cb32-217" aria-hidden="true" tabindex="-1"></a>It does worse than the propensity score did on earnings. With a three-level</span>
+<span id="cb32-218"><a href="#cb32-218" aria-hidden="true" tabindex="-1"></a>race factor and two earnings variables that pile up at zero, the covariance</span>
+<span id="cb32-219"><a href="#cb32-219" aria-hidden="true" tabindex="-1"></a>matrix is a poor description of the covariate space, and the metric it defines</span>
+<span id="cb32-220"><a href="#cb32-220" aria-hidden="true" tabindex="-1"></a>is a poor guide to who resembles whom.</span>
+<span id="cb32-221"><a href="#cb32-221" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-222"><a href="#cb32-222" aria-hidden="true" tabindex="-1"></a><span class="fu">### Coarsened Exact Matching (CEM)</span></span>
+<span id="cb32-223"><a href="#cb32-223" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-224"><a href="#cb32-224" aria-hidden="true" tabindex="-1"></a>CEM coarsens covariates into bins and then exact-matches on the binned</span>
+<span id="cb32-225"><a href="#cb32-225" aria-hidden="true" tabindex="-1"></a>values. This is very transparent: if a treated observation has no comparable</span>
+<span id="cb32-226"><a href="#cb32-226" aria-hidden="true" tabindex="-1"></a>control in the binned covariate space, it is dropped.</span>
 <span id="cb32-227"><a href="#cb32-227" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-228"><a href="#cb32-228" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(re78 <span class="sc">~</span> treat <span class="sc">*</span> (age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75),</span>
-<span id="cb32-229"><a href="#cb32-229" aria-hidden="true" tabindex="-1"></a>          <span class="at">data    =</span> m.data,</span>
-<span id="cb32-230"><a href="#cb32-230" aria-hidden="true" tabindex="-1"></a>          <span class="at">weights =</span> weights)</span>
-<span id="cb32-231"><a href="#cb32-231" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-232"><a href="#cb32-232" aria-hidden="true" tabindex="-1"></a><span class="co"># Use marginaleffects for the average treatment effect with cluster-by-subclass SEs</span></span>
-<span id="cb32-233"><a href="#cb32-233" aria-hidden="true" tabindex="-1"></a><span class="fu">avg_comparisons</span>(fit,</span>
-<span id="cb32-234"><a href="#cb32-234" aria-hidden="true" tabindex="-1"></a>                <span class="at">variables =</span> <span class="st">"treat"</span>,</span>
-<span id="cb32-235"><a href="#cb32-235" aria-hidden="true" tabindex="-1"></a>                <span class="at">vcov =</span> <span class="sc">~</span>subclass,</span>
-<span id="cb32-236"><a href="#cb32-236" aria-hidden="true" tabindex="-1"></a>                <span class="at">newdata =</span> <span class="fu">subset</span>(m.data, treat <span class="sc">==</span> <span class="dv">1</span>))   <span class="co"># ATT</span></span>
-<span id="cb32-237"><a href="#cb32-237" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb32-238"><a href="#cb32-238" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-239"><a href="#cb32-239" aria-hidden="true" tabindex="-1"></a>The point is not that matching mechanically produces the "right" answer.</span>
-<span id="cb32-240"><a href="#cb32-240" aria-hidden="true" tabindex="-1"></a>The point is that after improving balance, the estimate is much less driven</span>
-<span id="cb32-241"><a href="#cb32-241" aria-hidden="true" tabindex="-1"></a>by obvious covariate differences.</span>
-<span id="cb32-242"><a href="#cb32-242" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-243"><a href="#cb32-243" aria-hidden="true" tabindex="-1"></a><span class="fu">## Balance plots</span></span>
+<span id="cb32-230"><a href="#cb32-230" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb32-231"><a href="#cb32-231" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: cem-match</span></span>
+<span id="cb32-232"><a href="#cb32-232" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb32-233"><a href="#cb32-233" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-234"><a href="#cb32-234" aria-hidden="true" tabindex="-1"></a>m.cem <span class="ot">&lt;-</span> <span class="fu">matchit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
+<span id="cb32-235"><a href="#cb32-235" aria-hidden="true" tabindex="-1"></a>                 <span class="at">data =</span> lalonde,</span>
+<span id="cb32-236"><a href="#cb32-236" aria-hidden="true" tabindex="-1"></a>                 <span class="at">method =</span> <span class="st">"cem"</span>)</span>
+<span id="cb32-237"><a href="#cb32-237" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(m.cem, <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.1</span>))</span>
+<span id="cb32-238"><a href="#cb32-238" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb32-239"><a href="#cb32-239" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-240"><a href="#cb32-240" aria-hidden="true" tabindex="-1"></a>All nine contrasts pass, and the largest is <span class="in">`age`</span> at 0.049. Read the sample</span>
+<span id="cb32-241"><a href="#cb32-241" aria-hidden="true" tabindex="-1"></a>sizes before celebrating: only 65 of the 185 treated units are matched, and 120</span>
+<span id="cb32-242"><a href="#cb32-242" aria-hidden="true" tabindex="-1"></a>are dropped, along with 354 of the 429 controls. The control effective sample</span>
+<span id="cb32-243"><a href="#cb32-243" aria-hidden="true" tabindex="-1"></a>size is 41.3.</span>
 <span id="cb32-244"><a href="#cb32-244" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-245"><a href="#cb32-245" aria-hidden="true" tabindex="-1"></a><span class="in">`cobalt::love.plot`</span> is the easiest way to see the balance change. It plots</span>
-<span id="cb32-246"><a href="#cb32-246" aria-hidden="true" tabindex="-1"></a>standardized mean differences before and after matching.</span>
-<span id="cb32-247"><a href="#cb32-247" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-250"><a href="#cb32-250" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb32-251"><a href="#cb32-251" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: love-plot</span></span>
-<span id="cb32-252"><a href="#cb32-252" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb32-253"><a href="#cb32-253" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Balance improvement from nearest-neighbour and full matching."</span></span>
-<span id="cb32-254"><a href="#cb32-254" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 8</span></span>
-<span id="cb32-255"><a href="#cb32-255" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 5</span></span>
-<span id="cb32-256"><a href="#cb32-256" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-257"><a href="#cb32-257" aria-hidden="true" tabindex="-1"></a><span class="fu">love.plot</span>(m.full,</span>
-<span id="cb32-258"><a href="#cb32-258" aria-hidden="true" tabindex="-1"></a>          <span class="at">stats =</span> <span class="st">"mean.diffs"</span>,</span>
-<span id="cb32-259"><a href="#cb32-259" aria-hidden="true" tabindex="-1"></a>          <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.1</span>),</span>
-<span id="cb32-260"><a href="#cb32-260" aria-hidden="true" tabindex="-1"></a>          <span class="at">abs =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb32-261"><a href="#cb32-261" aria-hidden="true" tabindex="-1"></a>          <span class="at">var.order =</span> <span class="st">"unadjusted"</span>,</span>
-<span id="cb32-262"><a href="#cb32-262" aria-hidden="true" tabindex="-1"></a>          <span class="at">title =</span> <span class="st">"Balance plot — Full matching"</span>)</span>
-<span id="cb32-263"><a href="#cb32-263" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb32-264"><a href="#cb32-264" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-265"><a href="#cb32-265" aria-hidden="true" tabindex="-1"></a>A useful rule is that standardized mean differences should be below 0.1,</span>
-<span id="cb32-266"><a href="#cb32-266" aria-hidden="true" tabindex="-1"></a>or below 0.05 if we want to be stricter.</span>
-<span id="cb32-267"><a href="#cb32-267" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-268"><a href="#cb32-268" aria-hidden="true" tabindex="-1"></a><span class="fu">## Matching with replacement vs without</span></span>
+<span id="cb32-245"><a href="#cb32-245" aria-hidden="true" tabindex="-1"></a>CEM can drop many observations. That is not necessarily a problem. It is</span>
+<span id="cb32-246"><a href="#cb32-246" aria-hidden="true" tabindex="-1"></a>often telling us that the original sample does not support the target</span>
+<span id="cb32-247"><a href="#cb32-247" aria-hidden="true" tabindex="-1"></a>comparison. But it does change the question. The estimand is now the average</span>
+<span id="cb32-248"><a href="#cb32-248" aria-hidden="true" tabindex="-1"></a>effect for the 65 treated units that had a comparable control, not the ATT for</span>
+<span id="cb32-249"><a href="#cb32-249" aria-hidden="true" tabindex="-1"></a>all 185, and those two need not be the same number.</span>
+<span id="cb32-250"><a href="#cb32-250" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-251"><a href="#cb32-251" aria-hidden="true" tabindex="-1"></a><span class="fu">## Estimation after matching</span></span>
+<span id="cb32-252"><a href="#cb32-252" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-253"><a href="#cb32-253" aria-hidden="true" tabindex="-1"></a>After matching, we estimate the effect on the matched data. The matching</span>
+<span id="cb32-254"><a href="#cb32-254" aria-hidden="true" tabindex="-1"></a>weights come from <span class="in">`MatchIt`</span>. With subclass matching, standard errors should</span>
+<span id="cb32-255"><a href="#cb32-255" aria-hidden="true" tabindex="-1"></a>be clustered by subclass: units within the same matched subclass are not</span>
+<span id="cb32-256"><a href="#cb32-256" aria-hidden="true" tabindex="-1"></a>independent draws -- they were selected together specifically because they</span>
+<span id="cb32-257"><a href="#cb32-257" aria-hidden="true" tabindex="-1"></a>resemble each other on the matching covariates, and (for many-to-one or</span>
+<span id="cb32-258"><a href="#cb32-258" aria-hidden="true" tabindex="-1"></a>full matching) a single unit's outcome can appear, re-weighted, in the</span>
+<span id="cb32-259"><a href="#cb32-259" aria-hidden="true" tabindex="-1"></a>"observation" for more than one comparison. Treating them as independent</span>
+<span id="cb32-260"><a href="#cb32-260" aria-hidden="true" tabindex="-1"></a>(ordinary or heteroskedasticity-robust SEs) understates the true sampling</span>
+<span id="cb32-261"><a href="#cb32-261" aria-hidden="true" tabindex="-1"></a>variability; clustering by subclass accounts for that within-subclass</span>
+<span id="cb32-262"><a href="#cb32-262" aria-hidden="true" tabindex="-1"></a>correlation.</span>
+<span id="cb32-263"><a href="#cb32-263" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-266"><a href="#cb32-266" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb32-267"><a href="#cb32-267" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: estimate</span></span>
+<span id="cb32-268"><a href="#cb32-268" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
 <span id="cb32-269"><a href="#cb32-269" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-270"><a href="#cb32-270" aria-hidden="true" tabindex="-1"></a>By default a control observation can be used only once. With replacement,</span>
-<span id="cb32-271"><a href="#cb32-271" aria-hidden="true" tabindex="-1"></a>the same good control can be used several times. This often improves balance</span>
-<span id="cb32-272"><a href="#cb32-272" aria-hidden="true" tabindex="-1"></a>when overlap is weak, but the effective sample size becomes smaller.</span>
-<span id="cb32-273"><a href="#cb32-273" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-276"><a href="#cb32-276" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb32-277"><a href="#cb32-277" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: replace-match</span></span>
-<span id="cb32-278"><a href="#cb32-278" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb32-279"><a href="#cb32-279" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-280"><a href="#cb32-280" aria-hidden="true" tabindex="-1"></a>m.repl <span class="ot">&lt;-</span> <span class="fu">matchit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
-<span id="cb32-281"><a href="#cb32-281" aria-hidden="true" tabindex="-1"></a>                  <span class="at">data =</span> lalonde,</span>
-<span id="cb32-282"><a href="#cb32-282" aria-hidden="true" tabindex="-1"></a>                  <span class="at">method =</span> <span class="st">"nearest"</span>,</span>
-<span id="cb32-283"><a href="#cb32-283" aria-hidden="true" tabindex="-1"></a>                  <span class="at">distance =</span> <span class="st">"glm"</span>,</span>
-<span id="cb32-284"><a href="#cb32-284" aria-hidden="true" tabindex="-1"></a>                  <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb32-285"><a href="#cb32-285" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(m.repl, <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.1</span>))</span>
-<span id="cb32-286"><a href="#cb32-286" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb32-287"><a href="#cb32-287" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-288"><a href="#cb32-288" aria-hidden="true" tabindex="-1"></a>If matching without replacement cannot balance the sample, matching with</span>
-<span id="cb32-289"><a href="#cb32-289" aria-hidden="true" tabindex="-1"></a>replacement is a reasonable next step.</span>
+<span id="cb32-270"><a href="#cb32-270" aria-hidden="true" tabindex="-1"></a>m.data <span class="ot">&lt;-</span> <span class="fu">match_data</span>(m.full)</span>
+<span id="cb32-271"><a href="#cb32-271" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-272"><a href="#cb32-272" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(re78 <span class="sc">~</span> treat <span class="sc">*</span> (age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75),</span>
+<span id="cb32-273"><a href="#cb32-273" aria-hidden="true" tabindex="-1"></a>          <span class="at">data    =</span> m.data,</span>
+<span id="cb32-274"><a href="#cb32-274" aria-hidden="true" tabindex="-1"></a>          <span class="at">weights =</span> weights)</span>
+<span id="cb32-275"><a href="#cb32-275" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-276"><a href="#cb32-276" aria-hidden="true" tabindex="-1"></a><span class="co"># Use marginaleffects for the average treatment effect with cluster-by-subclass SEs</span></span>
+<span id="cb32-277"><a href="#cb32-277" aria-hidden="true" tabindex="-1"></a><span class="fu">avg_comparisons</span>(fit,</span>
+<span id="cb32-278"><a href="#cb32-278" aria-hidden="true" tabindex="-1"></a>                <span class="at">variables =</span> <span class="st">"treat"</span>,</span>
+<span id="cb32-279"><a href="#cb32-279" aria-hidden="true" tabindex="-1"></a>                <span class="at">vcov =</span> <span class="sc">~</span>subclass,</span>
+<span id="cb32-280"><a href="#cb32-280" aria-hidden="true" tabindex="-1"></a>                <span class="at">newdata =</span> <span class="fu">subset</span>(m.data, treat <span class="sc">==</span> <span class="dv">1</span>))   <span class="co"># ATT</span></span>
+<span id="cb32-281"><a href="#cb32-281" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb32-282"><a href="#cb32-282" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-283"><a href="#cb32-283" aria-hidden="true" tabindex="-1"></a>The full-matching ATT is \$1,977 with a subclass-clustered standard error of</span>
+<span id="cb32-284"><a href="#cb32-284" aria-hidden="true" tabindex="-1"></a>\$704, a 95% interval of $<span class="co">[</span><span class="ot">596, 3357</span><span class="co">]</span>$, and $p = 0.005$. Training raised 1978</span>
+<span id="cb32-285"><a href="#cb32-285" aria-hidden="true" tabindex="-1"></a>earnings for the trained.</span>
+<span id="cb32-286"><a href="#cb32-286" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-287"><a href="#cb32-287" aria-hidden="true" tabindex="-1"></a>The point is not that matching mechanically produces the "right" answer.</span>
+<span id="cb32-288"><a href="#cb32-288" aria-hidden="true" tabindex="-1"></a>The point is that after improving balance, the estimate is much less driven</span>
+<span id="cb32-289"><a href="#cb32-289" aria-hidden="true" tabindex="-1"></a>by obvious covariate differences.</span>
 <span id="cb32-290"><a href="#cb32-290" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-291"><a href="#cb32-291" aria-hidden="true" tabindex="-1"></a><span class="fu">## ATE, ATT, ATC — choose carefully</span></span>
+<span id="cb32-291"><a href="#cb32-291" aria-hidden="true" tabindex="-1"></a><span class="fu">## Balance plots</span></span>
 <span id="cb32-292"><a href="#cb32-292" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-293"><a href="#cb32-293" aria-hidden="true" tabindex="-1"></a><span class="in">`MatchIt`</span> usually targets the ATT. That means we are asking what treatment</span>
-<span id="cb32-294"><a href="#cb32-294" aria-hidden="true" tabindex="-1"></a>did for the treated units. For ATE, use <span class="in">`estimand = "ATE"`</span> and a method</span>
-<span id="cb32-295"><a href="#cb32-295" aria-hidden="true" tabindex="-1"></a>that keeps the whole sample, such as full matching or weighting. For ATC,</span>
-<span id="cb32-296"><a href="#cb32-296" aria-hidden="true" tabindex="-1"></a>use <span class="in">`estimand = "ATC"`</span>. These are not just software options; they are</span>
-<span id="cb32-297"><a href="#cb32-297" aria-hidden="true" tabindex="-1"></a>different causal questions.</span>
-<span id="cb32-298"><a href="#cb32-298" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-299"><a href="#cb32-299" aria-hidden="true" tabindex="-1"></a><span class="fu">## When matching fails</span></span>
-<span id="cb32-300"><a href="#cb32-300" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-301"><a href="#cb32-301" aria-hidden="true" tabindex="-1"></a>Matching fails in predictable ways:</span>
-<span id="cb32-302"><a href="#cb32-302" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-303"><a href="#cb32-303" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>High-dimensional matching is hard. Propensity scores reduce dimension,</span>
-<span id="cb32-304"><a href="#cb32-304" aria-hidden="true" tabindex="-1"></a>  but they do not create overlap.</span>
-<span id="cb32-305"><a href="#cb32-305" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>If some values of $X$ have no treated or no control units, no matching</span>
-<span id="cb32-306"><a href="#cb32-306" aria-hidden="true" tabindex="-1"></a>  method can recover the missing comparison.</span>
-<span id="cb32-307"><a href="#cb32-307" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Propensity-score matching depends on the propensity-score model. If that</span>
-<span id="cb32-308"><a href="#cb32-308" aria-hidden="true" tabindex="-1"></a>  model is bad, the matching can be bad too.</span>
-<span id="cb32-309"><a href="#cb32-309" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Matching does not address hidden confounding. Rosenbaum bounds, discussed</span>
-<span id="cb32-310"><a href="#cb32-310" aria-hidden="true" tabindex="-1"></a>  in the <span class="co">[</span><span class="ot">Sensitivity Analysis chapter</span><span class="co">](sensitivity-analysis.qmd)</span>, ask how</span>
-<span id="cb32-311"><a href="#cb32-311" aria-hidden="true" tabindex="-1"></a>  strong hidden bias would have to be to change the conclusion.</span>
+<span id="cb32-293"><a href="#cb32-293" aria-hidden="true" tabindex="-1"></a><span class="in">`cobalt::love.plot`</span> is the easiest way to see the balance change. It plots</span>
+<span id="cb32-294"><a href="#cb32-294" aria-hidden="true" tabindex="-1"></a>standardized mean differences before and after matching.</span>
+<span id="cb32-295"><a href="#cb32-295" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-298"><a href="#cb32-298" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb32-299"><a href="#cb32-299" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: love-plot</span></span>
+<span id="cb32-300"><a href="#cb32-300" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb32-301"><a href="#cb32-301" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Balance before and after full matching, as absolute standardized mean differences."</span></span>
+<span id="cb32-302"><a href="#cb32-302" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 8</span></span>
+<span id="cb32-303"><a href="#cb32-303" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 5</span></span>
+<span id="cb32-304"><a href="#cb32-304" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-305"><a href="#cb32-305" aria-hidden="true" tabindex="-1"></a><span class="fu">love.plot</span>(m.full,</span>
+<span id="cb32-306"><a href="#cb32-306" aria-hidden="true" tabindex="-1"></a>          <span class="at">stats =</span> <span class="st">"mean.diffs"</span>,</span>
+<span id="cb32-307"><a href="#cb32-307" aria-hidden="true" tabindex="-1"></a>          <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.1</span>),</span>
+<span id="cb32-308"><a href="#cb32-308" aria-hidden="true" tabindex="-1"></a>          <span class="at">abs =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb32-309"><a href="#cb32-309" aria-hidden="true" tabindex="-1"></a>          <span class="at">var.order =</span> <span class="st">"unadjusted"</span>,</span>
+<span id="cb32-310"><a href="#cb32-310" aria-hidden="true" tabindex="-1"></a>          <span class="at">title =</span> <span class="st">"Balance plot — Full matching"</span>)</span>
+<span id="cb32-311"><a href="#cb32-311" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb32-312"><a href="#cb32-312" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-313"><a href="#cb32-313" aria-hidden="true" tabindex="-1"></a><span class="fu">## Matching vs weighting</span></span>
-<span id="cb32-314"><a href="#cb32-314" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-315"><a href="#cb32-315" aria-hidden="true" tabindex="-1"></a>Matching and weighting do similar jobs. Matching chooses comparable</span>
-<span id="cb32-316"><a href="#cb32-316" aria-hidden="true" tabindex="-1"></a>observations. Weighting keeps observations but changes their contribution so</span>
-<span id="cb32-317"><a href="#cb32-317" aria-hidden="true" tabindex="-1"></a>the treated and control covariate distributions become closer.</span>
-<span id="cb32-318"><a href="#cb32-318" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-319"><a href="#cb32-319" aria-hidden="true" tabindex="-1"></a>When overlap is good, both approaches often give similar answers. When</span>
-<span id="cb32-320"><a href="#cb32-320" aria-hidden="true" tabindex="-1"></a>overlap is bad, both approaches become fragile. Then the honest choices are</span>
-<span id="cb32-321"><a href="#cb32-321" aria-hidden="true" tabindex="-1"></a>to change the target population, report the lack of overlap, or use a</span>
-<span id="cb32-322"><a href="#cb32-322" aria-hidden="true" tabindex="-1"></a>doubly-robust estimator such as <span class="co">[</span><span class="ot">AIPW</span><span class="co">](estimation.qmd)</span> or</span>
-<span id="cb32-323"><a href="#cb32-323" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">TMLE</span><span class="co">](nonparametric.qmd)</span> while still being clear about the support problem.</span>
+<span id="cb32-313"><a href="#cb32-313" aria-hidden="true" tabindex="-1"></a>Each variable appears twice, unadjusted and adjusted, with the variables</span>
+<span id="cb32-314"><a href="#cb32-314" aria-hidden="true" tabindex="-1"></a>ordered by their unadjusted difference and differences plotted in absolute</span>
+<span id="cb32-315"><a href="#cb32-315" aria-hidden="true" tabindex="-1"></a>value. Every point moves toward zero except <span class="in">`educ`</span>, which starts at 0.055 and</span>
+<span id="cb32-316"><a href="#cb32-316" aria-hidden="true" tabindex="-1"></a>ends at 0.096 --- it was already balanced, and full matching traded a little of</span>
+<span id="cb32-317"><a href="#cb32-317" aria-hidden="true" tabindex="-1"></a>it for the rest. <span class="in">`re74`</span>, the worst offender before matching at $-0.72$, moves</span>
+<span id="cb32-318"><a href="#cb32-318" aria-hidden="true" tabindex="-1"></a>furthest, ending at $-0.0009$.</span>
+<span id="cb32-319"><a href="#cb32-319" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-320"><a href="#cb32-320" aria-hidden="true" tabindex="-1"></a>A useful rule is that standardized mean differences should be below 0.1,</span>
+<span id="cb32-321"><a href="#cb32-321" aria-hidden="true" tabindex="-1"></a>or below 0.05 if we want to be stricter.</span>
+<span id="cb32-322"><a href="#cb32-322" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-323"><a href="#cb32-323" aria-hidden="true" tabindex="-1"></a><span class="fu">## Matching with replacement vs without</span></span>
 <span id="cb32-324"><a href="#cb32-324" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-325"><a href="#cb32-325" aria-hidden="true" tabindex="-1"></a><span class="fu">## Weighting Alternatives</span></span>
-<span id="cb32-326"><a href="#cb32-326" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-327"><a href="#cb32-327" aria-hidden="true" tabindex="-1"></a><span class="in">`WeightIt`</span> implements several weighting methods. The companion</span>
-<span id="cb32-328"><a href="#cb32-328" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">blog chapter on weighting</span><span class="co">](https://xiangao.github.io/blog_book/weighting-part2.html)</span></span>
-<span id="cb32-329"><a href="#cb32-329" aria-hidden="true" tabindex="-1"></a>has more detail. Here I use the same Lalonde data so the comparison is easy.</span>
-<span id="cb32-330"><a href="#cb32-330" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-331"><a href="#cb32-331" aria-hidden="true" tabindex="-1"></a><span class="fu">### Inverse probability of treatment weighting (IPW)</span></span>
-<span id="cb32-332"><a href="#cb32-332" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-333"><a href="#cb32-333" aria-hidden="true" tabindex="-1"></a>The baseline method is IPW. Estimate the propensity score, then weight by</span>
-<span id="cb32-334"><a href="#cb32-334" aria-hidden="true" tabindex="-1"></a>the inverse probability of receiving the observed treatment.</span>
-<span id="cb32-335"><a href="#cb32-335" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-338"><a href="#cb32-338" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb32-339"><a href="#cb32-339" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: ipw-weighting</span></span>
-<span id="cb32-340"><a href="#cb32-340" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb32-341"><a href="#cb32-341" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-342"><a href="#cb32-342" aria-hidden="true" tabindex="-1"></a>w_ipw <span class="ot">&lt;-</span> <span class="fu">weightit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
-<span id="cb32-343"><a href="#cb32-343" aria-hidden="true" tabindex="-1"></a>                  <span class="at">data =</span> lalonde, <span class="at">estimand =</span> <span class="st">"ATT"</span>, <span class="at">method =</span> <span class="st">"glm"</span>)</span>
-<span id="cb32-344"><a href="#cb32-344" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(w_ipw, <span class="at">stats =</span> <span class="fu">c</span>(<span class="st">"m"</span>), <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.05</span>))</span>
-<span id="cb32-345"><a href="#cb32-345" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb32-346"><a href="#cb32-346" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-347"><a href="#cb32-347" aria-hidden="true" tabindex="-1"></a><span class="fu">### Covariate balancing propensity score (CBPS)</span></span>
-<span id="cb32-348"><a href="#cb32-348" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-349"><a href="#cb32-349" aria-hidden="true" tabindex="-1"></a>CBPS estimates the propensity score while also trying to balance covariate</span>
-<span id="cb32-350"><a href="#cb32-350" aria-hidden="true" tabindex="-1"></a>means. So the propensity-score model is not judged only by likelihood; it is</span>
-<span id="cb32-351"><a href="#cb32-351" aria-hidden="true" tabindex="-1"></a>also judged by balance.</span>
+<span id="cb32-325"><a href="#cb32-325" aria-hidden="true" tabindex="-1"></a>By default a control observation can be used only once. With replacement,</span>
+<span id="cb32-326"><a href="#cb32-326" aria-hidden="true" tabindex="-1"></a>the same good control can be used several times. This often improves balance</span>
+<span id="cb32-327"><a href="#cb32-327" aria-hidden="true" tabindex="-1"></a>when overlap is weak, but the effective sample size becomes smaller.</span>
+<span id="cb32-328"><a href="#cb32-328" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-331"><a href="#cb32-331" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb32-332"><a href="#cb32-332" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: replace-match</span></span>
+<span id="cb32-333"><a href="#cb32-333" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb32-334"><a href="#cb32-334" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-335"><a href="#cb32-335" aria-hidden="true" tabindex="-1"></a>m.repl <span class="ot">&lt;-</span> <span class="fu">matchit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
+<span id="cb32-336"><a href="#cb32-336" aria-hidden="true" tabindex="-1"></a>                  <span class="at">data =</span> lalonde,</span>
+<span id="cb32-337"><a href="#cb32-337" aria-hidden="true" tabindex="-1"></a>                  <span class="at">method =</span> <span class="st">"nearest"</span>,</span>
+<span id="cb32-338"><a href="#cb32-338" aria-hidden="true" tabindex="-1"></a>                  <span class="at">distance =</span> <span class="st">"glm"</span>,</span>
+<span id="cb32-339"><a href="#cb32-339" aria-hidden="true" tabindex="-1"></a>                  <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb32-340"><a href="#cb32-340" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(m.repl, <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.1</span>))</span>
+<span id="cb32-341"><a href="#cb32-341" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb32-342"><a href="#cb32-342" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-343"><a href="#cb32-343" aria-hidden="true" tabindex="-1"></a>With replacement, nine of ten contrasts pass, against five of nine without.</span>
+<span id="cb32-344"><a href="#cb32-344" aria-hidden="true" tabindex="-1"></a><span class="in">`age`</span> is the exception, at 0.240. Only 82 distinct controls are used, and their</span>
+<span id="cb32-345"><a href="#cb32-345" aria-hidden="true" tabindex="-1"></a>effective sample size is 46.3. Compared with the 1:1 match without replacement,</span>
+<span id="cb32-346"><a href="#cb32-346" aria-hidden="true" tabindex="-1"></a>which used 185 distinct controls, the same good controls are being reused.</span>
+<span id="cb32-347"><a href="#cb32-347" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-348"><a href="#cb32-348" aria-hidden="true" tabindex="-1"></a>If matching without replacement cannot balance the sample, matching with</span>
+<span id="cb32-349"><a href="#cb32-349" aria-hidden="true" tabindex="-1"></a>replacement is a reasonable next step.</span>
+<span id="cb32-350"><a href="#cb32-350" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-351"><a href="#cb32-351" aria-hidden="true" tabindex="-1"></a><span class="fu">## ATE, ATT, ATC — choose carefully</span></span>
 <span id="cb32-352"><a href="#cb32-352" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-355"><a href="#cb32-355" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb32-356"><a href="#cb32-356" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: cbps</span></span>
-<span id="cb32-357"><a href="#cb32-357" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb32-353"><a href="#cb32-353" aria-hidden="true" tabindex="-1"></a><span class="in">`MatchIt`</span> usually targets the ATT. That means we are asking what treatment</span>
+<span id="cb32-354"><a href="#cb32-354" aria-hidden="true" tabindex="-1"></a>did for the treated units. For ATE, use <span class="in">`estimand = "ATE"`</span> and a method</span>
+<span id="cb32-355"><a href="#cb32-355" aria-hidden="true" tabindex="-1"></a>that keeps the whole sample, such as full matching or weighting. For ATC,</span>
+<span id="cb32-356"><a href="#cb32-356" aria-hidden="true" tabindex="-1"></a>use <span class="in">`estimand = "ATC"`</span>. These are not just software options; they are</span>
+<span id="cb32-357"><a href="#cb32-357" aria-hidden="true" tabindex="-1"></a>different causal questions.</span>
 <span id="cb32-358"><a href="#cb32-358" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-359"><a href="#cb32-359" aria-hidden="true" tabindex="-1"></a>w_cbps <span class="ot">&lt;-</span> <span class="fu">weightit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
-<span id="cb32-360"><a href="#cb32-360" aria-hidden="true" tabindex="-1"></a>                   <span class="at">data =</span> lalonde, <span class="at">estimand =</span> <span class="st">"ATT"</span>, <span class="at">method =</span> <span class="st">"cbps"</span>)</span>
-<span id="cb32-361"><a href="#cb32-361" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(w_cbps, <span class="at">stats =</span> <span class="fu">c</span>(<span class="st">"m"</span>), <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.05</span>))</span>
-<span id="cb32-362"><a href="#cb32-362" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb32-363"><a href="#cb32-363" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-364"><a href="#cb32-364" aria-hidden="true" tabindex="-1"></a><span class="fu">### Entropy balancing</span></span>
-<span id="cb32-365"><a href="#cb32-365" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-366"><a href="#cb32-366" aria-hidden="true" tabindex="-1"></a>Entropy balancing chooses weights so that the weighted control group matches</span>
-<span id="cb32-367"><a href="#cb32-367" aria-hidden="true" tabindex="-1"></a>the treated group on covariate means. It is useful because the balance</span>
-<span id="cb32-368"><a href="#cb32-368" aria-hidden="true" tabindex="-1"></a>constraint is explicit.</span>
-<span id="cb32-369"><a href="#cb32-369" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-372"><a href="#cb32-372" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb32-373"><a href="#cb32-373" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: ebal</span></span>
-<span id="cb32-374"><a href="#cb32-374" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb32-375"><a href="#cb32-375" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-376"><a href="#cb32-376" aria-hidden="true" tabindex="-1"></a>w_ebal <span class="ot">&lt;-</span> <span class="fu">weightit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
-<span id="cb32-377"><a href="#cb32-377" aria-hidden="true" tabindex="-1"></a>                   <span class="at">data =</span> lalonde, <span class="at">estimand =</span> <span class="st">"ATT"</span>, <span class="at">method =</span> <span class="st">"ebal"</span>)</span>
-<span id="cb32-378"><a href="#cb32-378" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(w_ebal, <span class="at">stats =</span> <span class="fu">c</span>(<span class="st">"m"</span>), <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.05</span>))</span>
-<span id="cb32-379"><a href="#cb32-379" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb32-380"><a href="#cb32-380" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-381"><a href="#cb32-381" aria-hidden="true" tabindex="-1"></a>The standardized mean differences are essentially zero because entropy</span>
-<span id="cb32-382"><a href="#cb32-382" aria-hidden="true" tabindex="-1"></a>balancing imposes mean balance directly.</span>
-<span id="cb32-383"><a href="#cb32-383" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-384"><a href="#cb32-384" aria-hidden="true" tabindex="-1"></a><span class="fu">### Energy balancing</span></span>
-<span id="cb32-385"><a href="#cb32-385" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-386"><a href="#cb32-386" aria-hidden="true" tabindex="-1"></a>Energy balancing targets the whole covariate distribution, not just means.</span>
-<span id="cb32-387"><a href="#cb32-387" aria-hidden="true" tabindex="-1"></a>It is more ambitious than entropy balancing, and usually more computationally</span>
-<span id="cb32-388"><a href="#cb32-388" aria-hidden="true" tabindex="-1"></a>expensive.</span>
-<span id="cb32-389"><a href="#cb32-389" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-392"><a href="#cb32-392" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb32-393"><a href="#cb32-393" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: energy</span></span>
-<span id="cb32-394"><a href="#cb32-394" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb32-359"><a href="#cb32-359" aria-hidden="true" tabindex="-1"></a><span class="fu">## When matching fails</span></span>
+<span id="cb32-360"><a href="#cb32-360" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-361"><a href="#cb32-361" aria-hidden="true" tabindex="-1"></a>Matching fails in predictable ways:</span>
+<span id="cb32-362"><a href="#cb32-362" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-363"><a href="#cb32-363" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>High-dimensional matching is hard. Propensity scores reduce dimension,</span>
+<span id="cb32-364"><a href="#cb32-364" aria-hidden="true" tabindex="-1"></a>  but they do not create overlap.</span>
+<span id="cb32-365"><a href="#cb32-365" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>If some values of $X$ have no treated or no control units, no matching</span>
+<span id="cb32-366"><a href="#cb32-366" aria-hidden="true" tabindex="-1"></a>  method can recover the missing comparison.</span>
+<span id="cb32-367"><a href="#cb32-367" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Propensity-score matching depends on the propensity-score model. If that</span>
+<span id="cb32-368"><a href="#cb32-368" aria-hidden="true" tabindex="-1"></a>  model is bad, the matching can be bad too.</span>
+<span id="cb32-369"><a href="#cb32-369" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Matching does not address hidden confounding. Rosenbaum bounds, discussed</span>
+<span id="cb32-370"><a href="#cb32-370" aria-hidden="true" tabindex="-1"></a>  in the <span class="co">[</span><span class="ot">Sensitivity Analysis chapter</span><span class="co">](sensitivity-analysis.qmd)</span>, ask how</span>
+<span id="cb32-371"><a href="#cb32-371" aria-hidden="true" tabindex="-1"></a>  strong hidden bias would have to be to change the conclusion.</span>
+<span id="cb32-372"><a href="#cb32-372" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-373"><a href="#cb32-373" aria-hidden="true" tabindex="-1"></a><span class="fu">## Matching vs weighting</span></span>
+<span id="cb32-374"><a href="#cb32-374" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-375"><a href="#cb32-375" aria-hidden="true" tabindex="-1"></a>Matching and weighting do similar jobs. Matching chooses comparable</span>
+<span id="cb32-376"><a href="#cb32-376" aria-hidden="true" tabindex="-1"></a>observations. Weighting keeps observations but changes their contribution so</span>
+<span id="cb32-377"><a href="#cb32-377" aria-hidden="true" tabindex="-1"></a>the treated and control covariate distributions become closer.</span>
+<span id="cb32-378"><a href="#cb32-378" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-379"><a href="#cb32-379" aria-hidden="true" tabindex="-1"></a>When overlap is good, both approaches often give similar answers. When</span>
+<span id="cb32-380"><a href="#cb32-380" aria-hidden="true" tabindex="-1"></a>overlap is bad, both approaches become fragile. Then the honest choices are</span>
+<span id="cb32-381"><a href="#cb32-381" aria-hidden="true" tabindex="-1"></a>to change the target population, report the lack of overlap, or use a</span>
+<span id="cb32-382"><a href="#cb32-382" aria-hidden="true" tabindex="-1"></a>doubly-robust estimator such as <span class="co">[</span><span class="ot">AIPW</span><span class="co">](estimation.qmd)</span> or</span>
+<span id="cb32-383"><a href="#cb32-383" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">TMLE</span><span class="co">](nonparametric.qmd)</span> while still being clear about the support problem.</span>
+<span id="cb32-384"><a href="#cb32-384" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-385"><a href="#cb32-385" aria-hidden="true" tabindex="-1"></a><span class="fu">## Weighting Alternatives</span></span>
+<span id="cb32-386"><a href="#cb32-386" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-387"><a href="#cb32-387" aria-hidden="true" tabindex="-1"></a><span class="in">`WeightIt`</span> implements several weighting methods. The companion</span>
+<span id="cb32-388"><a href="#cb32-388" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">blog chapter on weighting</span><span class="co">](https://xiangao.github.io/blog_book/weighting-part2.html)</span></span>
+<span id="cb32-389"><a href="#cb32-389" aria-hidden="true" tabindex="-1"></a>has more detail. Here I use the same Lalonde data so the comparison is easy.</span>
+<span id="cb32-390"><a href="#cb32-390" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-391"><a href="#cb32-391" aria-hidden="true" tabindex="-1"></a><span class="fu">### Inverse probability of treatment weighting (IPW)</span></span>
+<span id="cb32-392"><a href="#cb32-392" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-393"><a href="#cb32-393" aria-hidden="true" tabindex="-1"></a>The baseline method is IPW. Estimate the propensity score, then weight by</span>
+<span id="cb32-394"><a href="#cb32-394" aria-hidden="true" tabindex="-1"></a>the inverse probability of receiving the observed treatment.</span>
 <span id="cb32-395"><a href="#cb32-395" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-396"><a href="#cb32-396" aria-hidden="true" tabindex="-1"></a>w_energy <span class="ot">&lt;-</span> <span class="fu">weightit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
-<span id="cb32-397"><a href="#cb32-397" aria-hidden="true" tabindex="-1"></a>                     <span class="at">data =</span> lalonde, <span class="at">estimand =</span> <span class="st">"ATT"</span>, <span class="at">method =</span> <span class="st">"energy"</span>)</span>
-<span id="cb32-398"><a href="#cb32-398" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(w_energy, <span class="at">stats =</span> <span class="fu">c</span>(<span class="st">"m"</span>), <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.05</span>))</span>
-<span id="cb32-399"><a href="#cb32-399" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb32-400"><a href="#cb32-400" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-401"><a href="#cb32-401" aria-hidden="true" tabindex="-1"></a><span class="fu">### Estimation with weighted-aware regression</span></span>
-<span id="cb32-402"><a href="#cb32-402" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-403"><a href="#cb32-403" aria-hidden="true" tabindex="-1"></a>After computing weights, use <span class="in">`lm_weightit()`</span> instead of plain <span class="in">`lm`</span> if we</span>
-<span id="cb32-404"><a href="#cb32-404" aria-hidden="true" tabindex="-1"></a>want standard errors that account for the estimated weights.</span>
-<span id="cb32-405"><a href="#cb32-405" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-408"><a href="#cb32-408" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb32-409"><a href="#cb32-409" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: lm-weightit</span></span>
-<span id="cb32-410"><a href="#cb32-410" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb32-411"><a href="#cb32-411" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-412"><a href="#cb32-412" aria-hidden="true" tabindex="-1"></a>fit_ebal <span class="ot">&lt;-</span> <span class="fu">lm_weightit</span>(</span>
-<span id="cb32-413"><a href="#cb32-413" aria-hidden="true" tabindex="-1"></a>  re78 <span class="sc">~</span> treat <span class="sc">*</span> (age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75),</span>
-<span id="cb32-414"><a href="#cb32-414" aria-hidden="true" tabindex="-1"></a>  <span class="at">data     =</span> lalonde,</span>
-<span id="cb32-415"><a href="#cb32-415" aria-hidden="true" tabindex="-1"></a>  <span class="at">weightit =</span> w_ebal</span>
-<span id="cb32-416"><a href="#cb32-416" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb32-417"><a href="#cb32-417" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-418"><a href="#cb32-418" aria-hidden="true" tabindex="-1"></a><span class="fu">avg_comparisons</span>(fit_ebal, <span class="at">variables =</span> <span class="st">"treat"</span>,</span>
-<span id="cb32-419"><a href="#cb32-419" aria-hidden="true" tabindex="-1"></a>                <span class="at">newdata =</span> <span class="fu">subset</span>(lalonde, treat <span class="sc">==</span> <span class="dv">1</span>))   <span class="co"># ATT</span></span>
-<span id="cb32-420"><a href="#cb32-420" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb32-421"><a href="#cb32-421" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-422"><a href="#cb32-422" aria-hidden="true" tabindex="-1"></a>This gives the entropy-balanced ATT and a sandwich-style standard error.</span>
-<span id="cb32-423"><a href="#cb32-423" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-424"><a href="#cb32-424" aria-hidden="true" tabindex="-1"></a><span class="fu">### When to use each weighting method</span></span>
-<span id="cb32-425"><a href="#cb32-425" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-426"><a href="#cb32-426" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Method <span class="pp">|</span> Strengths <span class="pp">|</span> Weaknesses <span class="pp">|</span></span>
-<span id="cb32-427"><a href="#cb32-427" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
-<span id="cb32-428"><a href="#cb32-428" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **IPW** (glm) <span class="pp">|</span> Familiar; well-studied <span class="pp">|</span> Sensitive to PS misspecification; extreme weights <span class="pp">|</span></span>
-<span id="cb32-429"><a href="#cb32-429" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **CBPS** <span class="pp">|</span> Balance-constrained PS; robust to model misspecification <span class="pp">|</span> Slower; can fail with many covariates <span class="pp">|</span></span>
-<span id="cb32-430"><a href="#cb32-430" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Entropy balancing** <span class="pp">|</span> Exact mean balance; doubly robust for ATT <span class="pp">|</span> Balances means only, not distributions <span class="pp">|</span></span>
-<span id="cb32-431"><a href="#cb32-431" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Energy balancing** <span class="pp">|</span> Balances entire distribution <span class="pp">|</span> Computationally heavier; less mature theory <span class="pp">|</span></span>
+<span id="cb32-398"><a href="#cb32-398" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb32-399"><a href="#cb32-399" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: ipw-weighting</span></span>
+<span id="cb32-400"><a href="#cb32-400" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb32-401"><a href="#cb32-401" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-402"><a href="#cb32-402" aria-hidden="true" tabindex="-1"></a>w_ipw <span class="ot">&lt;-</span> <span class="fu">weightit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
+<span id="cb32-403"><a href="#cb32-403" aria-hidden="true" tabindex="-1"></a>                  <span class="at">data =</span> lalonde, <span class="at">estimand =</span> <span class="st">"ATT"</span>, <span class="at">method =</span> <span class="st">"glm"</span>)</span>
+<span id="cb32-404"><a href="#cb32-404" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(w_ipw, <span class="at">stats =</span> <span class="fu">c</span>(<span class="st">"m"</span>), <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.05</span>))</span>
+<span id="cb32-405"><a href="#cb32-405" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb32-406"><a href="#cb32-406" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-407"><a href="#cb32-407" aria-hidden="true" tabindex="-1"></a>Note the stricter 0.05 threshold from here on. IPW balances nine of ten;</span>
+<span id="cb32-408"><a href="#cb32-408" aria-hidden="true" tabindex="-1"></a><span class="in">`age`</span> fails at 0.119. The control effective sample size is 99.8 out of 429,</span>
+<span id="cb32-409"><a href="#cb32-409" aria-hidden="true" tabindex="-1"></a>better than any of the matching methods above.</span>
+<span id="cb32-410"><a href="#cb32-410" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-411"><a href="#cb32-411" aria-hidden="true" tabindex="-1"></a><span class="fu">### Covariate balancing propensity score (CBPS)</span></span>
+<span id="cb32-412"><a href="#cb32-412" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-413"><a href="#cb32-413" aria-hidden="true" tabindex="-1"></a>CBPS estimates the propensity score while also trying to balance covariate</span>
+<span id="cb32-414"><a href="#cb32-414" aria-hidden="true" tabindex="-1"></a>means. So the propensity-score model is not judged only by likelihood; it is</span>
+<span id="cb32-415"><a href="#cb32-415" aria-hidden="true" tabindex="-1"></a>also judged by balance.</span>
+<span id="cb32-416"><a href="#cb32-416" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-419"><a href="#cb32-419" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb32-420"><a href="#cb32-420" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: cbps</span></span>
+<span id="cb32-421"><a href="#cb32-421" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb32-422"><a href="#cb32-422" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-423"><a href="#cb32-423" aria-hidden="true" tabindex="-1"></a>w_cbps <span class="ot">&lt;-</span> <span class="fu">weightit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
+<span id="cb32-424"><a href="#cb32-424" aria-hidden="true" tabindex="-1"></a>                   <span class="at">data =</span> lalonde, <span class="at">estimand =</span> <span class="st">"ATT"</span>, <span class="at">method =</span> <span class="st">"cbps"</span>)</span>
+<span id="cb32-425"><a href="#cb32-425" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(w_cbps, <span class="at">stats =</span> <span class="fu">c</span>(<span class="st">"m"</span>), <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.05</span>))</span>
+<span id="cb32-426"><a href="#cb32-426" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb32-427"><a href="#cb32-427" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-428"><a href="#cb32-428" aria-hidden="true" tabindex="-1"></a>Every covariate mean difference is zero to three decimals, and the control</span>
+<span id="cb32-429"><a href="#cb32-429" aria-hidden="true" tabindex="-1"></a>effective sample size is 98.5.</span>
+<span id="cb32-430"><a href="#cb32-430" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-431"><a href="#cb32-431" aria-hidden="true" tabindex="-1"></a><span class="fu">### Entropy balancing</span></span>
 <span id="cb32-432"><a href="#cb32-432" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-433"><a href="#cb32-433" aria-hidden="true" tabindex="-1"></a>For applied work, entropy balancing is often a good default because it is</span>
-<span id="cb32-434"><a href="#cb32-434" aria-hidden="true" tabindex="-1"></a>simple and the balance diagnostics are easy to explain. Energy balancing is</span>
-<span id="cb32-435"><a href="#cb32-435" aria-hidden="true" tabindex="-1"></a>useful when matching the whole covariate distribution is important.</span>
+<span id="cb32-433"><a href="#cb32-433" aria-hidden="true" tabindex="-1"></a>Entropy balancing chooses weights so that the weighted control group matches</span>
+<span id="cb32-434"><a href="#cb32-434" aria-hidden="true" tabindex="-1"></a>the treated group on covariate means. It is useful because the balance</span>
+<span id="cb32-435"><a href="#cb32-435" aria-hidden="true" tabindex="-1"></a>constraint is explicit.</span>
 <span id="cb32-436"><a href="#cb32-436" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-437"><a href="#cb32-437" aria-hidden="true" tabindex="-1"></a><span class="fu">### Comparing matching to weighting</span></span>
-<span id="cb32-438"><a href="#cb32-438" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-439"><a href="#cb32-439" aria-hidden="true" tabindex="-1"></a>The matching and weighting examples here target the same ATT, so put the two</span>
-<span id="cb32-440"><a href="#cb32-440" aria-hidden="true" tabindex="-1"></a>estimates next to each other rather than reporting whichever came last:</span>
-<span id="cb32-441"><a href="#cb32-441" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-444"><a href="#cb32-444" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb32-445"><a href="#cb32-445" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: compare-methods</span></span>
-<span id="cb32-446"><a href="#cb32-446" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb32-439"><a href="#cb32-439" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb32-440"><a href="#cb32-440" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: ebal</span></span>
+<span id="cb32-441"><a href="#cb32-441" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb32-442"><a href="#cb32-442" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-443"><a href="#cb32-443" aria-hidden="true" tabindex="-1"></a>w_ebal <span class="ot">&lt;-</span> <span class="fu">weightit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
+<span id="cb32-444"><a href="#cb32-444" aria-hidden="true" tabindex="-1"></a>                   <span class="at">data =</span> lalonde, <span class="at">estimand =</span> <span class="st">"ATT"</span>, <span class="at">method =</span> <span class="st">"ebal"</span>)</span>
+<span id="cb32-445"><a href="#cb32-445" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(w_ebal, <span class="at">stats =</span> <span class="fu">c</span>(<span class="st">"m"</span>), <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.05</span>))</span>
+<span id="cb32-446"><a href="#cb32-446" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb32-447"><a href="#cb32-447" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-448"><a href="#cb32-448" aria-hidden="true" tabindex="-1"></a>cmp <span class="ot">&lt;-</span> <span class="fu">rbind</span>(</span>
-<span id="cb32-449"><a href="#cb32-449" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transform</span>(<span class="fu">as.data.frame</span>(</span>
-<span id="cb32-450"><a href="#cb32-450" aria-hidden="true" tabindex="-1"></a>    <span class="fu">avg_comparisons</span>(fit, <span class="at">variables =</span> <span class="st">"treat"</span>, <span class="at">vcov =</span> <span class="sc">~</span>subclass,</span>
-<span id="cb32-451"><a href="#cb32-451" aria-hidden="true" tabindex="-1"></a>                    <span class="at">newdata =</span> <span class="fu">subset</span>(m.data, treat <span class="sc">==</span> <span class="dv">1</span>))),</span>
-<span id="cb32-452"><a href="#cb32-452" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"Full matching (subclass-clustered SE)"</span>),</span>
-<span id="cb32-453"><a href="#cb32-453" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transform</span>(<span class="fu">as.data.frame</span>(</span>
-<span id="cb32-454"><a href="#cb32-454" aria-hidden="true" tabindex="-1"></a>    <span class="fu">avg_comparisons</span>(fit_ebal, <span class="at">variables =</span> <span class="st">"treat"</span>,</span>
-<span id="cb32-455"><a href="#cb32-455" aria-hidden="true" tabindex="-1"></a>                    <span class="at">newdata =</span> <span class="fu">subset</span>(lalonde, treat <span class="sc">==</span> <span class="dv">1</span>))),</span>
-<span id="cb32-456"><a href="#cb32-456" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"Entropy balancing (sandwich SE)"</span>)</span>
-<span id="cb32-457"><a href="#cb32-457" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb32-458"><a href="#cb32-458" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-459"><a href="#cb32-459" aria-hidden="true" tabindex="-1"></a>cmp[, <span class="fu">c</span>(<span class="st">"method"</span>, <span class="st">"estimate"</span>, <span class="st">"std.error"</span>, <span class="st">"conf.low"</span>, <span class="st">"conf.high"</span>, <span class="st">"p.value"</span>)] <span class="sc">|&gt;</span></span>
-<span id="cb32-460"><a href="#cb32-460" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">3</span>),</span>
-<span id="cb32-461"><a href="#cb32-461" aria-hidden="true" tabindex="-1"></a>               <span class="at">caption =</span> <span class="st">"Two routes to the same ATT on the Lalonde data"</span>)</span>
-<span id="cb32-462"><a href="#cb32-462" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb32-463"><a href="#cb32-463" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-464"><a href="#cb32-464" aria-hidden="true" tabindex="-1"></a>The gap is instructive. The two point estimates differ by roughly one standard</span>
-<span id="cb32-465"><a href="#cb32-465" aria-hidden="true" tabindex="-1"></a>error, and one interval excludes zero while the other does not --- a reader who</span>
-<span id="cb32-466"><a href="#cb32-466" aria-hidden="true" tabindex="-1"></a>sees only one of these tables would draw a different conclusion about whether</span>
-<span id="cb32-467"><a href="#cb32-467" aria-hidden="true" tabindex="-1"></a>the programme worked. Note also that the ranking on balance does not settle it:</span>
-<span id="cb32-468"><a href="#cb32-468" aria-hidden="true" tabindex="-1"></a>entropy balancing imposes *exact* mean balance (every standardized difference</span>
-<span id="cb32-469"><a href="#cb32-469" aria-hidden="true" tabindex="-1"></a>above is at most 0.023), whereas full matching leaves <span class="in">`educ`</span> at $-0.096$, yet it</span>
-<span id="cb32-470"><a href="#cb32-470" aria-hidden="true" tabindex="-1"></a>is entropy balancing that gives the smaller estimate and the wider interval.</span>
-<span id="cb32-471"><a href="#cb32-471" aria-hidden="true" tabindex="-1"></a>Better mean balance is not the same thing as a more precise or more credible</span>
-<span id="cb32-472"><a href="#cb32-472" aria-hidden="true" tabindex="-1"></a>answer.</span>
-<span id="cb32-473"><a href="#cb32-473" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-474"><a href="#cb32-474" aria-hidden="true" tabindex="-1"></a>This is model dependence, not a bug in either method. In an applied paper I would</span>
-<span id="cb32-475"><a href="#cb32-475" aria-hidden="true" tabindex="-1"></a>report balance for each method, not just the final coefficient, and I would report</span>
-<span id="cb32-476"><a href="#cb32-476" aria-hidden="true" tabindex="-1"></a>both estimates. If several reasonable methods give similar balance and similar</span>
-<span id="cb32-477"><a href="#cb32-477" aria-hidden="true" tabindex="-1"></a>estimates, the result is more credible. If they differ sharply, as here, the</span>
-<span id="cb32-478"><a href="#cb32-478" aria-hidden="true" tabindex="-1"></a>problem is usually weak overlap or model dependence, and the honest summary says</span>
-<span id="cb32-479"><a href="#cb32-479" aria-hidden="true" tabindex="-1"></a>so instead of picking the number that crosses the significance line.</span>
-<span id="cb32-480"><a href="#cb32-480" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-481"><a href="#cb32-481" aria-hidden="true" tabindex="-1"></a>For more details on <span class="in">`MatchIt`</span> and the Stata <span class="in">`teffects`</span> commands, see the</span>
-<span id="cb32-482"><a href="#cb32-482" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">matching blog chapter</span><span class="co">](https://xiangao.github.io/blog_book/matching-part1.html)</span></span>
-<span id="cb32-483"><a href="#cb32-483" aria-hidden="true" tabindex="-1"></a>and <span class="co">[</span><span class="ot">treatment-effects in Stata</span><span class="co">](https://xiangao.github.io/blog_book/treatment-matching.html)</span>.</span>
-<span id="cb32-484"><a href="#cb32-484" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-485"><a href="#cb32-485" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
-<span id="cb32-486"><a href="#cb32-486" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-487"><a href="#cb32-487" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Matching is for selection on observables. It does not fix unobserved</span>
-<span id="cb32-488"><a href="#cb32-488" aria-hidden="true" tabindex="-1"></a>  confounding.</span>
-<span id="cb32-489"><a href="#cb32-489" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The main diagnostic is covariate balance, not the treatment-effect</span>
-<span id="cb32-490"><a href="#cb32-490" aria-hidden="true" tabindex="-1"></a>  coefficient.</span>
-<span id="cb32-491"><a href="#cb32-491" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Propensity-score matching is simple, but full matching or weighting often</span>
-<span id="cb32-492"><a href="#cb32-492" aria-hidden="true" tabindex="-1"></a>  balances better.</span>
-<span id="cb32-493"><a href="#cb32-493" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>If there is no overlap, change the estimand or restrict the sample. Do not</span>
-<span id="cb32-494"><a href="#cb32-494" aria-hidden="true" tabindex="-1"></a>  hide the support problem.</span>
+<span id="cb32-448"><a href="#cb32-448" aria-hidden="true" tabindex="-1"></a>The standardized mean differences are essentially zero because entropy</span>
+<span id="cb32-449"><a href="#cb32-449" aria-hidden="true" tabindex="-1"></a>balancing imposes mean balance directly. The effective sample size is 98.5.</span>
+<span id="cb32-450"><a href="#cb32-450" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-451"><a href="#cb32-451" aria-hidden="true" tabindex="-1"></a>That is the same table CBPS produced, and it is not a coincidence: the two sets</span>
+<span id="cb32-452"><a href="#cb32-452" aria-hidden="true" tabindex="-1"></a>of control weights are numerically identical here, agreeing to twelve decimal</span>
+<span id="cb32-453"><a href="#cb32-453" aria-hidden="true" tabindex="-1"></a>places. Just-identified CBPS for the ATT solves the exact mean-balance moment</span>
+<span id="cb32-454"><a href="#cb32-454" aria-hidden="true" tabindex="-1"></a>conditions with a logistic link, which makes the control weights proportional</span>
+<span id="cb32-455"><a href="#cb32-455" aria-hidden="true" tabindex="-1"></a>to $\exp(x'\lambda)$. Entropy balancing minimises the Kullback-Leibler</span>
+<span id="cb32-456"><a href="#cb32-456" aria-hidden="true" tabindex="-1"></a>divergence from uniform weights subject to the same exact mean-balance</span>
+<span id="cb32-457"><a href="#cb32-457" aria-hidden="true" tabindex="-1"></a>constraints, and its solution has the same $\exp(x'\lambda)$ form. Same</span>
+<span id="cb32-458"><a href="#cb32-458" aria-hidden="true" tabindex="-1"></a>constraints, same functional form, same weights. The two methods are motivated</span>
+<span id="cb32-459"><a href="#cb32-459" aria-hidden="true" tabindex="-1"></a>differently and arrive at one answer.</span>
+<span id="cb32-460"><a href="#cb32-460" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-461"><a href="#cb32-461" aria-hidden="true" tabindex="-1"></a><span class="fu">### Energy balancing</span></span>
+<span id="cb32-462"><a href="#cb32-462" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-463"><a href="#cb32-463" aria-hidden="true" tabindex="-1"></a>Energy balancing targets the whole covariate distribution, not just means.</span>
+<span id="cb32-464"><a href="#cb32-464" aria-hidden="true" tabindex="-1"></a>It is more ambitious than entropy balancing, and usually more computationally</span>
+<span id="cb32-465"><a href="#cb32-465" aria-hidden="true" tabindex="-1"></a>expensive.</span>
+<span id="cb32-466"><a href="#cb32-466" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-469"><a href="#cb32-469" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb32-470"><a href="#cb32-470" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: energy</span></span>
+<span id="cb32-471"><a href="#cb32-471" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb32-472"><a href="#cb32-472" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-473"><a href="#cb32-473" aria-hidden="true" tabindex="-1"></a>w_energy <span class="ot">&lt;-</span> <span class="fu">weightit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75,</span>
+<span id="cb32-474"><a href="#cb32-474" aria-hidden="true" tabindex="-1"></a>                     <span class="at">data =</span> lalonde, <span class="at">estimand =</span> <span class="st">"ATT"</span>, <span class="at">method =</span> <span class="st">"energy"</span>)</span>
+<span id="cb32-475"><a href="#cb32-475" aria-hidden="true" tabindex="-1"></a><span class="fu">bal.tab</span>(w_energy, <span class="at">stats =</span> <span class="fu">c</span>(<span class="st">"m"</span>), <span class="at">thresholds =</span> <span class="fu">c</span>(<span class="at">m =</span> <span class="fl">0.05</span>))</span>
+<span id="cb32-476"><a href="#cb32-476" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb32-477"><a href="#cb32-477" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-478"><a href="#cb32-478" aria-hidden="true" tabindex="-1"></a>All nine contrasts pass, the largest being <span class="in">`re75`</span> at 0.023 --- close to zero</span>
+<span id="cb32-479"><a href="#cb32-479" aria-hidden="true" tabindex="-1"></a>but not exactly zero, because energy balancing does not impose mean balance as</span>
+<span id="cb32-480"><a href="#cb32-480" aria-hidden="true" tabindex="-1"></a>a constraint. The control effective sample size is 41.8, less than half of</span>
+<span id="cb32-481"><a href="#cb32-481" aria-hidden="true" tabindex="-1"></a>entropy balancing's 98.5. That is the price of targeting the whole covariate</span>
+<span id="cb32-482"><a href="#cb32-482" aria-hidden="true" tabindex="-1"></a>distribution rather than its means.</span>
+<span id="cb32-483"><a href="#cb32-483" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-484"><a href="#cb32-484" aria-hidden="true" tabindex="-1"></a><span class="fu">### Estimation with weighted-aware regression</span></span>
+<span id="cb32-485"><a href="#cb32-485" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-486"><a href="#cb32-486" aria-hidden="true" tabindex="-1"></a>After computing weights, use <span class="in">`lm_weightit()`</span> instead of plain <span class="in">`lm`</span> if we</span>
+<span id="cb32-487"><a href="#cb32-487" aria-hidden="true" tabindex="-1"></a>want standard errors that account for the estimated weights.</span>
+<span id="cb32-488"><a href="#cb32-488" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-491"><a href="#cb32-491" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb32-492"><a href="#cb32-492" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: lm-weightit</span></span>
+<span id="cb32-493"><a href="#cb32-493" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb32-494"><a href="#cb32-494" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-495"><a href="#cb32-495" aria-hidden="true" tabindex="-1"></a>fit_ebal <span class="ot">&lt;-</span> <span class="fu">lm_weightit</span>(</span>
+<span id="cb32-496"><a href="#cb32-496" aria-hidden="true" tabindex="-1"></a>  re78 <span class="sc">~</span> treat <span class="sc">*</span> (age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span> re74 <span class="sc">+</span> re75),</span>
+<span id="cb32-497"><a href="#cb32-497" aria-hidden="true" tabindex="-1"></a>  <span class="at">data     =</span> lalonde,</span>
+<span id="cb32-498"><a href="#cb32-498" aria-hidden="true" tabindex="-1"></a>  <span class="at">weightit =</span> w_ebal</span>
+<span id="cb32-499"><a href="#cb32-499" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-500"><a href="#cb32-500" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-501"><a href="#cb32-501" aria-hidden="true" tabindex="-1"></a><span class="fu">avg_comparisons</span>(fit_ebal, <span class="at">variables =</span> <span class="st">"treat"</span>,</span>
+<span id="cb32-502"><a href="#cb32-502" aria-hidden="true" tabindex="-1"></a>                <span class="at">newdata =</span> <span class="fu">subset</span>(lalonde, treat <span class="sc">==</span> <span class="dv">1</span>))   <span class="co"># ATT</span></span>
+<span id="cb32-503"><a href="#cb32-503" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb32-504"><a href="#cb32-504" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-505"><a href="#cb32-505" aria-hidden="true" tabindex="-1"></a>The entropy-balanced ATT is \$1,273 with a sandwich standard error of \$770,</span>
+<span id="cb32-506"><a href="#cb32-506" aria-hidden="true" tabindex="-1"></a>a 95% interval of $<span class="co">[</span><span class="ot">-236, 2783</span><span class="co">]</span>$, and $p = 0.098$. The interval includes zero.</span>
+<span id="cb32-507"><a href="#cb32-507" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-508"><a href="#cb32-508" aria-hidden="true" tabindex="-1"></a><span class="fu">### When to use each weighting method</span></span>
+<span id="cb32-509"><a href="#cb32-509" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-510"><a href="#cb32-510" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Method <span class="pp">|</span> Strengths <span class="pp">|</span> Weaknesses <span class="pp">|</span></span>
+<span id="cb32-511"><a href="#cb32-511" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
+<span id="cb32-512"><a href="#cb32-512" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **IPW** (glm) <span class="pp">|</span> Familiar; well-studied <span class="pp">|</span> Sensitive to PS misspecification; extreme weights <span class="pp">|</span></span>
+<span id="cb32-513"><a href="#cb32-513" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **CBPS** <span class="pp">|</span> Balance-constrained PS; robust to model misspecification <span class="pp">|</span> Slower; can fail with many covariates <span class="pp">|</span></span>
+<span id="cb32-514"><a href="#cb32-514" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Entropy balancing** <span class="pp">|</span> Exact mean balance; doubly robust for ATT <span class="pp">|</span> Balances means only, not distributions <span class="pp">|</span></span>
+<span id="cb32-515"><a href="#cb32-515" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Energy balancing** <span class="pp">|</span> Balances entire distribution <span class="pp">|</span> Computationally heavier; less mature theory <span class="pp">|</span></span>
+<span id="cb32-516"><a href="#cb32-516" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-517"><a href="#cb32-517" aria-hidden="true" tabindex="-1"></a>For applied work, entropy balancing is often a good default because it is</span>
+<span id="cb32-518"><a href="#cb32-518" aria-hidden="true" tabindex="-1"></a>simple and the balance diagnostics are easy to explain. Energy balancing is</span>
+<span id="cb32-519"><a href="#cb32-519" aria-hidden="true" tabindex="-1"></a>useful when matching the whole covariate distribution is important.</span>
+<span id="cb32-520"><a href="#cb32-520" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-521"><a href="#cb32-521" aria-hidden="true" tabindex="-1"></a><span class="fu">### Comparing matching to weighting</span></span>
+<span id="cb32-522"><a href="#cb32-522" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-523"><a href="#cb32-523" aria-hidden="true" tabindex="-1"></a>The matching and weighting examples here target the same ATT, so put the two</span>
+<span id="cb32-524"><a href="#cb32-524" aria-hidden="true" tabindex="-1"></a>estimates next to each other rather than reporting whichever came last:</span>
+<span id="cb32-525"><a href="#cb32-525" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-528"><a href="#cb32-528" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb32-529"><a href="#cb32-529" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: compare-methods</span></span>
+<span id="cb32-530"><a href="#cb32-530" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb32-531"><a href="#cb32-531" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-532"><a href="#cb32-532" aria-hidden="true" tabindex="-1"></a>cmp <span class="ot">&lt;-</span> <span class="fu">rbind</span>(</span>
+<span id="cb32-533"><a href="#cb32-533" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transform</span>(<span class="fu">as.data.frame</span>(</span>
+<span id="cb32-534"><a href="#cb32-534" aria-hidden="true" tabindex="-1"></a>    <span class="fu">avg_comparisons</span>(fit, <span class="at">variables =</span> <span class="st">"treat"</span>, <span class="at">vcov =</span> <span class="sc">~</span>subclass,</span>
+<span id="cb32-535"><a href="#cb32-535" aria-hidden="true" tabindex="-1"></a>                    <span class="at">newdata =</span> <span class="fu">subset</span>(m.data, treat <span class="sc">==</span> <span class="dv">1</span>))),</span>
+<span id="cb32-536"><a href="#cb32-536" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"Full matching (subclass-clustered SE)"</span>),</span>
+<span id="cb32-537"><a href="#cb32-537" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transform</span>(<span class="fu">as.data.frame</span>(</span>
+<span id="cb32-538"><a href="#cb32-538" aria-hidden="true" tabindex="-1"></a>    <span class="fu">avg_comparisons</span>(fit_ebal, <span class="at">variables =</span> <span class="st">"treat"</span>,</span>
+<span id="cb32-539"><a href="#cb32-539" aria-hidden="true" tabindex="-1"></a>                    <span class="at">newdata =</span> <span class="fu">subset</span>(lalonde, treat <span class="sc">==</span> <span class="dv">1</span>))),</span>
+<span id="cb32-540"><a href="#cb32-540" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"Entropy balancing (sandwich SE)"</span>)</span>
+<span id="cb32-541"><a href="#cb32-541" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-542"><a href="#cb32-542" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-543"><a href="#cb32-543" aria-hidden="true" tabindex="-1"></a>cmp[, <span class="fu">c</span>(<span class="st">"method"</span>, <span class="st">"estimate"</span>, <span class="st">"std.error"</span>, <span class="st">"conf.low"</span>, <span class="st">"conf.high"</span>, <span class="st">"p.value"</span>)] <span class="sc">|&gt;</span></span>
+<span id="cb32-544"><a href="#cb32-544" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">3</span>),</span>
+<span id="cb32-545"><a href="#cb32-545" aria-hidden="true" tabindex="-1"></a>               <span class="at">caption =</span> <span class="st">"Two routes to the same ATT on the Lalonde data"</span>)</span>
+<span id="cb32-546"><a href="#cb32-546" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb32-547"><a href="#cb32-547" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-548"><a href="#cb32-548" aria-hidden="true" tabindex="-1"></a>The gap is instructive. The two point estimates differ by roughly one standard</span>
+<span id="cb32-549"><a href="#cb32-549" aria-hidden="true" tabindex="-1"></a>error, and one interval excludes zero while the other does not --- a reader who</span>
+<span id="cb32-550"><a href="#cb32-550" aria-hidden="true" tabindex="-1"></a>sees only one of these tables would draw a different conclusion about whether</span>
+<span id="cb32-551"><a href="#cb32-551" aria-hidden="true" tabindex="-1"></a>the programme worked. Note also that the ranking on balance does not settle it:</span>
+<span id="cb32-552"><a href="#cb32-552" aria-hidden="true" tabindex="-1"></a>entropy balancing imposes *exact* mean balance (every standardized difference</span>
+<span id="cb32-553"><a href="#cb32-553" aria-hidden="true" tabindex="-1"></a>above is at most 0.023), whereas full matching leaves <span class="in">`educ`</span> at $-0.096$, yet it</span>
+<span id="cb32-554"><a href="#cb32-554" aria-hidden="true" tabindex="-1"></a>is entropy balancing that gives the smaller estimate and the wider interval.</span>
+<span id="cb32-555"><a href="#cb32-555" aria-hidden="true" tabindex="-1"></a>Better mean balance is not the same thing as a more precise or more credible</span>
+<span id="cb32-556"><a href="#cb32-556" aria-hidden="true" tabindex="-1"></a>answer.</span>
+<span id="cb32-557"><a href="#cb32-557" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-558"><a href="#cb32-558" aria-hidden="true" tabindex="-1"></a>This is model dependence, not a bug in either method. In an applied paper I would</span>
+<span id="cb32-559"><a href="#cb32-559" aria-hidden="true" tabindex="-1"></a>report balance for each method, not just the final coefficient, and I would report</span>
+<span id="cb32-560"><a href="#cb32-560" aria-hidden="true" tabindex="-1"></a>both estimates. If several reasonable methods give similar balance and similar</span>
+<span id="cb32-561"><a href="#cb32-561" aria-hidden="true" tabindex="-1"></a>estimates, the result is more credible. If they differ sharply, as here, the</span>
+<span id="cb32-562"><a href="#cb32-562" aria-hidden="true" tabindex="-1"></a>problem is usually weak overlap or model dependence, and the honest summary says</span>
+<span id="cb32-563"><a href="#cb32-563" aria-hidden="true" tabindex="-1"></a>so instead of picking the number that crosses the significance line.</span>
+<span id="cb32-564"><a href="#cb32-564" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-565"><a href="#cb32-565" aria-hidden="true" tabindex="-1"></a>For more details on <span class="in">`MatchIt`</span> and the Stata <span class="in">`teffects`</span> commands, see the</span>
+<span id="cb32-566"><a href="#cb32-566" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">matching blog chapter</span><span class="co">](https://xiangao.github.io/blog_book/matching-part1.html)</span></span>
+<span id="cb32-567"><a href="#cb32-567" aria-hidden="true" tabindex="-1"></a>and <span class="co">[</span><span class="ot">treatment-effects in Stata</span><span class="co">](https://xiangao.github.io/blog_book/treatment-matching.html)</span>.</span>
+<span id="cb32-568"><a href="#cb32-568" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-569"><a href="#cb32-569" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb32-570"><a href="#cb32-570" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-571"><a href="#cb32-571" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Matching is for selection on observables. It does not fix unobserved</span>
+<span id="cb32-572"><a href="#cb32-572" aria-hidden="true" tabindex="-1"></a>  confounding.</span>
+<span id="cb32-573"><a href="#cb32-573" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The main diagnostic is covariate balance, not the treatment-effect</span>
+<span id="cb32-574"><a href="#cb32-574" aria-hidden="true" tabindex="-1"></a>  coefficient.</span>
+<span id="cb32-575"><a href="#cb32-575" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Propensity-score matching is simple, but full matching or weighting often</span>
+<span id="cb32-576"><a href="#cb32-576" aria-hidden="true" tabindex="-1"></a>  balances better.</span>
+<span id="cb32-577"><a href="#cb32-577" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>If there is no overlap, change the estimand or restrict the sample. Do not</span>
+<span id="cb32-578"><a href="#cb32-578" aria-hidden="true" tabindex="-1"></a>  hide the support problem.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

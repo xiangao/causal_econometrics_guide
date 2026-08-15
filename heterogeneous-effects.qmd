@@ -37,9 +37,21 @@ I use four kinds of tools:
 
 ## The data-generating process
 
-I use the same CATE function as the estimands chapter,
-$\tau(x)=1+2x_1$ (the rest of the DGP differs: five covariates and
-confounding through the observed $X_2$).
+We simulate $n = 5000$ units with five covariates, each drawn independently
+from $U(0,1)$. Treatment is $D \sim \text{Bernoulli}(\Lambda(-0.3 + 1.5X_2))$.
+The CATE function is the one from the estimands chapter, $\tau(x) = 1 + 2x_1$.
+The potential outcomes are $Y(0) = 0.5X_2 + \varepsilon$ with
+$\varepsilon \sim N(0,1)$ and $Y(1) = Y(0) + \tau(X)$, and we observe
+$Y = DY(1) + (1-D)Y(0)$.
+
+Two covariates do the work and three are irrelevant. $X_1$ modifies the effect but
+has nothing to do with selection. $X_2$ drives both treatment and the outcome,
+so it is a backdoor confounder, and it is observed. $X_3$, $X_4$ and $X_5$ enter
+neither equation. The population ATE is $\int_0^1 (1+2x)\,dx = 2$.
+
+The aim is to hand six estimators the same data and see which recover
+$\tau(x)$, judged by the correlation between estimated and true individual
+effects.
 
 ```{r}
 #| label: dgp
@@ -66,10 +78,11 @@ cat(sprintf("True CATE at X1 = 0.2: %.2f\n", 1 + 2 * 0.2))
 cat(sprintf("True CATE at X1 = 0.8: %.2f\n", 1 + 2 * 0.8))
 ```
 
-Treatment is related to the observed covariate $X_2$, which also affects the
-outcome — a backdoor confounder. Because $X_2$ is observed and included in the
-conditioning set, unconfoundedness holds and the meta-learners and causal
-forest below are consistent for the true CATE/ATE.
+The realized ATE in this draw is 2.006 against a population value of 2, and the
+true CATE runs from 1.40 at $X_1 = 0.2$ to 2.60 at $X_1 = 0.8$. Because $X_2$ is
+observed and every estimator below conditions on it, unconfoundedness holds and
+all of them are consistent for the true CATE and ATE. Any differences we see
+are finite-sample behaviour, not bias from a missing variable.
 
 ## Meta-learners
 
@@ -103,8 +116,9 @@ cor_S <- cor(tau_S, tau)
 cat(sprintf("S-learner CATE correlation with truth: %.3f\n", cor_S))
 ```
 
-The S-learner is simple. Its weakness is that the model may treat $D$ as a
-minor predictor of $Y$ and shrink the treatment effect toward zero.
+The S-learner's estimates correlate 0.970 with the true individual effects. It
+is simple, and its weakness is that the model may treat $D$ as a minor
+predictor of $Y$ and shrink the treatment effect toward zero.
 
 ### T-learner ("two")
 
@@ -126,9 +140,10 @@ cor_T <- cor(tau_T, tau)
 cat(sprintf("T-learner CATE correlation with truth: %.3f\n", cor_T))
 ```
 
-The T-learner gives treatment and control separate outcome models. That can
-help with heterogeneity, but it can also extrapolate badly when the treated
-and control covariate distributions do not overlap.
+The T-learner correlates 0.968, essentially the same as the S-learner. Giving
+treatment and control separate outcome models can help with heterogeneity, but
+it can also extrapolate badly when the treated and control covariate
+distributions do not overlap.
 
 ### X-learner [@kunzel-2019-metalearners]
 
@@ -163,8 +178,11 @@ cor_X <- cor(tau_X, tau)
 cat(sprintf("X-learner CATE correlation with truth: %.3f\n", cor_X))
 ```
 
-The X-learner is useful when one treatment arm is much smaller than the
-other.
+The X-learner correlates 0.984, the best of the five meta-learners here. The
+extra smoothing step is what buys the improvement: regressing the pseudo-effects
+on $X$ imposes that the effect is a function of the covariates, which is true by
+construction in this DGP. The X-learner is also useful when one treatment arm is
+much smaller than the other.
 
 ### R-learner [@nie-wager-2021]
 
@@ -213,8 +231,13 @@ cor_R <- cor(tau_R, tau)
 cat(sprintf("R-learner CATE correlation with truth: %.3f\n", cor_R))
 ```
 
-The R-learner is often stable when overlap is reasonable because errors in
-the nuisance models have only second-order effects on the target.
+The R-learner correlates 0.930, the weakest here. Errors in the nuisance models
+have only second-order effects on the target, which is the theoretical appeal,
+but the pseudo-outcome divides by $D_i - \hat e(X_i)$, and that denominator is
+near zero for any unit whose treatment is well predicted. Those units get
+enormous pseudo-outcomes. The weights $(D_i-\hat e(X_i))^2$ are designed to
+offset exactly that, and they do so in a weighted least-squares sense, but the
+regression target is still much noisier than the T- or X-learner's.
 
 ### DR-learner [@kennedy-2020-optimal-dr]
 
@@ -257,6 +280,13 @@ cor_DR <- cor(tau_DR, tau)
 cat(sprintf("DR-learner CATE correlation with truth: %.3f\n", cor_DR))
 ```
 
+The DR-learner correlates 0.931. Its pseudo-outcome has no random denominator,
+but it does carry the two inverse-probability terms, and like the R-learner it
+cross-fits on two folds, so each nuisance model is trained on 2,500 observations
+rather than 5,000. Both properties cost accuracy at this sample size. The
+doubly-robust construction pays off when the nuisance models are wrong, and here
+they are not.
+
 ## Causal forests
 
 Causal forests are random forests built for treatment-effect heterogeneity.
@@ -280,10 +310,17 @@ cat(sprintf("\nCausal forest AIPW ATE: %.3f  (SE = %.3f, true = %.3f)\n",
             ate_cf["estimate"], ate_cf["std.err"], mean(tau)))
 ```
 
-Use `predict(cf, estimate.variance = TRUE)` when pointwise confidence
+The causal forest correlates 0.983 with the truth, matching the X-learner, and
+its doubly-robust ATE is 1.994 with a standard error of 0.031 against a true
+2.006. Use `predict(cf, estimate.variance = TRUE)` when pointwise confidence
 intervals are needed.
 
 ### Comparing all estimators
+
+The plot puts each estimator's predicted CATE against $X_1$, one panel per
+estimator, with a loess fit through the points and the true $\tau(x)=1+2x_1$
+as the dashed red line. What to look for is whether the blue curve tracks the
+red line and how tightly the points cluster around it.
 
 ```{r}
 #| label: compare-plot
@@ -317,6 +354,13 @@ ggplot(comparison, aes(x = X1, y = Predicted)) +
   theme_minimal()
 ```
 
+All six recover the upward slope. Ranked by correlation with the truth, the
+X-learner (0.984) and the causal forest (0.983) come first, the S- and
+T-learners next (0.970 and 0.968), and the R- and DR-learners last (0.930 and
+0.931). All six are consistent here, so this ranking is about finite-sample
+noise. It would change under a DGP where the nuisance models are misspecified,
+which is the case the doubly-robust constructions are built for.
+
 ## Best linear projection (BLP)
 
 Even if CATE is nonlinear, we often want a regression-style summary: which
@@ -337,8 +381,11 @@ blp <- best_linear_projection(cf, A = X)
 print(blp)
 ```
 
-Here the coefficient on $X_1$ should be close to 2, and the coefficients on
-the other variables should be close to 0.
+The coefficient on $X_1$ is 2.008 with a standard error of 0.105, against a
+true slope of 2. The intercept is 1.078 against a true 1. None of $X_2$ through
+$X_5$ is significant, with coefficients between $-0.115$ and 0.044 and standard
+errors around 0.105. The projection finds the one effect modifier and correctly
+reports nothing for the other four.
 
 ## Variable importance
 
@@ -355,7 +402,9 @@ vi_df <- tibble(variable = paste0("X", 1:p), importance = as.numeric(vi)) |>
 print(vi_df)
 ```
 
-$X_1$ should be the most important variable in this simulation.
+$X_1$ takes 0.725 of the importance. The other four sit between 0.053 and
+0.095, well below the 0.2 each would receive if the forest split at random.
+The forest found the effect modifier without being told which one it was.
 
 ## Policy trees: who should we treat?
 
@@ -393,10 +442,14 @@ cat(sprintf("Estimated welfare: policy tree %.3f vs treat-everyone %.3f (gain %.
             welfare_tree, welfare_all, welfare_tree - welfare_all))
 ```
 
+The tree splits on $X_1$ at every node, which is the true effect modifier, and
+treats 56.5% of units against an optimal 50.5%. Its estimated welfare is 0.525
+against 0.261 for treating everyone, a gain of 0.264 per unit. The rule beats
+treat-everyone because with a cost of 2 and $\tau(x) = 1+2x_1$, units with
+$x_1 < 0.5$ have $\tau(x) < 2$ and are not worth treating.
+
 The point of the shallow tree is interpretability. It gives up some
-flexibility in exchange for a rule that can be inspected. Here the tree
-splits on $X_1$ — the true effect modifier — and the learned rule beats
-treat-everyone because units with $\tau(x) < 2$ are not worth the cost.
+flexibility in exchange for a rule that can be inspected.
 
 Inspect the printed tree rather than summarising it, though, because at depth 2
 both branches split $X_1$ again: the fitted rule treats $X_1 \in (0.422, 0.627]$
@@ -452,8 +505,11 @@ knitr::kable(clan_df[, c("quintile", "est.estimate", "se.std.err", "lo", "hi")],
              caption = "GATES: quintile-specific ATEs sorted by predicted CATE. Heterogeneity is evident if quintile estimates differ.")
 ```
 
-The bottom and top quintiles should have different estimated ATEs in this
-simulation. One caveat: the quintiles are formed from the same forest's
+The quintile ATEs rise monotonically from 1.263 to 2.810, and the standard
+errors are all about 0.068, so the top and bottom quintiles are more than
+twenty standard errors apart. The heterogeneity is not a graphical artefact.
+The range also sits inside the true $[1, 3]$, as it must, and the quintile
+means bracket the ATE of 2. One caveat: the quintiles are formed from the same forest's
 (out-of-bag) predictions used to estimate the group ATEs, which mitigates
 but does not fully remove the bias from grouping and estimating on the same
 data; for formal inference use a held-out fold or
@@ -469,6 +525,19 @@ practical fixes are:
 2. **Pass a `clusters` argument** to `causal_forest` so that observations
    from the same unit are kept in the same training fold during honest
    sample-splitting.
+
+To show what each fix does and does not do, we simulate a panel of 200 firms
+observed over 5 periods, 1,000 observations in all. Each firm draws a unit
+effect $\alpha_i \sim N(0, 1.5^2)$ and a firm-level covariate
+$V_{1,i} \sim N(0,1)$, and the observed covariate adds within-firm noise,
+$V_{1,it} = V_{1,i} + N(0, 0.3^2)$. Treatment is
+$W_{it} \sim \text{Bernoulli}(\Lambda(0.3 V_{1,i} + 0.5\alpha_i))$, so the unit
+effect drives treatment. The CATE is $\tau_{it} = 0.5 + V_{1,it}$, and the
+outcome is $Y_{it} = \alpha_i + V_{1,it} + \tau_{it} W_{it} + N(0,1)$.
+
+The unit effect raises both the treatment probability and the outcome, and the
+forest never sees it. That is textbook fixed-effect confounding. The true ATE
+is 0.566 in this draw.
 
 ```{r}
 #| label: panel-dgp
@@ -513,6 +582,9 @@ cat(sprintf("Naive panel CF ATE: %.3f  (SE = %.3f)\n",
 cat(sprintf("True ATE: %.3f\n", mean(tau_panel)))
 ```
 
+The naive forest returns 1.706 with a standard error of 0.127 against a true
+0.566. It is off by three times the truth, and about nine standard errors away.
+
 Adding `clusters = firm` keeps a firm's observations together when `grf`
 does the honest sample split. Note what this does and does not do: it makes
 the honest splitting and the standard errors respect the panel structure,
@@ -531,6 +603,11 @@ ate_clust <- average_treatment_effect(cf_clust)
 cat(sprintf("Clustered panel CF ATE: %.3f  (SE = %.3f)\n",
             ate_clust["estimate"], ate_clust["std.err"]))
 ```
+
+Clustering gives 1.741 with a standard error of 0.163. The estimate moved
+slightly further from the truth, not closer, and the standard error grew. This
+is the point: `clusters=` is about honesty and inference, never about
+confounding.
 
 What removes the confounding is the fixed-effect style adjustment: demean
 $Y$, $W$, and $V_1$ by firm before fitting, which sweeps out `unit_fe`.
@@ -562,6 +639,10 @@ ate_fe <- average_treatment_effect(cf_fe)
 cat(sprintf("Within-transform CF ATE: %.3f  (SE = %.3f)\n",
             ate_fe["estimate"], ate_fe["std.err"]))
 ```
+
+The within transform gives 0.577 with a standard error of 0.103, against a true
+0.566. Sweeping out the firm means removed the confounding that clustering did
+not touch.
 
 The clustered, within-transformed causal forest is a heuristic analogue to a
 fixed-effect regression with heterogeneous effects, but it does not target

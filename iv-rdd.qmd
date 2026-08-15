@@ -18,6 +18,10 @@ With an unobserved confounder, unconfoundedness fails. Even a randomized experim
 
 ### Uncontrolled Confounder
 
+The graph below is the problem: $c$ is an unobserved common cause of the
+treatment $w$ and the outcome $y$. There is no adjustment set, because $c$ is
+not measured.
+
 ```{r dag2, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}
 library(ggplot2)
 library(ggdag)
@@ -34,6 +38,11 @@ ggdag(g)
 ```
 
 ### Why Does IV Work?
+
+Adding $z$ gives a variable that moves $w$ and reaches $y$ only through $w$.
+The arrow $z \to w$ is the relevance condition, and the *absence* of any arrow
+from $z$ to $y$ or to $c$ is the exclusion restriction and the exogeneity
+condition. The missing arrows carry the assumptions.
 
 ```{r dag3, warning=FALSE, cache=TRUE, message=FALSE, echo=FALSE}
 g <- dagify(
@@ -127,6 +136,20 @@ exclusion per se.
 
 ### Example
 
+We simulate $n = 10{,}000$ observations. Three variables $(w, m, z)$ are drawn
+jointly normal with mean zero and unit variances, so their covariances are also
+their correlations: $\text{corr}(w,m) = 0.36$, $\text{corr}(w,z) = 0.64$, and
+$\text{corr}(m,z) = 0$. A fourth variable $u \sim N(0,1)$ is independent of
+everything. The outcome is $y = w + m + u$.
+
+So $m$ is the omitted confounder, correlated with the treatment $w$ but not
+with the instrument $z$, and the true coefficient on $w$ is 1. Because all
+variances are 1, we can predict the omitted-variable bias exactly: regressing
+$y$ on $w$ alone gives $1 + \text{Cov}(m,w) = 1.36$.
+
+We fit three models: OLS of $y$ on $w$, OLS of $y$ on $w$ and $m$, and 2SLS
+using $z$ as the instrument for $w$.
+
 ```{r iv1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 ## DGP: data$y <- data$w + data$m + data$u
 library(sem)
@@ -161,6 +184,16 @@ summary(lm.full)$coefficients
 # tsls is good.
 summary(tsls.model)$coefficients
 ```
+
+OLS on $w$ alone gives 1.3589, matching the predicted 1.36 to three decimals.
+OLS controlling for $m$ gives 0.9924 on $w$ and 1.0134 on $m$, both close to
+the true 1, which is what we would do if the confounder were observed. 2SLS
+gives 0.9724 with a standard error of 0.0231, recovering the truth without ever
+using $m$.
+
+Note the cost of instrumenting: the 2SLS standard error is 0.0231 against
+0.0109 for the OLS that controls for $m$, twice as large. The instrument uses
+only the part of $w$ that $z$ explains, and here that is 41% of its variance.
 
 ### Control Function Approach
 
@@ -199,7 +232,14 @@ sprintf("DWH test on v_hat: coef = %.4f  se = %.4f  t = %.3f  p = %.4g",
         rho_summary["t value"], rho_summary["Pr(>|t|)"])
 ```
 
-The two $\hat\beta_w$ values agree to machine precision, confirming FWL. The large $|t|$ on $\hat v$ rejects $H_0\!:\rho = 0$, confirming that `w` is endogenous. One caveat: the OLS standard errors from the augmented regression are not valid for $\hat\beta$ ($\hat v$ is a generated regressor; the DWH test is fine because under $H_0$ the first-stage estimation error does not matter). Use 2SLS standard errors, or bootstrap the two stages jointly as we do in the Poisson IV chapter.
+Both routes give $\hat\beta_w = 0.97241653$, agreeing to all eight printed
+digits, which confirms FWL. The coefficient on $\hat v$ is 0.6366 with a
+standard error of 0.0279, so $t = 22.8$ and $H_0\!:\rho = 0$ is rejected: `w`
+is endogenous. That coefficient also has a value we can derive. With
+$\varepsilon = m + u$ and $v = w - 0.64z$, we have
+$\text{Cov}(\varepsilon, v) = \text{Cov}(m,w) = 0.36$ and
+$\text{Var}(v) = 1 - 0.64^2 = 0.5904$, so $\rho = 0.36/0.5904 = 0.610$. The
+estimate is within one standard error of it. One caveat: the OLS standard errors from the augmented regression are not valid for $\hat\beta$ ($\hat v$ is a generated regressor; the DWH test is fine because under $H_0$ the first-stage estimation error does not matter). Use 2SLS standard errors, or bootstrap the two stages jointly as we do in the Poisson IV chapter.
 
 ::: {.callout-note}
 **Why FWL fails in nonlinear models.** FWL is a property of linear projections; once we replace OLS with Poisson or Probit, the estimator is no longer a linear projection and the partialling-out logic does not apply. In a nonlinear second stage, $\hat v$ must enter *inside* the link function (e.g. $\exp(\mathbf{x}\boldsymbol\beta + \rho \hat v)$), which requires a structural assumption beyond instrument exogeneity. This is the subject of the next chapter.
@@ -239,7 +279,25 @@ This is a parametric assumption about $E[Z \mid X]$. It is implicit in the linea
 
 ### A Simulation
 
-We build a DGP where $E[Z \mid X]$ is wildly nonlinear in $X$, so the linear-in-$X$ specification has to fail. Then we compare four estimators against the true LATE.
+We build a DGP where $E[Z \mid X]$ is strongly nonlinear in $X$, so the
+linear-in-$X$ specification has to fail, and then compare four estimators
+against the true LATE.
+
+We draw $n = 8000$ observations with a single covariate $X \sim U(-1,1)$. The
+instrument is $Z \sim \text{Bernoulli}(p_Z(X))$ with
+$p_Z(X) = \Lambda(0.3 + X + 2\sin(2.5\pi X))$ --- the sine term is what a linear
+projection cannot reproduce. Potential treatments come from one uniform draw
+$U$ compared against two thresholds, $T_0 = \mathbb{1}\{U < \Lambda(-1.6+X)\}$
+and $T_1 = \mathbb{1}\{U < \min(\Lambda(-0.4+X)+0.2,\, 0.95)\}$, so
+$T_1 \ge T_0$ and monotonicity holds by construction. Observed treatment is
+$W = ZT_1 + (1-Z)T_0$. The effect is heterogeneous in $X$, $\tau(X) = 0.5+1.5X$,
+and the potential outcomes are $Y(0) = 1 + 2X + 0.8X^2 + \varepsilon$ with
+$\varepsilon \sim N(0,1)$ and $Y(1) = Y(0) + \tau(X)$.
+
+Two features matter. $X$ enters both the instrument propensity and the
+treatment thresholds, so $Z$ is exogenous only conditional on $X$. And
+$\tau$ depends on $X$, so which units the instrument moves determines the
+answer.
 
 ```{r tsls-late-dgp, warning=FALSE, message=FALSE, cache=TRUE}
 library(ivreg)          # ivreg()
@@ -283,7 +341,12 @@ prop.table(table(G))
 cat(sprintf("True unconditional LATE = %.3f\n", true_LATE))
 ```
 
-Now we compare four estimators.
+The compliance shares are 18.4% always-takers, 43.0% compliers and 38.6%
+never-takers, and the true LATE, the mean of $\tau$ over compliers, is 0.615.
+
+We now compare four estimators against it: the unconditional Wald ratio, 2SLS
+with $X$ entered linearly, 2SLS with a degree-7 polynomial in $X$, and DDML
+PLIV with random-forest nuisance learners.
 
 ```{r tsls-late-estimators, warning=FALSE, message=FALSE, cache=TRUE}
 # (a) Wald — biased: Z is not unconditionally exogenous because X confounds.
@@ -329,7 +392,7 @@ results <- data.frame(
 print(results, row.names = FALSE, digits = 3)
 ```
 
-The linear-in-$X$ 2SLS does not recover the true LATE — and neither do the more flexible versions. Two things are going on, and the standard errors in the table help separate them. First, the estimands differ: for this DGP the linear-projection 2SLS converges to 0.55, and the polynomial 2SLS and DDML PLIV converge to approximately $\beta_{rich} = 0.58$ (computable by integrating the weight formula below), all below the population LATE of 0.60 — a real but modest gap that persists at any sample size. Second, sampling noise: with SEs near 0.06, this particular draw happens to land about 1.5 SEs below its own estimand, which is why the estimates cluster near 0.49–0.51 rather than 0.55–0.58. The Wald estimator is far off for a different reason entirely: $Z$ is not unconditionally exogenous, and Wald has no way to use $X$.
+The linear-in-$X$ 2SLS does not recover the true LATE — and neither do the more flexible versions. Two things are going on, and the standard errors in the table help separate them. First, the estimands differ: for this DGP the linear-projection 2SLS converges to 0.55, and the polynomial 2SLS and DDML PLIV converge to approximately $\beta_{rich} = 0.58$ (computable by integrating the weight formula below), all below the population LATE of 0.615 — a real but modest gap that persists at any sample size. Second, sampling noise: with SEs near 0.06, this particular draw happens to land about 1.5 SEs below its own estimand, which is why the estimates cluster near 0.49–0.51 rather than 0.55–0.58. The Wald estimator is far off for a different reason entirely, at 1.839 against a truth of 0.615: $Z$ is not unconditionally exogenous, and Wald has no way to use $X$.
 
 What are the polynomial 2SLS and DDML PLIV estimating, if not LATE? PLIV targets $\beta_{rich}$, a weighted average of conditional LATEs with weights proportional to $\text{Var}(Z \mid X) \cdot P(\text{complier} \mid X)$; the polynomial 2SLS targets nearly the same quantity (a degree-7 polynomial cannot fully reproduce this $E[Z \mid X]$, so its estimand is a misspecified-projection variant sitting just below $\beta_{rich}$). These are non-negatively weighted, so weakly causal. But they are not the unconditional LATE we usually want.
 
@@ -342,7 +405,11 @@ reset_z <- resettest(lm(Z ~ X), power = 2:3, type = "regressor")
 reset_z
 ```
 
-In our DGP it rejects strongly. The same test on real data is cheap, and it tells us whether the LATE interpretation is defensible before we report a 2SLS coefficient.
+It rejects strongly here, $\text{RESET} = 117.0$ on 2 and 7,996 degrees of
+freedom with $p < 2.2 \times 10^{-16}$, which is the right answer given that we
+put a sine wave in $E[Z \mid X]$. The same test on real data is cheap, and it
+tells us whether the LATE interpretation is defensible before we report a 2SLS
+coefficient.
 
 ### What to Do Instead
 
@@ -361,7 +428,7 @@ In our DGP it rejects strongly. The same test on real data is cheap, and it tell
 
 ### A Note on the FRDD Example
 
-The fuzzy-RDD example at the end of this chapter is 2SLS with race, state of birth, and quarter-of-birth fixed effects entered as covariates. The `feols` 2SLS estimate and the local `rdrobust` estimate differ. We called that "sensitivity to model selection" earlier. The rich-covariates story is at least as plausible an explanation, and the RESET test is the right first thing to run.
+The fuzzy-RDD example at the end of this chapter is 2SLS with race, state of birth, and quarter-of-birth fixed effects entered as covariates, and its 2SLS estimate sits above the local `rdrobust` one. That section attributes the gap mostly to precision. Rich covariates is a second candidate explanation for the difference in point estimates, and the RESET test on the above-cutoff instrument against those covariates is the right first thing to run.
 
 ### Bottom Line
 
@@ -379,11 +446,19 @@ $$ W=\mathbb{1}(X>c)$$ {#eq-iv-rdd-9}
 
 Lee (2008) studies the effect of incumbency advantage in elections. His identification strategy is based on the discontinuity generated by the rule that the party with a majority vote share wins. The forcing variable $X_i$ is the difference in vote share between the Democratic and Republican parties in one election, with the threshold $c = 0$. The outcome variable $Y_i$ is vote share at the second election.
 
+`rdplot` bins the running variable and plots bin means with a polynomial fit on
+each side of the cutoff. A visible jump at zero is the design working.
+
 ```{r rdd1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 library(rdrobust)
 data(rdrobust_RDsenate)
 rdplot(x=rdrobust_RDsenate$margin, y=rdrobust_RDsenate$vote)
 ```
+
+The `rdrobust_RDsenate` data are 1,297 US Senate races. The running variable
+`margin` is the Democratic margin of victory in an election and `vote` is the
+Democratic vote share in the next election for the same seat. The bin means
+step up discontinuously at a margin of zero.
 
 ### Identification of SRDD
 
@@ -392,6 +467,13 @@ $$ \tau_{RD} = \lim_{x \to c^+} E[Y|X=x] - \lim_{x \to c^-} E[Y|X=x] $$ {#eq-iv-
 In words, the treatment effect is the difference in the outcome from the right side and from the left side. This is the same as the difference in the outcome at the threshold, as if the treatment is assigned randomly.
 
 ### Estimation of SRDD
+
+Before the real data, a simulation where we know the answer. We draw $n = 1000$
+students with $\text{GPA} \sim U(0,4)$ and outcome
+$Y = 10 + 1.5\,\text{GPA} + 2 \cdot \mathbb{1}\{\text{GPA} > 3\} + \varepsilon$
+with $\varepsilon \sim N(0,1)$. The cutoff is 3 and the true jump is 2. The
+running variable also has a direct effect on the outcome, with slope 1.5, which
+is what the local regression on each side has to absorb.
 
 ```{r rdd2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 GPA <- runif(1000, 0, 4)
@@ -407,12 +489,26 @@ rdd_gpa <- rdrobust(x=GPA, y=future_success, c=3)
 summary(rdd_gpa)
 ```
 
+The estimated jump is 1.827 with a robust 95% interval of $[1.154, 2.494]$,
+covering the true 2. Note how little data the estimate uses: the MSE-optimal
+bandwidth is 0.407, so of the 1,000 observations only 103 on the left and 99 on
+the right are effective. A local estimator pays for its weak assumptions with
+a small effective sample, which is why the interval is 1.3 wide for a jump of 2.
+
 ### Nonparametric Estimation
+
+Now the same estimator on the Senate data, with the cutoff at a margin of zero.
 
 ```{r rdd4, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 rdd_house <- rdrobust(x=rdrobust_RDsenate$margin, y=rdrobust_RDsenate$vote, c=0)
 summary(rdd_house)
 ```
+
+The incumbency effect is 7.414 percentage points with a robust 95% interval of
+$[4.094, 10.919]$. Barely winning a Senate seat raises the party's vote share
+in the next election for that seat by about 7 points. The bandwidth is 17.75
+margin points, leaving 360 observations on the left and 323 on the right out of
+1,297.
 
 ### Fuzzy RDD
 
@@ -452,6 +548,18 @@ m <- feols(home_ownership ~
 summary(m)
 ```
 
+The 2SLS estimate is 0.1701 with a heteroskedasticity-robust standard error of
+0.0459: veteran status raises home ownership by 17 percentage points. The
+sample is 56,901 people within 12 quarters of the cutoff, with birthplace and
+quarter-of-birth fixed effects. The first-stage $F$ statistics are 210 and
+1,241, so the instruments are strong, and the Wu-Hausman test rejects
+exogeneity of veteran status at $p = 0.001$. The interaction of veteran status
+with the running variable is not significant, so there is little evidence that
+the slope differs across the cutoff.
+
+Now the same design estimated locally with `rdrobust`, passing the covariates
+as a model matrix.
+
 ```{r rdd6, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 controls <- vet %>%
     select(nonwhite, bpl, qob) %>%
@@ -465,4 +573,21 @@ m <- rdrobust(vet$home_ownership,
 m$Estimate
 ```
 
-These two results are very different, which is one of RDD's problems. It can be sensitive to model selection. For example, in the case of 2SLS, it's a linear model. In the case of "rdrobust", it's a local regression, which can be sensitive to bandwidth selection.
+`rdrobust` returns a conventional estimate of 0.0959 with a standard error of
+0.1794, and a bias-corrected estimate of 0.0334 with a robust standard error of
+0.2214. The point estimates are well below the 2SLS 0.1701.
+
+The gap is worth reading carefully, because it is easy to overstate. The two
+point estimates differ by a factor of nearly two, but the `rdrobust` standard
+error is 0.179, so its 95% interval runs from about $-0.26$ to 0.45 and
+comfortably contains the 2SLS estimate. The two are not statistically
+distinguishable. What separates them is precision: 2SLS has a standard error of
+0.046 because it uses all 56,901 observations and a linear specification, while
+`rdrobust` uses a local window around the cutoff and gets an interval four
+times wider --- so wide that it cannot reject zero.
+
+That is the real trade-off. 2SLS buys precision with a functional-form
+assumption over the full bandwidth; the local estimator drops that assumption
+and pays for it in variance. It is a genuine sensitivity to model choice, but
+here it shows up as a difference in what can be concluded rather than as a
+contradiction between two estimates.

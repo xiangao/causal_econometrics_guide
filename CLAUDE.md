@@ -110,6 +110,98 @@ Review of the 2026-07-28 rewrite of `poisson-iv.qmd` (10 commits), the only chap
 
 Voice and concision edit across 4 foundational chapters shared with the Julia companion: `identification.qmd`, `estimation.qmd`, `did.qmd`, `iv-rdd.qmd`. Compressed wordy openings and multi-sentence explanations into shorter paratactic prose, switched to "we" voice. 19 insertions, 25 deletions. Mirrored identically in `causal_econometrics_julia`. Source committed, rendered, pushed.
 
+## Simulation write-up pass (2026-08-15)
+
+Applied the standing convention to **every** chapter: before each chunk, prose
+stating what it is for, what the variables are, and — for simulated data — the
+full DGP (sample size, every distribution, the treatment and outcome equations,
+the true parameter). After each chunk, prose stating what the output shows.
+Real-data chapters get a description of the sample in place of a DGP. No DGP,
+estimator or result was changed; the only code edits are the two reproducibility
+/ blank-output fixes listed at the end of this section. Every number quoted in
+the new prose was checked against the `cell-output` block that produced it, and
+every claimed "true" value was re-derived from the DGP.
+
+**Truths derived and added where the chapter had none.** Several chapters
+printed estimates with nothing to judge them against. Derived by integration
+over the known DGP, not by simulation:
+- `survival-causal`: from the Weibull PH DGP, $(\lambda_0 t)^k = 0.43302$ at
+  $t=5$, giving a true risk difference of $-0.1084$ (estimates $-0.106$ /
+  $-0.095$ / $-0.099$) and a true RMST difference of 0.2709 (unadjusted 0.203,
+  IPW-adjusted 0.28).
+- `mediation`: true $CDE(0) = 0.222$, $CDE(1) = 0.191$, $NDE = 0.218$,
+  $NIE = -0.008$, $ATE = 0.211$.
+- `continuous-treatments`: LMTP truths follow from the DGP —
+  $E[Y(0,0)] = E[L_2] = 0.125$, $E[Y(1,1)] = 1.125$, contrast exactly 1.
+- `did`: the staggered `.dta` carries the true unit-level effects (`te4`/`te5`/
+  `te6`), so ETWFE can be scored — true overall ATT 3.677 against an estimate
+  of 3.67, with event-time (3.11/3.81/4.58) and calendar (3.76/3.49/3.80)
+  breakdowns all covered. Poisson ETWFE truth is
+  $E[\mu_0 \mid \text{treated}] \times (e^{0.4}-1) = 7.649 \times 0.4918 = 3.762$.
+- `shift-share-iv`: the DGP was only in the CSVs; reverse-engineered and
+  verified ($B = S g$ to 1e-15), and the OLS bias is
+  $\text{Cov}(X,u)/\text{Var}(X) = 0.3/0.315 = 0.95$, so OLS = 1.45 exactly as
+  observed.
+
+**Prose/output mismatches corrected** (the recurring defect, as in the deep read):
+- `continuous-treatments`: "a linear regression of Y on D ... ignores confounding
+  by X" — the confounding bias is **exactly zero** in that DGP. $X_1, X_2$ each
+  raise $D$ by 0.5 but enter $Y$ with $+0.3$ and $-0.3$, so
+  $0.3(0.5) - 0.3(0.5) = 0$. Naive slope 1.421, adjusted 1.409. Only functional
+  form is at fault, and the common slope ≈ average true slope over observed doses.
+- `shift-share-iv`: "the industry-specific IVs are all near the true effect" —
+  they range $-39.5$ to $2.6$. Harmless, and the algebra says why:
+  $\alpha_k\beta_k = g_k\text{Cov}(s_k,Y)/\text{denom}$, so $\text{Cov}(s_k,X)$
+  cancels and an exploding $\beta_k$ always pairs with a near-zero weight.
+- `matching`: love-plot prose would have implied all covariates improve — `educ`
+  goes 0.055 → 0.096. Its `fig-cap` also named two methods while plotting one.
+- `iv-rdd`: the closing "these two results are very different" — 2SLS 0.170 vs
+  `rdrobust` 0.096, but `rdrobust`'s SE is 0.179, so the two are statistically
+  indistinguishable. Rewritten as a precision difference, not a contradiction.
+- `iv-rdd`: stated true LATE 0.60, output says 0.615.
+- `bayesian-causal`: `fig-cap` asserted BCF gives "tighter, less noisy CATE
+  estimates"; the ATE posterior SDs are 0.046 vs 0.048 and the ITE claim is not
+  checkable from the output. Made descriptive.
+
+**New findings worth keeping:**
+- `matching`: just-identified CBPS and entropy balancing return **numerically
+  identical** control weights (max diff 3e-12, ESS 98.4578 both). Both solve
+  exact mean balance with weights of the form $\exp(x'\lambda)$. The chapter
+  had presented them as unrelated methods with coincidentally identical tables.
+- `causal-discovery`: the MC section produced a table and interpreted nothing.
+  It is the correction to the single-dataset result — PC beats GES 0.952 to
+  0.800 on one draw, but 0.947 to 0.933 averaged over 100.
+- `g-methods`: `ltmle(abar = c(1,1))` returns $E[Y(1,1)] = 1.5106$, a
+  counterfactual **mean**, not an effect — and the true effect is also 1.5
+  because $E[Y(0,0)] = 0$ here. Easy to misread as a recovered effect. Also,
+  the control arm prints $p < 2\times10^{-16}$ beside an interval containing zero.
+- `mediation`: the three CDE estimates (0.2516/0.2553/0.2554) all sit ~0.03
+  above the true 0.222. MC over 400 draws shows the estimator is unbiased (mean
+  0.2206, sd 0.0159) — this seed is 1.9 SD high. Estimators agreeing with each
+  other is a check on implementation, not on sampling error.
+- `causal-discovery-latent`: hiding 2 of 8 nodes takes the graph from 11 edges
+  over 8 nodes to 10 edges over 15 possible pairs — densification is the cost
+  of latent confounding, and why F1 drops from 0.952 to 0.824.
+
+**Two code fixes (the only non-prose changes in this pass):**
+- `bayesian-causal`: the BCF subprocess set **no seed**, so its posterior draws
+  changed on every real execution; the knitr cache hid this, and the numbers
+  would have moved the first time anyone cleared it. A seed set in the parent
+  session does *not* reach a separate R process, so `set.seed(42)` now goes
+  **inside** the `Rscript -e` string. Verified: two independent seeded worker
+  runs agree to 2.6e-13 (floating-point, not RNG divergence) with identical ATE
+  means. Re-running changed the BCF figures from 1.982 / 0.046 / [1.897, 2.072]
+  to **1.984 / 0.044 / [1.903, 2.072]**; the prose was updated to match. BART
+  was already seeded and did not move.
+  - When re-running this, delete `bayesian-causal_cache/html/bcf-fit_*`,
+    `bcf-summary_*` **and** `compare-ite_*`. The latter two have unchanged code
+    but consume `bcf_fit`, so they would otherwise serve results computed from
+    the old draws — the knitr-cache trap noted above.
+- `graphs-identification-estimation` and `graph-to-estimate`: `adjustmentSets`
+  on a non-identified graph returns an empty list, which prints **literally
+  nothing** — indistinguishable from a chunk that failed. Both chunks now assign
+  the result and `cat()` its length, printing `Valid backdoor adjustment sets: 0`.
+
 ## Deep read (2026-07-30) — reusable gotchas
 
 Full-depth pass over all 24 chapters, paired against the Julia companion. Log:

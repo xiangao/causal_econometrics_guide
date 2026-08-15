@@ -86,7 +86,33 @@ not capture. Two corrections are now standard:
 
 ## Simulation: build intuition
 
-Use a small DGP with regions, industries, and a known causal effect.
+The aim is to see the shift-share IV recover a known effect that OLS misses,
+and then to break the identifying assumption on purpose and see which
+diagnostic catches it.
+
+We use 500 regions and 20 industries. Each region has a vector of industry
+shares $s_{\ell k}$ summing to one, concentrated so that a few industries
+dominate any given region. Each industry draws a shock $g_k \sim N(0,1)$,
+independently of the shares and of everything at the region level. The
+instrument is $B_\ell = \sum_k s_{\ell k} g_k$.
+
+There is one region-level confounder $u_\ell \sim N(0,1)$. The observed local
+shock and the outcome are
+
+$$
+X_\ell = B_\ell + 0.3u_\ell + \varepsilon_\ell, \qquad
+Y_\ell = 0.5 X_\ell + u_\ell + \eta_\ell,
+$$ {#eq-shift-share-iv-5}
+
+with $\varepsilon$ and $\eta$ independent noise of standard deviation about 0.3
+and 0.5. The true effect is $\beta = 0.5$.
+
+Because $u$ enters both $X$ and $Y$, OLS is biased, and we can say by how much:
+$\text{Cov}(X,u)/\text{Var}(X) = 0.3/0.315 = 0.95$, so OLS should return about
+$0.5 + 0.95 = 1.45$.
+
+The data are generated once and stored as CSVs so that this book and its Julia
+companion produce identical numbers.
 
 ```{r}
 #| label: sim-data
@@ -123,9 +149,13 @@ etable(ols, ivss, headers = c("OLS", "Shift-share IV"),
        digits = 3, digits.stats = 3, fitstat = ~ . + ivf)
 ```
 
-OLS is biased upward by the confounder; the shift-share IV recovers a
-value close to the true effect of `r beta_true`. With concentrated industry
-shares and 20 industries, the first-stage F is well above 100.
+OLS gives 1.45 with a standard error of 0.075, matching the 1.45 predicted
+above and nearly three times the true effect of `r beta_true`. The shift-share
+IV gives 0.531 with a standard error of 0.131, within a quarter of a standard
+error of the truth. The first-stage $F$ is 370.5, so the instrument is strong.
+
+Note the price again: the IV standard error is 0.131 against 0.075 for OLS, and
+the second-stage $R^2$ is 0.025 against 0.428. A biased estimator can fit well.
 
 ### Rotemberg weights
 
@@ -162,17 +192,51 @@ kable(rotemberg, digits = 3,
                        round(coef(ivss)["fit_X"], 3), ")."))
 ```
 
-Two diagnostics matter:
+The weighted sum reproduces the 2SLS estimate exactly: $\sum_k \alpha_k
+\hat\beta_k = 0.531$, which is the shift-share IV coefficient. That is the GPSS
+equivalence, and it holds numerically, not approximately.
 
-1. **Weight concentration**: if one or two industries carry most of the
-   weight, the identifying variation is essentially coming from those
-   industries' shares. Their exogeneity is the assumption you're really
-   leaning on.
-2. **Heterogeneous $\hat\beta_k$**: in this benign simulation, the
-   industry-specific IVs are all near the true effect (with sampling noise).
-   In real data, if a few industries give wildly different estimates, the
-   "average" shift-share IV is averaging over heterogeneous treatment effects
-   you should report explicitly.
+The weights are concentrated. Industry 5 carries 0.387 and industry 16 carries
+0.204, so those two supply nearly 60% of the identifying variation, and the
+next three (industries 20, 6 and 9) bring the total past 80%. Under the share
+view, the exogeneity of those few industries' shares is the assumption the
+estimate rests on. Notice that the two dominant industries are also the two
+with the largest shocks, 2.66 and 2.27: $\alpha_k$ is proportional to $g_k
+\text{Cov}(s_{\cdot k}, X)$, so a big shock buys influence.
+
+The $\hat\beta_k$ column is more surprising and worth reading carefully.
+Industry 18 gives $-39.5$, industry 4 gives $-10.2$, industry 15 gives $-3.2$.
+These are not near the true 0.5, and it would be easy to read them as evidence
+of severe treatment-effect heterogeneity. They are not. Each $\hat\beta_k =
+\text{Cov}(s_{\cdot k}, Y)/\text{Cov}(s_{\cdot k}, X)$ is a just-identified IV
+using one share as the instrument, and when $\text{Cov}(s_{\cdot k}, X)$ is
+near zero that ratio explodes. It is a weak-instrument artefact, one industry
+at a time.
+
+The decomposition is immune to it by construction. Since
+
+$$
+\alpha_k \hat\beta_k
+= \frac{g_k \text{Cov}(s_{\cdot k}, X)}{\sum_j g_j \text{Cov}(s_{\cdot j}, X)}
+  \cdot \frac{\text{Cov}(s_{\cdot k}, Y)}{\text{Cov}(s_{\cdot k}, X)}
+= \frac{g_k \text{Cov}(s_{\cdot k}, Y)}{\sum_j g_j \text{Cov}(s_{\cdot j}, X)},
+$$ {#eq-shift-share-iv-6}
+
+the troublesome $\text{Cov}(s_{\cdot k}, X)$ cancels. Every industry with an
+exploding $\hat\beta_k$ has a weight near zero for exactly the same reason its
+$\hat\beta_k$ blew up. Industry 18 carries a weight of 0.000 and industry 4 a
+weight of 0.002.
+
+Read the two columns together, then. Among the industries that carry real
+weight, the estimates are 0.469, 0.746, 0.554, 1.025, 0.853 and 0.604 --- close
+enough to 0.5 to be sampling noise, which is what we should see in a simulation
+with a homogeneous effect. In real data, if industries with *large* weights
+give very different estimates, the shift-share IV is averaging over genuine
+heterogeneity and that should be reported.
+
+The plot below makes the pairing visible: each industry's just-identified IV
+estimate on the vertical axis, with point size proportional to its Rotemberg
+weight. The outlying estimates are the smallest points.
 
 ```{r}
 #| label: rotemberg-plot
@@ -192,8 +256,18 @@ ggplot(rotemberg, aes(x = factor(industry), y = beta_k, size = abs(weight))) +
 
 ### What goes wrong when shares are endogenous
 
-Now break the share-exogeneity assumption: make industry 1's share correlated
-with the second-stage error.
+Now break the share-exogeneity assumption on purpose. We introduce a second
+region-level confounder $v_\ell$, add $0.15 v_\ell$ to industry 1's share
+(renormalising the rows to sum to one), and let $v$ enter the outcome with
+coefficient 0.6:
+
+$$
+Y_\ell = 0.5 X_\ell + u_\ell + 0.6 v_\ell + \eta_\ell .
+$$ {#eq-shift-share-iv-7}
+
+Everything else is unchanged. Industry 1's share is now correlated with the
+second-stage error, so the instrument built from it is invalid, and we ask
+which diagnostic notices.
 
 ```{r}
 #| label: bad-shares
@@ -227,8 +301,9 @@ ivss_loo <- feols(Y ~ 1 | X ~ B, data = tibble(X = X_bad, Y = Y_bad, B = B_loo))
 cat("Shift-share IV without industry 1:", round(coef(ivss_loo)["fit_X"], 3), "\n")
 ```
 
-The estimate is biased, and the bias comes from one industry's share being
-related to the error. Note which diagnostic catches it. Rotemberg weights
+The estimate moves from 0.531 to 0.798 against a true 0.5, so one endogenous
+share out of twenty is enough to inflate the estimate by 60%. Note which
+diagnostic catches it. Rotemberg weights
 measure *influence* --- whose exogeneity the estimate leans on --- not
 endogeneity: the offending industry carries a weight of only 0.11, third
 largest of twenty, yet it alone moves the estimate from 0.5 to 0.8. The

@@ -54,6 +54,35 @@ reported as:
 
 ## Setup: simulated survival data
 
+The data are simulated once and shared with the Julia companion, so both books
+report the same numbers. The generator is `data/gen_survival.R`.
+
+We draw $n = 1500$ people with $\text{age} \sim N(60, 10^2)$ and
+$\text{sex} \sim \text{Bernoulli}(0.5)$. Treatment is
+$\text{trt} \sim \text{Bernoulli}(\Lambda(-1.0 + 0.03(\text{age}-60) + 0.4\,\text{sex}))$,
+so older people and one sex are more likely to be treated. Event times follow a
+Weibull proportional-hazards model with shape $k = 1.4$ and scale
+$\lambda_0 = 0.11$,
+
+$$
+S(t \mid X) = \exp\!\bigl(-(\lambda_0 t)^k e^{\eta}\bigr), \qquad
+\eta = -0.4\,\text{trt} + 0.03(\text{age}-60) + 0.3\,\text{sex},
+$$ {#eq-survival-causal-4}
+
+so the true log hazard ratio for treatment is $-0.4$ and the true hazard ratio
+is $e^{-0.4} = 0.670$. Censoring is exponential dropout with mean 40 years,
+capped by administrative end of follow-up at 12 years, and we observe
+$\min(T, C)$ with an event indicator.
+
+Because the model is fully specified, the other estimands follow by
+integration. Over the population distribution of age and sex, the true
+five-year risk is 0.295 under treatment and 0.403 under control, a **risk
+difference of $-0.108$**, and the true restricted mean survival to five years
+is 4.341 years under treatment against 4.070 under control, an **RMST
+difference of 0.271 years**. Note that treatment is confounded in the direction
+that hides its benefit: age raises both the chance of treatment and the hazard,
+so the treated are sicker at baseline.
+
 ```{r}
 #| label: dgp
 #| cache: true
@@ -63,6 +92,8 @@ n <- nrow(df)
 cat(sprintf("n = %d, events = %d (%.1f%%), censored = %d\n",
             n, sum(df$event), 100 * mean(df$event), sum(1 - df$event)))
 ```
+
+Of the 1,500 people, 1,010 have an observed event (67.3%) and 490 are censored.
 
 ## Kaplan-Meier survival curves
 
@@ -101,8 +132,12 @@ tidy(cox_fit, exp = TRUE, conf.int = TRUE) |>
                caption = "Cox PH regression coefficients (exponentiated = hazard ratios)")
 ```
 
-The estimated hazard ratio for treatment should be close to the true
-$\exp(-0.4) \approx 0.67$.
+The estimated hazard ratio for treatment is 0.669 with a 95% interval of
+$[0.582, 0.770]$, against the true $e^{-0.4} = 0.670$. The Cox model is
+correctly specified here --- the DGP is proportional hazards with linear
+covariate effects --- so this is a check that the machinery works, not evidence
+about robustness. Age carries a hazard ratio of 1.035 per year and sex 1.347,
+against the true $e^{0.03} = 1.030$ and $e^{0.3} = 1.350$.
 
 ### The interpretation problem with hazard ratios
 
@@ -164,8 +199,11 @@ cat(sprintf("RMST(τ=5) under control:   %.3f years\n", rmst_ctrl))
 cat(sprintf("Difference:                %.3f years\n", rmst_trt - rmst_ctrl))
 ```
 
-The RMST difference says how many survival years are gained up to the cutoff
-$\tau$.
+The unadjusted RMST is 4.351 years under treatment and 4.147 under control, a
+difference of 0.203 years, against a true 0.271. The RMST difference says how
+many survival years are gained up to the cutoff $\tau$, and this one understates
+the gain by a quarter, because the treated are older and therefore at higher
+baseline hazard.
 
 ### Adjusted RMST via IPW
 
@@ -186,7 +224,12 @@ km_ipw <- survfit(Surv(time, event) ~ trt, data = df, weights = ipw)
 print(km_ipw, rmean = tau)
 ```
 
-The IPW-adjusted RMST removes the baseline imbalance.
+The weighted restricted means are 4.40 years under treatment and 4.12 under
+control, a difference of 0.28 against the true 0.271. Weighting moved the
+estimate from 0.203 to 0.28 and closed almost the whole gap. Note that the
+`n` column now reports the weighted totals, 1,494 and 1,499, rather than the
+461 and 1,039 actual records --- that is the pseudo-population the weights
+construct.
 
 ## Inverse Probability of Censoring Weighting (IPCW)
 
@@ -230,7 +273,12 @@ summary(df_sub$ipcw[df_sub$event == 1])
 ```
 
 IPCW upweights observations that remain uncensored despite having a high
-predicted chance of censoring.
+predicted chance of censoring. The weights here run from 1.001 to 1.353 with a
+mean of 1.149, which is mild. That is expected in this simulation: censoring is
+exponential dropout with a 40-year mean plus an administrative cutoff, and
+neither depends on the covariates in a way that would make censoring strongly
+informative. The correction is available and small; in a study where sicker
+patients drop out, it would not be.
 
 ## Doubly-robust survival estimation
 
@@ -280,6 +328,14 @@ The object contains three estimators, shown side-by-side in the table:
 - **Gformula** — parametric g-computation using the Cox model only.
 - **IPTW** — inverse probability of treatment weighting.
 - **AIPTW** — augmented IPTW (doubly robust); the recommended default.
+
+All three agree, and all three are close to the truth: $-0.106$, $-0.095$ and
+$-0.099$ against a true risk difference of $-0.108$. Treatment cuts the
+five-year risk of the event by about ten percentage points. The g-formula has
+the smallest standard error, 0.018 against 0.027 for the other two, because it
+leans entirely on the Cox model, which is correctly specified here. That is an
+efficiency gain bought with an assumption, and AIPTW's wider interval is the
+price of not needing it.
 
 Agreement across these estimates is reassuring. Disagreement is a warning
 about model specification.

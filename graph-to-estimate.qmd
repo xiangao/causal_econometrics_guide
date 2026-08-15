@@ -54,6 +54,13 @@ print(sets)
 `dagitty` finds `{X}` as the minimal adjustment set. Adjusting on $X$
 blocks the only open backdoor path $A \leftarrow X \rightarrow Y$.
 
+We simulate data matching that graph. We draw $n = 2000$ observations with
+$X \sim N(0,1)$, treatment $A \sim \text{Bernoulli}(\Lambda(X))$, and outcome
+$Y = 2A + X + 0.5\varepsilon$ with $\varepsilon \sim N(0,1)$. The effect is
+constant, so the true ACE is 2. We then estimate it with AIPW using the
+adjustment set the graph chose, and take a 95% interval from 500 bootstrap
+resamples.
+
 ```{r}
 #| label: backdoor-sim
 #| cache: true
@@ -95,8 +102,10 @@ ci_bd <- quantile(boot_bd, c(0.025, 0.975))
 cat(sprintf("95%% CI: [%.3f, %.3f]\n", ci_bd[1], ci_bd[2]))
 ```
 
-The AIPW estimator is consistent if either the outcome model or the
-propensity score is correctly specified.
+AIPW returns 1.990 with a 95% bootstrap interval of $[1.942, 2.043]$, covering
+the true 2. The AIPW estimator is consistent if either the outcome model or the
+propensity score is correctly specified; here both are, since the DGP is linear
+in the outcome and logistic in the treatment.
 
 ## Front-door: p-fixable effects
 
@@ -119,8 +128,10 @@ g_fd <- dagitty("dag { A -> M; M -> Y; A <-> Y }")
 exposures(g_fd) <- "A"
 outcomes(g_fd)  <- "Y"
 
-cat("Backdoor adjustment sets (should be empty):\n")
-print(adjustmentSets(g_fd, exposure = "A", outcome = "Y"))
+# An empty dagitty adjustment-set list prints nothing at all, so report the
+# count rather than calling print() on it and appearing to produce no output.
+sets_fd <- adjustmentSets(g_fd, exposure = "A", outcome = "Y")
+cat("Valid backdoor adjustment sets:", length(sets_fd), "\n")
 
 # causaleffect for ID algorithm: bidirected A <-> Y = two directed edges + description "U"
 g_fd_ig <- graph_from_literal(A -+ M, M -+ Y, A -+ Y, Y -+ A)
@@ -139,8 +150,21 @@ cat("\nIdentifying expression:\n")
 cat(expr_fd, "\n")
 ```
 
-The expression returned is the front-door formula:
-$\sum_M P(M \mid A) \sum_{A'} P(Y \mid A', M)\, P(A')$. We now estimate it directly.
+There are no valid backdoor adjustment sets, as expected: $U$ is unobserved, so
+no set of measured variables blocks the path it opens. And the expression
+`causal.effect` returns is the front-door formula,
+$\sum_M P(M \mid A) \sum_{A'} P(Y \mid A', M)\, P(A')$.
+
+We now simulate data for it. We draw $n = 3000$ observations with an unmeasured
+confounder $U \sim N(0,1)$, treatment $A \sim \text{Bernoulli}(\Lambda(U))$,
+mediator $M \sim \text{Bernoulli}(\Lambda(0.5 + 2A))$, and outcome
+$Y = 1.5M + 2U + 0.5\varepsilon$ with $\varepsilon \sim N(0,1)$. The mediator
+depends on $A$ alone and the outcome depends on $M$ and $U$ but not directly on
+$A$, which is what the front-door criterion requires.
+
+The truth follows from the DGP. Intervening on $A$ changes $Y$ only through
+$M$, so the ACE is $1.5 \times [P(M=1 \mid A=1) - P(M=1 \mid A=0)]
+= 1.5 \times [\Lambda(2.5) - \Lambda(0.5)] = 1.5 \times 0.302 = 0.453$.
 
 ```{r}
 #| label: frontdoor-sim
@@ -204,13 +228,27 @@ cat(sprintf("Naïve mean difference (biased!): %.3f\n", naive_ace))
 cat(sprintf("True ACE:                        %.3f\n", true_ace_fd))
 ```
 
-The front-door formula recovers the effect even though $U$ is unobserved.
-The naive mean difference is biased by the path through $U$.
+The front-door estimate is 0.499 with a 95% bootstrap interval of
+$[0.432, 0.577]$, which covers the true 0.453. The naive mean difference is
+2.083 --- more than four times the truth, and outside the front-door interval
+by a factor of four. The formula recovers the effect even though $U$ is never
+measured; the naive comparison is picking up the path through $U$, which enters
+the outcome with coefficient 2 and the treatment through the logit.
+
+The bias here is far larger than in the front-door example of the
+[graphs chapter](graphs-identification-estimation.qmd), where the naive
+contrast was 0.14 against a truth of 0.055. The difference is the strength of
+the confounding: $U$ enters $Y$ with coefficient 2 here against 0.7 there.
+Nothing about the front-door formula changes; what changes is how much work it
+is doing.
 
 ## When identification fails
 
 Not every graph identifies the effect. If $A$ and $Y$ have a hidden common
-cause and there is no front-door variable, the effect is not identified.
+cause and there is no front-door variable, the effect is not identified. The
+graph below is the **bow**: a directed edge $A \to Y$ plus a bidirected
+$A \leftrightarrow Y$, and nothing else. Remove the mediator $M$ from the
+front-door graph and this is what is left.
 
 ```{r}
 #| label: not-identified
@@ -241,8 +279,14 @@ result <- tryCatch(
 cat("Result from causal.effect:\n", result, "\n")
 ```
 
-`causaleffect` raises an error ("Not identifiable"), which the `tryCatch`
-captures, indicating the effect is not identifiable. The honest response in applied work is to report the
+`causaleffect` raises an error, printed above as "Not identifiable.", which the
+`tryCatch` captures. This is a useful failure. The algorithm did not return a
+formula that would quietly estimate the wrong thing; it reported that no
+function of the observed distribution equals the causal effect under this
+graph. No amount of data helps, because the obstacle is the graph and not the
+sample size.
+
+The honest response in applied work is to report the
 non-identifiability, then either:
 
 1. Find additional variables that close the unmeasured-confounding paths

@@ -25,9 +25,21 @@ data we do not, which is exactly why identification assumptions matter.
 
 ## The data-generating process
 
-Each person has an observed covariate $X_i$, an unobserved type $U_i$, and
-a binary treatment $D_i$. The instrument $Z_i$ is a random offer. It changes
-the probability of treatment, but it has no direct effect on the outcome.
+We draw $n = 20{,}000$ people. Each has an observed covariate
+$X_i \sim U(0,1)$, an unobserved type $U_i \sim N(0,1)$, and a randomly
+assigned offer $Z_i \sim \text{Bernoulli}(0.5)$. The offer is the instrument.
+It raises the probability of treatment but does not enter the outcome. The
+treatment probabilities are $P(D=1 \mid Z=0, U) = 0.10 + 0.20U$ and
+$P(D=1 \mid Z=1, U) = 0.10 + 0.20U + 0.50$, both clipped to $[0,1]$. One
+uniform draw $V_i$ is compared against both thresholds, so $D_i(1) \ge D_i(0)$
+for every unit and there are no defiers. The potential outcomes are
+$Y_i(0) = 0.5X_i + 0.3U_i + \varepsilon_i$ with $\varepsilon_i \sim N(0,1)$,
+and $Y_i(1) = Y_i(0) + \tau(X_i)$ with $\tau(x) = 1 + 2x$. We observe
+$D_i = Z_i D_i(1) + (1-Z_i) D_i(0)$ and $Y_i = D_i Y_i(1) + (1-D_i) Y_i(0)$.
+
+Two features of this design drive everything below. Selection into treatment
+runs through $U$ and $V$, never through $X$. The treatment effect runs through
+$X$ alone. And $X$ is drawn independently of $U$, $V$ and $Z$.
 
 ```{r}
 #| label: dgp
@@ -67,9 +79,10 @@ df <- data.frame(X = X, Z = Z, D = D, Y = Y)
 head(df)
 ```
 
-In the simulated data we have `Y0` and `Y1` for every observation. That lets
-us calculate the true estimands directly. With real data, each observation
-only reveals one potential outcome.
+The printed rows are the data an analyst would receive: $X$, $Z$, $D$ and $Y$.
+We keep `Y0` and `Y1` aside, and every "true" number in this chapter is
+computed from them. With real data each observation reveals only one of the
+two.
 
 ## The five estimands
 
@@ -80,7 +93,9 @@ $$
 $$ {#eq-causal-estimands-1}
 
 ATE is the mean effect in the whole population. It compares the mean outcome
-if everyone were treated with the mean outcome if nobody were treated.
+if everyone were treated with the mean outcome if nobody were treated. Here it
+is the average of $\tau(x) = 1+2x$ over $X \sim U(0,1)$, which is exactly 2.
+We average the individual effects in the sample and compare.
 
 ```{r}
 #| label: ate
@@ -92,6 +107,9 @@ cat(sprintf("ATE (population mean of Y1 - Y0) = %.3f\n", ate_true))
 cat("Theoretical ATE = integral(1 + 2x)dx on [0,1] = 2.000\n")
 ```
 
+The sample average is 1.996 against a population value of 2. The 0.004 gap is
+simulation noise at $n = 20{,}000$.
+
 ### ATT — average treatment effect on the treated
 
 $$
@@ -100,7 +118,7 @@ $$ {#eq-causal-estimands-2}
 
 ATT is the mean effect for the units that actually took treatment. It differs
 from ATE when treatment selection is related to treatment-effect
-heterogeneity.
+heterogeneity. We average the individual effects over the treated units only.
 
 ```{r}
 #| label: att
@@ -110,9 +128,9 @@ att_true <- mean(Y1[D == 1] - Y0[D == 1])
 cat(sprintf("ATT (mean of Y1-Y0 conditional on D=1) = %.3f\n", att_true))
 ```
 
-Here ATT is close to ATE -- and in fact the two are analytically identical
-in this DGP, exactly $2.0$ in the population; the estimates above only differ
-by finite-sample simulation noise, not by any true gap between the estimands.
+ATT is 1.995 against an ATE of 1.996. The two are analytically identical in
+this DGP, exactly $2.0$ in the population, so the small difference is
+simulation noise and not a true gap between the estimands.
 The reason is mechanical: the individual treatment effect $\tau_i = 1+2X_i$
 depends only on $X_i$, while selection into treatment depends on $U_i$ (and
 the instrument $Z_i$ below), and $X_i$ is generated independently of $U_i$
@@ -141,6 +159,10 @@ Raising the *probability* alone would not be enough: with independent draws for
 $D(0)$ and $D(1)$, roughly 3% of units would be defiers and the Wald ratio would
 no longer equal the complier mean.
 
+We know $D_i(0)$ and $D_i(1)$ for every unit, so we can label the compliers and
+average their individual effects directly. We then compute the Wald ratio from
+$Y$, $D$ and $Z$ alone, which is all an analyst would have, and compare.
+
 ```{r}
 #| label: late
 #| cache: true
@@ -156,9 +178,13 @@ wald <- (mean(Y[Z == 1]) - mean(Y[Z == 0])) /
 cat(sprintf("Wald IV estimate (should match LATE): %.3f\n", wald))
 ```
 
-With heterogeneous effects, IV averages over the people moved by the
-instrument. In this example the Wald estimate matches the complier mean
-because $Z$ changes treatment only for that group.
+Compliers are 45.6% of the sample and their mean effect is 1.999, again the
+population value of 2. The Wald ratio gives 1.949. The two agree up to
+sampling noise: the ratio divides a difference in mean outcomes by a treatment
+rate difference of 0.456, which magnifies the noise in the numerator, and the
+0.05 gap is about one standard error of the ratio. With heterogeneous effects
+IV averages over the people moved by the instrument, and here that group has
+the same distribution of $X$ as everyone else.
 
 ### CATE — conditional average treatment effect
 
@@ -167,7 +193,10 @@ $$
 $$ {#eq-causal-estimands-4}
 
 CATE keeps $X$ in the estimand. In this DGP, CATE($x$) is simply
-$\tau(x)=1+2x$.
+$\tau(x)=1+2x$. We cannot condition on a single point of a continuous $X$ in a
+finite sample, so we cut $[0,1]$ into 20 equal-width bins, average the
+individual effects within each bin, and print two of them next to the true
+$\tau$ at the bin centre.
 
 ```{r}
 #| label: cate
@@ -186,6 +215,10 @@ cat(sprintf("CATE at x=%.3f: estimated %.2f, true %.2f\n",
             centers[16], cate_est[16], tau_fn(centers[16])))
 ```
 
+The binned averages are 1.35 at $x = 0.175$ and 2.55 at $x = 0.775$, matching
+$\tau$ at both bin centres to two decimals. The effect at $x=0.775$ is nearly
+twice the effect at $x=0.175$, and no single scalar reports that.
+
 ### QTE — quantile treatment effect
 
 $$
@@ -194,7 +227,9 @@ $$ {#eq-causal-estimands-5}
 
 QTE compares the two marginal outcome distributions. It is the difference
 between a quantile under treatment and the same quantile under control. It
-does not follow the same person across the two potential outcomes.
+does not follow the same person across the two potential outcomes. We take the
+quantiles of $Y(1)$ and of $Y(0)$ on a grid from 0.05 to 0.95 and difference
+them, printing the 10th, 50th and 90th percentiles.
 
 ```{r}
 #| label: qte
@@ -208,7 +243,19 @@ cat(sprintf("QTE(0.50) = %.3f\n", quantile(Y1, 0.50) - quantile(Y0, 0.50)))
 cat(sprintf("QTE(0.90) = %.3f\n", quantile(Y1, 0.90) - quantile(Y0, 0.90)))
 ```
 
+QTE rises from 1.709 at the 10th percentile to 2.009 at the median and 2.283
+at the 90th. The reason is that $\tau(X) = 1+2X$ is largest where $X$ is
+large, and $Y(0) = 0.5X + 0.3U + \varepsilon$ is also increasing in $X$, so
+treatment adds most to the units that were already high in the control
+distribution. Treatment stretches the distribution rather than shifting it.
+The median QTE happens to sit near the ATE here, and there is no general
+reason for that.
+
 ## All five estimands on two plots
+
+The left panel plots the binned CATE against the true $\tau(x)$, with ATE, ATT
+and LATE drawn as horizontal lines so the collapse to a scalar is visible. The
+right panel plots QTE($q$) across the grid with the ATE marked for reference.
 
 ```{r}
 #| label: estimand-plot
@@ -259,15 +306,15 @@ as a function of $X$.
 
 ## When the estimands differ
 
-In the first DGP the scalar estimands are close because:
+The three scalar estimands coincided because selection had nothing to do with
+the effect modifier. We now break that, and see how far apart they move.
 
-- $X$ is uniform on [0, 1] (so ATE = average of τ over uniform $X$ = 2)
-- Treatment selection is on $U$ (unobserved type), not $X$ (which drives τ),
-  so ATT ≈ ATE
-- The instrument shifts compliers uniformly across $X$, so LATE ≈ ATE
-
-If treatment selection depends on the effect modifier, the numbers separate.
-Here I make high-$X$ units more likely to take treatment:
+The second DGP is the first one with a single change: $X$ enters the treatment
+probability, $P(D=1 \mid Z=0, U, X) = 0.10 + 0.20U + 0.6X$, clipped to $[0,1]$,
+with the offer adding 0.50 as before. Everything else is unchanged --- a fresh
+sample of $n = 20{,}000$, $X \sim U(0,1)$, $U \sim N(0,1)$,
+$Z \sim \text{Bernoulli}(0.5)$, one shared uniform draw for the two potential
+treatments, $Y(0) = 0.5X + 0.3U + \varepsilon$ and $\tau(x) = 1 + 2x$.
 
 ```{r}
 #| label: dgp-selective
@@ -301,9 +348,21 @@ cat(sprintf("  ATT  = %.3f  (now higher: treated have higher X → larger τ)\n"
 cat(sprintf("  LATE = %.3f  (compliers' mean X drives this)\n", late2))
 ```
 
-Now ATT is larger than ATE. The treated group has higher $X$, and high $X$
-means a larger treatment effect. In this case reporting ATE or ATT changes
-the substantive answer.
+ATE is still 2.001, because the distribution of $X$ has not moved. ATT rises
+to 2.124 and LATE falls to 1.926. Since $\tau = 1 + 2X$, every subgroup
+average is $1 + 2\,\mathbb{E}[X \mid \text{subgroup}]$, so the numbers report
+the subgroups directly: the treated have mean $X$ of 0.562 and the compliers
+have mean $X$ of 0.463, against 0.5 in the population.
+
+The treated are high-$X$ because high $X$ raises the treatment probability.
+The compliers are low-$X$ for a less obvious reason. The offer adds 0.50 to a
+probability capped at 1, so a unit with $p_{D0}$ above 0.5 has a complier
+window of width $1 - p_{D0}$, narrower than 0.5. High-$X$ units are the ones
+the cap bites on: mean window width falls from 0.49 in the bottom quartile of
+$X$ to 0.34 in the top, and the complier rate falls with it, from 0.48 to
+0.34. So the instrument moves mostly low-$X$ units, and LATE lands below ATE.
+
+Here the choice between ATE, ATT and LATE changes the substantive answer.
 
 ## Which estimand should you choose?
 

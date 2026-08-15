@@ -482,7 +482,16 @@ B_\ell \;=\; \sum_{k=1}^{K} s_{\ell k}\, g_k.
 <strong>AKM SE</strong> <span class="citation" data-cites="adao-kolesar-morales-2019">(<a href="references.html#ref-adao-kolesar-morales-2019" role="doc-biblioref">Adão, Kolesár, and Morales 2019</a>)</span>: explicit formula for SE accounting for shock-level correlation. Available in the <code>ShiftShareSE</code> R package.</li>
 </ul></section><section id="simulation-build-intuition" class="level2" data-number="14.4"><h2 data-number="14.4" class="anchored" data-anchor-id="simulation-build-intuition">
 <span class="header-section-number">14.4</span> Simulation: build intuition</h2>
-<p>Use a small DGP with regions, industries, and a known causal effect.</p>
+<p>The aim is to see the shift-share IV recover a known effect that OLS misses, and then to break the identifying assumption on purpose and see which diagnostic catches it.</p>
+<p>We use 500 regions and 20 industries. Each region has a vector of industry shares <span class="math inline">\(s_{\ell k}\)</span> summing to one, concentrated so that a few industries dominate any given region. Each industry draws a shock <span class="math inline">\(g_k \sim N(0,1)\)</span>, independently of the shares and of everything at the region level. The instrument is <span class="math inline">\(B_\ell = \sum_k s_{\ell k} g_k\)</span>.</p>
+<p>There is one region-level confounder <span class="math inline">\(u_\ell \sim N(0,1)\)</span>. The observed local shock and the outcome are</p>
+<p><span id="eq-shift-share-iv-5"><span class="math display">\[
+X_\ell = B_\ell + 0.3u_\ell + \varepsilon_\ell, \qquad
+Y_\ell = 0.5 X_\ell + u_\ell + \eta_\ell,
+\tag{14.4}\]</span></span></p>
+<p>with <span class="math inline">\(\varepsilon\)</span> and <span class="math inline">\(\eta\)</span> independent noise of standard deviation about 0.3 and 0.5. The true effect is <span class="math inline">\(\beta = 0.5\)</span>.</p>
+<p>Because <span class="math inline">\(u\)</span> enters both <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span>, OLS is biased, and we can say by how much: <span class="math inline">\(\text{Cov}(X,u)/\text{Var}(X) = 0.3/0.315 = 0.95\)</span>, so OLS should return about <span class="math inline">\(0.5 + 0.95 = 1.45\)</span>.</p>
+<p>The data are generated once and stored as CSVs so that this book and its Julia companion produce identical numbers.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">n_region</span>   <span class="op">&lt;-</span> <span class="fl">500</span></span>
 <span><span class="va">n_industry</span> <span class="op">&lt;-</span> <span class="fl">20</span></span>
@@ -536,7 +545,8 @@ F-test (1st stage), X               --            370.5
 Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 </div>
 </div>
-<p>OLS is biased upward by the confounder; the shift-share IV recovers a value close to the true effect of 0.5. With concentrated industry shares and 20 industries, the first-stage F is well above 100.</p>
+<p>OLS gives 1.45 with a standard error of 0.075, matching the 1.45 predicted above and nearly three times the true effect of 0.5. The shift-share IV gives 0.531 with a standard error of 0.131, within a quarter of a standard error of the truth. The first-stage <span class="math inline">\(F\)</span> is 370.5, so the instrument is strong.</p>
+<p>Note the price again: the IV standard error is 0.131 against 0.075 for OLS, and the second-stage <span class="math inline">\(R^2\)</span> is 0.025 against 0.428. A biased estimator can fit well.</p>
 <section id="rotemberg-weights" class="level3" data-number="14.4.1"><h3 data-number="14.4.1" class="anchored" data-anchor-id="rotemberg-weights">
 <span class="header-section-number">14.4.1</span> Rotemberg weights</h3>
 <p>The GPSS decomposition says the shift-share IV is a weighted average of <span class="math inline">\(K\)</span> just-identified IVs (one per industry share). Compute the weights:</p>
@@ -699,13 +709,22 @@ Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 </table>
 </div>
 </div>
-<p>Two diagnostics matter:</p>
-<ol type="1">
-<li>
-<strong>Weight concentration</strong>: if one or two industries carry most of the weight, the identifying variation is essentially coming from those industries’ shares. Their exogeneity is the assumption you’re really leaning on.</li>
-<li>
-<strong>Heterogeneous <span class="math inline">\(\hat\beta_k\)</span></strong>: in this benign simulation, the industry-specific IVs are all near the true effect (with sampling noise). In real data, if a few industries give wildly different estimates, the “average” shift-share IV is averaging over heterogeneous treatment effects you should report explicitly.</li>
-</ol>
+<p>The weighted sum reproduces the 2SLS estimate exactly: <span class="math inline">\(\sum_k \alpha_k
+\hat\beta_k = 0.531\)</span>, which is the shift-share IV coefficient. That is the GPSS equivalence, and it holds numerically, not approximately.</p>
+<p>The weights are concentrated. Industry 5 carries 0.387 and industry 16 carries 0.204, so those two supply nearly 60% of the identifying variation, and the next three (industries 20, 6 and 9) bring the total past 80%. Under the share view, the exogeneity of those few industries’ shares is the assumption the estimate rests on. Notice that the two dominant industries are also the two with the largest shocks, 2.66 and 2.27: <span class="math inline">\(\alpha_k\)</span> is proportional to <span class="math inline">\(g_k
+\text{Cov}(s_{\cdot k}, X)\)</span>, so a big shock buys influence.</p>
+<p>The <span class="math inline">\(\hat\beta_k\)</span> column is more surprising and worth reading carefully. Industry 18 gives <span class="math inline">\(-39.5\)</span>, industry 4 gives <span class="math inline">\(-10.2\)</span>, industry 15 gives <span class="math inline">\(-3.2\)</span>. These are not near the true 0.5, and it would be easy to read them as evidence of severe treatment-effect heterogeneity. They are not. Each <span class="math inline">\(\hat\beta_k =
+\text{Cov}(s_{\cdot k}, Y)/\text{Cov}(s_{\cdot k}, X)\)</span> is a just-identified IV using one share as the instrument, and when <span class="math inline">\(\text{Cov}(s_{\cdot k}, X)\)</span> is near zero that ratio explodes. It is a weak-instrument artefact, one industry at a time.</p>
+<p>The decomposition is immune to it by construction. Since</p>
+<p><span id="eq-shift-share-iv-6"><span class="math display">\[
+\alpha_k \hat\beta_k
+= \frac{g_k \text{Cov}(s_{\cdot k}, X)}{\sum_j g_j \text{Cov}(s_{\cdot j}, X)}
+  \cdot \frac{\text{Cov}(s_{\cdot k}, Y)}{\text{Cov}(s_{\cdot k}, X)}
+= \frac{g_k \text{Cov}(s_{\cdot k}, Y)}{\sum_j g_j \text{Cov}(s_{\cdot j}, X)},
+\tag{14.5}\]</span></span></p>
+<p>the troublesome <span class="math inline">\(\text{Cov}(s_{\cdot k}, X)\)</span> cancels. Every industry with an exploding <span class="math inline">\(\hat\beta_k\)</span> has a weight near zero for exactly the same reason its <span class="math inline">\(\hat\beta_k\)</span> blew up. Industry 18 carries a weight of 0.000 and industry 4 a weight of 0.002.</p>
+<p>Read the two columns together, then. Among the industries that carry real weight, the estimates are 0.469, 0.746, 0.554, 1.025, 0.853 and 0.604 — close enough to 0.5 to be sampling noise, which is what we should see in a simulation with a homogeneous effect. In real data, if industries with <em>large</em> weights give very different estimates, the shift-share IV is averaging over genuine heterogeneity and that should be reported.</p>
+<p>The plot below makes the pairing visible: each industry’s just-identified IV estimate on the vertical axis, with point size proportional to its Rotemberg weight. The outlying estimates are the smallest points.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">ggplot</span><span class="op">(</span><span class="va">rotemberg</span>, <span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">industry</span><span class="op">)</span>, y <span class="op">=</span> <span class="va">beta_k</span>, size <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">weight</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">geom_hline</span><span class="op">(</span>yintercept <span class="op">=</span> <span class="va">beta_true</span>, linetype <span class="op">=</span> <span class="st">"dashed"</span>, color <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span> <span class="op">+</span></span>
@@ -724,7 +743,11 @@ Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 </div>
 </section><section id="what-goes-wrong-when-shares-are-endogenous" class="level3" data-number="14.4.2"><h3 data-number="14.4.2" class="anchored" data-anchor-id="what-goes-wrong-when-shares-are-endogenous">
 <span class="header-section-number">14.4.2</span> What goes wrong when shares are endogenous</h3>
-<p>Now break the share-exogeneity assumption: make industry 1’s share correlated with the second-stage error.</p>
+<p>Now break the share-exogeneity assumption on purpose. We introduce a second region-level confounder <span class="math inline">\(v_\ell\)</span>, add <span class="math inline">\(0.15 v_\ell\)</span> to industry 1’s share (renormalising the rows to sum to one), and let <span class="math inline">\(v\)</span> enter the outcome with coefficient 0.6:</p>
+<p><span id="eq-shift-share-iv-7"><span class="math display">\[
+Y_\ell = 0.5 X_\ell + u_\ell + 0.6 v_\ell + \eta_\ell .
+\tag{14.6}\]</span></span></p>
+<p>Everything else is unchanged. Industry 1’s share is now correlated with the second-stage error, so the instrument built from it is invalid, and we ask which diagnostic notices.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># Re-do shares so industry 1's share covaries with a new confounder v</span></span>
 <span><span class="va">v</span> <span class="op">&lt;-</span> <span class="fu">read_csv</span><span class="op">(</span><span class="st">"data/shift_share_bad_v.csv"</span>, show_col_types <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">$</span><span class="va">v</span></span>
@@ -763,14 +786,14 @@ Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 <pre><code>Shift-share IV without industry 1: 0.48 </code></pre>
 </div>
 </div>
-<p>The estimate is biased, and the bias comes from one industry’s share being related to the error. Note which diagnostic catches it. Rotemberg weights measure <em>influence</em> — whose exogeneity the estimate leans on — not endogeneity: the offending industry carries a weight of only 0.11, third largest of twenty, yet it alone moves the estimate from 0.5 to 0.8. The leave-one-industry-out check is what isolates it: rebuilding the instrument without industry 1 restores the estimate to 0.48.</p>
+<p>The estimate moves from 0.531 to 0.798 against a true 0.5, so one endogenous share out of twenty is enough to inflate the estimate by 60%. Note which diagnostic catches it. Rotemberg weights measure <em>influence</em> — whose exogeneity the estimate leans on — not endogeneity: the offending industry carries a weight of only 0.11, third largest of twenty, yet it alone moves the estimate from 0.5 to 0.8. The leave-one-industry-out check is what isolates it: rebuilding the instrument without industry 1 restores the estimate to 0.48.</p>
 </section></section><section id="empirical-the-china-shock-autor-dorn-hanson-2013" class="level2" data-number="14.5"><h2 data-number="14.5" class="anchored" data-anchor-id="empirical-the-china-shock-autor-dorn-hanson-2013">
 <span class="header-section-number">14.5</span> Empirical: the China shock (Autor, Dorn, Hanson 2013)</h2>
 <p>The standard shift-share application is the China-shock study of <span class="citation" data-cites="autor-dorn-hanson-2013">Autor, Dorn, and Hanson (<a href="references.html#ref-autor-dorn-hanson-2013" role="doc-biblioref">2013</a>)</span> (henceforth ADH). Commuting zones are exposed differently to Chinese import competition because their baseline industry mixes differ. The instrument is</p>
 <p><span id="eq-shift-share-iv-4"><span class="math display">\[
 \text{IV}_\ell \;=\; \sum_k \frac{L_{\ell k,\,1990}}{L_{\ell,\,1990}}\,
                    \frac{\Delta M^{other}_{k}}{L_{k,\,1990}},
-\tag{14.4}\]</span></span></p>
+\tag{14.7}\]</span></span></p>
 <p>where the shocks <span class="math inline">\(\Delta M^{other}_k\)</span> are growth in Chinese imports into other high-income countries. This leave-one-out construction removes US-specific demand from the shock. In the actual ADH design the employment shares are lagged one census behind the outcome period (e.g.&nbsp;1980 employment for the 1990–2000 stack), precisely to mitigate share endogeneity; we date everything to 1990 here to keep the notation light.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># David Dorn distributes the replication data at</span></span>
@@ -1401,247 +1424,322 @@ Goldsmith-Pinkham, Paul, Isaac Sorkin, and Henry Swift. 2020. <span>“Bartik In
 <span id="cb17-88"><a href="#cb17-88" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-89"><a href="#cb17-89" aria-hidden="true" tabindex="-1"></a><span class="fu">## Simulation: build intuition</span></span>
 <span id="cb17-90"><a href="#cb17-90" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-91"><a href="#cb17-91" aria-hidden="true" tabindex="-1"></a>Use a small DGP with regions, industries, and a known causal effect.</span>
-<span id="cb17-92"><a href="#cb17-92" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-95"><a href="#cb17-95" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb17-96"><a href="#cb17-96" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: sim-data</span></span>
-<span id="cb17-97"><a href="#cb17-97" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb17-98"><a href="#cb17-98" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-99"><a href="#cb17-99" aria-hidden="true" tabindex="-1"></a>n_region   <span class="ot">&lt;-</span> <span class="dv">500</span></span>
-<span id="cb17-100"><a href="#cb17-100" aria-hidden="true" tabindex="-1"></a>n_industry <span class="ot">&lt;-</span> <span class="dv">20</span></span>
-<span id="cb17-101"><a href="#cb17-101" aria-hidden="true" tabindex="-1"></a>beta_true  <span class="ot">&lt;-</span> <span class="fl">0.5</span></span>
-<span id="cb17-102"><a href="#cb17-102" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-103"><a href="#cb17-103" aria-hidden="true" tabindex="-1"></a>df     <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/shift_share_sim.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb17-104"><a href="#cb17-104" aria-hidden="true" tabindex="-1"></a>shares <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(<span class="fu">read_csv</span>(<span class="st">"data/shift_share_shares.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>))</span>
-<span id="cb17-105"><a href="#cb17-105" aria-hidden="true" tabindex="-1"></a><span class="co"># This simulation is constructed to satisfy the Borusyak et al. (2022)</span></span>
-<span id="cb17-106"><a href="#cb17-106" aria-hidden="true" tabindex="-1"></a><span class="co"># shock-exogeneity assumption: the industry-level shocks are drawn</span></span>
-<span id="cb17-107"><a href="#cb17-107" aria-hidden="true" tabindex="-1"></a><span class="co"># independently of the region-level confounder `u` and of the shares</span></span>
-<span id="cb17-108"><a href="#cb17-108" aria-hidden="true" tabindex="-1"></a><span class="co"># themselves. The shares are allowed to be endogenous (correlated with</span></span>
-<span id="cb17-109"><a href="#cb17-109" aria-hidden="true" tabindex="-1"></a><span class="co"># region characteristics) -- it is specifically the shocks that must be</span></span>
-<span id="cb17-110"><a href="#cb17-110" aria-hidden="true" tabindex="-1"></a><span class="co"># "as good as randomly assigned" for this identification argument, which is</span></span>
-<span id="cb17-111"><a href="#cb17-111" aria-hidden="true" tabindex="-1"></a><span class="co"># a different (and in this simulation, the maintained) assumption from the</span></span>
-<span id="cb17-112"><a href="#cb17-112" aria-hidden="true" tabindex="-1"></a><span class="co"># Goldsmith-Pinkham et al. (2020) shares-exogeneity view discussed above.</span></span>
-<span id="cb17-113"><a href="#cb17-113" aria-hidden="true" tabindex="-1"></a>shocks <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/shift_share_shocks.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>shock</span>
-<span id="cb17-114"><a href="#cb17-114" aria-hidden="true" tabindex="-1"></a>u      <span class="ot">&lt;-</span> df<span class="sc">$</span>u</span>
-<span id="cb17-115"><a href="#cb17-115" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(df)</span>
-<span id="cb17-116"><a href="#cb17-116" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb17-117"><a href="#cb17-117" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-118"><a href="#cb17-118" aria-hidden="true" tabindex="-1"></a>A naive OLS suffers from the confounder <span class="in">`u`</span>:</span>
-<span id="cb17-119"><a href="#cb17-119" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-122"><a href="#cb17-122" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb17-123"><a href="#cb17-123" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: naive-ols</span></span>
-<span id="cb17-124"><a href="#cb17-124" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb17-125"><a href="#cb17-125" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-126"><a href="#cb17-126" aria-hidden="true" tabindex="-1"></a>ols  <span class="ot">&lt;-</span> <span class="fu">feols</span>(Y <span class="sc">~</span> X, <span class="at">data =</span> df)</span>
-<span id="cb17-127"><a href="#cb17-127" aria-hidden="true" tabindex="-1"></a>ivss <span class="ot">&lt;-</span> <span class="fu">feols</span>(Y <span class="sc">~</span> <span class="dv">1</span> <span class="sc">|</span> X <span class="sc">~</span> B, <span class="at">data =</span> df)</span>
-<span id="cb17-128"><a href="#cb17-128" aria-hidden="true" tabindex="-1"></a><span class="fu">etable</span>(ols, ivss, <span class="at">headers =</span> <span class="fu">c</span>(<span class="st">"OLS"</span>, <span class="st">"Shift-share IV"</span>),</span>
-<span id="cb17-129"><a href="#cb17-129" aria-hidden="true" tabindex="-1"></a>       <span class="at">digits =</span> <span class="dv">3</span>, <span class="at">digits.stats =</span> <span class="dv">3</span>, <span class="at">fitstat =</span> <span class="sc">~</span> . <span class="sc">+</span> ivf)</span>
-<span id="cb17-130"><a href="#cb17-130" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb17-131"><a href="#cb17-131" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-132"><a href="#cb17-132" aria-hidden="true" tabindex="-1"></a>OLS is biased upward by the confounder; the shift-share IV recovers a</span>
-<span id="cb17-133"><a href="#cb17-133" aria-hidden="true" tabindex="-1"></a>value close to the true effect of <span class="in">`r beta_true`</span>. With concentrated industry</span>
-<span id="cb17-134"><a href="#cb17-134" aria-hidden="true" tabindex="-1"></a>shares and 20 industries, the first-stage F is well above 100.</span>
-<span id="cb17-135"><a href="#cb17-135" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-136"><a href="#cb17-136" aria-hidden="true" tabindex="-1"></a><span class="fu">### Rotemberg weights</span></span>
-<span id="cb17-137"><a href="#cb17-137" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-138"><a href="#cb17-138" aria-hidden="true" tabindex="-1"></a>The GPSS decomposition says the shift-share IV is a weighted average of</span>
-<span id="cb17-139"><a href="#cb17-139" aria-hidden="true" tabindex="-1"></a>$K$ just-identified IVs (one per industry share). Compute the weights:</span>
-<span id="cb17-140"><a href="#cb17-140" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-143"><a href="#cb17-143" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb17-144"><a href="#cb17-144" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: rotemberg</span></span>
-<span id="cb17-145"><a href="#cb17-145" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb17-146"><a href="#cb17-146" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-147"><a href="#cb17-147" aria-hidden="true" tabindex="-1"></a><span class="co"># Rotemberg weight for industry k (using centered moments to match the</span></span>
-<span id="cb17-148"><a href="#cb17-148" aria-hidden="true" tabindex="-1"></a><span class="co"># demeaned 2SLS regression):</span></span>
-<span id="cb17-149"><a href="#cb17-149" aria-hidden="true" tabindex="-1"></a><span class="co">#   alpha_k = g_k * Cov(s_{.k}, X) / sum_j g_j * Cov(s_{.j}, X)</span></span>
-<span id="cb17-150"><a href="#cb17-150" aria-hidden="true" tabindex="-1"></a><span class="co"># Each industry's just-identified IV estimate uses s_{.k} as instrument:</span></span>
-<span id="cb17-151"><a href="#cb17-151" aria-hidden="true" tabindex="-1"></a><span class="co">#   beta_k = Cov(s_{.k}, Y) / Cov(s_{.k}, X)</span></span>
-<span id="cb17-152"><a href="#cb17-152" aria-hidden="true" tabindex="-1"></a><span class="co"># GPSS prove the shift-share IV estimate equals sum_k alpha_k * beta_k.</span></span>
-<span id="cb17-153"><a href="#cb17-153" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-154"><a href="#cb17-154" aria-hidden="true" tabindex="-1"></a>cov_sk_X <span class="ot">&lt;-</span> <span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span>n_industry, <span class="cf">function</span>(k) <span class="fu">cov</span>(shares[, k], df<span class="sc">$</span>X))</span>
-<span id="cb17-155"><a href="#cb17-155" aria-hidden="true" tabindex="-1"></a>cov_sk_Y <span class="ot">&lt;-</span> <span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span>n_industry, <span class="cf">function</span>(k) <span class="fu">cov</span>(shares[, k], df<span class="sc">$</span>Y))</span>
-<span id="cb17-156"><a href="#cb17-156" aria-hidden="true" tabindex="-1"></a>denom    <span class="ot">&lt;-</span> <span class="fu">sum</span>(shocks <span class="sc">*</span> cov_sk_X)</span>
+<span id="cb17-91"><a href="#cb17-91" aria-hidden="true" tabindex="-1"></a>The aim is to see the shift-share IV recover a known effect that OLS misses,</span>
+<span id="cb17-92"><a href="#cb17-92" aria-hidden="true" tabindex="-1"></a>and then to break the identifying assumption on purpose and see which</span>
+<span id="cb17-93"><a href="#cb17-93" aria-hidden="true" tabindex="-1"></a>diagnostic catches it.</span>
+<span id="cb17-94"><a href="#cb17-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-95"><a href="#cb17-95" aria-hidden="true" tabindex="-1"></a>We use 500 regions and 20 industries. Each region has a vector of industry</span>
+<span id="cb17-96"><a href="#cb17-96" aria-hidden="true" tabindex="-1"></a>shares $s_{\ell k}$ summing to one, concentrated so that a few industries</span>
+<span id="cb17-97"><a href="#cb17-97" aria-hidden="true" tabindex="-1"></a>dominate any given region. Each industry draws a shock $g_k \sim N(0,1)$,</span>
+<span id="cb17-98"><a href="#cb17-98" aria-hidden="true" tabindex="-1"></a>independently of the shares and of everything at the region level. The</span>
+<span id="cb17-99"><a href="#cb17-99" aria-hidden="true" tabindex="-1"></a>instrument is $B_\ell = \sum_k s_{\ell k} g_k$.</span>
+<span id="cb17-100"><a href="#cb17-100" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-101"><a href="#cb17-101" aria-hidden="true" tabindex="-1"></a>There is one region-level confounder $u_\ell \sim N(0,1)$. The observed local</span>
+<span id="cb17-102"><a href="#cb17-102" aria-hidden="true" tabindex="-1"></a>shock and the outcome are</span>
+<span id="cb17-103"><a href="#cb17-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-104"><a href="#cb17-104" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb17-105"><a href="#cb17-105" aria-hidden="true" tabindex="-1"></a>X_\ell = B_\ell + 0.3u_\ell + \varepsilon_\ell, \qquad</span>
+<span id="cb17-106"><a href="#cb17-106" aria-hidden="true" tabindex="-1"></a>Y_\ell = 0.5 X_\ell + u_\ell + \eta_\ell,</span>
+<span id="cb17-107"><a href="#cb17-107" aria-hidden="true" tabindex="-1"></a>$$ {#eq-shift-share-iv-5}</span>
+<span id="cb17-108"><a href="#cb17-108" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-109"><a href="#cb17-109" aria-hidden="true" tabindex="-1"></a>with $\varepsilon$ and $\eta$ independent noise of standard deviation about 0.3</span>
+<span id="cb17-110"><a href="#cb17-110" aria-hidden="true" tabindex="-1"></a>and 0.5. The true effect is $\beta = 0.5$.</span>
+<span id="cb17-111"><a href="#cb17-111" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-112"><a href="#cb17-112" aria-hidden="true" tabindex="-1"></a>Because $u$ enters both $X$ and $Y$, OLS is biased, and we can say by how much:</span>
+<span id="cb17-113"><a href="#cb17-113" aria-hidden="true" tabindex="-1"></a>$\text{Cov}(X,u)/\text{Var}(X) = 0.3/0.315 = 0.95$, so OLS should return about</span>
+<span id="cb17-114"><a href="#cb17-114" aria-hidden="true" tabindex="-1"></a>$0.5 + 0.95 = 1.45$.</span>
+<span id="cb17-115"><a href="#cb17-115" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-116"><a href="#cb17-116" aria-hidden="true" tabindex="-1"></a>The data are generated once and stored as CSVs so that this book and its Julia</span>
+<span id="cb17-117"><a href="#cb17-117" aria-hidden="true" tabindex="-1"></a>companion produce identical numbers.</span>
+<span id="cb17-118"><a href="#cb17-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-121"><a href="#cb17-121" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb17-122"><a href="#cb17-122" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: sim-data</span></span>
+<span id="cb17-123"><a href="#cb17-123" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb17-124"><a href="#cb17-124" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-125"><a href="#cb17-125" aria-hidden="true" tabindex="-1"></a>n_region   <span class="ot">&lt;-</span> <span class="dv">500</span></span>
+<span id="cb17-126"><a href="#cb17-126" aria-hidden="true" tabindex="-1"></a>n_industry <span class="ot">&lt;-</span> <span class="dv">20</span></span>
+<span id="cb17-127"><a href="#cb17-127" aria-hidden="true" tabindex="-1"></a>beta_true  <span class="ot">&lt;-</span> <span class="fl">0.5</span></span>
+<span id="cb17-128"><a href="#cb17-128" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-129"><a href="#cb17-129" aria-hidden="true" tabindex="-1"></a>df     <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/shift_share_sim.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb17-130"><a href="#cb17-130" aria-hidden="true" tabindex="-1"></a>shares <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(<span class="fu">read_csv</span>(<span class="st">"data/shift_share_shares.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>))</span>
+<span id="cb17-131"><a href="#cb17-131" aria-hidden="true" tabindex="-1"></a><span class="co"># This simulation is constructed to satisfy the Borusyak et al. (2022)</span></span>
+<span id="cb17-132"><a href="#cb17-132" aria-hidden="true" tabindex="-1"></a><span class="co"># shock-exogeneity assumption: the industry-level shocks are drawn</span></span>
+<span id="cb17-133"><a href="#cb17-133" aria-hidden="true" tabindex="-1"></a><span class="co"># independently of the region-level confounder `u` and of the shares</span></span>
+<span id="cb17-134"><a href="#cb17-134" aria-hidden="true" tabindex="-1"></a><span class="co"># themselves. The shares are allowed to be endogenous (correlated with</span></span>
+<span id="cb17-135"><a href="#cb17-135" aria-hidden="true" tabindex="-1"></a><span class="co"># region characteristics) -- it is specifically the shocks that must be</span></span>
+<span id="cb17-136"><a href="#cb17-136" aria-hidden="true" tabindex="-1"></a><span class="co"># "as good as randomly assigned" for this identification argument, which is</span></span>
+<span id="cb17-137"><a href="#cb17-137" aria-hidden="true" tabindex="-1"></a><span class="co"># a different (and in this simulation, the maintained) assumption from the</span></span>
+<span id="cb17-138"><a href="#cb17-138" aria-hidden="true" tabindex="-1"></a><span class="co"># Goldsmith-Pinkham et al. (2020) shares-exogeneity view discussed above.</span></span>
+<span id="cb17-139"><a href="#cb17-139" aria-hidden="true" tabindex="-1"></a>shocks <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/shift_share_shocks.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>shock</span>
+<span id="cb17-140"><a href="#cb17-140" aria-hidden="true" tabindex="-1"></a>u      <span class="ot">&lt;-</span> df<span class="sc">$</span>u</span>
+<span id="cb17-141"><a href="#cb17-141" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(df)</span>
+<span id="cb17-142"><a href="#cb17-142" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb17-143"><a href="#cb17-143" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-144"><a href="#cb17-144" aria-hidden="true" tabindex="-1"></a>A naive OLS suffers from the confounder <span class="in">`u`</span>:</span>
+<span id="cb17-145"><a href="#cb17-145" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-148"><a href="#cb17-148" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb17-149"><a href="#cb17-149" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: naive-ols</span></span>
+<span id="cb17-150"><a href="#cb17-150" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb17-151"><a href="#cb17-151" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-152"><a href="#cb17-152" aria-hidden="true" tabindex="-1"></a>ols  <span class="ot">&lt;-</span> <span class="fu">feols</span>(Y <span class="sc">~</span> X, <span class="at">data =</span> df)</span>
+<span id="cb17-153"><a href="#cb17-153" aria-hidden="true" tabindex="-1"></a>ivss <span class="ot">&lt;-</span> <span class="fu">feols</span>(Y <span class="sc">~</span> <span class="dv">1</span> <span class="sc">|</span> X <span class="sc">~</span> B, <span class="at">data =</span> df)</span>
+<span id="cb17-154"><a href="#cb17-154" aria-hidden="true" tabindex="-1"></a><span class="fu">etable</span>(ols, ivss, <span class="at">headers =</span> <span class="fu">c</span>(<span class="st">"OLS"</span>, <span class="st">"Shift-share IV"</span>),</span>
+<span id="cb17-155"><a href="#cb17-155" aria-hidden="true" tabindex="-1"></a>       <span class="at">digits =</span> <span class="dv">3</span>, <span class="at">digits.stats =</span> <span class="dv">3</span>, <span class="at">fitstat =</span> <span class="sc">~</span> . <span class="sc">+</span> ivf)</span>
+<span id="cb17-156"><a href="#cb17-156" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb17-157"><a href="#cb17-157" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-158"><a href="#cb17-158" aria-hidden="true" tabindex="-1"></a>alpha  <span class="ot">&lt;-</span> shocks <span class="sc">*</span> cov_sk_X <span class="sc">/</span> denom</span>
-<span id="cb17-159"><a href="#cb17-159" aria-hidden="true" tabindex="-1"></a>beta_k <span class="ot">&lt;-</span> cov_sk_Y <span class="sc">/</span> cov_sk_X</span>
-<span id="cb17-160"><a href="#cb17-160" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-161"><a href="#cb17-161" aria-hidden="true" tabindex="-1"></a>rotemberg <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">industry =</span> <span class="dv">1</span><span class="sc">:</span>n_industry,</span>
-<span id="cb17-162"><a href="#cb17-162" aria-hidden="true" tabindex="-1"></a>                    <span class="at">shock    =</span> shocks,</span>
-<span id="cb17-163"><a href="#cb17-163" aria-hidden="true" tabindex="-1"></a>                    <span class="at">weight   =</span> alpha,</span>
-<span id="cb17-164"><a href="#cb17-164" aria-hidden="true" tabindex="-1"></a>                    <span class="at">beta_k   =</span> beta_k)</span>
+<span id="cb17-158"><a href="#cb17-158" aria-hidden="true" tabindex="-1"></a>OLS gives 1.45 with a standard error of 0.075, matching the 1.45 predicted</span>
+<span id="cb17-159"><a href="#cb17-159" aria-hidden="true" tabindex="-1"></a>above and nearly three times the true effect of <span class="in">`r beta_true`</span>. The shift-share</span>
+<span id="cb17-160"><a href="#cb17-160" aria-hidden="true" tabindex="-1"></a>IV gives 0.531 with a standard error of 0.131, within a quarter of a standard</span>
+<span id="cb17-161"><a href="#cb17-161" aria-hidden="true" tabindex="-1"></a>error of the truth. The first-stage $F$ is 370.5, so the instrument is strong.</span>
+<span id="cb17-162"><a href="#cb17-162" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-163"><a href="#cb17-163" aria-hidden="true" tabindex="-1"></a>Note the price again: the IV standard error is 0.131 against 0.075 for OLS, and</span>
+<span id="cb17-164"><a href="#cb17-164" aria-hidden="true" tabindex="-1"></a>the second-stage $R^2$ is 0.025 against 0.428. A biased estimator can fit well.</span>
 <span id="cb17-165"><a href="#cb17-165" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-166"><a href="#cb17-166" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(rotemberg, <span class="at">digits =</span> <span class="dv">3</span>,</span>
-<span id="cb17-167"><a href="#cb17-167" aria-hidden="true" tabindex="-1"></a>      <span class="at">caption =</span> <span class="fu">paste0</span>(<span class="st">"Rotemberg decomposition. Sum of alpha*beta_k = "</span>,</span>
-<span id="cb17-168"><a href="#cb17-168" aria-hidden="true" tabindex="-1"></a>                       <span class="fu">round</span>(<span class="fu">sum</span>(alpha <span class="sc">*</span> beta_k), <span class="dv">3</span>),</span>
-<span id="cb17-169"><a href="#cb17-169" aria-hidden="true" tabindex="-1"></a>                       <span class="st">" (= shift-share IV estimate of "</span>,</span>
-<span id="cb17-170"><a href="#cb17-170" aria-hidden="true" tabindex="-1"></a>                       <span class="fu">round</span>(<span class="fu">coef</span>(ivss)[<span class="st">"fit_X"</span>], <span class="dv">3</span>), <span class="st">")."</span>))</span>
-<span id="cb17-171"><a href="#cb17-171" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb17-172"><a href="#cb17-172" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-173"><a href="#cb17-173" aria-hidden="true" tabindex="-1"></a>Two diagnostics matter:</span>
-<span id="cb17-174"><a href="#cb17-174" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-175"><a href="#cb17-175" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Weight concentration**: if one or two industries carry most of the</span>
-<span id="cb17-176"><a href="#cb17-176" aria-hidden="true" tabindex="-1"></a>   weight, the identifying variation is essentially coming from those</span>
-<span id="cb17-177"><a href="#cb17-177" aria-hidden="true" tabindex="-1"></a>   industries' shares. Their exogeneity is the assumption you're really</span>
-<span id="cb17-178"><a href="#cb17-178" aria-hidden="true" tabindex="-1"></a>   leaning on.</span>
-<span id="cb17-179"><a href="#cb17-179" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Heterogeneous $\hat\beta_k$**: in this benign simulation, the</span>
-<span id="cb17-180"><a href="#cb17-180" aria-hidden="true" tabindex="-1"></a>   industry-specific IVs are all near the true effect (with sampling noise).</span>
-<span id="cb17-181"><a href="#cb17-181" aria-hidden="true" tabindex="-1"></a>   In real data, if a few industries give wildly different estimates, the</span>
-<span id="cb17-182"><a href="#cb17-182" aria-hidden="true" tabindex="-1"></a>   "average" shift-share IV is averaging over heterogeneous treatment effects</span>
-<span id="cb17-183"><a href="#cb17-183" aria-hidden="true" tabindex="-1"></a>   you should report explicitly.</span>
-<span id="cb17-184"><a href="#cb17-184" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-187"><a href="#cb17-187" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb17-188"><a href="#cb17-188" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: rotemberg-plot</span></span>
-<span id="cb17-189"><a href="#cb17-189" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb17-190"><a href="#cb17-190" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4</span></span>
-<span id="cb17-191"><a href="#cb17-191" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
-<span id="cb17-192"><a href="#cb17-192" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-193"><a href="#cb17-193" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(rotemberg, <span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">factor</span>(industry), <span class="at">y =</span> beta_k, <span class="at">size =</span> <span class="fu">abs</span>(weight))) <span class="sc">+</span></span>
-<span id="cb17-194"><a href="#cb17-194" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> beta_true, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
-<span id="cb17-195"><a href="#cb17-195" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
-<span id="cb17-196"><a href="#cb17-196" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_size_continuous</span>(<span class="at">name =</span> <span class="st">"|Rotemberg weight|"</span>) <span class="sc">+</span></span>
-<span id="cb17-197"><a href="#cb17-197" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Industry"</span>, <span class="at">y =</span> <span class="st">"Just-identified IV estimate"</span>,</span>
-<span id="cb17-198"><a href="#cb17-198" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Industry-level IV estimates and weights"</span>,</span>
-<span id="cb17-199"><a href="#cb17-199" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="fu">paste</span>(<span class="st">"Red line = true effect ="</span>, beta_true)) <span class="sc">+</span></span>
-<span id="cb17-200"><a href="#cb17-200" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb17-166"><a href="#cb17-166" aria-hidden="true" tabindex="-1"></a><span class="fu">### Rotemberg weights</span></span>
+<span id="cb17-167"><a href="#cb17-167" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-168"><a href="#cb17-168" aria-hidden="true" tabindex="-1"></a>The GPSS decomposition says the shift-share IV is a weighted average of</span>
+<span id="cb17-169"><a href="#cb17-169" aria-hidden="true" tabindex="-1"></a>$K$ just-identified IVs (one per industry share). Compute the weights:</span>
+<span id="cb17-170"><a href="#cb17-170" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-173"><a href="#cb17-173" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb17-174"><a href="#cb17-174" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: rotemberg</span></span>
+<span id="cb17-175"><a href="#cb17-175" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb17-176"><a href="#cb17-176" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-177"><a href="#cb17-177" aria-hidden="true" tabindex="-1"></a><span class="co"># Rotemberg weight for industry k (using centered moments to match the</span></span>
+<span id="cb17-178"><a href="#cb17-178" aria-hidden="true" tabindex="-1"></a><span class="co"># demeaned 2SLS regression):</span></span>
+<span id="cb17-179"><a href="#cb17-179" aria-hidden="true" tabindex="-1"></a><span class="co">#   alpha_k = g_k * Cov(s_{.k}, X) / sum_j g_j * Cov(s_{.j}, X)</span></span>
+<span id="cb17-180"><a href="#cb17-180" aria-hidden="true" tabindex="-1"></a><span class="co"># Each industry's just-identified IV estimate uses s_{.k} as instrument:</span></span>
+<span id="cb17-181"><a href="#cb17-181" aria-hidden="true" tabindex="-1"></a><span class="co">#   beta_k = Cov(s_{.k}, Y) / Cov(s_{.k}, X)</span></span>
+<span id="cb17-182"><a href="#cb17-182" aria-hidden="true" tabindex="-1"></a><span class="co"># GPSS prove the shift-share IV estimate equals sum_k alpha_k * beta_k.</span></span>
+<span id="cb17-183"><a href="#cb17-183" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-184"><a href="#cb17-184" aria-hidden="true" tabindex="-1"></a>cov_sk_X <span class="ot">&lt;-</span> <span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span>n_industry, <span class="cf">function</span>(k) <span class="fu">cov</span>(shares[, k], df<span class="sc">$</span>X))</span>
+<span id="cb17-185"><a href="#cb17-185" aria-hidden="true" tabindex="-1"></a>cov_sk_Y <span class="ot">&lt;-</span> <span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span>n_industry, <span class="cf">function</span>(k) <span class="fu">cov</span>(shares[, k], df<span class="sc">$</span>Y))</span>
+<span id="cb17-186"><a href="#cb17-186" aria-hidden="true" tabindex="-1"></a>denom    <span class="ot">&lt;-</span> <span class="fu">sum</span>(shocks <span class="sc">*</span> cov_sk_X)</span>
+<span id="cb17-187"><a href="#cb17-187" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-188"><a href="#cb17-188" aria-hidden="true" tabindex="-1"></a>alpha  <span class="ot">&lt;-</span> shocks <span class="sc">*</span> cov_sk_X <span class="sc">/</span> denom</span>
+<span id="cb17-189"><a href="#cb17-189" aria-hidden="true" tabindex="-1"></a>beta_k <span class="ot">&lt;-</span> cov_sk_Y <span class="sc">/</span> cov_sk_X</span>
+<span id="cb17-190"><a href="#cb17-190" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-191"><a href="#cb17-191" aria-hidden="true" tabindex="-1"></a>rotemberg <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">industry =</span> <span class="dv">1</span><span class="sc">:</span>n_industry,</span>
+<span id="cb17-192"><a href="#cb17-192" aria-hidden="true" tabindex="-1"></a>                    <span class="at">shock    =</span> shocks,</span>
+<span id="cb17-193"><a href="#cb17-193" aria-hidden="true" tabindex="-1"></a>                    <span class="at">weight   =</span> alpha,</span>
+<span id="cb17-194"><a href="#cb17-194" aria-hidden="true" tabindex="-1"></a>                    <span class="at">beta_k   =</span> beta_k)</span>
+<span id="cb17-195"><a href="#cb17-195" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-196"><a href="#cb17-196" aria-hidden="true" tabindex="-1"></a><span class="fu">kable</span>(rotemberg, <span class="at">digits =</span> <span class="dv">3</span>,</span>
+<span id="cb17-197"><a href="#cb17-197" aria-hidden="true" tabindex="-1"></a>      <span class="at">caption =</span> <span class="fu">paste0</span>(<span class="st">"Rotemberg decomposition. Sum of alpha*beta_k = "</span>,</span>
+<span id="cb17-198"><a href="#cb17-198" aria-hidden="true" tabindex="-1"></a>                       <span class="fu">round</span>(<span class="fu">sum</span>(alpha <span class="sc">*</span> beta_k), <span class="dv">3</span>),</span>
+<span id="cb17-199"><a href="#cb17-199" aria-hidden="true" tabindex="-1"></a>                       <span class="st">" (= shift-share IV estimate of "</span>,</span>
+<span id="cb17-200"><a href="#cb17-200" aria-hidden="true" tabindex="-1"></a>                       <span class="fu">round</span>(<span class="fu">coef</span>(ivss)[<span class="st">"fit_X"</span>], <span class="dv">3</span>), <span class="st">")."</span>))</span>
 <span id="cb17-201"><a href="#cb17-201" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb17-202"><a href="#cb17-202" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-203"><a href="#cb17-203" aria-hidden="true" tabindex="-1"></a><span class="fu">### What goes wrong when shares are endogenous</span></span>
-<span id="cb17-204"><a href="#cb17-204" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-205"><a href="#cb17-205" aria-hidden="true" tabindex="-1"></a>Now break the share-exogeneity assumption: make industry 1's share correlated</span>
-<span id="cb17-206"><a href="#cb17-206" aria-hidden="true" tabindex="-1"></a>with the second-stage error.</span>
-<span id="cb17-207"><a href="#cb17-207" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-210"><a href="#cb17-210" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb17-211"><a href="#cb17-211" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: bad-shares</span></span>
-<span id="cb17-212"><a href="#cb17-212" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb17-213"><a href="#cb17-213" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-214"><a href="#cb17-214" aria-hidden="true" tabindex="-1"></a><span class="co"># Re-do shares so industry 1's share covaries with a new confounder v</span></span>
-<span id="cb17-215"><a href="#cb17-215" aria-hidden="true" tabindex="-1"></a>v <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/shift_share_bad_v.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>v</span>
-<span id="cb17-216"><a href="#cb17-216" aria-hidden="true" tabindex="-1"></a>shares_bad <span class="ot">&lt;-</span> shares</span>
-<span id="cb17-217"><a href="#cb17-217" aria-hidden="true" tabindex="-1"></a>shares_bad[, <span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="fu">pmax</span>(<span class="fl">0.01</span>, shares[, <span class="dv">1</span>] <span class="sc">+</span> <span class="fl">0.15</span> <span class="sc">*</span> v)</span>
-<span id="cb17-218"><a href="#cb17-218" aria-hidden="true" tabindex="-1"></a>shares_bad <span class="ot">&lt;-</span> shares_bad <span class="sc">/</span> <span class="fu">rowSums</span>(shares_bad)   <span class="co"># renormalise to sum to 1</span></span>
-<span id="cb17-219"><a href="#cb17-219" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-220"><a href="#cb17-220" aria-hidden="true" tabindex="-1"></a>bad_noise <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/shift_share_bad_noise.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb17-221"><a href="#cb17-221" aria-hidden="true" tabindex="-1"></a>B_bad <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(shares_bad <span class="sc">%*%</span> shocks)</span>
-<span id="cb17-222"><a href="#cb17-222" aria-hidden="true" tabindex="-1"></a>X_bad <span class="ot">&lt;-</span> B_bad <span class="sc">+</span> <span class="fl">0.3</span> <span class="sc">*</span> u <span class="sc">+</span> bad_noise<span class="sc">$</span>noise_x</span>
-<span id="cb17-223"><a href="#cb17-223" aria-hidden="true" tabindex="-1"></a>Y_bad <span class="ot">&lt;-</span> beta_true <span class="sc">*</span> X_bad <span class="sc">+</span> u <span class="sc">+</span> <span class="fl">0.6</span> <span class="sc">*</span> v <span class="sc">+</span> bad_noise<span class="sc">$</span>noise_y</span>
-<span id="cb17-224"><a href="#cb17-224" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-225"><a href="#cb17-225" aria-hidden="true" tabindex="-1"></a>df_bad <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">X =</span> X_bad, <span class="at">Y =</span> Y_bad, <span class="at">B =</span> B_bad)</span>
-<span id="cb17-226"><a href="#cb17-226" aria-hidden="true" tabindex="-1"></a>ivss_bad <span class="ot">&lt;-</span> <span class="fu">feols</span>(Y <span class="sc">~</span> <span class="dv">1</span> <span class="sc">|</span> X <span class="sc">~</span> B, <span class="at">data =</span> df_bad)</span>
-<span id="cb17-227"><a href="#cb17-227" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"True beta:"</span>, beta_true, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
-<span id="cb17-228"><a href="#cb17-228" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Shift-share IV with bad share 1:"</span>, <span class="fu">round</span>(<span class="fu">coef</span>(ivss_bad)[<span class="st">"fit_X"</span>], <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
-<span id="cb17-229"><a href="#cb17-229" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-230"><a href="#cb17-230" aria-hidden="true" tabindex="-1"></a><span class="co"># Rotemberg weights recomputed under the bad shares</span></span>
-<span id="cb17-231"><a href="#cb17-231" aria-hidden="true" tabindex="-1"></a>cov_sk_X_bad <span class="ot">&lt;-</span> <span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span>n_industry, <span class="cf">function</span>(k) <span class="fu">cov</span>(shares_bad[, k], X_bad))</span>
-<span id="cb17-232"><a href="#cb17-232" aria-hidden="true" tabindex="-1"></a>alpha_bad    <span class="ot">&lt;-</span> shocks <span class="sc">*</span> cov_sk_X_bad <span class="sc">/</span> <span class="fu">sum</span>(shocks <span class="sc">*</span> cov_sk_X_bad)</span>
-<span id="cb17-233"><a href="#cb17-233" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Rotemberg weight of industry 1:"</span>, <span class="fu">round</span>(alpha_bad[<span class="dv">1</span>], <span class="dv">3</span>),</span>
-<span id="cb17-234"><a href="#cb17-234" aria-hidden="true" tabindex="-1"></a>    <span class="st">"-- rank"</span>, <span class="fu">rank</span>(<span class="sc">-</span><span class="fu">abs</span>(alpha_bad))[<span class="dv">1</span>], <span class="st">"of"</span>, n_industry, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
-<span id="cb17-235"><a href="#cb17-235" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-236"><a href="#cb17-236" aria-hidden="true" tabindex="-1"></a><span class="co"># Leave-one-industry-out: rebuild the instrument without industry 1</span></span>
-<span id="cb17-237"><a href="#cb17-237" aria-hidden="true" tabindex="-1"></a>B_loo    <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(shares_bad[, <span class="sc">-</span><span class="dv">1</span>] <span class="sc">%*%</span> shocks[<span class="sc">-</span><span class="dv">1</span>])</span>
-<span id="cb17-238"><a href="#cb17-238" aria-hidden="true" tabindex="-1"></a>ivss_loo <span class="ot">&lt;-</span> <span class="fu">feols</span>(Y <span class="sc">~</span> <span class="dv">1</span> <span class="sc">|</span> X <span class="sc">~</span> B, <span class="at">data =</span> <span class="fu">tibble</span>(<span class="at">X =</span> X_bad, <span class="at">Y =</span> Y_bad, <span class="at">B =</span> B_loo))</span>
-<span id="cb17-239"><a href="#cb17-239" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Shift-share IV without industry 1:"</span>, <span class="fu">round</span>(<span class="fu">coef</span>(ivss_loo)[<span class="st">"fit_X"</span>], <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
-<span id="cb17-240"><a href="#cb17-240" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb17-241"><a href="#cb17-241" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-242"><a href="#cb17-242" aria-hidden="true" tabindex="-1"></a>The estimate is biased, and the bias comes from one industry's share being</span>
-<span id="cb17-243"><a href="#cb17-243" aria-hidden="true" tabindex="-1"></a>related to the error. Note which diagnostic catches it. Rotemberg weights</span>
-<span id="cb17-244"><a href="#cb17-244" aria-hidden="true" tabindex="-1"></a>measure *influence* --- whose exogeneity the estimate leans on --- not</span>
-<span id="cb17-245"><a href="#cb17-245" aria-hidden="true" tabindex="-1"></a>endogeneity: the offending industry carries a weight of only 0.11, third</span>
-<span id="cb17-246"><a href="#cb17-246" aria-hidden="true" tabindex="-1"></a>largest of twenty, yet it alone moves the estimate from 0.5 to 0.8. The</span>
-<span id="cb17-247"><a href="#cb17-247" aria-hidden="true" tabindex="-1"></a>leave-one-industry-out check is what isolates it: rebuilding the instrument</span>
-<span id="cb17-248"><a href="#cb17-248" aria-hidden="true" tabindex="-1"></a>without industry 1 restores the estimate to 0.48.</span>
-<span id="cb17-249"><a href="#cb17-249" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-250"><a href="#cb17-250" aria-hidden="true" tabindex="-1"></a><span class="fu">## Empirical: the China shock (Autor, Dorn, Hanson 2013)</span></span>
-<span id="cb17-251"><a href="#cb17-251" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-252"><a href="#cb17-252" aria-hidden="true" tabindex="-1"></a>The standard shift-share application is the China-shock study of</span>
-<span id="cb17-253"><a href="#cb17-253" aria-hidden="true" tabindex="-1"></a>@autor-dorn-hanson-2013 (henceforth ADH). Commuting zones are exposed</span>
-<span id="cb17-254"><a href="#cb17-254" aria-hidden="true" tabindex="-1"></a>differently to Chinese import competition because their baseline industry</span>
-<span id="cb17-255"><a href="#cb17-255" aria-hidden="true" tabindex="-1"></a>mixes differ. The instrument is</span>
+<span id="cb17-203"><a href="#cb17-203" aria-hidden="true" tabindex="-1"></a>The weighted sum reproduces the 2SLS estimate exactly: $\sum_k \alpha_k</span>
+<span id="cb17-204"><a href="#cb17-204" aria-hidden="true" tabindex="-1"></a>\hat\beta_k = 0.531$, which is the shift-share IV coefficient. That is the GPSS</span>
+<span id="cb17-205"><a href="#cb17-205" aria-hidden="true" tabindex="-1"></a>equivalence, and it holds numerically, not approximately.</span>
+<span id="cb17-206"><a href="#cb17-206" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-207"><a href="#cb17-207" aria-hidden="true" tabindex="-1"></a>The weights are concentrated. Industry 5 carries 0.387 and industry 16 carries</span>
+<span id="cb17-208"><a href="#cb17-208" aria-hidden="true" tabindex="-1"></a>0.204, so those two supply nearly 60% of the identifying variation, and the</span>
+<span id="cb17-209"><a href="#cb17-209" aria-hidden="true" tabindex="-1"></a>next three (industries 20, 6 and 9) bring the total past 80%. Under the share</span>
+<span id="cb17-210"><a href="#cb17-210" aria-hidden="true" tabindex="-1"></a>view, the exogeneity of those few industries' shares is the assumption the</span>
+<span id="cb17-211"><a href="#cb17-211" aria-hidden="true" tabindex="-1"></a>estimate rests on. Notice that the two dominant industries are also the two</span>
+<span id="cb17-212"><a href="#cb17-212" aria-hidden="true" tabindex="-1"></a>with the largest shocks, 2.66 and 2.27: $\alpha_k$ is proportional to $g_k</span>
+<span id="cb17-213"><a href="#cb17-213" aria-hidden="true" tabindex="-1"></a>\text{Cov}(s_{\cdot k}, X)$, so a big shock buys influence.</span>
+<span id="cb17-214"><a href="#cb17-214" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-215"><a href="#cb17-215" aria-hidden="true" tabindex="-1"></a>The $\hat\beta_k$ column is more surprising and worth reading carefully.</span>
+<span id="cb17-216"><a href="#cb17-216" aria-hidden="true" tabindex="-1"></a>Industry 18 gives $-39.5$, industry 4 gives $-10.2$, industry 15 gives $-3.2$.</span>
+<span id="cb17-217"><a href="#cb17-217" aria-hidden="true" tabindex="-1"></a>These are not near the true 0.5, and it would be easy to read them as evidence</span>
+<span id="cb17-218"><a href="#cb17-218" aria-hidden="true" tabindex="-1"></a>of severe treatment-effect heterogeneity. They are not. Each $\hat\beta_k =</span>
+<span id="cb17-219"><a href="#cb17-219" aria-hidden="true" tabindex="-1"></a>\text{Cov}(s_{\cdot k}, Y)/\text{Cov}(s_{\cdot k}, X)$ is a just-identified IV</span>
+<span id="cb17-220"><a href="#cb17-220" aria-hidden="true" tabindex="-1"></a>using one share as the instrument, and when $\text{Cov}(s_{\cdot k}, X)$ is</span>
+<span id="cb17-221"><a href="#cb17-221" aria-hidden="true" tabindex="-1"></a>near zero that ratio explodes. It is a weak-instrument artefact, one industry</span>
+<span id="cb17-222"><a href="#cb17-222" aria-hidden="true" tabindex="-1"></a>at a time.</span>
+<span id="cb17-223"><a href="#cb17-223" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-224"><a href="#cb17-224" aria-hidden="true" tabindex="-1"></a>The decomposition is immune to it by construction. Since</span>
+<span id="cb17-225"><a href="#cb17-225" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-226"><a href="#cb17-226" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb17-227"><a href="#cb17-227" aria-hidden="true" tabindex="-1"></a>\alpha_k \hat\beta_k</span>
+<span id="cb17-228"><a href="#cb17-228" aria-hidden="true" tabindex="-1"></a>= \frac{g_k \text{Cov}(s_{\cdot k}, X)}{\sum_j g_j \text{Cov}(s_{\cdot j}, X)}</span>
+<span id="cb17-229"><a href="#cb17-229" aria-hidden="true" tabindex="-1"></a>  \cdot \frac{\text{Cov}(s_{\cdot k}, Y)}{\text{Cov}(s_{\cdot k}, X)}</span>
+<span id="cb17-230"><a href="#cb17-230" aria-hidden="true" tabindex="-1"></a>= \frac{g_k \text{Cov}(s_{\cdot k}, Y)}{\sum_j g_j \text{Cov}(s_{\cdot j}, X)},</span>
+<span id="cb17-231"><a href="#cb17-231" aria-hidden="true" tabindex="-1"></a>$$ {#eq-shift-share-iv-6}</span>
+<span id="cb17-232"><a href="#cb17-232" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-233"><a href="#cb17-233" aria-hidden="true" tabindex="-1"></a>the troublesome $\text{Cov}(s_{\cdot k}, X)$ cancels. Every industry with an</span>
+<span id="cb17-234"><a href="#cb17-234" aria-hidden="true" tabindex="-1"></a>exploding $\hat\beta_k$ has a weight near zero for exactly the same reason its</span>
+<span id="cb17-235"><a href="#cb17-235" aria-hidden="true" tabindex="-1"></a>$\hat\beta_k$ blew up. Industry 18 carries a weight of 0.000 and industry 4 a</span>
+<span id="cb17-236"><a href="#cb17-236" aria-hidden="true" tabindex="-1"></a>weight of 0.002.</span>
+<span id="cb17-237"><a href="#cb17-237" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-238"><a href="#cb17-238" aria-hidden="true" tabindex="-1"></a>Read the two columns together, then. Among the industries that carry real</span>
+<span id="cb17-239"><a href="#cb17-239" aria-hidden="true" tabindex="-1"></a>weight, the estimates are 0.469, 0.746, 0.554, 1.025, 0.853 and 0.604 --- close</span>
+<span id="cb17-240"><a href="#cb17-240" aria-hidden="true" tabindex="-1"></a>enough to 0.5 to be sampling noise, which is what we should see in a simulation</span>
+<span id="cb17-241"><a href="#cb17-241" aria-hidden="true" tabindex="-1"></a>with a homogeneous effect. In real data, if industries with *large* weights</span>
+<span id="cb17-242"><a href="#cb17-242" aria-hidden="true" tabindex="-1"></a>give very different estimates, the shift-share IV is averaging over genuine</span>
+<span id="cb17-243"><a href="#cb17-243" aria-hidden="true" tabindex="-1"></a>heterogeneity and that should be reported.</span>
+<span id="cb17-244"><a href="#cb17-244" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-245"><a href="#cb17-245" aria-hidden="true" tabindex="-1"></a>The plot below makes the pairing visible: each industry's just-identified IV</span>
+<span id="cb17-246"><a href="#cb17-246" aria-hidden="true" tabindex="-1"></a>estimate on the vertical axis, with point size proportional to its Rotemberg</span>
+<span id="cb17-247"><a href="#cb17-247" aria-hidden="true" tabindex="-1"></a>weight. The outlying estimates are the smallest points.</span>
+<span id="cb17-248"><a href="#cb17-248" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-251"><a href="#cb17-251" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb17-252"><a href="#cb17-252" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: rotemberg-plot</span></span>
+<span id="cb17-253"><a href="#cb17-253" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb17-254"><a href="#cb17-254" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4</span></span>
+<span id="cb17-255"><a href="#cb17-255" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 7</span></span>
 <span id="cb17-256"><a href="#cb17-256" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-257"><a href="#cb17-257" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb17-258"><a href="#cb17-258" aria-hidden="true" tabindex="-1"></a>\text{IV}_\ell \;=\; \sum_k \frac{L_{\ell k,\,1990}}{L_{\ell,\,1990}}\,</span>
-<span id="cb17-259"><a href="#cb17-259" aria-hidden="true" tabindex="-1"></a>                   \frac{\Delta M^{other}_{k}}{L_{k,\,1990}},</span>
-<span id="cb17-260"><a href="#cb17-260" aria-hidden="true" tabindex="-1"></a>$$ {#eq-shift-share-iv-4}</span>
-<span id="cb17-261"><a href="#cb17-261" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-262"><a href="#cb17-262" aria-hidden="true" tabindex="-1"></a>where the shocks $\Delta M^{other}_k$ are growth in Chinese imports into</span>
-<span id="cb17-263"><a href="#cb17-263" aria-hidden="true" tabindex="-1"></a>other high-income countries. This leave-one-out construction removes</span>
-<span id="cb17-264"><a href="#cb17-264" aria-hidden="true" tabindex="-1"></a>US-specific demand from the shock. In the actual ADH design the employment</span>
-<span id="cb17-265"><a href="#cb17-265" aria-hidden="true" tabindex="-1"></a>shares are lagged one census behind the outcome period (e.g. 1980 employment</span>
-<span id="cb17-266"><a href="#cb17-266" aria-hidden="true" tabindex="-1"></a>for the 1990--2000 stack), precisely to mitigate share endogeneity; we date</span>
-<span id="cb17-267"><a href="#cb17-267" aria-hidden="true" tabindex="-1"></a>everything to 1990 here to keep the notation light.</span>
+<span id="cb17-257"><a href="#cb17-257" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(rotemberg, <span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">factor</span>(industry), <span class="at">y =</span> beta_k, <span class="at">size =</span> <span class="fu">abs</span>(weight))) <span class="sc">+</span></span>
+<span id="cb17-258"><a href="#cb17-258" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> beta_true, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb17-259"><a href="#cb17-259" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
+<span id="cb17-260"><a href="#cb17-260" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_size_continuous</span>(<span class="at">name =</span> <span class="st">"|Rotemberg weight|"</span>) <span class="sc">+</span></span>
+<span id="cb17-261"><a href="#cb17-261" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Industry"</span>, <span class="at">y =</span> <span class="st">"Just-identified IV estimate"</span>,</span>
+<span id="cb17-262"><a href="#cb17-262" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Industry-level IV estimates and weights"</span>,</span>
+<span id="cb17-263"><a href="#cb17-263" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="fu">paste</span>(<span class="st">"Red line = true effect ="</span>, beta_true)) <span class="sc">+</span></span>
+<span id="cb17-264"><a href="#cb17-264" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb17-265"><a href="#cb17-265" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb17-266"><a href="#cb17-266" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-267"><a href="#cb17-267" aria-hidden="true" tabindex="-1"></a><span class="fu">### What goes wrong when shares are endogenous</span></span>
 <span id="cb17-268"><a href="#cb17-268" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-271"><a href="#cb17-271" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb17-272"><a href="#cb17-272" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: adh-skeleton</span></span>
-<span id="cb17-273"><a href="#cb17-273" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span>
-<span id="cb17-274"><a href="#cb17-274" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: true</span></span>
-<span id="cb17-275"><a href="#cb17-275" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-276"><a href="#cb17-276" aria-hidden="true" tabindex="-1"></a><span class="co"># David Dorn distributes the replication data at</span></span>
-<span id="cb17-277"><a href="#cb17-277" aria-hidden="true" tabindex="-1"></a><span class="co"># https://www.ddorn.net/data.htm — files needed:</span></span>
-<span id="cb17-278"><a href="#cb17-278" aria-hidden="true" tabindex="-1"></a><span class="co">#   workfile_china.dta  (commuting zone data, 1990-2007)</span></span>
-<span id="cb17-279"><a href="#cb17-279" aria-hidden="true" tabindex="-1"></a><span class="co">#   industry_shares.csv (czone-industry shares)</span></span>
-<span id="cb17-280"><a href="#cb17-280" aria-hidden="true" tabindex="-1"></a><span class="co">#   industry_imports.csv (industry-level imports)</span></span>
+<span id="cb17-269"><a href="#cb17-269" aria-hidden="true" tabindex="-1"></a>Now break the share-exogeneity assumption on purpose. We introduce a second</span>
+<span id="cb17-270"><a href="#cb17-270" aria-hidden="true" tabindex="-1"></a>region-level confounder $v_\ell$, add $0.15 v_\ell$ to industry 1's share</span>
+<span id="cb17-271"><a href="#cb17-271" aria-hidden="true" tabindex="-1"></a>(renormalising the rows to sum to one), and let $v$ enter the outcome with</span>
+<span id="cb17-272"><a href="#cb17-272" aria-hidden="true" tabindex="-1"></a>coefficient 0.6:</span>
+<span id="cb17-273"><a href="#cb17-273" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-274"><a href="#cb17-274" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb17-275"><a href="#cb17-275" aria-hidden="true" tabindex="-1"></a>Y_\ell = 0.5 X_\ell + u_\ell + 0.6 v_\ell + \eta_\ell .</span>
+<span id="cb17-276"><a href="#cb17-276" aria-hidden="true" tabindex="-1"></a>$$ {#eq-shift-share-iv-7}</span>
+<span id="cb17-277"><a href="#cb17-277" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-278"><a href="#cb17-278" aria-hidden="true" tabindex="-1"></a>Everything else is unchanged. Industry 1's share is now correlated with the</span>
+<span id="cb17-279"><a href="#cb17-279" aria-hidden="true" tabindex="-1"></a>second-stage error, so the instrument built from it is invalid, and we ask</span>
+<span id="cb17-280"><a href="#cb17-280" aria-hidden="true" tabindex="-1"></a>which diagnostic notices.</span>
 <span id="cb17-281"><a href="#cb17-281" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-282"><a href="#cb17-282" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(haven)</span>
-<span id="cb17-283"><a href="#cb17-283" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fixest)</span>
-<span id="cb17-284"><a href="#cb17-284" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-285"><a href="#cb17-285" aria-hidden="true" tabindex="-1"></a>cz   <span class="ot">&lt;-</span> <span class="fu">read_dta</span>(<span class="st">"workfile_china.dta"</span>)</span>
-<span id="cb17-286"><a href="#cb17-286" aria-hidden="true" tabindex="-1"></a>fit  <span class="ot">&lt;-</span> <span class="fu">feols</span>(d_sh_empl_mfg <span class="sc">~</span> <span class="dv">1</span> <span class="sc">|</span> d_tradeusch_pw <span class="sc">~</span> d_tradeotch_pw_lag,</span>
-<span id="cb17-287"><a href="#cb17-287" aria-hidden="true" tabindex="-1"></a>              <span class="at">data =</span> cz,</span>
-<span id="cb17-288"><a href="#cb17-288" aria-hidden="true" tabindex="-1"></a>              <span class="at">cluster =</span> <span class="sc">~</span> statefip)</span>
-<span id="cb17-289"><a href="#cb17-289" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(fit)</span>
-<span id="cb17-290"><a href="#cb17-290" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb17-291"><a href="#cb17-291" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-292"><a href="#cb17-292" aria-hidden="true" tabindex="-1"></a>Modern best-practice extensions of the basic ADH regression. These blocks are</span>
-<span id="cb17-293"><a href="#cb17-293" aria-hidden="true" tabindex="-1"></a>schematic --- they do not run here, so check argument names against the</span>
-<span id="cb17-294"><a href="#cb17-294" aria-hidden="true" tabindex="-1"></a>current package documentation before adapting them:</span>
-<span id="cb17-295"><a href="#cb17-295" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-298"><a href="#cb17-298" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb17-299"><a href="#cb17-299" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: adh-modern</span></span>
-<span id="cb17-300"><a href="#cb17-300" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span>
-<span id="cb17-301"><a href="#cb17-301" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: true</span></span>
-<span id="cb17-302"><a href="#cb17-302" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-303"><a href="#cb17-303" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Rotemberg weights via the bartik.weight package (Goldsmith-Pinkham)</span></span>
-<span id="cb17-304"><a href="#cb17-304" aria-hidden="true" tabindex="-1"></a><span class="co"># devtools::install_github("paulgp/bartik-weight")</span></span>
-<span id="cb17-305"><a href="#cb17-305" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(bartik.weight)</span>
-<span id="cb17-306"><a href="#cb17-306" aria-hidden="true" tabindex="-1"></a>rw <span class="ot">&lt;-</span> <span class="fu">bw</span>(cz, <span class="at">master =</span> master_spec, <span class="at">y =</span> <span class="st">"d_sh_empl_mfg"</span>,</span>
-<span id="cb17-307"><a href="#cb17-307" aria-hidden="true" tabindex="-1"></a>         <span class="at">x =</span> <span class="st">"d_tradeusch_pw"</span>, <span class="at">weight =</span> <span class="st">"timepwt48"</span>,</span>
-<span id="cb17-308"><a href="#cb17-308" aria-hidden="true" tabindex="-1"></a>         <span class="at">G =</span> G_growth, <span class="at">Z =</span> Z_shares)</span>
+<span id="cb17-284"><a href="#cb17-284" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb17-285"><a href="#cb17-285" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: bad-shares</span></span>
+<span id="cb17-286"><a href="#cb17-286" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb17-287"><a href="#cb17-287" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-288"><a href="#cb17-288" aria-hidden="true" tabindex="-1"></a><span class="co"># Re-do shares so industry 1's share covaries with a new confounder v</span></span>
+<span id="cb17-289"><a href="#cb17-289" aria-hidden="true" tabindex="-1"></a>v <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/shift_share_bad_v.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>v</span>
+<span id="cb17-290"><a href="#cb17-290" aria-hidden="true" tabindex="-1"></a>shares_bad <span class="ot">&lt;-</span> shares</span>
+<span id="cb17-291"><a href="#cb17-291" aria-hidden="true" tabindex="-1"></a>shares_bad[, <span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="fu">pmax</span>(<span class="fl">0.01</span>, shares[, <span class="dv">1</span>] <span class="sc">+</span> <span class="fl">0.15</span> <span class="sc">*</span> v)</span>
+<span id="cb17-292"><a href="#cb17-292" aria-hidden="true" tabindex="-1"></a>shares_bad <span class="ot">&lt;-</span> shares_bad <span class="sc">/</span> <span class="fu">rowSums</span>(shares_bad)   <span class="co"># renormalise to sum to 1</span></span>
+<span id="cb17-293"><a href="#cb17-293" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-294"><a href="#cb17-294" aria-hidden="true" tabindex="-1"></a>bad_noise <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/shift_share_bad_noise.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb17-295"><a href="#cb17-295" aria-hidden="true" tabindex="-1"></a>B_bad <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(shares_bad <span class="sc">%*%</span> shocks)</span>
+<span id="cb17-296"><a href="#cb17-296" aria-hidden="true" tabindex="-1"></a>X_bad <span class="ot">&lt;-</span> B_bad <span class="sc">+</span> <span class="fl">0.3</span> <span class="sc">*</span> u <span class="sc">+</span> bad_noise<span class="sc">$</span>noise_x</span>
+<span id="cb17-297"><a href="#cb17-297" aria-hidden="true" tabindex="-1"></a>Y_bad <span class="ot">&lt;-</span> beta_true <span class="sc">*</span> X_bad <span class="sc">+</span> u <span class="sc">+</span> <span class="fl">0.6</span> <span class="sc">*</span> v <span class="sc">+</span> bad_noise<span class="sc">$</span>noise_y</span>
+<span id="cb17-298"><a href="#cb17-298" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-299"><a href="#cb17-299" aria-hidden="true" tabindex="-1"></a>df_bad <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">X =</span> X_bad, <span class="at">Y =</span> Y_bad, <span class="at">B =</span> B_bad)</span>
+<span id="cb17-300"><a href="#cb17-300" aria-hidden="true" tabindex="-1"></a>ivss_bad <span class="ot">&lt;-</span> <span class="fu">feols</span>(Y <span class="sc">~</span> <span class="dv">1</span> <span class="sc">|</span> X <span class="sc">~</span> B, <span class="at">data =</span> df_bad)</span>
+<span id="cb17-301"><a href="#cb17-301" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"True beta:"</span>, beta_true, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb17-302"><a href="#cb17-302" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Shift-share IV with bad share 1:"</span>, <span class="fu">round</span>(<span class="fu">coef</span>(ivss_bad)[<span class="st">"fit_X"</span>], <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb17-303"><a href="#cb17-303" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-304"><a href="#cb17-304" aria-hidden="true" tabindex="-1"></a><span class="co"># Rotemberg weights recomputed under the bad shares</span></span>
+<span id="cb17-305"><a href="#cb17-305" aria-hidden="true" tabindex="-1"></a>cov_sk_X_bad <span class="ot">&lt;-</span> <span class="fu">sapply</span>(<span class="dv">1</span><span class="sc">:</span>n_industry, <span class="cf">function</span>(k) <span class="fu">cov</span>(shares_bad[, k], X_bad))</span>
+<span id="cb17-306"><a href="#cb17-306" aria-hidden="true" tabindex="-1"></a>alpha_bad    <span class="ot">&lt;-</span> shocks <span class="sc">*</span> cov_sk_X_bad <span class="sc">/</span> <span class="fu">sum</span>(shocks <span class="sc">*</span> cov_sk_X_bad)</span>
+<span id="cb17-307"><a href="#cb17-307" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Rotemberg weight of industry 1:"</span>, <span class="fu">round</span>(alpha_bad[<span class="dv">1</span>], <span class="dv">3</span>),</span>
+<span id="cb17-308"><a href="#cb17-308" aria-hidden="true" tabindex="-1"></a>    <span class="st">"-- rank"</span>, <span class="fu">rank</span>(<span class="sc">-</span><span class="fu">abs</span>(alpha_bad))[<span class="dv">1</span>], <span class="st">"of"</span>, n_industry, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
 <span id="cb17-309"><a href="#cb17-309" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-310"><a href="#cb17-310" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot the Rotemberg weights to see which industries drive the estimate</span></span>
-<span id="cb17-311"><a href="#cb17-311" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(rw)</span>
-<span id="cb17-312"><a href="#cb17-312" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-313"><a href="#cb17-313" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Adão-Kolesár-Morales standard errors</span></span>
-<span id="cb17-314"><a href="#cb17-314" aria-hidden="true" tabindex="-1"></a><span class="co"># devtools::install_github("kolesarm/ShiftShareSE")</span></span>
-<span id="cb17-315"><a href="#cb17-315" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ShiftShareSE)</span>
-<span id="cb17-316"><a href="#cb17-316" aria-hidden="true" tabindex="-1"></a><span class="fu">ivreg_ss</span>(d_sh_empl_mfg <span class="sc">~</span> d_tradeusch_pw <span class="sc">+</span> controls,</span>
-<span id="cb17-317"><a href="#cb17-317" aria-hidden="true" tabindex="-1"></a>         <span class="at">X =</span> <span class="st">"d_tradeotch_pw_lag"</span>,</span>
-<span id="cb17-318"><a href="#cb17-318" aria-hidden="true" tabindex="-1"></a>         <span class="at">data =</span> cz, <span class="at">W =</span> shock_weights, <span class="at">region_cvar =</span> <span class="st">"czone"</span>,</span>
-<span id="cb17-319"><a href="#cb17-319" aria-hidden="true" tabindex="-1"></a>         <span class="at">method =</span> <span class="st">"akm0"</span>)</span>
-<span id="cb17-320"><a href="#cb17-320" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-321"><a href="#cb17-321" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. BHJ shock-level inference: collapse to shock (industry-period) level</span></span>
-<span id="cb17-322"><a href="#cb17-322" aria-hidden="true" tabindex="-1"></a><span class="co"># devtools::install_github("borusyak/shift-share")</span></span>
-<span id="cb17-323"><a href="#cb17-323" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ssaggregate)</span>
-<span id="cb17-324"><a href="#cb17-324" aria-hidden="true" tabindex="-1"></a>shocks_data <span class="ot">&lt;-</span> <span class="fu">ssaggregate</span>(<span class="at">data =</span> cz, <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">"d_sh_empl_mfg"</span>,</span>
-<span id="cb17-325"><a href="#cb17-325" aria-hidden="true" tabindex="-1"></a>                                                <span class="st">"d_tradeusch_pw"</span>),</span>
-<span id="cb17-326"><a href="#cb17-326" aria-hidden="true" tabindex="-1"></a>                            <span class="at">shock =</span> <span class="st">"d_tradeotch_pw_lag"</span>, <span class="at">weights =</span> <span class="st">"timepwt48"</span>,</span>
-<span id="cb17-327"><a href="#cb17-327" aria-hidden="true" tabindex="-1"></a>                            <span class="at">l =</span> <span class="st">"czone"</span>, <span class="at">n =</span> <span class="st">"industry"</span>, <span class="at">t =</span> <span class="st">"year"</span>,</span>
-<span id="cb17-328"><a href="#cb17-328" aria-hidden="true" tabindex="-1"></a>                            <span class="at">s =</span> <span class="st">"share"</span>)</span>
-<span id="cb17-329"><a href="#cb17-329" aria-hidden="true" tabindex="-1"></a><span class="co"># Now regress at shock level — interpretation: shock-level IV</span></span>
-<span id="cb17-330"><a href="#cb17-330" aria-hidden="true" tabindex="-1"></a><span class="fu">feols</span>(d_sh_empl_mfg <span class="sc">~</span> <span class="dv">1</span> <span class="sc">|</span> d_tradeusch_pw <span class="sc">~</span> shock, <span class="at">data =</span> shocks_data)</span>
-<span id="cb17-331"><a href="#cb17-331" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb17-332"><a href="#cb17-332" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-333"><a href="#cb17-333" aria-hidden="true" tabindex="-1"></a>For a new shift-share paper, I would expect Rotemberg weights, AKM standard</span>
-<span id="cb17-334"><a href="#cb17-334" aria-hidden="true" tabindex="-1"></a>errors, and a BHJ shock-level version or an explanation for why it is not</span>
-<span id="cb17-335"><a href="#cb17-335" aria-hidden="true" tabindex="-1"></a>appropriate.</span>
+<span id="cb17-310"><a href="#cb17-310" aria-hidden="true" tabindex="-1"></a><span class="co"># Leave-one-industry-out: rebuild the instrument without industry 1</span></span>
+<span id="cb17-311"><a href="#cb17-311" aria-hidden="true" tabindex="-1"></a>B_loo    <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(shares_bad[, <span class="sc">-</span><span class="dv">1</span>] <span class="sc">%*%</span> shocks[<span class="sc">-</span><span class="dv">1</span>])</span>
+<span id="cb17-312"><a href="#cb17-312" aria-hidden="true" tabindex="-1"></a>ivss_loo <span class="ot">&lt;-</span> <span class="fu">feols</span>(Y <span class="sc">~</span> <span class="dv">1</span> <span class="sc">|</span> X <span class="sc">~</span> B, <span class="at">data =</span> <span class="fu">tibble</span>(<span class="at">X =</span> X_bad, <span class="at">Y =</span> Y_bad, <span class="at">B =</span> B_loo))</span>
+<span id="cb17-313"><a href="#cb17-313" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Shift-share IV without industry 1:"</span>, <span class="fu">round</span>(<span class="fu">coef</span>(ivss_loo)[<span class="st">"fit_X"</span>], <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb17-314"><a href="#cb17-314" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb17-315"><a href="#cb17-315" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-316"><a href="#cb17-316" aria-hidden="true" tabindex="-1"></a>The estimate moves from 0.531 to 0.798 against a true 0.5, so one endogenous</span>
+<span id="cb17-317"><a href="#cb17-317" aria-hidden="true" tabindex="-1"></a>share out of twenty is enough to inflate the estimate by 60%. Note which</span>
+<span id="cb17-318"><a href="#cb17-318" aria-hidden="true" tabindex="-1"></a>diagnostic catches it. Rotemberg weights</span>
+<span id="cb17-319"><a href="#cb17-319" aria-hidden="true" tabindex="-1"></a>measure *influence* --- whose exogeneity the estimate leans on --- not</span>
+<span id="cb17-320"><a href="#cb17-320" aria-hidden="true" tabindex="-1"></a>endogeneity: the offending industry carries a weight of only 0.11, third</span>
+<span id="cb17-321"><a href="#cb17-321" aria-hidden="true" tabindex="-1"></a>largest of twenty, yet it alone moves the estimate from 0.5 to 0.8. The</span>
+<span id="cb17-322"><a href="#cb17-322" aria-hidden="true" tabindex="-1"></a>leave-one-industry-out check is what isolates it: rebuilding the instrument</span>
+<span id="cb17-323"><a href="#cb17-323" aria-hidden="true" tabindex="-1"></a>without industry 1 restores the estimate to 0.48.</span>
+<span id="cb17-324"><a href="#cb17-324" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-325"><a href="#cb17-325" aria-hidden="true" tabindex="-1"></a><span class="fu">## Empirical: the China shock (Autor, Dorn, Hanson 2013)</span></span>
+<span id="cb17-326"><a href="#cb17-326" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-327"><a href="#cb17-327" aria-hidden="true" tabindex="-1"></a>The standard shift-share application is the China-shock study of</span>
+<span id="cb17-328"><a href="#cb17-328" aria-hidden="true" tabindex="-1"></a>@autor-dorn-hanson-2013 (henceforth ADH). Commuting zones are exposed</span>
+<span id="cb17-329"><a href="#cb17-329" aria-hidden="true" tabindex="-1"></a>differently to Chinese import competition because their baseline industry</span>
+<span id="cb17-330"><a href="#cb17-330" aria-hidden="true" tabindex="-1"></a>mixes differ. The instrument is</span>
+<span id="cb17-331"><a href="#cb17-331" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-332"><a href="#cb17-332" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb17-333"><a href="#cb17-333" aria-hidden="true" tabindex="-1"></a>\text{IV}_\ell \;=\; \sum_k \frac{L_{\ell k,\,1990}}{L_{\ell,\,1990}}\,</span>
+<span id="cb17-334"><a href="#cb17-334" aria-hidden="true" tabindex="-1"></a>                   \frac{\Delta M^{other}_{k}}{L_{k,\,1990}},</span>
+<span id="cb17-335"><a href="#cb17-335" aria-hidden="true" tabindex="-1"></a>$$ {#eq-shift-share-iv-4}</span>
 <span id="cb17-336"><a href="#cb17-336" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-337"><a href="#cb17-337" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
-<span id="cb17-338"><a href="#cb17-338" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-339"><a href="#cb17-339" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Shift-share IV combines local shares and industry shocks.</span>
-<span id="cb17-340"><a href="#cb17-340" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The GPSS view puts exogeneity on shares; the BHJ view puts it on shocks.</span>
-<span id="cb17-341"><a href="#cb17-341" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Rotemberg weights show which industry shares drive the 2SLS estimate.</span>
-<span id="cb17-342"><a href="#cb17-342" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Region-level clustering is usually too optimistic. Use AKM standard errors</span>
-<span id="cb17-343"><a href="#cb17-343" aria-hidden="true" tabindex="-1"></a>  or shock-level inference when possible.</span>
-<span id="cb17-344"><a href="#cb17-344" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>In R, <span class="in">`fixest`</span>, <span class="in">`bartik.weight`</span>, <span class="in">`ShiftShareSE`</span>, and <span class="in">`ssaggregate`</span> cover</span>
-<span id="cb17-345"><a href="#cb17-345" aria-hidden="true" tabindex="-1"></a>  most of the workflow.</span>
+<span id="cb17-337"><a href="#cb17-337" aria-hidden="true" tabindex="-1"></a>where the shocks $\Delta M^{other}_k$ are growth in Chinese imports into</span>
+<span id="cb17-338"><a href="#cb17-338" aria-hidden="true" tabindex="-1"></a>other high-income countries. This leave-one-out construction removes</span>
+<span id="cb17-339"><a href="#cb17-339" aria-hidden="true" tabindex="-1"></a>US-specific demand from the shock. In the actual ADH design the employment</span>
+<span id="cb17-340"><a href="#cb17-340" aria-hidden="true" tabindex="-1"></a>shares are lagged one census behind the outcome period (e.g. 1980 employment</span>
+<span id="cb17-341"><a href="#cb17-341" aria-hidden="true" tabindex="-1"></a>for the 1990--2000 stack), precisely to mitigate share endogeneity; we date</span>
+<span id="cb17-342"><a href="#cb17-342" aria-hidden="true" tabindex="-1"></a>everything to 1990 here to keep the notation light.</span>
+<span id="cb17-343"><a href="#cb17-343" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-346"><a href="#cb17-346" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb17-347"><a href="#cb17-347" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: adh-skeleton</span></span>
+<span id="cb17-348"><a href="#cb17-348" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span>
+<span id="cb17-349"><a href="#cb17-349" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: true</span></span>
+<span id="cb17-350"><a href="#cb17-350" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-351"><a href="#cb17-351" aria-hidden="true" tabindex="-1"></a><span class="co"># David Dorn distributes the replication data at</span></span>
+<span id="cb17-352"><a href="#cb17-352" aria-hidden="true" tabindex="-1"></a><span class="co"># https://www.ddorn.net/data.htm — files needed:</span></span>
+<span id="cb17-353"><a href="#cb17-353" aria-hidden="true" tabindex="-1"></a><span class="co">#   workfile_china.dta  (commuting zone data, 1990-2007)</span></span>
+<span id="cb17-354"><a href="#cb17-354" aria-hidden="true" tabindex="-1"></a><span class="co">#   industry_shares.csv (czone-industry shares)</span></span>
+<span id="cb17-355"><a href="#cb17-355" aria-hidden="true" tabindex="-1"></a><span class="co">#   industry_imports.csv (industry-level imports)</span></span>
+<span id="cb17-356"><a href="#cb17-356" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-357"><a href="#cb17-357" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(haven)</span>
+<span id="cb17-358"><a href="#cb17-358" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fixest)</span>
+<span id="cb17-359"><a href="#cb17-359" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-360"><a href="#cb17-360" aria-hidden="true" tabindex="-1"></a>cz   <span class="ot">&lt;-</span> <span class="fu">read_dta</span>(<span class="st">"workfile_china.dta"</span>)</span>
+<span id="cb17-361"><a href="#cb17-361" aria-hidden="true" tabindex="-1"></a>fit  <span class="ot">&lt;-</span> <span class="fu">feols</span>(d_sh_empl_mfg <span class="sc">~</span> <span class="dv">1</span> <span class="sc">|</span> d_tradeusch_pw <span class="sc">~</span> d_tradeotch_pw_lag,</span>
+<span id="cb17-362"><a href="#cb17-362" aria-hidden="true" tabindex="-1"></a>              <span class="at">data =</span> cz,</span>
+<span id="cb17-363"><a href="#cb17-363" aria-hidden="true" tabindex="-1"></a>              <span class="at">cluster =</span> <span class="sc">~</span> statefip)</span>
+<span id="cb17-364"><a href="#cb17-364" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(fit)</span>
+<span id="cb17-365"><a href="#cb17-365" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb17-366"><a href="#cb17-366" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-367"><a href="#cb17-367" aria-hidden="true" tabindex="-1"></a>Modern best-practice extensions of the basic ADH regression. These blocks are</span>
+<span id="cb17-368"><a href="#cb17-368" aria-hidden="true" tabindex="-1"></a>schematic --- they do not run here, so check argument names against the</span>
+<span id="cb17-369"><a href="#cb17-369" aria-hidden="true" tabindex="-1"></a>current package documentation before adapting them:</span>
+<span id="cb17-370"><a href="#cb17-370" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-373"><a href="#cb17-373" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb17-374"><a href="#cb17-374" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: adh-modern</span></span>
+<span id="cb17-375"><a href="#cb17-375" aria-hidden="true" tabindex="-1"></a><span class="co">#| eval: false</span></span>
+<span id="cb17-376"><a href="#cb17-376" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: true</span></span>
+<span id="cb17-377"><a href="#cb17-377" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-378"><a href="#cb17-378" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Rotemberg weights via the bartik.weight package (Goldsmith-Pinkham)</span></span>
+<span id="cb17-379"><a href="#cb17-379" aria-hidden="true" tabindex="-1"></a><span class="co"># devtools::install_github("paulgp/bartik-weight")</span></span>
+<span id="cb17-380"><a href="#cb17-380" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(bartik.weight)</span>
+<span id="cb17-381"><a href="#cb17-381" aria-hidden="true" tabindex="-1"></a>rw <span class="ot">&lt;-</span> <span class="fu">bw</span>(cz, <span class="at">master =</span> master_spec, <span class="at">y =</span> <span class="st">"d_sh_empl_mfg"</span>,</span>
+<span id="cb17-382"><a href="#cb17-382" aria-hidden="true" tabindex="-1"></a>         <span class="at">x =</span> <span class="st">"d_tradeusch_pw"</span>, <span class="at">weight =</span> <span class="st">"timepwt48"</span>,</span>
+<span id="cb17-383"><a href="#cb17-383" aria-hidden="true" tabindex="-1"></a>         <span class="at">G =</span> G_growth, <span class="at">Z =</span> Z_shares)</span>
+<span id="cb17-384"><a href="#cb17-384" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-385"><a href="#cb17-385" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot the Rotemberg weights to see which industries drive the estimate</span></span>
+<span id="cb17-386"><a href="#cb17-386" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(rw)</span>
+<span id="cb17-387"><a href="#cb17-387" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-388"><a href="#cb17-388" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Adão-Kolesár-Morales standard errors</span></span>
+<span id="cb17-389"><a href="#cb17-389" aria-hidden="true" tabindex="-1"></a><span class="co"># devtools::install_github("kolesarm/ShiftShareSE")</span></span>
+<span id="cb17-390"><a href="#cb17-390" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ShiftShareSE)</span>
+<span id="cb17-391"><a href="#cb17-391" aria-hidden="true" tabindex="-1"></a><span class="fu">ivreg_ss</span>(d_sh_empl_mfg <span class="sc">~</span> d_tradeusch_pw <span class="sc">+</span> controls,</span>
+<span id="cb17-392"><a href="#cb17-392" aria-hidden="true" tabindex="-1"></a>         <span class="at">X =</span> <span class="st">"d_tradeotch_pw_lag"</span>,</span>
+<span id="cb17-393"><a href="#cb17-393" aria-hidden="true" tabindex="-1"></a>         <span class="at">data =</span> cz, <span class="at">W =</span> shock_weights, <span class="at">region_cvar =</span> <span class="st">"czone"</span>,</span>
+<span id="cb17-394"><a href="#cb17-394" aria-hidden="true" tabindex="-1"></a>         <span class="at">method =</span> <span class="st">"akm0"</span>)</span>
+<span id="cb17-395"><a href="#cb17-395" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-396"><a href="#cb17-396" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. BHJ shock-level inference: collapse to shock (industry-period) level</span></span>
+<span id="cb17-397"><a href="#cb17-397" aria-hidden="true" tabindex="-1"></a><span class="co"># devtools::install_github("borusyak/shift-share")</span></span>
+<span id="cb17-398"><a href="#cb17-398" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ssaggregate)</span>
+<span id="cb17-399"><a href="#cb17-399" aria-hidden="true" tabindex="-1"></a>shocks_data <span class="ot">&lt;-</span> <span class="fu">ssaggregate</span>(<span class="at">data =</span> cz, <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">"d_sh_empl_mfg"</span>,</span>
+<span id="cb17-400"><a href="#cb17-400" aria-hidden="true" tabindex="-1"></a>                                                <span class="st">"d_tradeusch_pw"</span>),</span>
+<span id="cb17-401"><a href="#cb17-401" aria-hidden="true" tabindex="-1"></a>                            <span class="at">shock =</span> <span class="st">"d_tradeotch_pw_lag"</span>, <span class="at">weights =</span> <span class="st">"timepwt48"</span>,</span>
+<span id="cb17-402"><a href="#cb17-402" aria-hidden="true" tabindex="-1"></a>                            <span class="at">l =</span> <span class="st">"czone"</span>, <span class="at">n =</span> <span class="st">"industry"</span>, <span class="at">t =</span> <span class="st">"year"</span>,</span>
+<span id="cb17-403"><a href="#cb17-403" aria-hidden="true" tabindex="-1"></a>                            <span class="at">s =</span> <span class="st">"share"</span>)</span>
+<span id="cb17-404"><a href="#cb17-404" aria-hidden="true" tabindex="-1"></a><span class="co"># Now regress at shock level — interpretation: shock-level IV</span></span>
+<span id="cb17-405"><a href="#cb17-405" aria-hidden="true" tabindex="-1"></a><span class="fu">feols</span>(d_sh_empl_mfg <span class="sc">~</span> <span class="dv">1</span> <span class="sc">|</span> d_tradeusch_pw <span class="sc">~</span> shock, <span class="at">data =</span> shocks_data)</span>
+<span id="cb17-406"><a href="#cb17-406" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb17-407"><a href="#cb17-407" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-408"><a href="#cb17-408" aria-hidden="true" tabindex="-1"></a>For a new shift-share paper, I would expect Rotemberg weights, AKM standard</span>
+<span id="cb17-409"><a href="#cb17-409" aria-hidden="true" tabindex="-1"></a>errors, and a BHJ shock-level version or an explanation for why it is not</span>
+<span id="cb17-410"><a href="#cb17-410" aria-hidden="true" tabindex="-1"></a>appropriate.</span>
+<span id="cb17-411"><a href="#cb17-411" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-412"><a href="#cb17-412" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb17-413"><a href="#cb17-413" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-414"><a href="#cb17-414" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Shift-share IV combines local shares and industry shocks.</span>
+<span id="cb17-415"><a href="#cb17-415" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The GPSS view puts exogeneity on shares; the BHJ view puts it on shocks.</span>
+<span id="cb17-416"><a href="#cb17-416" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Rotemberg weights show which industry shares drive the 2SLS estimate.</span>
+<span id="cb17-417"><a href="#cb17-417" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Region-level clustering is usually too optimistic. Use AKM standard errors</span>
+<span id="cb17-418"><a href="#cb17-418" aria-hidden="true" tabindex="-1"></a>  or shock-level inference when possible.</span>
+<span id="cb17-419"><a href="#cb17-419" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>In R, <span class="in">`fixest`</span>, <span class="in">`bartik.weight`</span>, <span class="in">`ShiftShareSE`</span>, and <span class="in">`ssaggregate`</span> cover</span>
+<span id="cb17-420"><a href="#cb17-420" aria-hidden="true" tabindex="-1"></a>  most of the workflow.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

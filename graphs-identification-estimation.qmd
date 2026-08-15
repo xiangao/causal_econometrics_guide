@@ -70,7 +70,14 @@ So the graph has translated a causal query into an observed-data functional.
 
 ## Estimating the DAG Effect with AIPW
 
-Here is a small simulated data set where `X` confounds the treatment–outcome association.
+We simulate data that match this graph, so we can check whether an estimator
+built from the identified functional recovers an effect we already know.
+
+We draw $n = 400$ observations. The confounder is $X \sim N(0,1)$. Treatment is
+$A \sim \text{Bernoulli}(\Lambda(-0.2 + 0.8X))$, with $\Lambda$ the logistic
+function, so a higher $X$ makes treatment more likely. The outcome is
+$Y = 1 + 1.5A + 0.7X + 0.3\varepsilon$ with $\varepsilon \sim N(0,1)$. The
+effect is constant across units, so the ACE is 1.5.
 
 ```{r}
 #| warning: false
@@ -89,6 +96,9 @@ Y  <- 1 + 1.5 * A + 0.7 * X + 0.3 * rnorm(n)
 df_dag <- data.frame(X = X, A = A, Y = Y)
 head(df_dag)
 ```
+
+The analyst sees only $X$, $A$ and $Y$. Because $X$ raises both the chance of
+treatment and the outcome, a raw contrast of $Y$ by $A$ overstates the effect.
 
 Because the graph is backdoor-identified, use AIPW with the adjustment set the graph chose. The function below implements the AIPW point estimate and an EIF-based standard error.
 
@@ -126,7 +136,9 @@ aipw_backdoor <- function(data, treatment, outcome, adjust) {
 aipw_backdoor(df_dag, "A", "Y", adjust = "X") |> kable()
 ```
 
-The graph chose the adjustment set; the estimator used that set. The point estimate recovers the true ACE of 1.5 within sampling noise.
+AIPW returns 1.4886 with an influence-function standard error of 0.0314, and
+the 95% interval $[1.427, 1.550]$ covers the true ACE of 1.5. The graph chose
+the adjustment set and the estimator used that set.
 
 ::: {.callout-note}
 The standard error here, `sd(psi) / sqrt(n)`, is the influence-function
@@ -167,8 +179,14 @@ ggdag(g_fd) + theme_dag_blank()
 The bidirected edge `A <-> Y` means that ordinary backdoor adjustment is not available. Indeed `dagitty` reports no adjustment set:
 
 ```{r}
-adjustmentSets(g_fd, exposure = "A", outcome = "Y")
+sets_fd <- adjustmentSets(g_fd, exposure = "A", outcome = "Y")
+# An empty dagitty adjustment-set list prints nothing at all, which is easy to
+# mistake for a chunk that failed to run. Report the count explicitly.
+cat("Valid backdoor adjustment sets:", length(sets_fd), "\n")
 ```
+
+There are none. No set of observed variables blocks the confounding, because
+the confounder is not observed.
 
 But the effect is still identified by the front-door criterion (Pearl, 1995). I call the Pearl-Shpitser ID algorithm in `causaleffect` to obtain the symbolic expression. The function wants the graph as an `igraph` object with bidirected edges encoded as two directed edges marked `description = "U"`:
 
@@ -192,7 +210,17 @@ The expression $\sum_M P(M\mid A)\sum_{A'} P(Y\mid A', M) P(A')$ is precisely th
 
 ## Estimating the ADMG Effect with the Front-Door Formula
 
-Simulate a front-door setting. The latent `U` is not included in the observed data; it is represented in the graph by `A <-> Y`.
+We simulate a front-door setting so we can compare the front-door estimate
+against a truth we derive below.
+
+We draw $n = 400$ observations. The latent confounder is $U \sim N(0,1)$.
+Treatment is $A \sim \text{Bernoulli}(\Lambda(-0.1 + 0.8U))$, the mediator is
+$M \sim \text{Bernoulli}(\Lambda(-0.4 + 1.2A))$, and the outcome is
+$Y \sim \text{Bernoulli}(\Lambda(-1.0 + 0.9M + 0.7U))$. All three observed
+variables are binary. $U$ is not in the observed data; it is what the
+bidirected edge `A <-> Y` stands for. Two features make the front-door
+criterion apply: $U$ enters $A$ and $Y$ but not $M$, and $A$ reaches $Y$ only
+through $M$.
 
 ```{r}
 #| warning: false
@@ -232,7 +260,8 @@ causal effect, because $U$ raises both the chance of treatment and the outcome.
 That gap is what the front-door step removes. The table below reports the
 sample version of the naive contrast alongside the front-door estimate.
 
-For binary $A$, $M$, $Y$ we plug in sample proportions:
+For binary $A$, $M$, $Y$ we plug sample proportions into that formula, and take
+the standard error from 500 bootstrap resamples:
 
 ```{r}
 front_door_ace <- function(data) {
@@ -279,7 +308,14 @@ data.frame(estimand = c("Naive E[Y|A=1] - E[Y|A=0]", "Front-door ACE", "Truth"),
            se       = c(NA, round(se_fd, 4), NA)) |> kable()
 ```
 
-The naive contrast is far above the truth; the front-door estimate brackets it. This is the practical advantage of separating identification from estimation. State the graph first. Then use the estimator that matches the identified functional.
+The naive contrast is 0.1395, more than twice the true 0.0547. The front-door
+estimate is 0.0775 with a bootstrap standard error of 0.0189, and its 95%
+interval $[0.040, 0.115]$ covers the truth. The confounding bias is removed;
+what is left is sampling noise, and the interval is wide relative to an effect
+of 0.05 because the formula estimates seven proportions from 400 binary
+observations.
+
+This is the practical advantage of separating identification from estimation. State the graph first. Then use the estimator that matches the identified functional.
 
 ## General ID Algorithm
 

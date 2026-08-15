@@ -49,7 +49,7 @@ We use the National Health and Nutrition Examination Survey I Epidemiologic
 Follow-up Study (NHEFS) data — the same dataset used in the
 [applied DAG-workflow chapter](smoking-cessation-graphs.qmd). The question:
 what is the effect of quitting smoking (`qsmk`) on weight gain over
-10 years (`wt82_71`)?
+10 years (`wt82_71`)? We start from the raw comparison.
 
 ```{r}
 #| label: data
@@ -66,10 +66,12 @@ cat(sprintf("Mean weight gain (untreated): %.2f kg\n",
             mean(nhefs$wt82_71[nhefs$qsmk == 0])))
 ```
 
-A naive comparison says quitters gained $\approx$ 2.5 kg more than non-quitters,
-but smokers and quitters differ on many baseline characteristics. Adjust for
-the standard set of confounders (age, sex, race, education, baseline weight,
-smoking intensity, exercise, activity):
+Of the 1,566 complete cases, 403 quit. Quitters gained 4.53 kg on average and
+continuing smokers 1.98 kg, a naive difference of 2.55 kg. But quitters and
+continuers differ on many baseline characteristics. We adjust for the standard
+set by OLS --- sex, age, race, education, smoking intensity, years smoked,
+exercise, activity and baseline weight --- and print the first three
+coefficients along with the treatment estimate:
 
 ```{r}
 #| label: ols
@@ -84,7 +86,8 @@ cat(sprintf("\nAdjusted ACE estimate: %.3f kg  (SE = %.3f)\n",
             coef(ols)["qsmk"], summary(ols)$coefficients["qsmk", 2]))
 ```
 
-The adjusted estimate is around 3.4 kg, larger than the unadjusted difference.
+The adjusted estimate is 3.381 kg with a standard error of 0.441, larger than
+the naive 2.55 kg. Adjustment moved the answer away from zero, not toward it.
 But the identification assumption requires that we have controlled for *all*
 relevant confounders. What if we missed one — say, a propensity to gain
 weight that also correlates with quitting decisions? Sensitivity analysis
@@ -129,6 +132,26 @@ The summary tells us:
 - **Benchmark comparisons**: how the RV compares to multiples of the
   observed covariates.
 
+For this regression the partial $R^2$ of quitting with weight change is 3.65%.
+The robustness value at $q=1$ is 17.67%: a confounder orthogonal to the
+covariates would have to explain more than 17.67% of the residual variance of
+both quitting and weight change to bring the estimate to zero. To leave it
+merely statistically indistinguishable from zero at the 5% level, 13.47% would
+be enough.
+
+The benchmark rows put those numbers on a scale. Smoking intensity explains
+1.43% of the residual variance of quitting and 0.10% of the residual variance
+of weight change. A confounder three times as strong on both margins would move
+the estimate from 3.381 to 3.182, with a 95% interval of $[2.30, 4.07]$. None
+of the measured covariates comes near the 17.67% that would be needed, so the
+estimate is robust to a confounder resembling the ones we already control for.
+
+The same information is easier to read as a contour plot. The horizontal axis
+is the confounder's partial $R^2$ with the treatment, the vertical axis its
+partial $R^2$ with the outcome, and the contours give the adjusted estimate at
+each combination. The benchmark dots mark 1x, 2x and 3x smoking intensity and
+years smoked.
+
 ```{r}
 #| label: sens-plot
 #| cache: true
@@ -139,9 +162,9 @@ The summary tells us:
 plot(sens)
 ```
 
-The contour plot shows how strong an unobserved confounder would have to be
-with the treatment and outcome to reduce the estimate to zero. The benchmark
-dots compare that hypothetical confounder to observed covariates.
+All six benchmark points sit below 0.05 on the treatment axis and below 0.005
+on the outcome axis, in the region where the adjusted estimate stays above
+3 kg. The contour that reaches zero is a long way out.
 
 ## E-values for risk ratios
 
@@ -150,8 +173,9 @@ For binary outcomes and risk-ratio-type estimands, VanderWeele and Ding
 risk-ratio scale that an unmeasured confounder would need to have with both
 the treatment and the outcome to fully explain the observed risk ratio.
 
-To illustrate, dichotomize weight gain ("any" gain vs no gain) and fit a
-risk-ratio model:
+To illustrate, we dichotomize weight change into any gain versus none, fit the
+risk ratio by Poisson regression with a log link on the same nine covariates,
+and take the confidence interval from robust standard errors:
 
 ```{r}
 #| label: evalue
@@ -189,9 +213,18 @@ The E-value reports two numbers:
 - **E-value (confidence interval)**: the minimum strength needed to shift
   the lower confidence bound to 1.
 
+The adjusted risk ratio is 1.218, with a 95% interval of $[1.135, 1.307]$.
+Quitters are about 22% more likely to gain any weight. The E-value for the
+point estimate is 1.73: an unmeasured confounder would need risk-ratio
+associations of at least 1.73 with both quitting and weight gain, beyond the
+nine measured covariates, to account for the whole association. The E-value for
+the confidence limit is 1.53, the strength that would push the lower bound to 1.
+
 An E-value much greater than 1 suggests the result is hard to explain by
 unmeasured confounding. An E-value close to 1 means a modest unmeasured
-confounder could overturn the conclusion.
+confounder could overturn the conclusion. At 1.73 this result sits in between:
+a confounder as strong as that is not implausible, but it would have to be
+unrelated to everything already in the model.
 
 The useful part of the E-value is that it is on the risk-ratio scale. It can
 be explained without specifying a model for the unobserved confounder.
@@ -214,8 +247,11 @@ Rosenbaum bounds compute the range of $p$-values for the matched test
 under each value of $\Gamma$. The **critical $\Gamma$** is the smallest
 value at which the test becomes insignificant.
 
-Here is a worked example using simple pair matching on propensity score and
-a Wilcoxon signed-rank test (the original Rosenbaum bound calculation):
+Here is a worked example on the same NHEFS data. We fit the propensity score by
+logistic regression on the nine baseline covariates, match each of the 403
+quitters to its nearest unmatched control on that score, take the paired
+differences in weight change, and compute the upper-bound Wilcoxon
+signed-rank $p$-value on a grid $\Gamma \in [1, 4]$ in steps of 0.25:
 
 ```{r}
 #| label: rosenbaum
@@ -283,11 +319,14 @@ knitr::kable(result, digits = 4,
              caption = "Upper-bound p-values from Rosenbaum sensitivity analysis")
 ```
 
+Matching gives 403 pairs, one per quitter, with a mean paired difference of
+2.926 kg. The upper-bound $p$-value is 0.0334 at $\Gamma = 1.50$ and 0.2905 at
+$\Gamma = 1.75$, so the crossing of 0.05 falls between those two grid points.
+
 The **critical $\Gamma$** is the value at which the upper-bound $p$-value
-crosses 0.05. In the table above, locate where this happens — if the
-critical $\Gamma$ is around 2 or higher, the result is robust to moderate
+crosses 0.05. If it is around 2 or higher, the result is robust to moderate
 hidden bias. If it is close to 1, even small unmeasured confounding could
-overturn the conclusion.
+overturn the conclusion. We read it off the grid:
 
 ```{r}
 #| label: critical-gamma
@@ -302,11 +341,22 @@ if (is.na(critical_gamma)) {
 }
 ```
 
-This reports the first value *on the 0.25 grid* at which significance is
-lost; the actual crossing lies between this value and the preceding grid
-point (a finer grid, or interpolation, would locate it more precisely —
-the convention in applied work is often to report the largest $\Gamma$ at
-which significance is retained).
+The critical $\Gamma$ is 1.75. This is the first value *on the 0.25 grid* at
+which significance is lost; the true crossing lies between 1.50 and 1.75, and a
+finer grid would locate it more precisely. The convention in applied work is
+often to report the largest $\Gamma$ at which significance is retained, which
+here is 1.50.
+
+So hidden bias that made one member of a matched pair up to about 1.5 times
+more likely to quit than the other would leave the result significant, and bias
+beyond that would not.
+
+The three analyses do not share a scale. $\Gamma$ bounds an odds ratio within a
+matched pair, the E-value bounds a risk ratio, and the robustness value is a
+partial $R^2$. They also ask different questions: $\Gamma$ and the E-value ask
+when the result stops being significant, the robustness value asks when the
+point estimate reaches zero. Reporting one of them is normal practice; the
+numbers should not be averaged or compared directly.
 
 ## What about partial identification?
 

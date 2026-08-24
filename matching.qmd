@@ -530,6 +530,143 @@ For more details on `MatchIt` and the Stata `teffects` commands, see the
 [matching blog chapter](https://xiangao.github.io/blog_book/matching-part1.html)
 and [treatment-effects in Stata](https://xiangao.github.io/blog_book/treatment-matching.html).
 
+## Matching, weighting, and direct estimation
+
+The estimation chapter estimated a treatment effect by regression adjustment,
+IPW, AIPW and IPWRA. This chapter estimated one by matching and by four
+weighting methods. Those are not two families of estimators. They are one
+estimand and several ways of building it, and it is worth saying how they line
+up.
+
+The ATT is
+
+$$
+\tau_{ATT} = E[Y \mid W = 1] - E_{X \mid W = 1}\bigl[\, E[Y \mid W = 0, X] \,\bigr].
+$$ {#eq-matching-att-routes}
+
+The first term is observed. It is the mean outcome among the treated. The
+second term is not observed. It is the mean outcome the treated would have had
+untreated, averaged over the covariate distribution of the treated. Every
+method in both chapters is a way of forming that second term, and every one of
+them ends up as a weighted average of control outcomes,
+$\sum_{i: W_i = 0} w_i Y_i$. What differs is where the weights come from.
+
+| Route | What is modelled | Weight on control $i$ |
+|---|---|---|
+| Regression adjustment | the outcome, $\mu_0(x) = E[Y \mid W=0, X=x]$ | implicit in the fitted values used to predict at treated $x$ |
+| IPW | the propensity score $\pi(x)$ | the odds $\pi(x_i)/(1-\pi(x_i))$ |
+| Matching | neither; a distance rule | 0 if unmatched, else 1, the number of times reused, or the subclass ratio |
+| Entropy, CBPS, energy balancing | the weights themselves | whatever satisfies the balance constraints |
+| AIPW | both | the odds, applied to the residual $Y - \hat\mu_0(X)$ |
+
+Weighting is IPW. That is the second row, and `weightit` with
+`estimand = "ATT"` and `method = "glm"` returns exactly those odds. CBPS,
+entropy balancing and energy balancing do not change the estimator. They
+change how the weights are found. IPW fits $\pi$ by maximum likelihood and
+then transforms it into weights; the balancing methods skip the likelihood and
+solve for the weights directly. For entropy balancing the link is exact rather
+than an analogy: the control weights are proportional to $\exp(x'\lambda)$, as
+the CBPS comparison above showed, and that is the odds of a logistic
+propensity score. Entropy balancing is IPW for a logit model whose
+coefficients are set by exact mean balance instead of by likelihood.
+
+Matching is weighting too, with the weights restricted to zero and small
+integers and chosen by a distance rule rather than by a model. That is what
+lets `match_data` hand a weights column to `lm`. The restriction is where the
+trade-off lives. Matching sets some weights to zero, so it discards
+observations, and when it discards treated units --- as CEM did above, keeping
+65 of 185 --- the estimand becomes the ATT among the matched treated. Weighting
+keeps everyone, so the estimand survives, and pays for it with extreme weights
+when overlap is poor, which is what the effective sample sizes in this chapter
+have been reporting. Matching buys stability with the estimand. Weighting buys
+the estimand with variance.
+
+AIPW uses both columns. Start from regression adjustment, then add the
+odds-weighted average of the control residuals $Y - \hat\mu_0(X)$. It is
+consistent if either model is right. The section on estimation after matching
+did an informal version of the same thing: match first, then run a regression
+with treatment-covariate interactions on the matched sample. That is
+@abadie-imbens-2011 bias-corrected matching, and the regression plays the part of
+the augmentation term.
+
+Five routes, one data set. Each row below is built by hand from the weight
+representation so the arithmetic is visible.
+
+```{r}
+#| label: compare-routes
+#| cache: true
+
+covs <- c("age", "educ", "race", "married", "nodegree", "re74", "re75")
+trt  <- lalonde$treat == 1
+y    <- lalonde$re78
+
+# Outcome model, fitted on controls only, then predicted everywhere
+mu0_fit <- lm(reformulate(covs, response = "re78"),
+              data = subset(lalonde, treat == 0))
+mu0 <- predict(mu0_fit, newdata = lalonde)
+
+# Odds weights from a logistic propensity score
+ps     <- predict(glm(reformulate(covs, response = "treat"),
+                      data = lalonde, family = binomial), type = "response")
+odds   <- ps / (1 - ps)
+wt_ipw <- ifelse(trt, 1, odds)
+
+# Weighted difference in means: the common shape of rows 2 to 4
+hajek <- function(w) {
+  weighted.mean(y[trt], w[trt]) - weighted.mean(y[!trt], w[!trt])
+}
+
+att_ra   <- mean(y[trt] - mu0[trt])
+att_ipw  <- hajek(wt_ipw)
+att_eb   <- hajek(w_ebal$weights)
+att_fm   <- hajek(m.full$weights)
+att_aipw <- att_ra - weighted.mean(y[!trt] - mu0[!trt], odds[!trt])
+
+data.frame(
+  route = c("Regression adjustment (outcome model)",
+            "IPW (propensity model)",
+            "Entropy balancing (balance constraints)",
+            "Full matching (distance rule)",
+            "AIPW (both models)"),
+  att = c(att_ra, att_ipw, att_eb, att_fm, att_aipw)
+) |>
+  knitr::kable(digits = 0, col.names = c("Route", "ATT"),
+               caption = "Five routes to the same ATT on the Lalonde data.")
+```
+
+Two of these numbers confirm the algebra directly. The hand-built odds weights
+agree with the `weightit` propensity-score weights from the IPW section above to
+machine precision, so the claim that weighting is IPW is an identity here and not
+a resemblance. And entropy balancing gives \$1,273 --- the same figure that
+`lm_weightit` produced earlier with the full set of treatment-covariate
+interactions, agreeing to nine decimal places. Exact mean balance leaves nothing for a linear
+outcome model to correct, so adding one changes the estimate not at all. That is
+the double robustness of entropy balancing [@zhao-percival-2017] appearing as
+arithmetic: the same weights deliver the IPW estimator for a logit propensity
+model and the regression-adjustment estimator for a linear outcome model.
+
+The spread across routes is the part to read carefully. Regression adjustment
+gives \$1,648 and IPW gives \$1,214. AIPW starts from the regression-adjustment
+figure and the augmentation term subtracts \$417, landing at \$1,231 --- next to
+IPW, not next to regression adjustment. The propensity side is doing the work
+here, which is what we should expect when the treated and control covariate
+distributions are as far apart as the balance tables in this chapter have shown.
+Full matching sits highest at \$1,855. It fits a propensity score too --- a
+probit, used as the distance for forming subclasses --- so the gap between it and
+IPW's \$1,214 is not about whether a propensity model was estimated. It is about
+how the score is turned into weights: coarse subclass weights that throw away the
+score's fine gradations, against the odds transformation that keeps them.
+
+These are point estimates. Standard errors are not comparable across the rows
+and are deliberately left out: matching is not a smooth functional of the data,
+so the bootstrap is invalid for it [@abadie-imbens-2008] and the subclass
+clustering used earlier is needed, while IPW and AIPW have influence-function
+variances and AIPW attains the semiparametric efficiency bound that fixed-$M$
+matching does not. The lesson from the column of estimates is the same one the
+matching-versus-weighting comparison gave: with overlap this weak, the choice
+of route moves the answer by more than one standard error, so report several
+routes rather than the one that reads best.
+
 ## Summary
 
 - Matching is for selection on observables. It does not fix unobserved
@@ -540,3 +677,6 @@ and [treatment-effects in Stata](https://xiangao.github.io/blog_book/treatment-m
   balances better.
 - If there is no overlap, change the estimand or restrict the sample. Do not
   hide the support problem.
+- Matching, weighting, and the direct estimators of the previous chapter are
+  one estimand built several ways. Weighting with `method = "glm"` is IPW, and
+  matching is weighting with the weights restricted to zero and small integers.

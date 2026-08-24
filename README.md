@@ -71,3 +71,35 @@ remotes::install_github("nhejazi/medoutcon")
 > weighting" contained no comparison — the two estimates are exactly one standard
 > error apart, with *p* flipping 0.005 to 0.098 while the *better*-balanced method
 > gives the smaller estimate.
+
+> **2026-08-24:** Handwritten-markup pass. Read the ink from a stylus-annotated copy
+> of the rendered PDF (31 of 300 pages carried marks; located by pixel-diffing the
+> annotated file against the pristine `_book/` build, since tablet exports flatten
+> strokes into the page content stream and leave no annotation objects to read).
+>
+> Three PDF layout complaints turned out to have causes elsewhere than the text.
+> Both "too much space" marks came from a single source: `scrbook` sets
+> `\flushbottom`, so any page whose content falls short stretches the flexible glue
+> around headings and lists into visible mid-page gaps — `\raggedbottom` in
+> `latex-compat.tex` fixes the whole book. The mermaid flowchart printed at native
+> size and ran off the page across two spreads; it needs `%%| fig-width` *and*
+> `diagramPadding`, because fig-width alone still clips the widest node. And the
+> six benchmark labels in the sensemakr contour plot overprinted into an unreadable
+> blob, fixed by cutting the axes to the region the benchmarks actually occupy.
+> Also split the Manski bounds equation, which overflowed the margin, and removed a
+> `\boxed{}`.
+>
+> On content: a section was deleted at the author's instruction, along with seven
+> struck sentences; four passages marked unclear were rewritten, including the
+> shift-share chapter opening, which never said which regressor was endogenous.
+> New material answers four marginal questions. The matching chapter gains a
+> section relating matching and weighting to regression adjustment, IPW and AIPW —
+> anchored on two verified facts, that hand-built odds weights equal `weightit`'s
+> propensity-score weights to machine precision, and that entropy balancing's
+> weighted difference in means equals its regression-adjusted fit to nine decimals
+> because exact mean balance leaves a linear outcome model nothing to correct.
+> `nonparametric` gains a derivation of the plug-in estimator's first-order
+> nuisance bias and the AIPW drift term, replacing a claim that had rested on a
+> simulation. `continuous-treatments` gains the theory behind all three of its
+> estimators. Chapter 15's prose was trimmed by 14% with every code chunk left
+> byte-identical.

@@ -389,8 +389,28 @@ reports nothing for the other four.
 
 ## Variable importance
 
-`grf` also reports variable importance. It is a rough diagnostic for which
-variables the forest uses to find heterogeneity.
+`grf` also reports variable importance. It answers a different question from the
+BLP, and the two are easy to run together and confuse.
+
+The BLP is a statement about the population. Its target,
+@eq-heterogeneous-effects-5, is defined without reference to any forest: it is
+the best linear approximation to $\tau(x)$, it comes in the units of the
+outcome, it has a sign, and it has a standard error we can test against zero.
+Variable importance is a statement about the fitted forest. It counts how often
+each variable was split on, weighted towards splits near the root. There is no
+population target behind it, no units, no sign, and no standard error. It cannot
+say whether a variable raises or lowers the treatment effect, only that the
+trees found it useful for splitting.
+
+That difference is why the two can disagree. A variable that modifies the effect
+non-monotonically --- large effects at both ends of its range, small in the
+middle --- gets a BLP coefficient near zero and a high importance score, because
+the projection sees no linear trend while the trees see plenty to split on.
+Correlation between covariates moves them the other way: if two covariates carry
+the same information, whichever is split on first absorbs the importance and the
+other looks irrelevant, while the projection divides the coefficient between
+them. Here $\tau(x) = 1 + 2x_1$ is linear in one covariate drawn independently
+of the rest, which is exactly the case where both tools agree.
 
 ```{r}
 #| label: var-imp
@@ -649,6 +669,18 @@ fixed-effect regression with heterogeneous effects, but it does not target
 the same estimand as a textbook within estimator: properly identified
 heterogeneous panel effects need stronger assumptions or a dedicated panel/DML
 construction with an orthogonal score.
+So how much does ignoring the panel cost? The two ways of ignoring it have very
+different prices, and this section has kept them apart on purpose. Ignoring the
+panel in the *inference* costs little here: clustering moved the estimate from
+1.706 to 1.741 and widened the standard error from 0.127 to 0.163. Ignoring it
+in the *identification* costs everything: 1.706 against a true 0.566 is three
+times the truth and about nine standard errors out, and clustering does not
+touch it. The magnitude is specific to this design --- it scales with how
+strongly the unit effect drives treatment and outcome, 0.5 and 1 here --- but
+the direction is not: a unit effect that raises both leaves the naive estimate
+biased upward. When the panel exists and the unit effect is plausibly
+confounding, the within transform is not optional.
+
 See the [companion blog chapter on causal forests in panel data](https://xiangao.github.io/blog_book/causal-forest-panel.html)
 for an extended simulation study comparing the panel CF to fixed-effect
 regression and random-effect regression under linear and nonlinear DGPs.

@@ -147,8 +147,9 @@ ggplot() +
   theme_minimal()
 ```
 
-The two linear fits lie almost on top of each other, as the cancellation above
-implies, and both run straight through the curvature. At $d = 2$ they give 4.13
+The two linear fits lie almost on top of each other, because the
+omitted-variable term cancels exactly in this DGP, and both run straight
+through the curvature. At $d = 2$ they give 4.13
 against a true 4.40; at $d = 6$ they give 9.82 and 9.77 against a true 7.60.
 Their common slope of about 1.41 is close to the average of the true slope
 $2 - 0.3d$ over the observed doses, which is 1.403 --- a straight line through
@@ -168,14 +169,59 @@ $$
 r(d, x) = f_{D \mid X}(d \mid x).
 $$ {#eq-continuous-treatments-2}
 
-Under unconfoundedness, the GPS plays the same role as the propensity score
-for binary treatment. In practice we often start with a normal model for
-$D \mid X$:
-$D \mid X \sim \mathcal{N}(\beta_0+\beta'X,\sigma^2)$.
+Two results from @hirano-imbens-2004-gps are what make this object useful, and both
+are worth stating before we compute anything.
 
-We fit $D$ on $X_1$ and $X_2$ by OLS and read the GPS off the normal density at
-each unit's own dose. The weights printed below are a diagnostic only: they are
-the marginal density of $D$ divided by the GPS, trimmed at the 99th percentile.
+The first is the assumption they need, which is weaker than it looks. *Weak
+unconfoundedness* requires $Y(d) \perp D \mid X$ separately for each dose $d$.
+It does not require the whole path $\{Y(d) : d\}$ to be jointly independent of
+$D$ given $X$, which would be a much stronger demand at a continuous treatment.
+
+The second is the balancing property. Conditional on the scalar $r(d, X)$, the
+covariates carry no further information about whether a unit received dose $d$:
+
+$$
+f_D\bigl(d \mid r(d, X)\bigr) = f_D\bigl(d \mid r(d, X),\, X\bigr).
+$$ {#eq-continuous-treatments-balance}
+
+So a one-dimensional score does the job of the full covariate vector, exactly as
+in the binary case. Put the two together and the dose-response function is
+
+$$
+\mu(d) = E[Y(d)] = E\Bigl[\, E\bigl(Y \mid D = d,\; r(d, X)\bigr) \Bigr],
+$$ {#eq-continuous-treatments-doseresp}
+
+where the outer expectation runs over the distribution of $r(d, X)$ in the whole
+sample. Read the argument of $r$ carefully, because it is where this estimator
+is usually got wrong: at each counterfactual dose $d$ we must recompute every
+unit's score *at that* $d$, not reuse the score at the dose the unit happened to
+receive. The code below does this in `estimate_dose()`, and it is the reason the
+GPS has to be recomputed inside the loop over doses.
+
+One more point of theory explains why the GPS enters as a regressor rather than
+as a weight. The GPS is a conditional *density*, not a probability, so it
+carries the units of $1/D$; weights of the form $1/\hat r$ are therefore not
+scale-free and change if the dose is rescaled. Multiplying by the marginal
+density $f_D(D)$ restores scale invariance, which is what the stabilised weights
+below do, and it is why they are reported here only as an overlap diagnostic.
+The Hirano-Imbens estimator sidesteps the issue by putting the score in the
+outcome model instead.
+
+In practice we start with a normal model for $D \mid X$:
+$D \mid X \sim \mathcal{N}(\beta_0+\beta'X,\sigma^2)$. Fitting $D$ on
+$X_1$ and $X_2$ by OLS gives $\hat\beta$ and $\hat\sigma$, and the score at any
+dose $d$ for unit $i$ is the normal density evaluated there,
+
+$$
+\hat r(d, x_i) = \frac{1}{\hat\sigma\sqrt{2\pi}}
+  \exp\!\left\{-\frac{\bigl(d - x_i'\hat\beta\bigr)^2}{2\hat\sigma^2}\right\}.
+$$ {#eq-continuous-treatments-gpshat}
+
+That is the whole calculation: one linear regression, then one density
+evaluation per unit per dose. Nothing here needs a package. `lm` fits the dose
+model, `dnorm` evaluates @eq-continuous-treatments-gpshat, and `density` and
+`approx` from `stats` supply the marginal density $f_D$ used in the diagnostic
+weights, which are trimmed at the 99th percentile.
 
 ```{r}
 #| label: gps
@@ -268,6 +314,36 @@ nearby observed doses contribute to the estimate. (The code below uses the
 weight-normalized — Hájek — version of the correction term, dividing the
 weights by their mean; the population limit is unchanged.)
 
+Two features of this estimator are worth understanding, because they are what
+the comparison table at the end of the chapter is really about.
+
+The first is why it is doubly robust, and the algebra is the same as in the
+binary case worked through in @sec-plug-in-bias. The first term is a plug-in
+built from the outcome model. The second subtracts that model's own residual,
+reweighted by the score. A first-order error in $\hat\mu$ therefore enters twice
+with opposite signs and cancels, and what survives involves the product of the
+error in $\hat\mu$ and the error in $\hat r$. If either nuisance is right, the
+product is zero.
+
+The second is why a bandwidth appears here when none appeared for the ATE. The
+ATE is a single number, and it is estimable at the $\sqrt n$ rate. But $\mu(d)$
+at a *point* $d$ is a regression function, and no $\sqrt n$ estimator of it
+exists without smoothness assumptions, because the data hold only finitely many
+observations near any given dose. The kernel is how we borrow from neighbouring
+doses, and $h$ sets the exchange rate: a wide bandwidth pulls in doses where the
+truth is different, a narrow one leaves too few observations to average over.
+Under the usual second-order smoothness the best trade is $h \propto n^{-1/5}$
+and the rate is $n^{-2/5}$, slower than $\sqrt n$ by construction. That is why
+bandwidth sensitivity is listed below as a cost of the method rather than as a
+tuning detail.
+
+@kennedy-2017-continuous handle the localisation more carefully. Instead of
+smoothing the correction term, they construct a pseudo-outcome whose conditional
+mean given $D = d$ is exactly $\mu(d)$, and then run a single nonparametric
+regression of that pseudo-outcome on $D$. All the smoothing sits in one place,
+which is what lets them state formal guarantees. The version used here keeps the
+doubly-robust structure and is easier to read, with weaker theory behind it.
+
 Using the GPS already estimated above, the implementation is short. The outcome
 model is a quadratic in $D$ with both covariates and their interactions with
 $D$; the kernel is Gaussian with bandwidth $h = 0.5$. The plot puts this curve
@@ -330,6 +406,38 @@ almost no observations near $D=10$, so estimating $Y(10)$ requires
 extrapolation. LMTP avoids this by defining interventions as changes to the
 observed treatment, such as "shift everyone's dose down by one unit." This
 keeps the counterfactual treatment closer to the observed support.
+
+### What LMTP identifies
+
+Write the policy as a function $d$ that takes a unit's history $H_t$ up to time
+$t$ and returns a treatment value: $d(H_t) = A_t - 1$ for a one-unit downward
+shift, or $d(H_t) = 0$ for the static "treat nobody" policy. The estimand is
+$E[Y(\bar d)]$, the mean outcome if every period's treatment were replaced by
+the value the policy assigns.
+
+Three assumptions identify it. Sequential exchangeability: at each period the
+potential outcome is independent of the current treatment given the observed
+history, $Y(\bar d) \perp A_t \mid H_t$. Consistency, in the usual sense. And
+positivity, which is the assumption that motivates the whole approach: the
+*shifted* value must have positive density given the history. A shift of one unit
+stays inside the observed support, while a fixed dose of $D = 10$ may sit where
+no comparable unit exists.
+
+Given those three, the estimand has a sequential-regression form. Start at the
+last period and work backwards:
+
+$$
+m_T(H_T) = E\bigl[Y \mid H_T,\, A_T = d(H_T)\bigr], \qquad
+m_t(H_t) = E\bigl[m_{t+1} \mid H_t,\, A_t = d(H_t)\bigr],
+$$ {#eq-continuous-treatments-lmtp}
+
+with $E[Y(\bar d)] = E[m_1]$. In plain terms: predict the outcome as if the last
+treatment had followed the policy, treat that prediction as the outcome for the
+previous period and predict it the same way, and repeat back to the first
+period. This is the g-formula written as a sequence of regressions rather than as
+an integral, which is what makes it estimable at all. `lmtp` fits each
+regression, optionally with machine learning, and adds a targeting or weighting
+step at each stage so that the recursion is doubly robust rather than a plug-in.
 
 ### A two-period example
 

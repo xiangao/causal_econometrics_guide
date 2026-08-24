@@ -649,7 +649,7 @@ Comparison: TRUE - FALSE</code></pre>
 <p>Read the pre-treatment points with care, and note the caption on the figure. With <code>etwfe</code>’s default comparison group the pre-treatment estimates are forced to zero by construction, so their sitting on the line is arithmetic, not evidence for parallel trends. The Poisson example below uses <code>cgroup = "never"</code>, which frees them and makes the pre-period a real check.</p>
 </section><section id="example-2-staggered-did" class="level2" data-number="12.11"><h2 data-number="12.11" class="anchored" data-anchor-id="example-2-staggered-did">
 <span class="header-section-number">12.11</span> Example 2: Staggered DiD</h2>
-<p>The mpdta effects are real and therefore unknown. To see whether ETWFE recovers what it should, we switch to simulated data where the answer is recorded in the file.</p>
+<p>To see whether ETWFE recovers what it should, we switch to simulated data where the answer is recorded in the file.</p>
 <p><code>data/did_staggered_6.dta</code> is Wooldridge’s simulated staggered panel: 500 units observed annually from 2001 to 2006, 3,000 observations. Units are treated in 2004 (119 units), 2005 (83) or 2006 (36), and 262 are never treated. The outcome is <code>y</code>, <code>x</code> is a covariate, <code>d4</code>, <code>d5</code> and <code>d6</code> are cohort dummies, and <code>f04</code>, <code>f05</code>, <code>f06</code> are year dummies. What makes the file useful is <code>te4</code>, <code>te5</code> and <code>te6</code>: the true unit-level treatment effect each unit would experience under each cohort’s treatment date. The effects are heterogeneous across units and grow with time since treatment, which is precisely the configuration that breaks plain TWFE.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># now we do staggered did.</span></span>
@@ -822,6 +822,9 @@ Comparison: TRUE - FALSE</code></pre>
 <p>Note that the calendar profile is nearly flat while the event-time profile rises. There is no contradiction: later calendar years mix an older cohort with large accumulated effects and a newly treated cohort with small ones, and the two movements offset. This is why the aggregation has to be chosen to match the question being asked.</p>
 </section><section id="nonlinear-etwfe-count-and-binary-outcomes" class="level2" data-number="12.12"><h2 data-number="12.12" class="anchored" data-anchor-id="nonlinear-etwfe-count-and-binary-outcomes">
 <span class="header-section-number">12.12</span> Nonlinear ETWFE: Count and Binary Outcomes</h2>
+<blockquote class="blockquote">
+<p><strong>Related reading</strong>: The theory behind nonlinear ETWFE — Wooldridge’s conditional parallel-trends assumption on the linear index, the incidental parameters argument for cohort rather than unit intercepts, and the average partial effects that follow — is developed at length in <a href="https://xiangao.github.io/blog_book/extended-twfe.html">Extended two-way fixed effects</a> in <em>Topics on Econometrics and Causal Inference</em>, with <a href="https://xiangao.github.io/blog_book/count-data.html">count data</a> and <a href="https://xiangao.github.io/blog_book/poisson-exposure.html">Poisson with exposure</a> covering the count case in more detail.</p>
+</blockquote>
 <p>ETWFE is not limited to linear (continuous) outcomes. When the dependent variable is a count or a binary indicator, linear TWFE can give nonsensical results — negative predicted probabilities, additive effects that ignore the bounded or non-negative nature of <span class="math inline">\(Y\)</span>. The <code>etwfe</code> package supports nonlinear families via the <code>family</code> argument, which passes to <code><a href="https://lrberge.github.io/fixest/reference/feglm.html">fixest::feglm()</a></code>.</p>
 <p>The key identifying assumption shifts slightly. Instead of parallel trends on <span class="math inline">\(E[Y_{it}(\infty)]\)</span>, we assume parallel trends on the <strong>linear index</strong> — that is, on <span class="math inline">\(\log E[Y_{it}(\infty)]\)</span> for Poisson, or on <span class="math inline">\(\text{logit}\, E[Y_{it}(\infty)]\)</span> for logit. This is Wooldridge’s (2023) Conditional Parallel Trends assumption stated on <span class="math inline">\(G^{-1}(E[Y])\)</span>. When the true treatment effect is multiplicative (e.g., a policy raises counts by 50% regardless of baseline), this assumption is more natural than additive PT on <span class="math inline">\(Y\)</span> itself.</p>
 <p>One implementation detail matters: the nonlinear ETWFE specification uses <strong>cohort fixed effects</strong> (one intercept per treatment cohort) plus year fixed effects — not individual unit fixed effects. The <code>etwfe</code> package handles this automatically. In the linear case the two are numerically equivalent (Wooldridge 2021), but in nonlinear models unit fixed effects raise the incidental-parameters problem and make average partial effects uncomputable — the unit intercepts cannot be averaged out of the nonlinear link. Wooldridge (2023) instead uses cohort intercepts (a Mundlak device), which is what <code>etwfe</code> implements.</p>
@@ -1805,490 +1808,499 @@ Xu, Ruonan. 2023. <span>“Difference-in-Differences with Interference.”</span
 <span id="cb56-207"><a href="#cb56-207" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb56-208"><a href="#cb56-208" aria-hidden="true" tabindex="-1"></a><span class="fu">## Example 2: Staggered DiD</span></span>
 <span id="cb56-209"><a href="#cb56-209" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-210"><a href="#cb56-210" aria-hidden="true" tabindex="-1"></a>The mpdta effects are real and therefore unknown. To see whether ETWFE recovers</span>
-<span id="cb56-211"><a href="#cb56-211" aria-hidden="true" tabindex="-1"></a>what it should, we switch to simulated data where the answer is recorded in the</span>
-<span id="cb56-212"><a href="#cb56-212" aria-hidden="true" tabindex="-1"></a>file.</span>
-<span id="cb56-213"><a href="#cb56-213" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-214"><a href="#cb56-214" aria-hidden="true" tabindex="-1"></a><span class="in">`data/did_staggered_6.dta`</span> is Wooldridge's simulated staggered panel: 500 units</span>
-<span id="cb56-215"><a href="#cb56-215" aria-hidden="true" tabindex="-1"></a>observed annually from 2001 to 2006, 3,000 observations. Units are treated in</span>
-<span id="cb56-216"><a href="#cb56-216" aria-hidden="true" tabindex="-1"></a>2004 (119 units), 2005 (83) or 2006 (36), and 262 are never treated. The</span>
-<span id="cb56-217"><a href="#cb56-217" aria-hidden="true" tabindex="-1"></a>outcome is <span class="in">`y`</span>, <span class="in">`x`</span> is a covariate, <span class="in">`d4`</span>, <span class="in">`d5`</span> and <span class="in">`d6`</span> are cohort dummies, and</span>
-<span id="cb56-218"><a href="#cb56-218" aria-hidden="true" tabindex="-1"></a><span class="in">`f04`</span>, <span class="in">`f05`</span>, <span class="in">`f06`</span> are year dummies. What makes the file useful is <span class="in">`te4`</span>,</span>
-<span id="cb56-219"><a href="#cb56-219" aria-hidden="true" tabindex="-1"></a><span class="in">`te5`</span> and <span class="in">`te6`</span>: the true unit-level treatment effect each unit would</span>
-<span id="cb56-220"><a href="#cb56-220" aria-hidden="true" tabindex="-1"></a>experience under each cohort's treatment date. The effects are heterogeneous</span>
-<span id="cb56-221"><a href="#cb56-221" aria-hidden="true" tabindex="-1"></a>across units and grow with time since treatment, which is precisely the</span>
-<span id="cb56-222"><a href="#cb56-222" aria-hidden="true" tabindex="-1"></a>configuration that breaks plain TWFE.</span>
-<span id="cb56-223"><a href="#cb56-223" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-224"><a href="#cb56-224" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did8, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-225"><a href="#cb56-225" aria-hidden="true" tabindex="-1"></a><span class="co"># now we do staggered did.</span></span>
-<span id="cb56-226"><a href="#cb56-226" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(haven)</span>
-<span id="cb56-227"><a href="#cb56-227" aria-hidden="true" tabindex="-1"></a>did_data <span class="ot">&lt;-</span> <span class="fu">read_dta</span>(<span class="st">'data/did_staggered_6.dta'</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb56-228"><a href="#cb56-228" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">first_treat =</span> <span class="fu">case_when</span>(d4<span class="sc">==</span><span class="dv">1</span> <span class="sc">~</span> <span class="dv">2004</span>,</span>
-<span id="cb56-229"><a href="#cb56-229" aria-hidden="true" tabindex="-1"></a>                                  d5<span class="sc">==</span><span class="dv">1</span> <span class="sc">~</span> <span class="dv">2005</span>,</span>
-<span id="cb56-230"><a href="#cb56-230" aria-hidden="true" tabindex="-1"></a>                                  d6<span class="sc">==</span><span class="dv">1</span> <span class="sc">~</span> <span class="dv">2006</span>,</span>
-<span id="cb56-231"><a href="#cb56-231" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">.default =</span> <span class="dv">0</span>))</span>
-<span id="cb56-232"><a href="#cb56-232" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-233"><a href="#cb56-233" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(did_data <span class="sc">%&gt;%</span> <span class="fu">select</span>(id, year, y, x,d4, d5, d6, te4, te5, te6, first_treat ))</span>
-<span id="cb56-234"><a href="#cb56-234" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-235"><a href="#cb56-235" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-236"><a href="#cb56-236" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did19, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-237"><a href="#cb56-237" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(did_data<span class="sc">$</span>first_treat)</span>
-<span id="cb56-238"><a href="#cb56-238" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-239"><a href="#cb56-239" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-240"><a href="#cb56-240" aria-hidden="true" tabindex="-1"></a>The counts are observations, six per unit: 1,572 never-treated, 714 in the 2004</span>
-<span id="cb56-241"><a href="#cb56-241" aria-hidden="true" tabindex="-1"></a>cohort, 498 in 2005, 216 in 2006.</span>
-<span id="cb56-242"><a href="#cb56-242" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-243"><a href="#cb56-243" aria-hidden="true" tabindex="-1"></a>Because the true effects are in the data, we can compute the target before</span>
-<span id="cb56-244"><a href="#cb56-244" aria-hidden="true" tabindex="-1"></a>estimating it. Grouping the true effects by cohort and year gives the true ATT</span>
-<span id="cb56-245"><a href="#cb56-245" aria-hidden="true" tabindex="-1"></a>in each cohort-year cell.</span>
-<span id="cb56-246"><a href="#cb56-246" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-247"><a href="#cb56-247" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did9, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-248"><a href="#cb56-248" aria-hidden="true" tabindex="-1"></a>did_data <span class="ot">&lt;-</span> did_data <span class="sc">%&gt;%</span></span>
-<span id="cb56-249"><a href="#cb56-249" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">treated_cohort1 =</span>    <span class="fu">case_when</span>(d4 <span class="sc">&amp;</span> f04 <span class="sc">~</span> <span class="st">"d4f04"</span>,</span>
-<span id="cb56-250"><a href="#cb56-250" aria-hidden="true" tabindex="-1"></a>                              d4 <span class="sc">&amp;</span> f05 <span class="sc">~</span> <span class="st">"d4f05"</span>,</span>
-<span id="cb56-251"><a href="#cb56-251" aria-hidden="true" tabindex="-1"></a>                              d4 <span class="sc">&amp;</span> f06 <span class="sc">~</span> <span class="st">"d4f06"</span>),</span>
-<span id="cb56-252"><a href="#cb56-252" aria-hidden="true" tabindex="-1"></a>         <span class="at">treated_cohort2 =</span> <span class="fu">case_when</span> (</span>
-<span id="cb56-253"><a href="#cb56-253" aria-hidden="true" tabindex="-1"></a>                              d5 <span class="sc">&amp;</span> f05 <span class="sc">~</span> <span class="st">"d5f05"</span>,</span>
-<span id="cb56-254"><a href="#cb56-254" aria-hidden="true" tabindex="-1"></a>                              d5 <span class="sc">&amp;</span> f06 <span class="sc">~</span> <span class="st">"d5f06"</span>),</span>
-<span id="cb56-255"><a href="#cb56-255" aria-hidden="true" tabindex="-1"></a>         <span class="at">treated_cohort3=</span> <span class="fu">case_when</span>(</span>
-<span id="cb56-256"><a href="#cb56-256" aria-hidden="true" tabindex="-1"></a>                              d6 <span class="sc">&amp;</span> f06 <span class="sc">~</span> <span class="st">"d6f06"</span>))</span>
-<span id="cb56-257"><a href="#cb56-257" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-258"><a href="#cb56-258" aria-hidden="true" tabindex="-1"></a>  did_data <span class="sc">%&gt;%</span></span>
-<span id="cb56-259"><a href="#cb56-259" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(treated_cohort1) <span class="sc">%&gt;%</span></span>
-<span id="cb56-260"><a href="#cb56-260" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">mean4=</span><span class="fu">mean</span>(te4))</span>
-<span id="cb56-261"><a href="#cb56-261" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-262"><a href="#cb56-262" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-263"><a href="#cb56-263" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did10, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-264"><a href="#cb56-264" aria-hidden="true" tabindex="-1"></a>  did_data <span class="sc">%&gt;%</span></span>
-<span id="cb56-265"><a href="#cb56-265" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(treated_cohort2) <span class="sc">%&gt;%</span></span>
-<span id="cb56-266"><a href="#cb56-266" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">mean5=</span><span class="fu">mean</span>(te5))</span>
-<span id="cb56-267"><a href="#cb56-267" aria-hidden="true" tabindex="-1"></a>  did_data <span class="sc">%&gt;%</span></span>
-<span id="cb56-268"><a href="#cb56-268" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(treated_cohort3) <span class="sc">%&gt;%</span></span>
-<span id="cb56-269"><a href="#cb56-269" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">mean6=</span><span class="fu">mean</span>(te6))</span>
-<span id="cb56-270"><a href="#cb56-270" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-271"><a href="#cb56-271" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-272"><a href="#cb56-272" aria-hidden="true" tabindex="-1"></a>So the true cohort-year ATTs are: the 2004 cohort gains 3.76, 4.02 and 4.58 in</span>
-<span id="cb56-273"><a href="#cb56-273" aria-hidden="true" tabindex="-1"></a>2004, 2005 and 2006; the 2005 cohort gains 2.74 and 3.52 in 2005 and 2006; the</span>
-<span id="cb56-274"><a href="#cb56-274" aria-hidden="true" tabindex="-1"></a>2006 cohort gains 1.85 in 2006. (The <span class="in">`NA`</span> rows are the units outside that</span>
-<span id="cb56-275"><a href="#cb56-275" aria-hidden="true" tabindex="-1"></a>cohort, which are not part of its ATT.) Effects grow with time since treatment</span>
-<span id="cb56-276"><a href="#cb56-276" aria-hidden="true" tabindex="-1"></a>and shrink across later cohorts --- heterogeneity in both directions.</span>
-<span id="cb56-277"><a href="#cb56-277" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-278"><a href="#cb56-278" aria-hidden="true" tabindex="-1"></a>Averaging those cells over the 559 treated observations gives a true overall</span>
-<span id="cb56-279"><a href="#cb56-279" aria-hidden="true" tabindex="-1"></a>ATT of **3.677**. That is the number ETWFE has to reproduce.</span>
-<span id="cb56-280"><a href="#cb56-280" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-281"><a href="#cb56-281" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did11, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-282"><a href="#cb56-282" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(etwfe)</span>
-<span id="cb56-283"><a href="#cb56-283" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-284"><a href="#cb56-284" aria-hidden="true" tabindex="-1"></a><span class="co"># this replicates Jeff's results with pooled ols or xtreg, with covariate x.</span></span>
-<span id="cb56-285"><a href="#cb56-285" aria-hidden="true" tabindex="-1"></a>mod <span class="ot">=</span></span>
-<span id="cb56-286"><a href="#cb56-286" aria-hidden="true" tabindex="-1"></a>  <span class="fu">etwfe</span>(</span>
-<span id="cb56-287"><a href="#cb56-287" aria-hidden="true" tabindex="-1"></a>    <span class="at">fml  =</span> y <span class="sc">~</span> x, <span class="co"># outcome ~ controls</span></span>
-<span id="cb56-288"><a href="#cb56-288" aria-hidden="true" tabindex="-1"></a>    <span class="at">tvar =</span> year,        <span class="co"># time variable</span></span>
-<span id="cb56-289"><a href="#cb56-289" aria-hidden="true" tabindex="-1"></a>    <span class="at">gvar =</span> first_treat, <span class="co"># group variable</span></span>
-<span id="cb56-290"><a href="#cb56-290" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> did_data,       <span class="co"># dataset</span></span>
-<span id="cb56-291"><a href="#cb56-291" aria-hidden="true" tabindex="-1"></a>    <span class="at">vcov =</span> <span class="sc">~</span>id</span>
-<span id="cb56-292"><a href="#cb56-292" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb56-293"><a href="#cb56-293" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-294"><a href="#cb56-294" aria-hidden="true" tabindex="-1"></a>mod</span>
-<span id="cb56-295"><a href="#cb56-295" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-296"><a href="#cb56-296" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-297"><a href="#cb56-297" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did12, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-298"><a href="#cb56-298" aria-hidden="true" tabindex="-1"></a><span class="fu">emfx</span>(mod)</span>
-<span id="cb56-299"><a href="#cb56-299" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-300"><a href="#cb56-300" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-301"><a href="#cb56-301" aria-hidden="true" tabindex="-1"></a>ETWFE gives 3.67 with a standard error of 0.172 and a 95% interval of</span>
-<span id="cb56-302"><a href="#cb56-302" aria-hidden="true" tabindex="-1"></a>$<span class="co">[</span><span class="ot">3.33, 4.01</span><span class="co">]</span>$, against a true 3.677. It recovers the ATT to three decimals.</span>
-<span id="cb56-303"><a href="#cb56-303" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-304"><a href="#cb56-304" aria-hidden="true" tabindex="-1"></a>The same holds for the disaggregations. By time since treatment:</span>
-<span id="cb56-305"><a href="#cb56-305" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-306"><a href="#cb56-306" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did20, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-307"><a href="#cb56-307" aria-hidden="true" tabindex="-1"></a>mod_es <span class="ot">=</span> <span class="fu">emfx</span>(mod, <span class="at">type =</span> <span class="st">"event"</span>)</span>
-<span id="cb56-308"><a href="#cb56-308" aria-hidden="true" tabindex="-1"></a>mod_es</span>
-<span id="cb56-309"><a href="#cb56-309" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-310"><a href="#cb56-310" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-311"><a href="#cb56-311" aria-hidden="true" tabindex="-1"></a>Estimated 3.11, 4.02 and 4.21 at event times 0, 1 and 2, against true values of</span>
-<span id="cb56-312"><a href="#cb56-312" aria-hidden="true" tabindex="-1"></a>3.11, 3.81 and 4.58. Every interval covers its truth, and the estimates</span>
-<span id="cb56-313"><a href="#cb56-313" aria-hidden="true" tabindex="-1"></a>reproduce the growth in the effect with exposure.</span>
-<span id="cb56-314"><a href="#cb56-314" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-315"><a href="#cb56-315" aria-hidden="true" tabindex="-1"></a>And by calendar year:</span>
-<span id="cb56-316"><a href="#cb56-316" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-317"><a href="#cb56-317" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did21, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-318"><a href="#cb56-318" aria-hidden="true" tabindex="-1"></a>mod_es2 <span class="ot">=</span> <span class="fu">emfx</span>(mod, <span class="at">type =</span> <span class="st">"calendar"</span>)</span>
-<span id="cb56-319"><a href="#cb56-319" aria-hidden="true" tabindex="-1"></a>mod_es2</span>
-<span id="cb56-320"><a href="#cb56-320" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-321"><a href="#cb56-321" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-322"><a href="#cb56-322" aria-hidden="true" tabindex="-1"></a>Estimated 3.51, 3.73 and 3.70 in 2004, 2005 and 2006, against true values of</span>
-<span id="cb56-323"><a href="#cb56-323" aria-hidden="true" tabindex="-1"></a>3.76, 3.49 and 3.80. Again all three intervals cover.</span>
-<span id="cb56-324"><a href="#cb56-324" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-325"><a href="#cb56-325" aria-hidden="true" tabindex="-1"></a>Note that the calendar profile is nearly flat while the event-time profile</span>
-<span id="cb56-326"><a href="#cb56-326" aria-hidden="true" tabindex="-1"></a>rises. There is no contradiction: later calendar years mix an older cohort with</span>
-<span id="cb56-327"><a href="#cb56-327" aria-hidden="true" tabindex="-1"></a>large accumulated effects and a newly treated cohort with small ones, and the</span>
-<span id="cb56-328"><a href="#cb56-328" aria-hidden="true" tabindex="-1"></a>two movements offset. This is why the aggregation has to be chosen to match the</span>
-<span id="cb56-329"><a href="#cb56-329" aria-hidden="true" tabindex="-1"></a>question being asked.</span>
-<span id="cb56-330"><a href="#cb56-330" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-331"><a href="#cb56-331" aria-hidden="true" tabindex="-1"></a><span class="fu">## Nonlinear ETWFE: Count and Binary Outcomes</span></span>
-<span id="cb56-332"><a href="#cb56-332" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-333"><a href="#cb56-333" aria-hidden="true" tabindex="-1"></a>ETWFE is not limited to linear (continuous) outcomes. When the dependent variable is a count or a binary indicator, linear TWFE can give nonsensical results — negative predicted probabilities, additive effects that ignore the bounded or non-negative nature of $Y$. The <span class="in">`etwfe`</span> package supports nonlinear families via the <span class="in">`family`</span> argument, which passes to <span class="in">`fixest::feglm()`</span>.</span>
-<span id="cb56-334"><a href="#cb56-334" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-335"><a href="#cb56-335" aria-hidden="true" tabindex="-1"></a>The key identifying assumption shifts slightly. Instead of parallel trends on $E<span class="co">[</span><span class="ot">Y_{it}(\infty)</span><span class="co">]</span>$, we assume parallel trends on the **linear index** — that is, on $\log E<span class="co">[</span><span class="ot">Y_{it}(\infty)</span><span class="co">]</span>$ for Poisson, or on $\text{logit}\, E<span class="co">[</span><span class="ot">Y_{it}(\infty)</span><span class="co">]</span>$ for logit. This is Wooldridge's (2023) Conditional Parallel Trends assumption stated on $G^{-1}(E<span class="co">[</span><span class="ot">Y</span><span class="co">]</span>)$. When the true treatment effect is multiplicative (e.g., a policy raises counts by 50% regardless of baseline), this assumption is more natural than additive PT on $Y$ itself.</span>
-<span id="cb56-336"><a href="#cb56-336" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-337"><a href="#cb56-337" aria-hidden="true" tabindex="-1"></a>One implementation detail matters: the nonlinear ETWFE specification uses **cohort fixed effects** (one intercept per treatment cohort) plus year fixed effects — not individual unit fixed effects. The <span class="in">`etwfe`</span> package handles this automatically. In the linear case the two are numerically equivalent (Wooldridge 2021), but in nonlinear models unit fixed effects raise the incidental-parameters problem and make average partial effects uncomputable — the unit intercepts cannot be averaged out of the nonlinear link. Wooldridge (2023) instead uses cohort intercepts (a Mundlak device), which is what <span class="in">`etwfe`</span> implements.</span>
-<span id="cb56-338"><a href="#cb56-338" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-339"><a href="#cb56-339" aria-hidden="true" tabindex="-1"></a><span class="fu">### Simulated example: staggered count data</span></span>
-<span id="cb56-340"><a href="#cb56-340" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-341"><a href="#cb56-341" aria-hidden="true" tabindex="-1"></a>We simulate $N = 400$ units over $T = 6$ periods, 2,400 observations. Units are</span>
-<span id="cb56-342"><a href="#cb56-342" aria-hidden="true" tabindex="-1"></a>split into four groups of 100 by id: the first is treated from period 3, the</span>
-<span id="cb56-343"><a href="#cb56-343" aria-hidden="true" tabindex="-1"></a>second from period 4, the third from period 5, and the fourth never. Each unit</span>
-<span id="cb56-344"><a href="#cb56-344" aria-hidden="true" tabindex="-1"></a>draws a fixed effect $\alpha_i \sim N(0, 0.3^2)$. The log mean is</span>
-<span id="cb56-345"><a href="#cb56-345" aria-hidden="true" tabindex="-1"></a>$\log \mu_{it} = 1 + 0.2t + \alpha_i + 0.4 D_{it}$, and the outcome is</span>
-<span id="cb56-346"><a href="#cb56-346" aria-hidden="true" tabindex="-1"></a>$Y_{it} \sim \text{Poisson}(\mu_{it})$.</span>
+<span id="cb56-210"><a href="#cb56-210" aria-hidden="true" tabindex="-1"></a>To see whether ETWFE recovers what it should, we switch to simulated data where</span>
+<span id="cb56-211"><a href="#cb56-211" aria-hidden="true" tabindex="-1"></a>the answer is recorded in the file.</span>
+<span id="cb56-212"><a href="#cb56-212" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-213"><a href="#cb56-213" aria-hidden="true" tabindex="-1"></a><span class="in">`data/did_staggered_6.dta`</span> is Wooldridge's simulated staggered panel: 500 units</span>
+<span id="cb56-214"><a href="#cb56-214" aria-hidden="true" tabindex="-1"></a>observed annually from 2001 to 2006, 3,000 observations. Units are treated in</span>
+<span id="cb56-215"><a href="#cb56-215" aria-hidden="true" tabindex="-1"></a>2004 (119 units), 2005 (83) or 2006 (36), and 262 are never treated. The</span>
+<span id="cb56-216"><a href="#cb56-216" aria-hidden="true" tabindex="-1"></a>outcome is <span class="in">`y`</span>, <span class="in">`x`</span> is a covariate, <span class="in">`d4`</span>, <span class="in">`d5`</span> and <span class="in">`d6`</span> are cohort dummies, and</span>
+<span id="cb56-217"><a href="#cb56-217" aria-hidden="true" tabindex="-1"></a><span class="in">`f04`</span>, <span class="in">`f05`</span>, <span class="in">`f06`</span> are year dummies. What makes the file useful is <span class="in">`te4`</span>,</span>
+<span id="cb56-218"><a href="#cb56-218" aria-hidden="true" tabindex="-1"></a><span class="in">`te5`</span> and <span class="in">`te6`</span>: the true unit-level treatment effect each unit would</span>
+<span id="cb56-219"><a href="#cb56-219" aria-hidden="true" tabindex="-1"></a>experience under each cohort's treatment date. The effects are heterogeneous</span>
+<span id="cb56-220"><a href="#cb56-220" aria-hidden="true" tabindex="-1"></a>across units and grow with time since treatment, which is precisely the</span>
+<span id="cb56-221"><a href="#cb56-221" aria-hidden="true" tabindex="-1"></a>configuration that breaks plain TWFE.</span>
+<span id="cb56-222"><a href="#cb56-222" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-223"><a href="#cb56-223" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did8, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-224"><a href="#cb56-224" aria-hidden="true" tabindex="-1"></a><span class="co"># now we do staggered did.</span></span>
+<span id="cb56-225"><a href="#cb56-225" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(haven)</span>
+<span id="cb56-226"><a href="#cb56-226" aria-hidden="true" tabindex="-1"></a>did_data <span class="ot">&lt;-</span> <span class="fu">read_dta</span>(<span class="st">'data/did_staggered_6.dta'</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb56-227"><a href="#cb56-227" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">first_treat =</span> <span class="fu">case_when</span>(d4<span class="sc">==</span><span class="dv">1</span> <span class="sc">~</span> <span class="dv">2004</span>,</span>
+<span id="cb56-228"><a href="#cb56-228" aria-hidden="true" tabindex="-1"></a>                                  d5<span class="sc">==</span><span class="dv">1</span> <span class="sc">~</span> <span class="dv">2005</span>,</span>
+<span id="cb56-229"><a href="#cb56-229" aria-hidden="true" tabindex="-1"></a>                                  d6<span class="sc">==</span><span class="dv">1</span> <span class="sc">~</span> <span class="dv">2006</span>,</span>
+<span id="cb56-230"><a href="#cb56-230" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">.default =</span> <span class="dv">0</span>))</span>
+<span id="cb56-231"><a href="#cb56-231" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-232"><a href="#cb56-232" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(did_data <span class="sc">%&gt;%</span> <span class="fu">select</span>(id, year, y, x,d4, d5, d6, te4, te5, te6, first_treat ))</span>
+<span id="cb56-233"><a href="#cb56-233" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb56-234"><a href="#cb56-234" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-235"><a href="#cb56-235" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did19, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-236"><a href="#cb56-236" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(did_data<span class="sc">$</span>first_treat)</span>
+<span id="cb56-237"><a href="#cb56-237" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb56-238"><a href="#cb56-238" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-239"><a href="#cb56-239" aria-hidden="true" tabindex="-1"></a>The counts are observations, six per unit: 1,572 never-treated, 714 in the 2004</span>
+<span id="cb56-240"><a href="#cb56-240" aria-hidden="true" tabindex="-1"></a>cohort, 498 in 2005, 216 in 2006.</span>
+<span id="cb56-241"><a href="#cb56-241" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-242"><a href="#cb56-242" aria-hidden="true" tabindex="-1"></a>Because the true effects are in the data, we can compute the target before</span>
+<span id="cb56-243"><a href="#cb56-243" aria-hidden="true" tabindex="-1"></a>estimating it. Grouping the true effects by cohort and year gives the true ATT</span>
+<span id="cb56-244"><a href="#cb56-244" aria-hidden="true" tabindex="-1"></a>in each cohort-year cell.</span>
+<span id="cb56-245"><a href="#cb56-245" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-246"><a href="#cb56-246" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did9, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-247"><a href="#cb56-247" aria-hidden="true" tabindex="-1"></a>did_data <span class="ot">&lt;-</span> did_data <span class="sc">%&gt;%</span></span>
+<span id="cb56-248"><a href="#cb56-248" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">treated_cohort1 =</span>    <span class="fu">case_when</span>(d4 <span class="sc">&amp;</span> f04 <span class="sc">~</span> <span class="st">"d4f04"</span>,</span>
+<span id="cb56-249"><a href="#cb56-249" aria-hidden="true" tabindex="-1"></a>                              d4 <span class="sc">&amp;</span> f05 <span class="sc">~</span> <span class="st">"d4f05"</span>,</span>
+<span id="cb56-250"><a href="#cb56-250" aria-hidden="true" tabindex="-1"></a>                              d4 <span class="sc">&amp;</span> f06 <span class="sc">~</span> <span class="st">"d4f06"</span>),</span>
+<span id="cb56-251"><a href="#cb56-251" aria-hidden="true" tabindex="-1"></a>         <span class="at">treated_cohort2 =</span> <span class="fu">case_when</span> (</span>
+<span id="cb56-252"><a href="#cb56-252" aria-hidden="true" tabindex="-1"></a>                              d5 <span class="sc">&amp;</span> f05 <span class="sc">~</span> <span class="st">"d5f05"</span>,</span>
+<span id="cb56-253"><a href="#cb56-253" aria-hidden="true" tabindex="-1"></a>                              d5 <span class="sc">&amp;</span> f06 <span class="sc">~</span> <span class="st">"d5f06"</span>),</span>
+<span id="cb56-254"><a href="#cb56-254" aria-hidden="true" tabindex="-1"></a>         <span class="at">treated_cohort3=</span> <span class="fu">case_when</span>(</span>
+<span id="cb56-255"><a href="#cb56-255" aria-hidden="true" tabindex="-1"></a>                              d6 <span class="sc">&amp;</span> f06 <span class="sc">~</span> <span class="st">"d6f06"</span>))</span>
+<span id="cb56-256"><a href="#cb56-256" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-257"><a href="#cb56-257" aria-hidden="true" tabindex="-1"></a>  did_data <span class="sc">%&gt;%</span></span>
+<span id="cb56-258"><a href="#cb56-258" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(treated_cohort1) <span class="sc">%&gt;%</span></span>
+<span id="cb56-259"><a href="#cb56-259" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">mean4=</span><span class="fu">mean</span>(te4))</span>
+<span id="cb56-260"><a href="#cb56-260" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb56-261"><a href="#cb56-261" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-262"><a href="#cb56-262" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did10, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-263"><a href="#cb56-263" aria-hidden="true" tabindex="-1"></a>  did_data <span class="sc">%&gt;%</span></span>
+<span id="cb56-264"><a href="#cb56-264" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(treated_cohort2) <span class="sc">%&gt;%</span></span>
+<span id="cb56-265"><a href="#cb56-265" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">mean5=</span><span class="fu">mean</span>(te5))</span>
+<span id="cb56-266"><a href="#cb56-266" aria-hidden="true" tabindex="-1"></a>  did_data <span class="sc">%&gt;%</span></span>
+<span id="cb56-267"><a href="#cb56-267" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(treated_cohort3) <span class="sc">%&gt;%</span></span>
+<span id="cb56-268"><a href="#cb56-268" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">mean6=</span><span class="fu">mean</span>(te6))</span>
+<span id="cb56-269"><a href="#cb56-269" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb56-270"><a href="#cb56-270" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-271"><a href="#cb56-271" aria-hidden="true" tabindex="-1"></a>So the true cohort-year ATTs are: the 2004 cohort gains 3.76, 4.02 and 4.58 in</span>
+<span id="cb56-272"><a href="#cb56-272" aria-hidden="true" tabindex="-1"></a>2004, 2005 and 2006; the 2005 cohort gains 2.74 and 3.52 in 2005 and 2006; the</span>
+<span id="cb56-273"><a href="#cb56-273" aria-hidden="true" tabindex="-1"></a>2006 cohort gains 1.85 in 2006. (The <span class="in">`NA`</span> rows are the units outside that</span>
+<span id="cb56-274"><a href="#cb56-274" aria-hidden="true" tabindex="-1"></a>cohort, which are not part of its ATT.) Effects grow with time since treatment</span>
+<span id="cb56-275"><a href="#cb56-275" aria-hidden="true" tabindex="-1"></a>and shrink across later cohorts --- heterogeneity in both directions.</span>
+<span id="cb56-276"><a href="#cb56-276" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-277"><a href="#cb56-277" aria-hidden="true" tabindex="-1"></a>Averaging those cells over the 559 treated observations gives a true overall</span>
+<span id="cb56-278"><a href="#cb56-278" aria-hidden="true" tabindex="-1"></a>ATT of **3.677**. That is the number ETWFE has to reproduce.</span>
+<span id="cb56-279"><a href="#cb56-279" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-280"><a href="#cb56-280" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did11, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-281"><a href="#cb56-281" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(etwfe)</span>
+<span id="cb56-282"><a href="#cb56-282" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-283"><a href="#cb56-283" aria-hidden="true" tabindex="-1"></a><span class="co"># this replicates Jeff's results with pooled ols or xtreg, with covariate x.</span></span>
+<span id="cb56-284"><a href="#cb56-284" aria-hidden="true" tabindex="-1"></a>mod <span class="ot">=</span></span>
+<span id="cb56-285"><a href="#cb56-285" aria-hidden="true" tabindex="-1"></a>  <span class="fu">etwfe</span>(</span>
+<span id="cb56-286"><a href="#cb56-286" aria-hidden="true" tabindex="-1"></a>    <span class="at">fml  =</span> y <span class="sc">~</span> x, <span class="co"># outcome ~ controls</span></span>
+<span id="cb56-287"><a href="#cb56-287" aria-hidden="true" tabindex="-1"></a>    <span class="at">tvar =</span> year,        <span class="co"># time variable</span></span>
+<span id="cb56-288"><a href="#cb56-288" aria-hidden="true" tabindex="-1"></a>    <span class="at">gvar =</span> first_treat, <span class="co"># group variable</span></span>
+<span id="cb56-289"><a href="#cb56-289" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> did_data,       <span class="co"># dataset</span></span>
+<span id="cb56-290"><a href="#cb56-290" aria-hidden="true" tabindex="-1"></a>    <span class="at">vcov =</span> <span class="sc">~</span>id</span>
+<span id="cb56-291"><a href="#cb56-291" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb56-292"><a href="#cb56-292" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-293"><a href="#cb56-293" aria-hidden="true" tabindex="-1"></a>mod</span>
+<span id="cb56-294"><a href="#cb56-294" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb56-295"><a href="#cb56-295" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-296"><a href="#cb56-296" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did12, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-297"><a href="#cb56-297" aria-hidden="true" tabindex="-1"></a><span class="fu">emfx</span>(mod)</span>
+<span id="cb56-298"><a href="#cb56-298" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb56-299"><a href="#cb56-299" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-300"><a href="#cb56-300" aria-hidden="true" tabindex="-1"></a>ETWFE gives 3.67 with a standard error of 0.172 and a 95% interval of</span>
+<span id="cb56-301"><a href="#cb56-301" aria-hidden="true" tabindex="-1"></a>$<span class="co">[</span><span class="ot">3.33, 4.01</span><span class="co">]</span>$, against a true 3.677. It recovers the ATT to three decimals.</span>
+<span id="cb56-302"><a href="#cb56-302" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-303"><a href="#cb56-303" aria-hidden="true" tabindex="-1"></a>The same holds for the disaggregations. By time since treatment:</span>
+<span id="cb56-304"><a href="#cb56-304" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-305"><a href="#cb56-305" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did20, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-306"><a href="#cb56-306" aria-hidden="true" tabindex="-1"></a>mod_es <span class="ot">=</span> <span class="fu">emfx</span>(mod, <span class="at">type =</span> <span class="st">"event"</span>)</span>
+<span id="cb56-307"><a href="#cb56-307" aria-hidden="true" tabindex="-1"></a>mod_es</span>
+<span id="cb56-308"><a href="#cb56-308" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb56-309"><a href="#cb56-309" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-310"><a href="#cb56-310" aria-hidden="true" tabindex="-1"></a>Estimated 3.11, 4.02 and 4.21 at event times 0, 1 and 2, against true values of</span>
+<span id="cb56-311"><a href="#cb56-311" aria-hidden="true" tabindex="-1"></a>3.11, 3.81 and 4.58. Every interval covers its truth, and the estimates</span>
+<span id="cb56-312"><a href="#cb56-312" aria-hidden="true" tabindex="-1"></a>reproduce the growth in the effect with exposure.</span>
+<span id="cb56-313"><a href="#cb56-313" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-314"><a href="#cb56-314" aria-hidden="true" tabindex="-1"></a>And by calendar year:</span>
+<span id="cb56-315"><a href="#cb56-315" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-316"><a href="#cb56-316" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did21, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-317"><a href="#cb56-317" aria-hidden="true" tabindex="-1"></a>mod_es2 <span class="ot">=</span> <span class="fu">emfx</span>(mod, <span class="at">type =</span> <span class="st">"calendar"</span>)</span>
+<span id="cb56-318"><a href="#cb56-318" aria-hidden="true" tabindex="-1"></a>mod_es2</span>
+<span id="cb56-319"><a href="#cb56-319" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb56-320"><a href="#cb56-320" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-321"><a href="#cb56-321" aria-hidden="true" tabindex="-1"></a>Estimated 3.51, 3.73 and 3.70 in 2004, 2005 and 2006, against true values of</span>
+<span id="cb56-322"><a href="#cb56-322" aria-hidden="true" tabindex="-1"></a>3.76, 3.49 and 3.80. Again all three intervals cover.</span>
+<span id="cb56-323"><a href="#cb56-323" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-324"><a href="#cb56-324" aria-hidden="true" tabindex="-1"></a>Note that the calendar profile is nearly flat while the event-time profile</span>
+<span id="cb56-325"><a href="#cb56-325" aria-hidden="true" tabindex="-1"></a>rises. There is no contradiction: later calendar years mix an older cohort with</span>
+<span id="cb56-326"><a href="#cb56-326" aria-hidden="true" tabindex="-1"></a>large accumulated effects and a newly treated cohort with small ones, and the</span>
+<span id="cb56-327"><a href="#cb56-327" aria-hidden="true" tabindex="-1"></a>two movements offset. This is why the aggregation has to be chosen to match the</span>
+<span id="cb56-328"><a href="#cb56-328" aria-hidden="true" tabindex="-1"></a>question being asked.</span>
+<span id="cb56-329"><a href="#cb56-329" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-330"><a href="#cb56-330" aria-hidden="true" tabindex="-1"></a><span class="fu">## Nonlinear ETWFE: Count and Binary Outcomes</span></span>
+<span id="cb56-331"><a href="#cb56-331" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-332"><a href="#cb56-332" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; **Related reading**: The theory behind nonlinear ETWFE --- Wooldridge's</span></span>
+<span id="cb56-333"><a href="#cb56-333" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; conditional parallel-trends assumption on the linear index, the incidental</span></span>
+<span id="cb56-334"><a href="#cb56-334" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; parameters argument for cohort rather than unit intercepts, and the average</span></span>
+<span id="cb56-335"><a href="#cb56-335" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; partial effects that follow --- is developed at length in</span></span>
+<span id="cb56-336"><a href="#cb56-336" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; </span><span class="co">[</span><span class="ot">Extended two-way fixed effects</span><span class="co">](https://xiangao.github.io/blog_book/extended-twfe.html)</span></span>
+<span id="cb56-337"><a href="#cb56-337" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; in *Topics on Econometrics and Causal Inference*, with</span></span>
+<span id="cb56-338"><a href="#cb56-338" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; </span><span class="co">[</span><span class="ot">count data</span><span class="co">](https://xiangao.github.io/blog_book/count-data.html)</span><span class="at"> and</span></span>
+<span id="cb56-339"><a href="#cb56-339" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; </span><span class="co">[</span><span class="ot">Poisson with exposure</span><span class="co">](https://xiangao.github.io/blog_book/poisson-exposure.html)</span></span>
+<span id="cb56-340"><a href="#cb56-340" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; covering the count case in more detail.</span></span>
+<span id="cb56-341"><a href="#cb56-341" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-342"><a href="#cb56-342" aria-hidden="true" tabindex="-1"></a>ETWFE is not limited to linear (continuous) outcomes. When the dependent variable is a count or a binary indicator, linear TWFE can give nonsensical results — negative predicted probabilities, additive effects that ignore the bounded or non-negative nature of $Y$. The <span class="in">`etwfe`</span> package supports nonlinear families via the <span class="in">`family`</span> argument, which passes to <span class="in">`fixest::feglm()`</span>.</span>
+<span id="cb56-343"><a href="#cb56-343" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-344"><a href="#cb56-344" aria-hidden="true" tabindex="-1"></a>The key identifying assumption shifts slightly. Instead of parallel trends on $E<span class="co">[</span><span class="ot">Y_{it}(\infty)</span><span class="co">]</span>$, we assume parallel trends on the **linear index** — that is, on $\log E<span class="co">[</span><span class="ot">Y_{it}(\infty)</span><span class="co">]</span>$ for Poisson, or on $\text{logit}\, E<span class="co">[</span><span class="ot">Y_{it}(\infty)</span><span class="co">]</span>$ for logit. This is Wooldridge's (2023) Conditional Parallel Trends assumption stated on $G^{-1}(E<span class="co">[</span><span class="ot">Y</span><span class="co">]</span>)$. When the true treatment effect is multiplicative (e.g., a policy raises counts by 50% regardless of baseline), this assumption is more natural than additive PT on $Y$ itself.</span>
+<span id="cb56-345"><a href="#cb56-345" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-346"><a href="#cb56-346" aria-hidden="true" tabindex="-1"></a>One implementation detail matters: the nonlinear ETWFE specification uses **cohort fixed effects** (one intercept per treatment cohort) plus year fixed effects — not individual unit fixed effects. The <span class="in">`etwfe`</span> package handles this automatically. In the linear case the two are numerically equivalent (Wooldridge 2021), but in nonlinear models unit fixed effects raise the incidental-parameters problem and make average partial effects uncomputable — the unit intercepts cannot be averaged out of the nonlinear link. Wooldridge (2023) instead uses cohort intercepts (a Mundlak device), which is what <span class="in">`etwfe`</span> implements.</span>
 <span id="cb56-347"><a href="#cb56-347" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-348"><a href="#cb56-348" aria-hidden="true" tabindex="-1"></a>The treatment effect is multiplicative and homogeneous on the log scale: every</span>
-<span id="cb56-349"><a href="#cb56-349" aria-hidden="true" tabindex="-1"></a>treated unit's expected count rises by a factor of $\exp(0.4)$, that is by</span>
-<span id="cb56-350"><a href="#cb56-350" aria-hidden="true" tabindex="-1"></a>$\exp(0.4) - 1 = 0.492$, or 49%. Parallel trends holds on the log scale by</span>
-<span id="cb56-351"><a href="#cb56-351" aria-hidden="true" tabindex="-1"></a>construction, and fails on the level scale, since a constant proportional</span>
-<span id="cb56-352"><a href="#cb56-352" aria-hidden="true" tabindex="-1"></a>effect is a larger absolute effect for units with higher baselines.</span>
-<span id="cb56-353"><a href="#cb56-353" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-354"><a href="#cb56-354" aria-hidden="true" tabindex="-1"></a>On the count scale the ATT is not 0.492. It is</span>
-<span id="cb56-355"><a href="#cb56-355" aria-hidden="true" tabindex="-1"></a>$E<span class="co">[</span><span class="ot">\mu_{it}(0) \mid \text{treated}</span><span class="co">]</span> \times (\exp(0.4)-1)$, and the mean</span>
-<span id="cb56-356"><a href="#cb56-356" aria-hidden="true" tabindex="-1"></a>untreated count among treated observations is 7.649, so the true ATT is</span>
-<span id="cb56-357"><a href="#cb56-357" aria-hidden="true" tabindex="-1"></a>$7.649 \times 0.4918 = 3.762$ counts.</span>
-<span id="cb56-358"><a href="#cb56-358" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-359"><a href="#cb56-359" aria-hidden="true" tabindex="-1"></a>The table below reports mean counts by cohort and treatment status.</span>
-<span id="cb56-360"><a href="#cb56-360" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-361"><a href="#cb56-361" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did_pois0, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-362"><a href="#cb56-362" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb56-363"><a href="#cb56-363" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(etwfe)</span>
-<span id="cb56-364"><a href="#cb56-364" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-365"><a href="#cb56-365" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
-<span id="cb56-366"><a href="#cb56-366" aria-hidden="true" tabindex="-1"></a>N <span class="ot">&lt;-</span> <span class="dv">400</span>; Tmax <span class="ot">&lt;-</span> <span class="dv">6</span></span>
+<span id="cb56-348"><a href="#cb56-348" aria-hidden="true" tabindex="-1"></a><span class="fu">### Simulated example: staggered count data</span></span>
+<span id="cb56-349"><a href="#cb56-349" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-350"><a href="#cb56-350" aria-hidden="true" tabindex="-1"></a>We simulate $N = 400$ units over $T = 6$ periods, 2,400 observations. Units are</span>
+<span id="cb56-351"><a href="#cb56-351" aria-hidden="true" tabindex="-1"></a>split into four groups of 100 by id: the first is treated from period 3, the</span>
+<span id="cb56-352"><a href="#cb56-352" aria-hidden="true" tabindex="-1"></a>second from period 4, the third from period 5, and the fourth never. Each unit</span>
+<span id="cb56-353"><a href="#cb56-353" aria-hidden="true" tabindex="-1"></a>draws a fixed effect $\alpha_i \sim N(0, 0.3^2)$. The log mean is</span>
+<span id="cb56-354"><a href="#cb56-354" aria-hidden="true" tabindex="-1"></a>$\log \mu_{it} = 1 + 0.2t + \alpha_i + 0.4 D_{it}$, and the outcome is</span>
+<span id="cb56-355"><a href="#cb56-355" aria-hidden="true" tabindex="-1"></a>$Y_{it} \sim \text{Poisson}(\mu_{it})$.</span>
+<span id="cb56-356"><a href="#cb56-356" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-357"><a href="#cb56-357" aria-hidden="true" tabindex="-1"></a>The treatment effect is multiplicative and homogeneous on the log scale: every</span>
+<span id="cb56-358"><a href="#cb56-358" aria-hidden="true" tabindex="-1"></a>treated unit's expected count rises by a factor of $\exp(0.4)$, that is by</span>
+<span id="cb56-359"><a href="#cb56-359" aria-hidden="true" tabindex="-1"></a>$\exp(0.4) - 1 = 0.492$, or 49%. Parallel trends holds on the log scale by</span>
+<span id="cb56-360"><a href="#cb56-360" aria-hidden="true" tabindex="-1"></a>construction, and fails on the level scale, since a constant proportional</span>
+<span id="cb56-361"><a href="#cb56-361" aria-hidden="true" tabindex="-1"></a>effect is a larger absolute effect for units with higher baselines.</span>
+<span id="cb56-362"><a href="#cb56-362" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-363"><a href="#cb56-363" aria-hidden="true" tabindex="-1"></a>On the count scale the ATT is not 0.492. It is</span>
+<span id="cb56-364"><a href="#cb56-364" aria-hidden="true" tabindex="-1"></a>$E<span class="co">[</span><span class="ot">\mu_{it}(0) \mid \text{treated}</span><span class="co">]</span> \times (\exp(0.4)-1)$, and the mean</span>
+<span id="cb56-365"><a href="#cb56-365" aria-hidden="true" tabindex="-1"></a>untreated count among treated observations is 7.649, so the true ATT is</span>
+<span id="cb56-366"><a href="#cb56-366" aria-hidden="true" tabindex="-1"></a>$7.649 \times 0.4918 = 3.762$ counts.</span>
 <span id="cb56-367"><a href="#cb56-367" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-368"><a href="#cb56-368" aria-hidden="true" tabindex="-1"></a>unit_fe_vals <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(N) <span class="sc">*</span> <span class="fl">0.3</span></span>
+<span id="cb56-368"><a href="#cb56-368" aria-hidden="true" tabindex="-1"></a>The table below reports mean counts by cohort and treatment status.</span>
 <span id="cb56-369"><a href="#cb56-369" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-370"><a href="#cb56-370" aria-hidden="true" tabindex="-1"></a>df_count <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(<span class="at">id =</span> <span class="dv">1</span><span class="sc">:</span>N, <span class="at">year =</span> <span class="dv">1</span><span class="sc">:</span>Tmax) <span class="sc">%&gt;%</span></span>
-<span id="cb56-371"><a href="#cb56-371" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb56-372"><a href="#cb56-372" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(id, year) <span class="sc">%&gt;%</span></span>
-<span id="cb56-373"><a href="#cb56-373" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb56-374"><a href="#cb56-374" aria-hidden="true" tabindex="-1"></a>    <span class="at">cohort_grp  =</span> ((id <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">%/%</span> <span class="dv">100</span>) <span class="sc">+</span> <span class="dv">1</span>,</span>
-<span id="cb56-375"><a href="#cb56-375" aria-hidden="true" tabindex="-1"></a>    <span class="at">first_treat =</span> <span class="fu">c</span>(<span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">0</span>)[cohort_grp],   <span class="co"># 0 = never treated</span></span>
-<span id="cb56-376"><a href="#cb56-376" aria-hidden="true" tabindex="-1"></a>    <span class="at">treated     =</span> (first_treat <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">&amp;</span> (year <span class="sc">&gt;=</span> first_treat),</span>
-<span id="cb56-377"><a href="#cb56-377" aria-hidden="true" tabindex="-1"></a>    <span class="at">unit_fe     =</span> unit_fe_vals[id],</span>
-<span id="cb56-378"><a href="#cb56-378" aria-hidden="true" tabindex="-1"></a>    <span class="at">log_mu      =</span> <span class="dv">1</span> <span class="sc">+</span> <span class="fl">0.2</span> <span class="sc">*</span> year <span class="sc">+</span> unit_fe <span class="sc">+</span> <span class="fl">0.4</span> <span class="sc">*</span> treated,</span>
-<span id="cb56-379"><a href="#cb56-379" aria-hidden="true" tabindex="-1"></a>    <span class="at">count       =</span> <span class="fu">rpois</span>(<span class="fu">n</span>(), <span class="fu">exp</span>(log_mu))</span>
-<span id="cb56-380"><a href="#cb56-380" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb56-381"><a href="#cb56-381" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-382"><a href="#cb56-382" aria-hidden="true" tabindex="-1"></a>df_count <span class="sc">%&gt;%</span></span>
-<span id="cb56-383"><a href="#cb56-383" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(first_treat, treated) <span class="sc">%&gt;%</span></span>
-<span id="cb56-384"><a href="#cb56-384" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mean_count =</span> <span class="fu">mean</span>(count), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span>
-<span id="cb56-385"><a href="#cb56-385" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-386"><a href="#cb56-386" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-387"><a href="#cb56-387" aria-hidden="true" tabindex="-1"></a>The never-treated group averages 6.15 counts. Treated cohorts average 3.72,</span>
-<span id="cb56-388"><a href="#cb56-388" aria-hidden="true" tabindex="-1"></a>4.29 and 4.80 before treatment and 10.7, 11.5 and 13.2 after. The pre-treatment</span>
-<span id="cb56-389"><a href="#cb56-389" aria-hidden="true" tabindex="-1"></a>means look low only because they are drawn from earlier periods, and the time</span>
-<span id="cb56-390"><a href="#cb56-390" aria-hidden="true" tabindex="-1"></a>trend adds 0.2 to the log mean each period. This is exactly the comparison that</span>
-<span id="cb56-391"><a href="#cb56-391" aria-hidden="true" tabindex="-1"></a>a raw before-after difference would get wrong.</span>
-<span id="cb56-392"><a href="#cb56-392" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-393"><a href="#cb56-393" aria-hidden="true" tabindex="-1"></a><span class="fu">### Poisson ETWFE</span></span>
-<span id="cb56-394"><a href="#cb56-394" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-395"><a href="#cb56-395" aria-hidden="true" tabindex="-1"></a>Pass <span class="in">`family = "poisson"`</span> to <span class="in">`etwfe()`</span>. Everything else — cohort dummies, <span class="in">`emfx()`</span>, event study — works identically to the linear case. We use <span class="in">`cgroup = "never"`</span> so that pre-treatment estimates are not mechanistically forced to zero.</span>
-<span id="cb56-396"><a href="#cb56-396" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-397"><a href="#cb56-397" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did_pois1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-398"><a href="#cb56-398" aria-hidden="true" tabindex="-1"></a>mod_pois <span class="ot">&lt;-</span> <span class="fu">etwfe</span>(</span>
-<span id="cb56-399"><a href="#cb56-399" aria-hidden="true" tabindex="-1"></a>  <span class="at">fml         =</span> count <span class="sc">~</span> <span class="dv">1</span>,</span>
-<span id="cb56-400"><a href="#cb56-400" aria-hidden="true" tabindex="-1"></a>  <span class="at">tvar        =</span> year,</span>
-<span id="cb56-401"><a href="#cb56-401" aria-hidden="true" tabindex="-1"></a>  <span class="at">gvar        =</span> first_treat,</span>
-<span id="cb56-402"><a href="#cb56-402" aria-hidden="true" tabindex="-1"></a>  <span class="at">data        =</span> df_count,</span>
-<span id="cb56-403"><a href="#cb56-403" aria-hidden="true" tabindex="-1"></a>  <span class="at">family      =</span> <span class="st">"poisson"</span>,</span>
-<span id="cb56-404"><a href="#cb56-404" aria-hidden="true" tabindex="-1"></a>  <span class="at">cgroup      =</span> <span class="st">"never"</span>,</span>
-<span id="cb56-405"><a href="#cb56-405" aria-hidden="true" tabindex="-1"></a>  <span class="at">vcov        =</span> <span class="sc">~</span>id</span>
-<span id="cb56-406"><a href="#cb56-406" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb56-407"><a href="#cb56-407" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-408"><a href="#cb56-408" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-409"><a href="#cb56-409" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did_pois2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-410"><a href="#cb56-410" aria-hidden="true" tabindex="-1"></a><span class="fu">emfx</span>(mod_pois)</span>
-<span id="cb56-411"><a href="#cb56-411" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-412"><a href="#cb56-412" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-413"><a href="#cb56-413" aria-hidden="true" tabindex="-1"></a>The estimate is 3.99 counts with a standard error of 0.33 and a 95% interval of</span>
-<span id="cb56-414"><a href="#cb56-414" aria-hidden="true" tabindex="-1"></a>$<span class="co">[</span><span class="ot">3.34, 4.64</span><span class="co">]</span>$, against the true 3.762 derived above. The interval covers it.</span>
-<span id="cb56-415"><a href="#cb56-415" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-416"><a href="#cb56-416" aria-hidden="true" tabindex="-1"></a><span class="in">`emfx()`</span> returns average marginal effects — the average difference $E<span class="co">[</span><span class="ot">Y(1)</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y(0)</span><span class="co">]</span>$ in **count units** across treated observations. This is the ATT on the count scale. The underlying model imposes PT on the log scale, so each cohort-time treatment coefficient in the raw model can be exponentiated to get the incidence rate ratio for that cell (here they share a common value because the simulated effect is homogeneous).</span>
+<span id="cb56-370"><a href="#cb56-370" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did_pois0, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-371"><a href="#cb56-371" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb56-372"><a href="#cb56-372" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(etwfe)</span>
+<span id="cb56-373"><a href="#cb56-373" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-374"><a href="#cb56-374" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
+<span id="cb56-375"><a href="#cb56-375" aria-hidden="true" tabindex="-1"></a>N <span class="ot">&lt;-</span> <span class="dv">400</span>; Tmax <span class="ot">&lt;-</span> <span class="dv">6</span></span>
+<span id="cb56-376"><a href="#cb56-376" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-377"><a href="#cb56-377" aria-hidden="true" tabindex="-1"></a>unit_fe_vals <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(N) <span class="sc">*</span> <span class="fl">0.3</span></span>
+<span id="cb56-378"><a href="#cb56-378" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-379"><a href="#cb56-379" aria-hidden="true" tabindex="-1"></a>df_count <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(<span class="at">id =</span> <span class="dv">1</span><span class="sc">:</span>N, <span class="at">year =</span> <span class="dv">1</span><span class="sc">:</span>Tmax) <span class="sc">%&gt;%</span></span>
+<span id="cb56-380"><a href="#cb56-380" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb56-381"><a href="#cb56-381" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(id, year) <span class="sc">%&gt;%</span></span>
+<span id="cb56-382"><a href="#cb56-382" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb56-383"><a href="#cb56-383" aria-hidden="true" tabindex="-1"></a>    <span class="at">cohort_grp  =</span> ((id <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">%/%</span> <span class="dv">100</span>) <span class="sc">+</span> <span class="dv">1</span>,</span>
+<span id="cb56-384"><a href="#cb56-384" aria-hidden="true" tabindex="-1"></a>    <span class="at">first_treat =</span> <span class="fu">c</span>(<span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">0</span>)[cohort_grp],   <span class="co"># 0 = never treated</span></span>
+<span id="cb56-385"><a href="#cb56-385" aria-hidden="true" tabindex="-1"></a>    <span class="at">treated     =</span> (first_treat <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">&amp;</span> (year <span class="sc">&gt;=</span> first_treat),</span>
+<span id="cb56-386"><a href="#cb56-386" aria-hidden="true" tabindex="-1"></a>    <span class="at">unit_fe     =</span> unit_fe_vals[id],</span>
+<span id="cb56-387"><a href="#cb56-387" aria-hidden="true" tabindex="-1"></a>    <span class="at">log_mu      =</span> <span class="dv">1</span> <span class="sc">+</span> <span class="fl">0.2</span> <span class="sc">*</span> year <span class="sc">+</span> unit_fe <span class="sc">+</span> <span class="fl">0.4</span> <span class="sc">*</span> treated,</span>
+<span id="cb56-388"><a href="#cb56-388" aria-hidden="true" tabindex="-1"></a>    <span class="at">count       =</span> <span class="fu">rpois</span>(<span class="fu">n</span>(), <span class="fu">exp</span>(log_mu))</span>
+<span id="cb56-389"><a href="#cb56-389" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb56-390"><a href="#cb56-390" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-391"><a href="#cb56-391" aria-hidden="true" tabindex="-1"></a>df_count <span class="sc">%&gt;%</span></span>
+<span id="cb56-392"><a href="#cb56-392" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(first_treat, treated) <span class="sc">%&gt;%</span></span>
+<span id="cb56-393"><a href="#cb56-393" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">mean_count =</span> <span class="fu">mean</span>(count), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span>
+<span id="cb56-394"><a href="#cb56-394" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb56-395"><a href="#cb56-395" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-396"><a href="#cb56-396" aria-hidden="true" tabindex="-1"></a>The never-treated group averages 6.15 counts. Treated cohorts average 3.72,</span>
+<span id="cb56-397"><a href="#cb56-397" aria-hidden="true" tabindex="-1"></a>4.29 and 4.80 before treatment and 10.7, 11.5 and 13.2 after. The pre-treatment</span>
+<span id="cb56-398"><a href="#cb56-398" aria-hidden="true" tabindex="-1"></a>means look low only because they are drawn from earlier periods, and the time</span>
+<span id="cb56-399"><a href="#cb56-399" aria-hidden="true" tabindex="-1"></a>trend adds 0.2 to the log mean each period. This is exactly the comparison that</span>
+<span id="cb56-400"><a href="#cb56-400" aria-hidden="true" tabindex="-1"></a>a raw before-after difference would get wrong.</span>
+<span id="cb56-401"><a href="#cb56-401" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-402"><a href="#cb56-402" aria-hidden="true" tabindex="-1"></a><span class="fu">### Poisson ETWFE</span></span>
+<span id="cb56-403"><a href="#cb56-403" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-404"><a href="#cb56-404" aria-hidden="true" tabindex="-1"></a>Pass <span class="in">`family = "poisson"`</span> to <span class="in">`etwfe()`</span>. Everything else — cohort dummies, <span class="in">`emfx()`</span>, event study — works identically to the linear case. We use <span class="in">`cgroup = "never"`</span> so that pre-treatment estimates are not mechanistically forced to zero.</span>
+<span id="cb56-405"><a href="#cb56-405" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-406"><a href="#cb56-406" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did_pois1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-407"><a href="#cb56-407" aria-hidden="true" tabindex="-1"></a>mod_pois <span class="ot">&lt;-</span> <span class="fu">etwfe</span>(</span>
+<span id="cb56-408"><a href="#cb56-408" aria-hidden="true" tabindex="-1"></a>  <span class="at">fml         =</span> count <span class="sc">~</span> <span class="dv">1</span>,</span>
+<span id="cb56-409"><a href="#cb56-409" aria-hidden="true" tabindex="-1"></a>  <span class="at">tvar        =</span> year,</span>
+<span id="cb56-410"><a href="#cb56-410" aria-hidden="true" tabindex="-1"></a>  <span class="at">gvar        =</span> first_treat,</span>
+<span id="cb56-411"><a href="#cb56-411" aria-hidden="true" tabindex="-1"></a>  <span class="at">data        =</span> df_count,</span>
+<span id="cb56-412"><a href="#cb56-412" aria-hidden="true" tabindex="-1"></a>  <span class="at">family      =</span> <span class="st">"poisson"</span>,</span>
+<span id="cb56-413"><a href="#cb56-413" aria-hidden="true" tabindex="-1"></a>  <span class="at">cgroup      =</span> <span class="st">"never"</span>,</span>
+<span id="cb56-414"><a href="#cb56-414" aria-hidden="true" tabindex="-1"></a>  <span class="at">vcov        =</span> <span class="sc">~</span>id</span>
+<span id="cb56-415"><a href="#cb56-415" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb56-416"><a href="#cb56-416" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb56-417"><a href="#cb56-417" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-418"><a href="#cb56-418" aria-hidden="true" tabindex="-1"></a><span class="fu">### Event study</span></span>
-<span id="cb56-419"><a href="#cb56-419" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-420"><a href="#cb56-420" aria-hidden="true" tabindex="-1"></a>Because we passed <span class="in">`cgroup = "never"`</span>, the pre-treatment estimates are free</span>
-<span id="cb56-421"><a href="#cb56-421" aria-hidden="true" tabindex="-1"></a>parameters rather than zeros by construction, so the pre-period is an actual</span>
-<span id="cb56-422"><a href="#cb56-422" aria-hidden="true" tabindex="-1"></a>test here. On the count scale the post-treatment effect should also grow with</span>
-<span id="cb56-423"><a href="#cb56-423" aria-hidden="true" tabindex="-1"></a>event time even though the log-scale effect is constant, because the baseline</span>
-<span id="cb56-424"><a href="#cb56-424" aria-hidden="true" tabindex="-1"></a>count grows with the time trend: the true values are 3.13, 3.82, 4.17 and 4.69</span>
-<span id="cb56-425"><a href="#cb56-425" aria-hidden="true" tabindex="-1"></a>at event times 0 through 3.</span>
+<span id="cb56-418"><a href="#cb56-418" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did_pois2, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-419"><a href="#cb56-419" aria-hidden="true" tabindex="-1"></a><span class="fu">emfx</span>(mod_pois)</span>
+<span id="cb56-420"><a href="#cb56-420" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb56-421"><a href="#cb56-421" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-422"><a href="#cb56-422" aria-hidden="true" tabindex="-1"></a>The estimate is 3.99 counts with a standard error of 0.33 and a 95% interval of</span>
+<span id="cb56-423"><a href="#cb56-423" aria-hidden="true" tabindex="-1"></a>$<span class="co">[</span><span class="ot">3.34, 4.64</span><span class="co">]</span>$, against the true 3.762 derived above. The interval covers it.</span>
+<span id="cb56-424"><a href="#cb56-424" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-425"><a href="#cb56-425" aria-hidden="true" tabindex="-1"></a><span class="in">`emfx()`</span> returns average marginal effects — the average difference $E<span class="co">[</span><span class="ot">Y(1)</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">Y(0)</span><span class="co">]</span>$ in **count units** across treated observations. This is the ATT on the count scale. The underlying model imposes PT on the log scale, so each cohort-time treatment coefficient in the raw model can be exponentiated to get the incidence rate ratio for that cell (here they share a common value because the simulated effect is homogeneous).</span>
 <span id="cb56-426"><a href="#cb56-426" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-427"><a href="#cb56-427" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did_pois4, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-428"><a href="#cb56-428" aria-hidden="true" tabindex="-1"></a>mod_pois_es <span class="ot">&lt;-</span> <span class="fu">emfx</span>(mod_pois, <span class="at">type =</span> <span class="st">"event"</span>, <span class="at">post_only =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb56-429"><a href="#cb56-429" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-430"><a href="#cb56-430" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(mod_pois_es, <span class="fu">aes</span>(<span class="at">x =</span> event, <span class="at">y =</span> estimate, <span class="at">ymin =</span> conf.low, <span class="at">ymax =</span> conf.high)) <span class="sc">+</span></span>
-<span id="cb56-431"><a href="#cb56-431" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>) <span class="sc">+</span></span>
-<span id="cb56-432"><a href="#cb56-432" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="sc">-</span><span class="dv">1</span>, <span class="at">lty =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
-<span id="cb56-433"><a href="#cb56-433" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_pointrange</span>(<span class="at">col =</span> <span class="st">"darkcyan"</span>) <span class="sc">+</span></span>
-<span id="cb56-434"><a href="#cb56-434" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb56-435"><a href="#cb56-435" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Years post treatment"</span>,</span>
-<span id="cb56-436"><a href="#cb56-436" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"ATT (count units)"</span>,</span>
-<span id="cb56-437"><a href="#cb56-437" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Nonlinear ETWFE event study (Poisson)"</span></span>
-<span id="cb56-438"><a href="#cb56-438" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb56-439"><a href="#cb56-439" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-440"><a href="#cb56-440" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-441"><a href="#cb56-441" aria-hidden="true" tabindex="-1"></a>Pre-treatment estimates are close to zero, confirming parallel trends on the log scale holds in the simulation. The post-treatment points rise with event time, which is the count-scale consequence of a constant log-scale effect applied to a growing baseline, not evidence of a growing treatment effect.</span>
-<span id="cb56-442"><a href="#cb56-442" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-443"><a href="#cb56-443" aria-hidden="true" tabindex="-1"></a><span class="fu">### Comparison: linear ETWFE on log(count + 1)</span></span>
-<span id="cb56-444"><a href="#cb56-444" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-445"><a href="#cb56-445" aria-hidden="true" tabindex="-1"></a>A common alternative is to log-transform the count and run linear ETWFE. This is biased when zeros are present (the $+1$ shift distorts the linear index) and misinterprets the scale of the effect. For comparison:</span>
-<span id="cb56-446"><a href="#cb56-446" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-447"><a href="#cb56-447" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did_pois5, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-448"><a href="#cb56-448" aria-hidden="true" tabindex="-1"></a>df_count <span class="ot">&lt;-</span> df_count <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">log_count =</span> <span class="fu">log</span>(count <span class="sc">+</span> <span class="dv">1</span>))</span>
+<span id="cb56-427"><a href="#cb56-427" aria-hidden="true" tabindex="-1"></a><span class="fu">### Event study</span></span>
+<span id="cb56-428"><a href="#cb56-428" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-429"><a href="#cb56-429" aria-hidden="true" tabindex="-1"></a>Because we passed <span class="in">`cgroup = "never"`</span>, the pre-treatment estimates are free</span>
+<span id="cb56-430"><a href="#cb56-430" aria-hidden="true" tabindex="-1"></a>parameters rather than zeros by construction, so the pre-period is an actual</span>
+<span id="cb56-431"><a href="#cb56-431" aria-hidden="true" tabindex="-1"></a>test here. On the count scale the post-treatment effect should also grow with</span>
+<span id="cb56-432"><a href="#cb56-432" aria-hidden="true" tabindex="-1"></a>event time even though the log-scale effect is constant, because the baseline</span>
+<span id="cb56-433"><a href="#cb56-433" aria-hidden="true" tabindex="-1"></a>count grows with the time trend: the true values are 3.13, 3.82, 4.17 and 4.69</span>
+<span id="cb56-434"><a href="#cb56-434" aria-hidden="true" tabindex="-1"></a>at event times 0 through 3.</span>
+<span id="cb56-435"><a href="#cb56-435" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-436"><a href="#cb56-436" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did_pois4, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-437"><a href="#cb56-437" aria-hidden="true" tabindex="-1"></a>mod_pois_es <span class="ot">&lt;-</span> <span class="fu">emfx</span>(mod_pois, <span class="at">type =</span> <span class="st">"event"</span>, <span class="at">post_only =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb56-438"><a href="#cb56-438" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-439"><a href="#cb56-439" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(mod_pois_es, <span class="fu">aes</span>(<span class="at">x =</span> event, <span class="at">y =</span> estimate, <span class="at">ymin =</span> conf.low, <span class="at">ymax =</span> conf.high)) <span class="sc">+</span></span>
+<span id="cb56-440"><a href="#cb56-440" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>) <span class="sc">+</span></span>
+<span id="cb56-441"><a href="#cb56-441" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="sc">-</span><span class="dv">1</span>, <span class="at">lty =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb56-442"><a href="#cb56-442" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_pointrange</span>(<span class="at">col =</span> <span class="st">"darkcyan"</span>) <span class="sc">+</span></span>
+<span id="cb56-443"><a href="#cb56-443" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb56-444"><a href="#cb56-444" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Years post treatment"</span>,</span>
+<span id="cb56-445"><a href="#cb56-445" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"ATT (count units)"</span>,</span>
+<span id="cb56-446"><a href="#cb56-446" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Nonlinear ETWFE event study (Poisson)"</span></span>
+<span id="cb56-447"><a href="#cb56-447" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb56-448"><a href="#cb56-448" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb56-449"><a href="#cb56-449" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-450"><a href="#cb56-450" aria-hidden="true" tabindex="-1"></a>mod_lin <span class="ot">&lt;-</span> <span class="fu">etwfe</span>(</span>
-<span id="cb56-451"><a href="#cb56-451" aria-hidden="true" tabindex="-1"></a>  <span class="at">fml  =</span> log_count <span class="sc">~</span> <span class="dv">1</span>,</span>
-<span id="cb56-452"><a href="#cb56-452" aria-hidden="true" tabindex="-1"></a>  <span class="at">tvar =</span> year,</span>
-<span id="cb56-453"><a href="#cb56-453" aria-hidden="true" tabindex="-1"></a>  <span class="at">gvar =</span> first_treat,</span>
-<span id="cb56-454"><a href="#cb56-454" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> df_count,</span>
-<span id="cb56-455"><a href="#cb56-455" aria-hidden="true" tabindex="-1"></a>  <span class="at">vcov =</span> <span class="sc">~</span>id</span>
-<span id="cb56-456"><a href="#cb56-456" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb56-457"><a href="#cb56-457" aria-hidden="true" tabindex="-1"></a><span class="fu">emfx</span>(mod_lin)</span>
-<span id="cb56-458"><a href="#cb56-458" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-459"><a href="#cb56-459" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-460"><a href="#cb56-460" aria-hidden="true" tabindex="-1"></a>The linear model returns 0.38 with a 95% interval of $<span class="co">[</span><span class="ot">0.318, 0.443</span><span class="co">]</span>$. That</span>
-<span id="cb56-461"><a href="#cb56-461" aria-hidden="true" tabindex="-1"></a>number is neither the count-scale ATT of 3.99 nor the log-scale parameter 0.4,</span>
-<span id="cb56-462"><a href="#cb56-462" aria-hidden="true" tabindex="-1"></a>though it happens to sit near the latter because the counts here are large</span>
-<span id="cb56-463"><a href="#cb56-463" aria-hidden="true" tabindex="-1"></a>enough that $\log(Y+1) \approx \log Y$. With many zeros the approximation</span>
-<span id="cb56-464"><a href="#cb56-464" aria-hidden="true" tabindex="-1"></a>breaks and the estimate drifts.</span>
-<span id="cb56-465"><a href="#cb56-465" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-466"><a href="#cb56-466" aria-hidden="true" tabindex="-1"></a>The linear model estimates the ATT on the $\log(Y+1)$ scale — not the same quantity as the Poisson ATT and harder to interpret. When treatment effects are multiplicative, Poisson ETWFE is the more appropriate model.</span>
-<span id="cb56-467"><a href="#cb56-467" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-468"><a href="#cb56-468" aria-hidden="true" tabindex="-1"></a><span class="fu">## Spatial Interference</span></span>
-<span id="cb56-469"><a href="#cb56-469" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-470"><a href="#cb56-470" aria-hidden="true" tabindex="-1"></a>Everything in this chapter so far assumes SUTVA: one unit's outcome does not depend on another unit's treatment. That is not always plausible. A treated municipality may affect deforestation in nearby untreated municipalities. A vaccinated household may reduce transmission to nearby households. A labor-market policy in one commuting zone may change flows to its neighbors. With this kind of spatial spillover, the usual DiD estimand no longer has the interpretation we want. Xu <span class="co">[</span><span class="ot">-@xu2023</span><span class="co">]</span> shows that ignoring interference can produce an estimand that is neither a direct effect nor a spillover effect.</span>
-<span id="cb56-471"><a href="#cb56-471" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-472"><a href="#cb56-472" aria-hidden="true" tabindex="-1"></a>Xu <span class="co">[</span><span class="ot">-@xu2023; -@xu2026</span><span class="co">]</span> develops a doubly robust DiD that keeps the identifying logic of conditional parallel trends but adds an exposure mapping $G_{it} = G(i, W_{-it})$ for unit $i$'s neighborhood treatment status. The estimand is the direct ATT at exposure level $g$,</span>
-<span id="cb56-473"><a href="#cb56-473" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-474"><a href="#cb56-474" aria-hidden="true" tabindex="-1"></a>$$ \tau_g(t, c) = \frac{1}{|S_M|} \sum_{i \in S_M} \mathbb{E}<span class="co">[</span><span class="ot">y_{it}(c, g) - y_{it}(\infty, g) \mid z_i, C_i = c, G_{it} = g</span><span class="co">]</span>, $$ {#eq-did-12}</span>
-<span id="cb56-475"><a href="#cb56-475" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-476"><a href="#cb56-476" aria-hidden="true" tabindex="-1"></a>where $C_i$ is unit $i$'s first treatment period (so $<span class="sc">\{</span>C_i &gt; t<span class="sc">\}</span>$ is the not-yet-directly-treated comparison group), $S_M = <span class="sc">\{</span>C_i = c<span class="sc">\}</span> \cup <span class="sc">\{</span>C_i &gt; t<span class="sc">\}</span>$, and $g$ is a chosen exposure level. The DR plug-in averages three pieces over $S_M$: an IPW term from the treated cohort, an IPW term from the not-yet-treated, and a regression-imputation term, with three propensity models ($\eta_{tc}$ for cohort, $\eta_{tcg}$ and $\eta_{t\infty g}$ for exposure) and two outcome-change regressions. It is consistent if either all three propensities or both outcome models are correctly specified.</span>
-<span id="cb56-477"><a href="#cb56-477" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-478"><a href="#cb56-478" aria-hidden="true" tabindex="-1"></a>The companion package <span class="co">[</span><span class="ot">`didint`</span><span class="co">](https://github.com/xiangao/didint)</span> implements this. The 2x2 base case (Xu 2023):</span>
-<span id="cb56-479"><a href="#cb56-479" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-480"><a href="#cb56-480" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did_int_2x2_demo, eval = FALSE}</span></span>
-<span id="cb56-481"><a href="#cb56-481" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(didint)</span>
+<span id="cb56-450"><a href="#cb56-450" aria-hidden="true" tabindex="-1"></a>Pre-treatment estimates are close to zero, confirming parallel trends on the log scale holds in the simulation. The post-treatment points rise with event time, which is the count-scale consequence of a constant log-scale effect applied to a growing baseline, not evidence of a growing treatment effect.</span>
+<span id="cb56-451"><a href="#cb56-451" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-452"><a href="#cb56-452" aria-hidden="true" tabindex="-1"></a><span class="fu">### Comparison: linear ETWFE on log(count + 1)</span></span>
+<span id="cb56-453"><a href="#cb56-453" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-454"><a href="#cb56-454" aria-hidden="true" tabindex="-1"></a>A common alternative is to log-transform the count and run linear ETWFE. This is biased when zeros are present (the $+1$ shift distorts the linear index) and misinterprets the scale of the effect. For comparison:</span>
+<span id="cb56-455"><a href="#cb56-455" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-456"><a href="#cb56-456" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did_pois5, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-457"><a href="#cb56-457" aria-hidden="true" tabindex="-1"></a>df_count <span class="ot">&lt;-</span> df_count <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">log_count =</span> <span class="fu">log</span>(count <span class="sc">+</span> <span class="dv">1</span>))</span>
+<span id="cb56-458"><a href="#cb56-458" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-459"><a href="#cb56-459" aria-hidden="true" tabindex="-1"></a>mod_lin <span class="ot">&lt;-</span> <span class="fu">etwfe</span>(</span>
+<span id="cb56-460"><a href="#cb56-460" aria-hidden="true" tabindex="-1"></a>  <span class="at">fml  =</span> log_count <span class="sc">~</span> <span class="dv">1</span>,</span>
+<span id="cb56-461"><a href="#cb56-461" aria-hidden="true" tabindex="-1"></a>  <span class="at">tvar =</span> year,</span>
+<span id="cb56-462"><a href="#cb56-462" aria-hidden="true" tabindex="-1"></a>  <span class="at">gvar =</span> first_treat,</span>
+<span id="cb56-463"><a href="#cb56-463" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> df_count,</span>
+<span id="cb56-464"><a href="#cb56-464" aria-hidden="true" tabindex="-1"></a>  <span class="at">vcov =</span> <span class="sc">~</span>id</span>
+<span id="cb56-465"><a href="#cb56-465" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb56-466"><a href="#cb56-466" aria-hidden="true" tabindex="-1"></a><span class="fu">emfx</span>(mod_lin)</span>
+<span id="cb56-467"><a href="#cb56-467" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb56-468"><a href="#cb56-468" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-469"><a href="#cb56-469" aria-hidden="true" tabindex="-1"></a>The linear model returns 0.38 with a 95% interval of $<span class="co">[</span><span class="ot">0.318, 0.443</span><span class="co">]</span>$. That</span>
+<span id="cb56-470"><a href="#cb56-470" aria-hidden="true" tabindex="-1"></a>number is neither the count-scale ATT of 3.99 nor the log-scale parameter 0.4,</span>
+<span id="cb56-471"><a href="#cb56-471" aria-hidden="true" tabindex="-1"></a>though it happens to sit near the latter because the counts here are large</span>
+<span id="cb56-472"><a href="#cb56-472" aria-hidden="true" tabindex="-1"></a>enough that $\log(Y+1) \approx \log Y$. With many zeros the approximation</span>
+<span id="cb56-473"><a href="#cb56-473" aria-hidden="true" tabindex="-1"></a>breaks and the estimate drifts.</span>
+<span id="cb56-474"><a href="#cb56-474" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-475"><a href="#cb56-475" aria-hidden="true" tabindex="-1"></a>The linear model estimates the ATT on the $\log(Y+1)$ scale — not the same quantity as the Poisson ATT and harder to interpret. When treatment effects are multiplicative, Poisson ETWFE is the more appropriate model.</span>
+<span id="cb56-476"><a href="#cb56-476" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-477"><a href="#cb56-477" aria-hidden="true" tabindex="-1"></a><span class="fu">## Spatial Interference</span></span>
+<span id="cb56-478"><a href="#cb56-478" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-479"><a href="#cb56-479" aria-hidden="true" tabindex="-1"></a>Everything in this chapter so far assumes SUTVA: one unit's outcome does not depend on another unit's treatment. That is not always plausible. A treated municipality may affect deforestation in nearby untreated municipalities. A vaccinated household may reduce transmission to nearby households. A labor-market policy in one commuting zone may change flows to its neighbors. With this kind of spatial spillover, the usual DiD estimand no longer has the interpretation we want. Xu <span class="co">[</span><span class="ot">-@xu2023</span><span class="co">]</span> shows that ignoring interference can produce an estimand that is neither a direct effect nor a spillover effect.</span>
+<span id="cb56-480"><a href="#cb56-480" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-481"><a href="#cb56-481" aria-hidden="true" tabindex="-1"></a>Xu <span class="co">[</span><span class="ot">-@xu2023; -@xu2026</span><span class="co">]</span> develops a doubly robust DiD that keeps the identifying logic of conditional parallel trends but adds an exposure mapping $G_{it} = G(i, W_{-it})$ for unit $i$'s neighborhood treatment status. The estimand is the direct ATT at exposure level $g$,</span>
 <span id="cb56-482"><a href="#cb56-482" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-483"><a href="#cb56-483" aria-hidden="true" tabindex="-1"></a><span class="co"># Wide-format two-period data with a binary exposure G.</span></span>
-<span id="cb56-484"><a href="#cb56-484" aria-hidden="true" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">did_int_2x2</span>(</span>
-<span id="cb56-485"><a href="#cb56-485" aria-hidden="true" tabindex="-1"></a>  <span class="at">data       =</span> panel,</span>
-<span id="cb56-486"><a href="#cb56-486" aria-hidden="true" tabindex="-1"></a>  <span class="at">yname      =</span> <span class="st">"Y_post"</span>,</span>
-<span id="cb56-487"><a href="#cb56-487" aria-hidden="true" tabindex="-1"></a>  <span class="at">yname_pre  =</span> <span class="st">"Y_pre"</span>,</span>
-<span id="cb56-488"><a href="#cb56-488" aria-hidden="true" tabindex="-1"></a>  <span class="at">treat      =</span> <span class="st">"W"</span>,</span>
-<span id="cb56-489"><a href="#cb56-489" aria-hidden="true" tabindex="-1"></a>  <span class="at">exposure   =</span> <span class="st">"G"</span>,</span>
-<span id="cb56-490"><a href="#cb56-490" aria-hidden="true" tabindex="-1"></a>  <span class="at">g          =</span> <span class="dv">1</span>,</span>
-<span id="cb56-491"><a href="#cb56-491" aria-hidden="true" tabindex="-1"></a>  <span class="at">covariates =</span> <span class="fu">c</span>(<span class="st">"z1"</span>, <span class="st">"z2"</span>),</span>
-<span id="cb56-492"><a href="#cb56-492" aria-hidden="true" tabindex="-1"></a>  <span class="at">trim       =</span> <span class="fl">0.01</span>     <span class="co"># Xu (2026) uses 0.01 in the Brazil application</span></span>
-<span id="cb56-493"><a href="#cb56-493" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb56-494"><a href="#cb56-494" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(res)</span>
-<span id="cb56-495"><a href="#cb56-495" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-496"><a href="#cb56-496" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-497"><a href="#cb56-497" aria-hidden="true" tabindex="-1"></a>For staggered adoption (Xu 2026), <span class="in">`did_int_staggered()`</span> loops over <span class="in">`(cohort, time)`</span> cells with $t \geq c$, restricts to $S_M$ in each cell, fits the DR estimator, and aggregates across cells using joint-IF stacking (per-cell IFs share the never-treated comparison group, so independence-style SEs underestimate uncertainty noticeably). The <span class="in">`vignettes/brazil_amazon.Rmd`</span> vignette of <span class="in">`didint`</span> replicates Section III of Xu (2026), the *Lista de Municípios Prioritários* policy on Amazon deforestation, using the public Assunção-McMillan-Murphy-Souza-Rodrigues replication archive on Zenodo.</span>
-<span id="cb56-498"><a href="#cb56-498" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-499"><a href="#cb56-499" aria-hidden="true" tabindex="-1"></a>A Julia port with identical estimators is available as <span class="co">[</span><span class="ot">`DidInterference.jl`</span><span class="co">](https://github.com/xiangao/DidInterference.jl)</span>.</span>
-<span id="cb56-500"><a href="#cb56-500" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-501"><a href="#cb56-501" aria-hidden="true" tabindex="-1"></a><span class="fu">## Persistent Outcomes and Heterogeneous Dynamics</span></span>
-<span id="cb56-502"><a href="#cb56-502" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-503"><a href="#cb56-503" aria-hidden="true" tabindex="-1"></a>Standard event-study TWFE regressions like</span>
-<span id="cb56-504"><a href="#cb56-504" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-505"><a href="#cb56-505" aria-hidden="true" tabindex="-1"></a>$$ Y_{it} = \alpha_i + \gamma_t + \sum_{j} D_{it}^j \delta_j + X_{it}'\beta + U_{it} $$ {#eq-did-13}</span>
-<span id="cb56-506"><a href="#cb56-506" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-507"><a href="#cb56-507" aria-hidden="true" tabindex="-1"></a>implicitly assume the residual has no serial dependence once unit and</span>
-<span id="cb56-508"><a href="#cb56-508" aria-hidden="true" tabindex="-1"></a>time fixed effects are absorbed. When outcomes are genuinely</span>
-<span id="cb56-509"><a href="#cb56-509" aria-hidden="true" tabindex="-1"></a>persistent — earnings, employment, consumption, anything with habits</span>
-<span id="cb56-510"><a href="#cb56-510" aria-hidden="true" tabindex="-1"></a>or adjustment costs — that assumption fails. The event-time dummies</span>
-<span id="cb56-511"><a href="#cb56-511" aria-hidden="true" tabindex="-1"></a>pick up the persistence on top of the true causal effect, producing</span>
-<span id="cb56-512"><a href="#cb56-512" aria-hidden="true" tabindex="-1"></a>spurious pre-trends and biased post-treatment estimates. With a true</span>
-<span id="cb56-513"><a href="#cb56-513" aria-hidden="true" tabindex="-1"></a>AR(1) DGP and persistence $\rho_Y$, the omitted-variable bias on the</span>
-<span id="cb56-514"><a href="#cb56-514" aria-hidden="true" tabindex="-1"></a>event-time coefficients grows geometrically with the event-time</span>
-<span id="cb56-515"><a href="#cb56-515" aria-hidden="true" tabindex="-1"></a>horizon (Botosaru and Liu, 2025, Figure 1).</span>
-<span id="cb56-516"><a href="#cb56-516" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-517"><a href="#cb56-517" aria-hidden="true" tabindex="-1"></a>Botosaru and Liu <span class="co">[</span><span class="ot">-@botosaru-liu-2025</span><span class="co">]</span> introduce a **dynamic panel</span>
-<span id="cb56-518"><a href="#cb56-518" aria-hidden="true" tabindex="-1"></a>with correlated random coefficients** that handles both persistence</span>
-<span id="cb56-519"><a href="#cb56-519" aria-hidden="true" tabindex="-1"></a>and unit-level heterogeneity in dynamic responses:</span>
-<span id="cb56-520"><a href="#cb56-520" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-521"><a href="#cb56-521" aria-hidden="true" tabindex="-1"></a>$$ Y_{it} = \rho_Y Y_{i,t-1} + \alpha_i + \sum_j D_{it}^j \delta_{ij} + X_{it}'\beta + U_{it}, $$ {#eq-did-14}</span>
-<span id="cb56-522"><a href="#cb56-522" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-523"><a href="#cb56-523" aria-hidden="true" tabindex="-1"></a>with a parsimonious AR(1) structure on the event-time effects to keep</span>
-<span id="cb56-524"><a href="#cb56-524" aria-hidden="true" tabindex="-1"></a>dimensionality manageable:</span>
+<span id="cb56-483"><a href="#cb56-483" aria-hidden="true" tabindex="-1"></a>$$ \tau_g(t, c) = \frac{1}{|S_M|} \sum_{i \in S_M} \mathbb{E}<span class="co">[</span><span class="ot">y_{it}(c, g) - y_{it}(\infty, g) \mid z_i, C_i = c, G_{it} = g</span><span class="co">]</span>, $$ {#eq-did-12}</span>
+<span id="cb56-484"><a href="#cb56-484" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-485"><a href="#cb56-485" aria-hidden="true" tabindex="-1"></a>where $C_i$ is unit $i$'s first treatment period (so $<span class="sc">\{</span>C_i &gt; t<span class="sc">\}</span>$ is the not-yet-directly-treated comparison group), $S_M = <span class="sc">\{</span>C_i = c<span class="sc">\}</span> \cup <span class="sc">\{</span>C_i &gt; t<span class="sc">\}</span>$, and $g$ is a chosen exposure level. The DR plug-in averages three pieces over $S_M$: an IPW term from the treated cohort, an IPW term from the not-yet-treated, and a regression-imputation term, with three propensity models ($\eta_{tc}$ for cohort, $\eta_{tcg}$ and $\eta_{t\infty g}$ for exposure) and two outcome-change regressions. It is consistent if either all three propensities or both outcome models are correctly specified.</span>
+<span id="cb56-486"><a href="#cb56-486" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-487"><a href="#cb56-487" aria-hidden="true" tabindex="-1"></a>The companion package <span class="co">[</span><span class="ot">`didint`</span><span class="co">](https://github.com/xiangao/didint)</span> implements this. The 2x2 base case (Xu 2023):</span>
+<span id="cb56-488"><a href="#cb56-488" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-489"><a href="#cb56-489" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did_int_2x2_demo, eval = FALSE}</span></span>
+<span id="cb56-490"><a href="#cb56-490" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(didint)</span>
+<span id="cb56-491"><a href="#cb56-491" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-492"><a href="#cb56-492" aria-hidden="true" tabindex="-1"></a><span class="co"># Wide-format two-period data with a binary exposure G.</span></span>
+<span id="cb56-493"><a href="#cb56-493" aria-hidden="true" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">did_int_2x2</span>(</span>
+<span id="cb56-494"><a href="#cb56-494" aria-hidden="true" tabindex="-1"></a>  <span class="at">data       =</span> panel,</span>
+<span id="cb56-495"><a href="#cb56-495" aria-hidden="true" tabindex="-1"></a>  <span class="at">yname      =</span> <span class="st">"Y_post"</span>,</span>
+<span id="cb56-496"><a href="#cb56-496" aria-hidden="true" tabindex="-1"></a>  <span class="at">yname_pre  =</span> <span class="st">"Y_pre"</span>,</span>
+<span id="cb56-497"><a href="#cb56-497" aria-hidden="true" tabindex="-1"></a>  <span class="at">treat      =</span> <span class="st">"W"</span>,</span>
+<span id="cb56-498"><a href="#cb56-498" aria-hidden="true" tabindex="-1"></a>  <span class="at">exposure   =</span> <span class="st">"G"</span>,</span>
+<span id="cb56-499"><a href="#cb56-499" aria-hidden="true" tabindex="-1"></a>  <span class="at">g          =</span> <span class="dv">1</span>,</span>
+<span id="cb56-500"><a href="#cb56-500" aria-hidden="true" tabindex="-1"></a>  <span class="at">covariates =</span> <span class="fu">c</span>(<span class="st">"z1"</span>, <span class="st">"z2"</span>),</span>
+<span id="cb56-501"><a href="#cb56-501" aria-hidden="true" tabindex="-1"></a>  <span class="at">trim       =</span> <span class="fl">0.01</span>     <span class="co"># Xu (2026) uses 0.01 in the Brazil application</span></span>
+<span id="cb56-502"><a href="#cb56-502" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb56-503"><a href="#cb56-503" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(res)</span>
+<span id="cb56-504"><a href="#cb56-504" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb56-505"><a href="#cb56-505" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-506"><a href="#cb56-506" aria-hidden="true" tabindex="-1"></a>For staggered adoption (Xu 2026), <span class="in">`did_int_staggered()`</span> loops over <span class="in">`(cohort, time)`</span> cells with $t \geq c$, restricts to $S_M$ in each cell, fits the DR estimator, and aggregates across cells using joint-IF stacking (per-cell IFs share the never-treated comparison group, so independence-style SEs underestimate uncertainty noticeably). The <span class="in">`vignettes/brazil_amazon.Rmd`</span> vignette of <span class="in">`didint`</span> replicates Section III of Xu (2026), the *Lista de Municípios Prioritários* policy on Amazon deforestation, using the public Assunção-McMillan-Murphy-Souza-Rodrigues replication archive on Zenodo.</span>
+<span id="cb56-507"><a href="#cb56-507" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-508"><a href="#cb56-508" aria-hidden="true" tabindex="-1"></a>A Julia port with identical estimators is available as <span class="co">[</span><span class="ot">`DidInterference.jl`</span><span class="co">](https://github.com/xiangao/DidInterference.jl)</span>.</span>
+<span id="cb56-509"><a href="#cb56-509" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-510"><a href="#cb56-510" aria-hidden="true" tabindex="-1"></a><span class="fu">## Persistent Outcomes and Heterogeneous Dynamics</span></span>
+<span id="cb56-511"><a href="#cb56-511" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-512"><a href="#cb56-512" aria-hidden="true" tabindex="-1"></a>Standard event-study TWFE regressions like</span>
+<span id="cb56-513"><a href="#cb56-513" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-514"><a href="#cb56-514" aria-hidden="true" tabindex="-1"></a>$$ Y_{it} = \alpha_i + \gamma_t + \sum_{j} D_{it}^j \delta_j + X_{it}'\beta + U_{it} $$ {#eq-did-13}</span>
+<span id="cb56-515"><a href="#cb56-515" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-516"><a href="#cb56-516" aria-hidden="true" tabindex="-1"></a>implicitly assume the residual has no serial dependence once unit and</span>
+<span id="cb56-517"><a href="#cb56-517" aria-hidden="true" tabindex="-1"></a>time fixed effects are absorbed. When outcomes are genuinely</span>
+<span id="cb56-518"><a href="#cb56-518" aria-hidden="true" tabindex="-1"></a>persistent — earnings, employment, consumption, anything with habits</span>
+<span id="cb56-519"><a href="#cb56-519" aria-hidden="true" tabindex="-1"></a>or adjustment costs — that assumption fails. The event-time dummies</span>
+<span id="cb56-520"><a href="#cb56-520" aria-hidden="true" tabindex="-1"></a>pick up the persistence on top of the true causal effect, producing</span>
+<span id="cb56-521"><a href="#cb56-521" aria-hidden="true" tabindex="-1"></a>spurious pre-trends and biased post-treatment estimates. With a true</span>
+<span id="cb56-522"><a href="#cb56-522" aria-hidden="true" tabindex="-1"></a>AR(1) DGP and persistence $\rho_Y$, the omitted-variable bias on the</span>
+<span id="cb56-523"><a href="#cb56-523" aria-hidden="true" tabindex="-1"></a>event-time coefficients grows geometrically with the event-time</span>
+<span id="cb56-524"><a href="#cb56-524" aria-hidden="true" tabindex="-1"></a>horizon (Botosaru and Liu, 2025, Figure 1).</span>
 <span id="cb56-525"><a href="#cb56-525" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-526"><a href="#cb56-526" aria-hidden="true" tabindex="-1"></a>$$ \delta_{ij} = \rho_\delta \delta_{i,j-1} + \varepsilon_{ij}, \quad j \geq 1. $$ {#eq-did-15}</span>
-<span id="cb56-527"><a href="#cb56-527" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-528"><a href="#cb56-528" aria-hidden="true" tabindex="-1"></a>The latent $\lambda_i = (\alpha_i, \delta_{i0})$ is a unit-specific</span>
-<span id="cb56-529"><a href="#cb56-529" aria-hidden="true" tabindex="-1"></a>correlated random coefficient. A two-step semiparametric estimator: step 1</span>
-<span id="cb56-530"><a href="#cb56-530" aria-hidden="true" tabindex="-1"></a>is **quasi-maximum likelihood** for the common parameters</span>
-<span id="cb56-531"><a href="#cb56-531" aria-hidden="true" tabindex="-1"></a>$(\rho_Y, \rho_\delta, \sigma_U^2, \sigma_\varepsilon^2, \beta)$ under</span>
-<span id="cb56-532"><a href="#cb56-532" aria-hidden="true" tabindex="-1"></a>a Gaussian working assumption on $\lambda_i$ (consistent under</span>
-<span id="cb56-533"><a href="#cb56-533" aria-hidden="true" tabindex="-1"></a>misspecification of that working assumption); step 2 is</span>
-<span id="cb56-534"><a href="#cb56-534" aria-hidden="true" tabindex="-1"></a>**Tweedie / Gaussian-conjugate empirical Bayes** for the unit-level</span>
-<span id="cb56-535"><a href="#cb56-535" aria-hidden="true" tabindex="-1"></a>posterior trajectories $<span class="sc">\{</span>\delta_{i,j}<span class="sc">\}</span>_{j=0}^J$, achieving asymptotic</span>
-<span id="cb56-536"><a href="#cb56-536" aria-hidden="true" tabindex="-1"></a>ratio optimality.</span>
-<span id="cb56-537"><a href="#cb56-537" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-538"><a href="#cb56-538" aria-hidden="true" tabindex="-1"></a>A companion paper <span class="co">[</span><span class="ot">@botosaru-liu-2026</span><span class="co">]</span> adds a **homogeneous-feedback</span>
-<span id="cb56-539"><a href="#cb56-539" aria-hidden="true" tabindex="-1"></a>extension**: covariates $X_{it}$ are allowed to adjust endogenously to</span>
-<span id="cb56-540"><a href="#cb56-540" aria-hidden="true" tabindex="-1"></a>past $Y$ and treatment (the canonical example: minimum-wage policy</span>
-<span id="cb56-541"><a href="#cb56-541" aria-hidden="true" tabindex="-1"></a>affects wages directly and also indirectly through firms re-optimising</span>
-<span id="cb56-542"><a href="#cb56-542" aria-hidden="true" tabindex="-1"></a>input demand). Under the assumption that the covariate adjustment rule</span>
-<span id="cb56-543"><a href="#cb56-543" aria-hidden="true" tabindex="-1"></a>does not depend on $\lambda_i$ given the observable history, the</span>
-<span id="cb56-544"><a href="#cb56-544" aria-hidden="true" tabindex="-1"></a>likelihood factors into a structural piece (for $Y \mid X$, history)</span>
-<span id="cb56-545"><a href="#cb56-545" aria-hidden="true" tabindex="-1"></a>and a feedback piece (for $X$ given history), each separately</span>
-<span id="cb56-546"><a href="#cb56-546" aria-hidden="true" tabindex="-1"></a>identified. The factorisation yields a clean decomposition of dynamic</span>
-<span id="cb56-547"><a href="#cb56-547" aria-hidden="true" tabindex="-1"></a>treatment effects into **direct** (through $\delta_{i,j}$) and</span>
-<span id="cb56-548"><a href="#cb56-548" aria-hidden="true" tabindex="-1"></a>**indirect** (through covariate feedback) components.</span>
-<span id="cb56-549"><a href="#cb56-549" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-550"><a href="#cb56-550" aria-hidden="true" tabindex="-1"></a>The package <span class="co">[</span><span class="ot">`tvhte`</span><span class="co">](https://github.com/xiangao/tvhte)</span> implements</span>
-<span id="cb56-551"><a href="#cb56-551" aria-hidden="true" tabindex="-1"></a>both papers:</span>
-<span id="cb56-552"><a href="#cb56-552" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-553"><a href="#cb56-553" aria-hidden="true" tabindex="-1"></a><span class="in">```{r tvhte_demo, eval = FALSE}</span></span>
-<span id="cb56-554"><a href="#cb56-554" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tvhte)</span>
-<span id="cb56-555"><a href="#cb56-555" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-556"><a href="#cb56-556" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit on a panel with staggered cohorts and a covariate</span></span>
-<span id="cb56-557"><a href="#cb56-557" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">tvhte</span>(<span class="at">Y =</span> panel_Y, <span class="at">Y0 =</span> baseline_Y, <span class="at">t0 =</span> cohort,</span>
-<span id="cb56-558"><a href="#cb56-558" aria-hidden="true" tabindex="-1"></a>             <span class="at">J =</span> max_event_time, <span class="at">X =</span> panel_X)</span>
-<span id="cb56-559"><a href="#cb56-559" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(fit)</span>
-<span id="cb56-560"><a href="#cb56-560" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-561"><a href="#cb56-561" aria-hidden="true" tabindex="-1"></a><span class="co"># Feedback model + direct/indirect counterfactual decomposition</span></span>
-<span id="cb56-562"><a href="#cb56-562" aria-hidden="true" tabindex="-1"></a>fb <span class="ot">&lt;-</span> <span class="fu">fit_feedback</span>(panel_Y, baseline_Y, panel_X, baseline_X)</span>
-<span id="cb56-563"><a href="#cb56-563" aria-hidden="true" tabindex="-1"></a>cf <span class="ot">&lt;-</span> <span class="fu">simulate_counterfactual</span>(fit, fb, <span class="at">t0_star =</span> alt_cohort)</span>
-<span id="cb56-564"><a href="#cb56-564" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-565"><a href="#cb56-565" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-566"><a href="#cb56-566" aria-hidden="true" tabindex="-1"></a>A Julia port with the same API is at</span>
-<span id="cb56-567"><a href="#cb56-567" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">`TVHTE.jl`</span><span class="co">](https://github.com/xiangao/TVHTE.jl)</span>; both packages have</span>
-<span id="cb56-568"><a href="#cb56-568" aria-hidden="true" tabindex="-1"></a>deployed docs at <span class="ot">&lt;https://xiangao.github.io/tvhte/&gt;</span> and</span>
-<span id="cb56-569"><a href="#cb56-569" aria-hidden="true" tabindex="-1"></a><span class="ot">&lt;https://xiangao.github.io/TVHTE.jl/&gt;</span>.</span>
-<span id="cb56-570"><a href="#cb56-570" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-571"><a href="#cb56-571" aria-hidden="true" tabindex="-1"></a><span class="fu">## Synthetic Control</span></span>
-<span id="cb56-572"><a href="#cb56-572" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-573"><a href="#cb56-573" aria-hidden="true" tabindex="-1"></a>The biggest problem with DiD is the PT assumption. There is not really a test for it, just like the unconfoundedness assumption. It is less demanding than unconfoundedness assumption, but nevertheless hard to justify sometimes.</span>
+<span id="cb56-526"><a href="#cb56-526" aria-hidden="true" tabindex="-1"></a>Botosaru and Liu <span class="co">[</span><span class="ot">-@botosaru-liu-2025</span><span class="co">]</span> introduce a **dynamic panel</span>
+<span id="cb56-527"><a href="#cb56-527" aria-hidden="true" tabindex="-1"></a>with correlated random coefficients** that handles both persistence</span>
+<span id="cb56-528"><a href="#cb56-528" aria-hidden="true" tabindex="-1"></a>and unit-level heterogeneity in dynamic responses:</span>
+<span id="cb56-529"><a href="#cb56-529" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-530"><a href="#cb56-530" aria-hidden="true" tabindex="-1"></a>$$ Y_{it} = \rho_Y Y_{i,t-1} + \alpha_i + \sum_j D_{it}^j \delta_{ij} + X_{it}'\beta + U_{it}, $$ {#eq-did-14}</span>
+<span id="cb56-531"><a href="#cb56-531" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-532"><a href="#cb56-532" aria-hidden="true" tabindex="-1"></a>with a parsimonious AR(1) structure on the event-time effects to keep</span>
+<span id="cb56-533"><a href="#cb56-533" aria-hidden="true" tabindex="-1"></a>dimensionality manageable:</span>
+<span id="cb56-534"><a href="#cb56-534" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-535"><a href="#cb56-535" aria-hidden="true" tabindex="-1"></a>$$ \delta_{ij} = \rho_\delta \delta_{i,j-1} + \varepsilon_{ij}, \quad j \geq 1. $$ {#eq-did-15}</span>
+<span id="cb56-536"><a href="#cb56-536" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-537"><a href="#cb56-537" aria-hidden="true" tabindex="-1"></a>The latent $\lambda_i = (\alpha_i, \delta_{i0})$ is a unit-specific</span>
+<span id="cb56-538"><a href="#cb56-538" aria-hidden="true" tabindex="-1"></a>correlated random coefficient. A two-step semiparametric estimator: step 1</span>
+<span id="cb56-539"><a href="#cb56-539" aria-hidden="true" tabindex="-1"></a>is **quasi-maximum likelihood** for the common parameters</span>
+<span id="cb56-540"><a href="#cb56-540" aria-hidden="true" tabindex="-1"></a>$(\rho_Y, \rho_\delta, \sigma_U^2, \sigma_\varepsilon^2, \beta)$ under</span>
+<span id="cb56-541"><a href="#cb56-541" aria-hidden="true" tabindex="-1"></a>a Gaussian working assumption on $\lambda_i$ (consistent under</span>
+<span id="cb56-542"><a href="#cb56-542" aria-hidden="true" tabindex="-1"></a>misspecification of that working assumption); step 2 is</span>
+<span id="cb56-543"><a href="#cb56-543" aria-hidden="true" tabindex="-1"></a>**Tweedie / Gaussian-conjugate empirical Bayes** for the unit-level</span>
+<span id="cb56-544"><a href="#cb56-544" aria-hidden="true" tabindex="-1"></a>posterior trajectories $<span class="sc">\{</span>\delta_{i,j}<span class="sc">\}</span>_{j=0}^J$, achieving asymptotic</span>
+<span id="cb56-545"><a href="#cb56-545" aria-hidden="true" tabindex="-1"></a>ratio optimality.</span>
+<span id="cb56-546"><a href="#cb56-546" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-547"><a href="#cb56-547" aria-hidden="true" tabindex="-1"></a>A companion paper <span class="co">[</span><span class="ot">@botosaru-liu-2026</span><span class="co">]</span> adds a **homogeneous-feedback</span>
+<span id="cb56-548"><a href="#cb56-548" aria-hidden="true" tabindex="-1"></a>extension**: covariates $X_{it}$ are allowed to adjust endogenously to</span>
+<span id="cb56-549"><a href="#cb56-549" aria-hidden="true" tabindex="-1"></a>past $Y$ and treatment (the canonical example: minimum-wage policy</span>
+<span id="cb56-550"><a href="#cb56-550" aria-hidden="true" tabindex="-1"></a>affects wages directly and also indirectly through firms re-optimising</span>
+<span id="cb56-551"><a href="#cb56-551" aria-hidden="true" tabindex="-1"></a>input demand). Under the assumption that the covariate adjustment rule</span>
+<span id="cb56-552"><a href="#cb56-552" aria-hidden="true" tabindex="-1"></a>does not depend on $\lambda_i$ given the observable history, the</span>
+<span id="cb56-553"><a href="#cb56-553" aria-hidden="true" tabindex="-1"></a>likelihood factors into a structural piece (for $Y \mid X$, history)</span>
+<span id="cb56-554"><a href="#cb56-554" aria-hidden="true" tabindex="-1"></a>and a feedback piece (for $X$ given history), each separately</span>
+<span id="cb56-555"><a href="#cb56-555" aria-hidden="true" tabindex="-1"></a>identified. The factorisation yields a clean decomposition of dynamic</span>
+<span id="cb56-556"><a href="#cb56-556" aria-hidden="true" tabindex="-1"></a>treatment effects into **direct** (through $\delta_{i,j}$) and</span>
+<span id="cb56-557"><a href="#cb56-557" aria-hidden="true" tabindex="-1"></a>**indirect** (through covariate feedback) components.</span>
+<span id="cb56-558"><a href="#cb56-558" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-559"><a href="#cb56-559" aria-hidden="true" tabindex="-1"></a>The package <span class="co">[</span><span class="ot">`tvhte`</span><span class="co">](https://github.com/xiangao/tvhte)</span> implements</span>
+<span id="cb56-560"><a href="#cb56-560" aria-hidden="true" tabindex="-1"></a>both papers:</span>
+<span id="cb56-561"><a href="#cb56-561" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-562"><a href="#cb56-562" aria-hidden="true" tabindex="-1"></a><span class="in">```{r tvhte_demo, eval = FALSE}</span></span>
+<span id="cb56-563"><a href="#cb56-563" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tvhte)</span>
+<span id="cb56-564"><a href="#cb56-564" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-565"><a href="#cb56-565" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit on a panel with staggered cohorts and a covariate</span></span>
+<span id="cb56-566"><a href="#cb56-566" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">tvhte</span>(<span class="at">Y =</span> panel_Y, <span class="at">Y0 =</span> baseline_Y, <span class="at">t0 =</span> cohort,</span>
+<span id="cb56-567"><a href="#cb56-567" aria-hidden="true" tabindex="-1"></a>             <span class="at">J =</span> max_event_time, <span class="at">X =</span> panel_X)</span>
+<span id="cb56-568"><a href="#cb56-568" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(fit)</span>
+<span id="cb56-569"><a href="#cb56-569" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-570"><a href="#cb56-570" aria-hidden="true" tabindex="-1"></a><span class="co"># Feedback model + direct/indirect counterfactual decomposition</span></span>
+<span id="cb56-571"><a href="#cb56-571" aria-hidden="true" tabindex="-1"></a>fb <span class="ot">&lt;-</span> <span class="fu">fit_feedback</span>(panel_Y, baseline_Y, panel_X, baseline_X)</span>
+<span id="cb56-572"><a href="#cb56-572" aria-hidden="true" tabindex="-1"></a>cf <span class="ot">&lt;-</span> <span class="fu">simulate_counterfactual</span>(fit, fb, <span class="at">t0_star =</span> alt_cohort)</span>
+<span id="cb56-573"><a href="#cb56-573" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb56-574"><a href="#cb56-574" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-575"><a href="#cb56-575" aria-hidden="true" tabindex="-1"></a>Abadie (2010)'s idea is to construct a control unit, out of many control units (donor pool), which is a weighted average of all donor units, that then hopefully is very close to the treated unit in terms of outcome, in the pre-treatment periods. This works pretty well in practice, when you have a somewhat large donor pool. Of course there is still no test for post-treatment period, but for pre-treatment periods, usually it can get almost identical trend as the treated unit. This was designed for single treated unit at the beginning, but got extended to multiple treated units later on.</span>
-<span id="cb56-576"><a href="#cb56-576" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-577"><a href="#cb56-577" aria-hidden="true" tabindex="-1"></a><span class="fu">## Synthetic DiD</span></span>
-<span id="cb56-578"><a href="#cb56-578" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-579"><a href="#cb56-579" aria-hidden="true" tabindex="-1"></a>Arkhangelsky et al (2021) tries to combine the idea of DiD and SC. SC assigns different weights to different control units. The standard DiD is a TWFE, assigning equal weights to all time periods and units.</span>
-<span id="cb56-580"><a href="#cb56-580" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-581"><a href="#cb56-581" aria-hidden="true" tabindex="-1"></a>To see that, DiD objective function:</span>
-<span id="cb56-582"><a href="#cb56-582" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-583"><a href="#cb56-583" aria-hidden="true" tabindex="-1"></a>$$ \small (\hat \tau^{did}, \hat \mu, \hat \alpha, \hat \beta) = \underset{\tau, \mu, \alpha, \beta}{argmin} { \Sigma_{i=1}^N \Sigma_{t=1}^T (Y_{it} - \mu - \alpha_i - \beta_t - W_{it} \tau)^2}$$ {#eq-did-16}</span>
-<span id="cb56-584"><a href="#cb56-584" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-585"><a href="#cb56-585" aria-hidden="true" tabindex="-1"></a>SC objective function: $$ (\hat \tau^{sc}, \hat \mu, \hat \beta) = \underset{\tau, \mu, \beta}{argmin} { \Sigma_{i=1}^N \Sigma_{t=1}^T \hat \omega_i^{sc} (Y_{it} - \mu - \beta_t - W_{it} \tau)^2}$$ {#eq-did-17}</span>
-<span id="cb56-586"><a href="#cb56-586" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-587"><a href="#cb56-587" aria-hidden="true" tabindex="-1"></a>It's a unit-weighted regression with time effects. The weights are set to optimally match donor units to treated unit so that they are as close as possible, in each time point. Note there is no $\alpha_i$, since it's forced to be 0 — so SC is not simply DiD with weights: it also drops the unit fixed effects. The clean nesting is through SDiD below: DiD is SDiD with all unit and time weights set to 1, and SC is SDiD with the $\alpha_i$ removed and time weights set to 1.</span>
-<span id="cb56-588"><a href="#cb56-588" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-589"><a href="#cb56-589" aria-hidden="true" tabindex="-1"></a>SDiD:</span>
-<span id="cb56-590"><a href="#cb56-590" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-591"><a href="#cb56-591" aria-hidden="true" tabindex="-1"></a>$$ \small (\hat \tau^{sdid}, \hat \mu, \hat \alpha, \hat \beta) = \underset{\tau, \mu, \alpha, \beta}{argmin} { \Sigma_{i=1}^N \Sigma_{t=1}^T \hat \omega_i^{sdid} \hat \lambda_t^{sdid} (Y_{it} - \mu - \alpha_i - \beta_t - W_{it} \tau)^2}$$ {#eq-did-18}</span>
-<span id="cb56-592"><a href="#cb56-592" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-593"><a href="#cb56-593" aria-hidden="true" tabindex="-1"></a>SDiD sets another weight in addition to SC weights, which changes over time. The SC weights are trying to construct a control unit that is close to the treated unit; the SDiD weights are trying to put more weights on pre-treatment periods that are more similar to post-treatment periods.</span>
-<span id="cb56-594"><a href="#cb56-594" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-595"><a href="#cb56-595" aria-hidden="true" tabindex="-1"></a><span class="fu">### Example: California Proposition 99</span></span>
-<span id="cb56-596"><a href="#cb56-596" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-597"><a href="#cb56-597" aria-hidden="true" tabindex="-1"></a>The <span class="in">`california_prop99`</span> panel is annual per-capita cigarette sales in packs for</span>
-<span id="cb56-598"><a href="#cb56-598" aria-hidden="true" tabindex="-1"></a>39 US states from 1970 to 2000. California raised its cigarette tax in 1989, so</span>
-<span id="cb56-599"><a href="#cb56-599" aria-hidden="true" tabindex="-1"></a>there is one treated unit, 38 controls, 19 pre-treatment years and 12</span>
-<span id="cb56-600"><a href="#cb56-600" aria-hidden="true" tabindex="-1"></a>post-treatment years. The estimand is the effect of Proposition 99 on</span>
-<span id="cb56-601"><a href="#cb56-601" aria-hidden="true" tabindex="-1"></a>California's cigarette consumption.</span>
-<span id="cb56-602"><a href="#cb56-602" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-603"><a href="#cb56-603" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did13, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-604"><a href="#cb56-604" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(synthdid)</span>
-<span id="cb56-605"><a href="#cb56-605" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">'california_prop99'</span>)</span>
-<span id="cb56-606"><a href="#cb56-606" aria-hidden="true" tabindex="-1"></a>setup <span class="ot">=</span> <span class="fu">panel.matrices</span>(california_prop99)</span>
-<span id="cb56-607"><a href="#cb56-607" aria-hidden="true" tabindex="-1"></a>tau.hat <span class="ot">=</span> <span class="fu">synthdid_estimate</span>(setup<span class="sc">$</span>Y, setup<span class="sc">$</span>N0, setup<span class="sc">$</span>T0)</span>
-<span id="cb56-608"><a href="#cb56-608" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-609"><a href="#cb56-609" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-610"><a href="#cb56-610" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did14, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-611"><a href="#cb56-611" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(tau.hat)</span>
-<span id="cb56-612"><a href="#cb56-612" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-613"><a href="#cb56-613" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-614"><a href="#cb56-614" aria-hidden="true" tabindex="-1"></a>The point estimate, $-15.6$, is the headline number from Arkhangelsky et al.</span>
-<span id="cb56-615"><a href="#cb56-615" aria-hidden="true" tabindex="-1"></a>(2021). Note that the <span class="in">`se`</span> entry comes back <span class="in">`NA`</span>, and that is not a glitch to</span>
-<span id="cb56-616"><a href="#cb56-616" aria-hidden="true" tabindex="-1"></a>skim past: <span class="in">`summary()`</span> defaults to a **jackknife** standard error, which deletes</span>
-<span id="cb56-617"><a href="#cb56-617" aria-hidden="true" tabindex="-1"></a>one treated unit at a time. California is the *only* treated unit here, so</span>
-<span id="cb56-618"><a href="#cb56-618" aria-hidden="true" tabindex="-1"></a>deleting it leaves nothing to estimate and the jackknife is undefined. The</span>
-<span id="cb56-619"><a href="#cb56-619" aria-hidden="true" tabindex="-1"></a>bootstrap SE fails for the same reason. With a single treated unit the usable</span>
-<span id="cb56-620"><a href="#cb56-620" aria-hidden="true" tabindex="-1"></a>option is the placebo method, which builds the reference distribution by</span>
-<span id="cb56-621"><a href="#cb56-621" aria-hidden="true" tabindex="-1"></a>pretending each control state was treated:</span>
+<span id="cb56-575"><a href="#cb56-575" aria-hidden="true" tabindex="-1"></a>A Julia port with the same API is at</span>
+<span id="cb56-576"><a href="#cb56-576" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">`TVHTE.jl`</span><span class="co">](https://github.com/xiangao/TVHTE.jl)</span>; both packages have</span>
+<span id="cb56-577"><a href="#cb56-577" aria-hidden="true" tabindex="-1"></a>deployed docs at <span class="ot">&lt;https://xiangao.github.io/tvhte/&gt;</span> and</span>
+<span id="cb56-578"><a href="#cb56-578" aria-hidden="true" tabindex="-1"></a><span class="ot">&lt;https://xiangao.github.io/TVHTE.jl/&gt;</span>.</span>
+<span id="cb56-579"><a href="#cb56-579" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-580"><a href="#cb56-580" aria-hidden="true" tabindex="-1"></a><span class="fu">## Synthetic Control</span></span>
+<span id="cb56-581"><a href="#cb56-581" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-582"><a href="#cb56-582" aria-hidden="true" tabindex="-1"></a>The biggest problem with DiD is the PT assumption. There is not really a test for it, just like the unconfoundedness assumption. It is less demanding than unconfoundedness assumption, but nevertheless hard to justify sometimes.</span>
+<span id="cb56-583"><a href="#cb56-583" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-584"><a href="#cb56-584" aria-hidden="true" tabindex="-1"></a>Abadie (2010)'s idea is to construct a control unit, out of many control units (donor pool), which is a weighted average of all donor units, that then hopefully is very close to the treated unit in terms of outcome, in the pre-treatment periods. This works pretty well in practice, when you have a somewhat large donor pool. Of course there is still no test for post-treatment period, but for pre-treatment periods, usually it can get almost identical trend as the treated unit. This was designed for single treated unit at the beginning, but got extended to multiple treated units later on.</span>
+<span id="cb56-585"><a href="#cb56-585" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-586"><a href="#cb56-586" aria-hidden="true" tabindex="-1"></a><span class="fu">## Synthetic DiD</span></span>
+<span id="cb56-587"><a href="#cb56-587" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-588"><a href="#cb56-588" aria-hidden="true" tabindex="-1"></a>Arkhangelsky et al (2021) tries to combine the idea of DiD and SC. SC assigns different weights to different control units. The standard DiD is a TWFE, assigning equal weights to all time periods and units.</span>
+<span id="cb56-589"><a href="#cb56-589" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-590"><a href="#cb56-590" aria-hidden="true" tabindex="-1"></a>To see that, DiD objective function:</span>
+<span id="cb56-591"><a href="#cb56-591" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-592"><a href="#cb56-592" aria-hidden="true" tabindex="-1"></a>$$ \small (\hat \tau^{did}, \hat \mu, \hat \alpha, \hat \beta) = \underset{\tau, \mu, \alpha, \beta}{argmin} { \Sigma_{i=1}^N \Sigma_{t=1}^T (Y_{it} - \mu - \alpha_i - \beta_t - W_{it} \tau)^2}$$ {#eq-did-16}</span>
+<span id="cb56-593"><a href="#cb56-593" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-594"><a href="#cb56-594" aria-hidden="true" tabindex="-1"></a>SC objective function: $$ (\hat \tau^{sc}, \hat \mu, \hat \beta) = \underset{\tau, \mu, \beta}{argmin} { \Sigma_{i=1}^N \Sigma_{t=1}^T \hat \omega_i^{sc} (Y_{it} - \mu - \beta_t - W_{it} \tau)^2}$$ {#eq-did-17}</span>
+<span id="cb56-595"><a href="#cb56-595" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-596"><a href="#cb56-596" aria-hidden="true" tabindex="-1"></a>It's a unit-weighted regression with time effects. The weights are set to optimally match donor units to treated unit so that they are as close as possible, in each time point. Note there is no $\alpha_i$, since it's forced to be 0 — so SC is not simply DiD with weights: it also drops the unit fixed effects. The clean nesting is through SDiD below: DiD is SDiD with all unit and time weights set to 1, and SC is SDiD with the $\alpha_i$ removed and time weights set to 1.</span>
+<span id="cb56-597"><a href="#cb56-597" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-598"><a href="#cb56-598" aria-hidden="true" tabindex="-1"></a>SDiD:</span>
+<span id="cb56-599"><a href="#cb56-599" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-600"><a href="#cb56-600" aria-hidden="true" tabindex="-1"></a>$$ \small (\hat \tau^{sdid}, \hat \mu, \hat \alpha, \hat \beta) = \underset{\tau, \mu, \alpha, \beta}{argmin} { \Sigma_{i=1}^N \Sigma_{t=1}^T \hat \omega_i^{sdid} \hat \lambda_t^{sdid} (Y_{it} - \mu - \alpha_i - \beta_t - W_{it} \tau)^2}$$ {#eq-did-18}</span>
+<span id="cb56-601"><a href="#cb56-601" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-602"><a href="#cb56-602" aria-hidden="true" tabindex="-1"></a>SDiD sets another weight in addition to SC weights, which changes over time. The SC weights are trying to construct a control unit that is close to the treated unit; the SDiD weights are trying to put more weights on pre-treatment periods that are more similar to post-treatment periods.</span>
+<span id="cb56-603"><a href="#cb56-603" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-604"><a href="#cb56-604" aria-hidden="true" tabindex="-1"></a><span class="fu">### Example: California Proposition 99</span></span>
+<span id="cb56-605"><a href="#cb56-605" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-606"><a href="#cb56-606" aria-hidden="true" tabindex="-1"></a>The <span class="in">`california_prop99`</span> panel is annual per-capita cigarette sales in packs for</span>
+<span id="cb56-607"><a href="#cb56-607" aria-hidden="true" tabindex="-1"></a>39 US states from 1970 to 2000. California raised its cigarette tax in 1989, so</span>
+<span id="cb56-608"><a href="#cb56-608" aria-hidden="true" tabindex="-1"></a>there is one treated unit, 38 controls, 19 pre-treatment years and 12</span>
+<span id="cb56-609"><a href="#cb56-609" aria-hidden="true" tabindex="-1"></a>post-treatment years. The estimand is the effect of Proposition 99 on</span>
+<span id="cb56-610"><a href="#cb56-610" aria-hidden="true" tabindex="-1"></a>California's cigarette consumption.</span>
+<span id="cb56-611"><a href="#cb56-611" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-612"><a href="#cb56-612" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did13, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-613"><a href="#cb56-613" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(synthdid)</span>
+<span id="cb56-614"><a href="#cb56-614" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">'california_prop99'</span>)</span>
+<span id="cb56-615"><a href="#cb56-615" aria-hidden="true" tabindex="-1"></a>setup <span class="ot">=</span> <span class="fu">panel.matrices</span>(california_prop99)</span>
+<span id="cb56-616"><a href="#cb56-616" aria-hidden="true" tabindex="-1"></a>tau.hat <span class="ot">=</span> <span class="fu">synthdid_estimate</span>(setup<span class="sc">$</span>Y, setup<span class="sc">$</span>N0, setup<span class="sc">$</span>T0)</span>
+<span id="cb56-617"><a href="#cb56-617" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb56-618"><a href="#cb56-618" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-619"><a href="#cb56-619" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did14, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-620"><a href="#cb56-620" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(tau.hat)</span>
+<span id="cb56-621"><a href="#cb56-621" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb56-622"><a href="#cb56-622" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-623"><a href="#cb56-623" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did14b, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-624"><a href="#cb56-624" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">12345</span>)</span>
-<span id="cb56-625"><a href="#cb56-625" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"N0 = %d control states, T0 = %d pre-periods, N1 = %d treated unit</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb56-626"><a href="#cb56-626" aria-hidden="true" tabindex="-1"></a>            setup<span class="sc">$</span>N0, setup<span class="sc">$</span>T0, <span class="fu">nrow</span>(setup<span class="sc">$</span>Y) <span class="sc">-</span> setup<span class="sc">$</span>N0))</span>
-<span id="cb56-627"><a href="#cb56-627" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-628"><a href="#cb56-628" aria-hidden="true" tabindex="-1"></a>se_placebo <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">synthdid_se</span>(tau.hat, <span class="at">method =</span> <span class="st">"placebo"</span>))</span>
-<span id="cb56-629"><a href="#cb56-629" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"SDiD estimate %.2f, placebo SE %.2f, 95%% CI [%.2f, %.2f]</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb56-630"><a href="#cb56-630" aria-hidden="true" tabindex="-1"></a>            <span class="fu">as.numeric</span>(tau.hat), se_placebo,</span>
-<span id="cb56-631"><a href="#cb56-631" aria-hidden="true" tabindex="-1"></a>            <span class="fu">as.numeric</span>(tau.hat) <span class="sc">-</span> <span class="fl">1.96</span> <span class="sc">*</span> se_placebo,</span>
-<span id="cb56-632"><a href="#cb56-632" aria-hidden="true" tabindex="-1"></a>            <span class="fu">as.numeric</span>(tau.hat) <span class="sc">+</span> <span class="fl">1.96</span> <span class="sc">*</span> se_placebo))</span>
-<span id="cb56-633"><a href="#cb56-633" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-634"><a href="#cb56-634" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-635"><a href="#cb56-635" aria-hidden="true" tabindex="-1"></a>Two cautions on that interval. The placebo standard error is a permutation</span>
-<span id="cb56-636"><a href="#cb56-636" aria-hidden="true" tabindex="-1"></a>quantity, so it moves with the seed --- report the seed, or average over several.</span>
-<span id="cb56-637"><a href="#cb56-637" aria-hidden="true" tabindex="-1"></a>And it is justified under the assumption that the treated unit is exchangeable</span>
-<span id="cb56-638"><a href="#cb56-638" aria-hidden="true" tabindex="-1"></a>with the controls, which is a real assumption about California, not a technicality.</span>
-<span id="cb56-639"><a href="#cb56-639" aria-hidden="true" tabindex="-1"></a>The interval here comfortably includes zero, which is worth stating plainly: the</span>
-<span id="cb56-640"><a href="#cb56-640" aria-hidden="true" tabindex="-1"></a>much-cited $-15.6$ is not statistically distinguishable from no effect with 38</span>
-<span id="cb56-641"><a href="#cb56-641" aria-hidden="true" tabindex="-1"></a>control states and one treated unit. Note also that `summary(tau.hat,</span>
-<span id="cb56-642"><a href="#cb56-642" aria-hidden="true" tabindex="-1"></a>se.method = "placebo")<span class="in">` does *not* fix the `</span>NA<span class="in">` --- the `</span>se` field stays empty;</span>
-<span id="cb56-643"><a href="#cb56-643" aria-hidden="true" tabindex="-1"></a><span class="in">`synthdid_se()`</span> has to be called directly.</span>
-<span id="cb56-644"><a href="#cb56-644" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-645"><a href="#cb56-645" aria-hidden="true" tabindex="-1"></a>The summary output is also worth reading past the point estimate. The unit</span>
-<span id="cb56-646"><a href="#cb56-646" aria-hidden="true" tabindex="-1"></a>weights are concentrated: Nevada takes 0.124, New Hampshire 0.105, Connecticut</span>
-<span id="cb56-647"><a href="#cb56-647" aria-hidden="true" tabindex="-1"></a>0.078, and the effective number of controls is 16.4 out of 38. The time weights</span>
-<span id="cb56-648"><a href="#cb56-648" aria-hidden="true" tabindex="-1"></a>put 0.427 on 1988, 0.366 on 1986 and 0.206 on 1987, giving an effective 2.8</span>
-<span id="cb56-649"><a href="#cb56-649" aria-hidden="true" tabindex="-1"></a>pre-periods out of 19. Both are the point of the method --- weight the donors</span>
-<span id="cb56-650"><a href="#cb56-650" aria-hidden="true" tabindex="-1"></a>and the pre-periods that resemble the target --- and both are the reason the</span>
-<span id="cb56-651"><a href="#cb56-651" aria-hidden="true" tabindex="-1"></a>inference is hard.</span>
-<span id="cb56-652"><a href="#cb56-652" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-653"><a href="#cb56-653" aria-hidden="true" tabindex="-1"></a>Running the same panel through all three estimators shows what the weighting</span>
-<span id="cb56-654"><a href="#cb56-654" aria-hidden="true" tabindex="-1"></a>does:</span>
-<span id="cb56-655"><a href="#cb56-655" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-656"><a href="#cb56-656" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did15, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-657"><a href="#cb56-657" aria-hidden="true" tabindex="-1"></a>tau.sc   <span class="ot">=</span> <span class="fu">sc_estimate</span>(setup<span class="sc">$</span>Y, setup<span class="sc">$</span>N0, setup<span class="sc">$</span>T0)</span>
-<span id="cb56-658"><a href="#cb56-658" aria-hidden="true" tabindex="-1"></a>tau.did  <span class="ot">=</span> <span class="fu">did_estimate</span>(setup<span class="sc">$</span>Y, setup<span class="sc">$</span>N0, setup<span class="sc">$</span>T0)</span>
-<span id="cb56-659"><a href="#cb56-659" aria-hidden="true" tabindex="-1"></a>estimates <span class="ot">=</span> <span class="fu">list</span>(tau.did, tau.sc, tau.hat)</span>
-<span id="cb56-660"><a href="#cb56-660" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(estimates) <span class="ot">=</span> <span class="fu">c</span>(<span class="st">'Diff-in-Diff'</span>, <span class="st">'Synthetic Control'</span>, <span class="st">'Synthetic Diff-in-Diff'</span>)</span>
-<span id="cb56-661"><a href="#cb56-661" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">unlist</span>(estimates))</span>
-<span id="cb56-662"><a href="#cb56-662" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-663"><a href="#cb56-663" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-664"><a href="#cb56-664" aria-hidden="true" tabindex="-1"></a>Plain DiD gives $-27.35$, synthetic control $-19.62$, and synthetic DiD</span>
-<span id="cb56-665"><a href="#cb56-665" aria-hidden="true" tabindex="-1"></a>$-15.60$. The three differ by more than the placebo standard error of 8.37, so</span>
-<span id="cb56-666"><a href="#cb56-666" aria-hidden="true" tabindex="-1"></a>the choice of estimator matters more here than the sampling uncertainty within</span>
-<span id="cb56-667"><a href="#cb56-667" aria-hidden="true" tabindex="-1"></a>any one of them. DiD weights every control state and every pre-period equally,</span>
-<span id="cb56-668"><a href="#cb56-668" aria-hidden="true" tabindex="-1"></a>which is why it moves furthest: states unlike California, and pre-periods unlike</span>
-<span id="cb56-669"><a href="#cb56-669" aria-hidden="true" tabindex="-1"></a>the late 1980s, all count in full.</span>
-<span id="cb56-670"><a href="#cb56-670" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-671"><a href="#cb56-671" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did16, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-672"><a href="#cb56-672" aria-hidden="true" tabindex="-1"></a>plot <span class="ot">&lt;-</span> <span class="fu">synthdid_plot</span>(estimates, <span class="at">facet.vertical=</span><span class="cn">FALSE</span>,</span>
-<span id="cb56-673"><a href="#cb56-673" aria-hidden="true" tabindex="-1"></a>              <span class="at">control.name=</span><span class="st">'control'</span>, <span class="at">treated.name=</span><span class="st">'california'</span>,</span>
-<span id="cb56-674"><a href="#cb56-674" aria-hidden="true" tabindex="-1"></a>              <span class="at">lambda.comparable=</span><span class="cn">TRUE</span>, <span class="at">se.method =</span> <span class="st">'none'</span>,</span>
-<span id="cb56-675"><a href="#cb56-675" aria-hidden="true" tabindex="-1"></a>              <span class="at">trajectory.linetype =</span> <span class="dv">1</span>, <span class="at">line.width=</span>.<span class="dv">75</span>, <span class="at">effect.curvature=</span><span class="sc">-</span>.<span class="dv">4</span>,</span>
-<span id="cb56-676"><a href="#cb56-676" aria-hidden="true" tabindex="-1"></a>              <span class="at">trajectory.alpha=</span>.<span class="dv">7</span>, <span class="at">effect.alpha=</span>.<span class="dv">7</span>,</span>
-<span id="cb56-677"><a href="#cb56-677" aria-hidden="true" tabindex="-1"></a>              <span class="at">diagram.alpha=</span><span class="dv">1</span>, <span class="at">onset.alpha=</span>.<span class="dv">7</span>) <span class="sc">+</span></span>
-<span id="cb56-678"><a href="#cb56-678" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="fu">c</span>(.<span class="dv">26</span>,.<span class="dv">07</span>), <span class="at">legend.direction=</span><span class="st">'horizontal'</span>,</span>
-<span id="cb56-679"><a href="#cb56-679" aria-hidden="true" tabindex="-1"></a>          <span class="at">legend.key=</span><span class="fu">element_blank</span>(), <span class="at">legend.background=</span><span class="fu">element_blank</span>(),</span>
-<span id="cb56-680"><a href="#cb56-680" aria-hidden="true" tabindex="-1"></a>          <span class="at">strip.background=</span><span class="fu">element_blank</span>(), <span class="at">strip.text.x =</span> <span class="fu">element_blank</span>())</span>
-<span id="cb56-681"><a href="#cb56-681" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-682"><a href="#cb56-682" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-683"><a href="#cb56-683" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did17, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb56-684"><a href="#cb56-684" aria-hidden="true" tabindex="-1"></a>plot</span>
-<span id="cb56-685"><a href="#cb56-685" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb56-686"><a href="#cb56-686" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-687"><a href="#cb56-687" aria-hidden="true" tabindex="-1"></a>Each panel shows California's trajectory against the weighted control</span>
-<span id="cb56-688"><a href="#cb56-688" aria-hidden="true" tabindex="-1"></a>trajectory, with the estimated effect drawn as the gap after 1989. The time</span>
-<span id="cb56-689"><a href="#cb56-689" aria-hidden="true" tabindex="-1"></a>weights $\lambda_t$ are plotted along the bottom, so the pre-periods that</span>
-<span id="cb56-690"><a href="#cb56-690" aria-hidden="true" tabindex="-1"></a>actually enter the comparison are visible: for synthetic DiD they concentrate on</span>
-<span id="cb56-691"><a href="#cb56-691" aria-hidden="true" tabindex="-1"></a>1986 to 1988, the years just before the tax change. The synthetic control and</span>
-<span id="cb56-692"><a href="#cb56-692" aria-hidden="true" tabindex="-1"></a>synthetic DiD panels track California closely before 1989; the DiD panel does</span>
-<span id="cb56-693"><a href="#cb56-693" aria-hidden="true" tabindex="-1"></a>not, which is the visual counterpart to its larger estimate.</span>
+<span id="cb56-623"><a href="#cb56-623" aria-hidden="true" tabindex="-1"></a>The point estimate, $-15.6$, is the headline number from Arkhangelsky et al.</span>
+<span id="cb56-624"><a href="#cb56-624" aria-hidden="true" tabindex="-1"></a>(2021). Note that the <span class="in">`se`</span> entry comes back <span class="in">`NA`</span>, and that is not a glitch to</span>
+<span id="cb56-625"><a href="#cb56-625" aria-hidden="true" tabindex="-1"></a>skim past: <span class="in">`summary()`</span> defaults to a **jackknife** standard error, which deletes</span>
+<span id="cb56-626"><a href="#cb56-626" aria-hidden="true" tabindex="-1"></a>one treated unit at a time. California is the *only* treated unit here, so</span>
+<span id="cb56-627"><a href="#cb56-627" aria-hidden="true" tabindex="-1"></a>deleting it leaves nothing to estimate and the jackknife is undefined. The</span>
+<span id="cb56-628"><a href="#cb56-628" aria-hidden="true" tabindex="-1"></a>bootstrap SE fails for the same reason. With a single treated unit the usable</span>
+<span id="cb56-629"><a href="#cb56-629" aria-hidden="true" tabindex="-1"></a>option is the placebo method, which builds the reference distribution by</span>
+<span id="cb56-630"><a href="#cb56-630" aria-hidden="true" tabindex="-1"></a>pretending each control state was treated:</span>
+<span id="cb56-631"><a href="#cb56-631" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-632"><a href="#cb56-632" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did14b, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-633"><a href="#cb56-633" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">12345</span>)</span>
+<span id="cb56-634"><a href="#cb56-634" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"N0 = %d control states, T0 = %d pre-periods, N1 = %d treated unit</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb56-635"><a href="#cb56-635" aria-hidden="true" tabindex="-1"></a>            setup<span class="sc">$</span>N0, setup<span class="sc">$</span>T0, <span class="fu">nrow</span>(setup<span class="sc">$</span>Y) <span class="sc">-</span> setup<span class="sc">$</span>N0))</span>
+<span id="cb56-636"><a href="#cb56-636" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-637"><a href="#cb56-637" aria-hidden="true" tabindex="-1"></a>se_placebo <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">synthdid_se</span>(tau.hat, <span class="at">method =</span> <span class="st">"placebo"</span>))</span>
+<span id="cb56-638"><a href="#cb56-638" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"SDiD estimate %.2f, placebo SE %.2f, 95%% CI [%.2f, %.2f]</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb56-639"><a href="#cb56-639" aria-hidden="true" tabindex="-1"></a>            <span class="fu">as.numeric</span>(tau.hat), se_placebo,</span>
+<span id="cb56-640"><a href="#cb56-640" aria-hidden="true" tabindex="-1"></a>            <span class="fu">as.numeric</span>(tau.hat) <span class="sc">-</span> <span class="fl">1.96</span> <span class="sc">*</span> se_placebo,</span>
+<span id="cb56-641"><a href="#cb56-641" aria-hidden="true" tabindex="-1"></a>            <span class="fu">as.numeric</span>(tau.hat) <span class="sc">+</span> <span class="fl">1.96</span> <span class="sc">*</span> se_placebo))</span>
+<span id="cb56-642"><a href="#cb56-642" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb56-643"><a href="#cb56-643" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-644"><a href="#cb56-644" aria-hidden="true" tabindex="-1"></a>Two cautions on that interval. The placebo standard error is a permutation</span>
+<span id="cb56-645"><a href="#cb56-645" aria-hidden="true" tabindex="-1"></a>quantity, so it moves with the seed --- report the seed, or average over several.</span>
+<span id="cb56-646"><a href="#cb56-646" aria-hidden="true" tabindex="-1"></a>And it is justified under the assumption that the treated unit is exchangeable</span>
+<span id="cb56-647"><a href="#cb56-647" aria-hidden="true" tabindex="-1"></a>with the controls, which is a real assumption about California, not a technicality.</span>
+<span id="cb56-648"><a href="#cb56-648" aria-hidden="true" tabindex="-1"></a>The interval here comfortably includes zero, which is worth stating plainly: the</span>
+<span id="cb56-649"><a href="#cb56-649" aria-hidden="true" tabindex="-1"></a>much-cited $-15.6$ is not statistically distinguishable from no effect with 38</span>
+<span id="cb56-650"><a href="#cb56-650" aria-hidden="true" tabindex="-1"></a>control states and one treated unit. Note also that `summary(tau.hat,</span>
+<span id="cb56-651"><a href="#cb56-651" aria-hidden="true" tabindex="-1"></a>se.method = "placebo")<span class="in">` does *not* fix the `</span>NA<span class="in">` --- the `</span>se` field stays empty;</span>
+<span id="cb56-652"><a href="#cb56-652" aria-hidden="true" tabindex="-1"></a><span class="in">`synthdid_se()`</span> has to be called directly.</span>
+<span id="cb56-653"><a href="#cb56-653" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-654"><a href="#cb56-654" aria-hidden="true" tabindex="-1"></a>The summary output is also worth reading past the point estimate. The unit</span>
+<span id="cb56-655"><a href="#cb56-655" aria-hidden="true" tabindex="-1"></a>weights are concentrated: Nevada takes 0.124, New Hampshire 0.105, Connecticut</span>
+<span id="cb56-656"><a href="#cb56-656" aria-hidden="true" tabindex="-1"></a>0.078, and the effective number of controls is 16.4 out of 38. The time weights</span>
+<span id="cb56-657"><a href="#cb56-657" aria-hidden="true" tabindex="-1"></a>put 0.427 on 1988, 0.366 on 1986 and 0.206 on 1987, giving an effective 2.8</span>
+<span id="cb56-658"><a href="#cb56-658" aria-hidden="true" tabindex="-1"></a>pre-periods out of 19. Both are the point of the method --- weight the donors</span>
+<span id="cb56-659"><a href="#cb56-659" aria-hidden="true" tabindex="-1"></a>and the pre-periods that resemble the target --- and both are the reason the</span>
+<span id="cb56-660"><a href="#cb56-660" aria-hidden="true" tabindex="-1"></a>inference is hard.</span>
+<span id="cb56-661"><a href="#cb56-661" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-662"><a href="#cb56-662" aria-hidden="true" tabindex="-1"></a>Running the same panel through all three estimators shows what the weighting</span>
+<span id="cb56-663"><a href="#cb56-663" aria-hidden="true" tabindex="-1"></a>does:</span>
+<span id="cb56-664"><a href="#cb56-664" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-665"><a href="#cb56-665" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did15, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-666"><a href="#cb56-666" aria-hidden="true" tabindex="-1"></a>tau.sc   <span class="ot">=</span> <span class="fu">sc_estimate</span>(setup<span class="sc">$</span>Y, setup<span class="sc">$</span>N0, setup<span class="sc">$</span>T0)</span>
+<span id="cb56-667"><a href="#cb56-667" aria-hidden="true" tabindex="-1"></a>tau.did  <span class="ot">=</span> <span class="fu">did_estimate</span>(setup<span class="sc">$</span>Y, setup<span class="sc">$</span>N0, setup<span class="sc">$</span>T0)</span>
+<span id="cb56-668"><a href="#cb56-668" aria-hidden="true" tabindex="-1"></a>estimates <span class="ot">=</span> <span class="fu">list</span>(tau.did, tau.sc, tau.hat)</span>
+<span id="cb56-669"><a href="#cb56-669" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(estimates) <span class="ot">=</span> <span class="fu">c</span>(<span class="st">'Diff-in-Diff'</span>, <span class="st">'Synthetic Control'</span>, <span class="st">'Synthetic Diff-in-Diff'</span>)</span>
+<span id="cb56-670"><a href="#cb56-670" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">unlist</span>(estimates))</span>
+<span id="cb56-671"><a href="#cb56-671" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb56-672"><a href="#cb56-672" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-673"><a href="#cb56-673" aria-hidden="true" tabindex="-1"></a>Plain DiD gives $-27.35$, synthetic control $-19.62$, and synthetic DiD</span>
+<span id="cb56-674"><a href="#cb56-674" aria-hidden="true" tabindex="-1"></a>$-15.60$. The three differ by more than the placebo standard error of 8.37, so</span>
+<span id="cb56-675"><a href="#cb56-675" aria-hidden="true" tabindex="-1"></a>the choice of estimator matters more here than the sampling uncertainty within</span>
+<span id="cb56-676"><a href="#cb56-676" aria-hidden="true" tabindex="-1"></a>any one of them. DiD weights every control state and every pre-period equally,</span>
+<span id="cb56-677"><a href="#cb56-677" aria-hidden="true" tabindex="-1"></a>which is why it moves furthest: states unlike California, and pre-periods unlike</span>
+<span id="cb56-678"><a href="#cb56-678" aria-hidden="true" tabindex="-1"></a>the late 1980s, all count in full.</span>
+<span id="cb56-679"><a href="#cb56-679" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-680"><a href="#cb56-680" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did16, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-681"><a href="#cb56-681" aria-hidden="true" tabindex="-1"></a>plot <span class="ot">&lt;-</span> <span class="fu">synthdid_plot</span>(estimates, <span class="at">facet.vertical=</span><span class="cn">FALSE</span>,</span>
+<span id="cb56-682"><a href="#cb56-682" aria-hidden="true" tabindex="-1"></a>              <span class="at">control.name=</span><span class="st">'control'</span>, <span class="at">treated.name=</span><span class="st">'california'</span>,</span>
+<span id="cb56-683"><a href="#cb56-683" aria-hidden="true" tabindex="-1"></a>              <span class="at">lambda.comparable=</span><span class="cn">TRUE</span>, <span class="at">se.method =</span> <span class="st">'none'</span>,</span>
+<span id="cb56-684"><a href="#cb56-684" aria-hidden="true" tabindex="-1"></a>              <span class="at">trajectory.linetype =</span> <span class="dv">1</span>, <span class="at">line.width=</span>.<span class="dv">75</span>, <span class="at">effect.curvature=</span><span class="sc">-</span>.<span class="dv">4</span>,</span>
+<span id="cb56-685"><a href="#cb56-685" aria-hidden="true" tabindex="-1"></a>              <span class="at">trajectory.alpha=</span>.<span class="dv">7</span>, <span class="at">effect.alpha=</span>.<span class="dv">7</span>,</span>
+<span id="cb56-686"><a href="#cb56-686" aria-hidden="true" tabindex="-1"></a>              <span class="at">diagram.alpha=</span><span class="dv">1</span>, <span class="at">onset.alpha=</span>.<span class="dv">7</span>) <span class="sc">+</span></span>
+<span id="cb56-687"><a href="#cb56-687" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="fu">c</span>(.<span class="dv">26</span>,.<span class="dv">07</span>), <span class="at">legend.direction=</span><span class="st">'horizontal'</span>,</span>
+<span id="cb56-688"><a href="#cb56-688" aria-hidden="true" tabindex="-1"></a>          <span class="at">legend.key=</span><span class="fu">element_blank</span>(), <span class="at">legend.background=</span><span class="fu">element_blank</span>(),</span>
+<span id="cb56-689"><a href="#cb56-689" aria-hidden="true" tabindex="-1"></a>          <span class="at">strip.background=</span><span class="fu">element_blank</span>(), <span class="at">strip.text.x =</span> <span class="fu">element_blank</span>())</span>
+<span id="cb56-690"><a href="#cb56-690" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb56-691"><a href="#cb56-691" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-692"><a href="#cb56-692" aria-hidden="true" tabindex="-1"></a><span class="in">```{r did17, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb56-693"><a href="#cb56-693" aria-hidden="true" tabindex="-1"></a>plot</span>
+<span id="cb56-694"><a href="#cb56-694" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb56-695"><a href="#cb56-695" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-696"><a href="#cb56-696" aria-hidden="true" tabindex="-1"></a>Each panel shows California's trajectory against the weighted control</span>
+<span id="cb56-697"><a href="#cb56-697" aria-hidden="true" tabindex="-1"></a>trajectory, with the estimated effect drawn as the gap after 1989. The time</span>
+<span id="cb56-698"><a href="#cb56-698" aria-hidden="true" tabindex="-1"></a>weights $\lambda_t$ are plotted along the bottom, so the pre-periods that</span>
+<span id="cb56-699"><a href="#cb56-699" aria-hidden="true" tabindex="-1"></a>actually enter the comparison are visible: for synthetic DiD they concentrate on</span>
+<span id="cb56-700"><a href="#cb56-700" aria-hidden="true" tabindex="-1"></a>1986 to 1988, the years just before the tax change. The synthetic control and</span>
+<span id="cb56-701"><a href="#cb56-701" aria-hidden="true" tabindex="-1"></a>synthetic DiD panels track California closely before 1989; the DiD panel does</span>
+<span id="cb56-702"><a href="#cb56-702" aria-hidden="true" tabindex="-1"></a>not, which is the visual counterpart to its larger estimate.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

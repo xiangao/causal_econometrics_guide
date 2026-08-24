@@ -257,3 +257,82 @@ Search only inside `<div class="cell-output...">` blocks. Plain-text searches of
 rendered HTML also hit Quarto's echoed-source panel, which produced several false
 findings in earlier passes (e.g. matching a string that lives inside a chunk's own
 `tryCatch`).
+
+## Stylus-markup pass (2026-08-24)
+
+Source: `~/projects/claude/Introduction-to-Causal-Econometrics-with-Observati_260816_191744.pdf`
+— the rendered PDF with handwritten ink. Marks mean: cross = delete, underline or
+circle = unclear, handwriting = instruction.
+
+### Finding ink in a flattened PDF
+
+Tablet exports flatten stylus strokes into the page content stream, so there is no
+annotation object list to read. Locate the marks by rendering both the annotated
+file and the pristine `_book/` PDF at 100 dpi and diffing pixels per page; 31 of
+300 pages carried ink. Verify the two files share a base first (page count, page
+size, and `get_text()` equality on sample pages) or the diff is meaningless.
+Scripts: `../_review/` conventions; working copies were in the session scratchpad.
+
+### Content changes
+
+- Deleted: `causal-estimands.qmd` §"All five estimands on two plots" (whole section,
+  plus the now-unused `gridExtra` load); seven struck sentences across
+  `causal-estimands`, `graphs-identification-estimation`, `estimation`, `did`,
+  and the AIPW/IPWRA note in `identification.qmd`.
+- `matching.qmd`: new §"Matching, weighting, and direct estimation" answering how
+  matching/weighting relate to RA, IPW, AIPW. Two verified numerical facts anchor it:
+  hand-built odds weights equal `weightit(method="glm", estimand="ATT")` weights to
+  machine precision (5e-15), and the entropy-balancing ATT from a plain weighted
+  difference equals the `lm_weightit` fit *with* full treatment-covariate
+  interactions to 1e-9 (1273.2618) — exact mean balance annihilates the linear
+  regression-adjustment correction, i.e. Zhao-Percival double robustness as
+  arithmetic. Five routes on Lalonde: RA 1648, IPW 1214, ebal 1273, full matching
+  1855, AIPW 1231.
+- `nonparametric.qmd`: new §8.2.1 "Why the Plug-In Is Off" (`{#sec-plug-in-bias}`)
+  deriving the plug-in's linear nuisance term and the AIPW drift
+  `E[((π-π̂)/π̂)(μ-μ̂)]`. Cross-referenced from `continuous-treatments.qmd`.
+- `continuous-treatments.qmd`: GPS theory (weak unconfoundedness, balancing
+  property, why the score must be recomputed at each counterfactual dose, why the
+  GPS enters as a regressor not a weight — a density is not scale-free); Kennedy DR
+  theory (why a bandwidth appears at all: μ(d) at a point is not √n-estimable,
+  h ∝ n^{-1/5}, rate n^{-2/5}); new §"What LMTP identifies" (sequential
+  exchangeability, positivity on *shifted* values, the backward regression recursion).
+- `shift-share-iv.qmd`: rewrote the chapter opening to state the structural
+  regression and name the endogenous regressor. The old opening never said what was
+  endogenous.
+- `heterogeneous-effects.qmd`: BLP vs variable importance (population estimand with
+  units/sign/SE vs a property of the fitted forest); explicit answer to "how much
+  does ignoring the panel cost" — inference little (1.706→1.741), identification
+  everything (1.706 vs true 0.566).
+- `smoking-cessation-graphs.qmd`: rewrote the adjustment-equivalence paragraph with
+  the actual argument (the last baseline node on any back-door path has an arrow
+  into the outcome, so it is a conditioned non-collider).
+- `poisson-iv.qmd`: prose trimmed 39.2k → 33.8k chars, all 13 code chunks byte-identical
+  (verified by regex-extracting chunk bodies and comparing). Chapter 22 → 20 PDF pages.
+- Three blog_book cross-references added (extended-twfe, bartik-instrument, tmle).
+- New bib entries: `abadie-imbens-2011`, `abadie-imbens-2008`, `zhao-percival-2017`.
+
+### Layout fixes (all three were PDF-only)
+
+- **`\raggedbottom` in `latex-compat.tex`** — this was the single cause of both
+  "too much space" complaints. `scrbook` sets `\flushbottom`, so any short page
+  stretches the flexible glue around headings and lists into visible mid-page gaps.
+  Do not chase these as text problems.
+- **Mermaid overflow**: the flowchart in `identification.qmd` printed at native size
+  and ran off the right edge across two pages. Fix is `%%| fig-width: 6.5` *plus*
+  `%%{init: {'flowchart': {'diagramPadding': 30}}}%%` — fig-width alone still clips
+  the widest node, because mermaid's SVG viewBox is narrower than its content.
+- **sensemakr contour**: six benchmark labels overprinted into a blob. Fix is
+  `plot(sens, lim = 0.06, lim.y = 0.006, cex.label.text = 0.6)`; the caption was
+  also wrong (it described a shaded region and dashed benchmark lines that the plot
+  never had).
+- Manski bounds (eq. 5.1) overflowed the margin; split into a two-line `aligned`
+  lower/upper form. Removed `\boxed{}` from eq. 15.1 in `poisson-iv.qmd`.
+- `causal.effect()` returns a LaTeX *string*, so its printed output looks like
+  LaTeX source; the lead-in now says so.
+
+Rendered clean to both HTML and PDF (302 pages, was 300). Not committed.
+
+**Render note:** `quarto render --to html` cleans `_book/` and deletes a PDF built
+earlier (and vice versa). Render both formats in a single `quarto render` with no
+`--to`, or the book directory ends up holding only one format.

@@ -480,7 +480,7 @@ E[Y(a)] = E_X\{E(Y \mid A=a, X)\}.
 </section><section id="estimating-the-dag-effect-with-aipw" class="level2" data-number="3.3"><h2 data-number="3.3" class="anchored" data-anchor-id="estimating-the-dag-effect-with-aipw">
 <span class="header-section-number">3.3</span> Estimating the DAG Effect with AIPW</h2>
 <p>We simulate data that match this graph, so we can check whether an estimator built from the identified functional recovers an effect we already know.</p>
-<p>We draw <span class="math inline">\(n = 400\)</span> observations. The confounder is <span class="math inline">\(X \sim N(0,1)\)</span>. Treatment is <span class="math inline">\(A \sim \text{Bernoulli}(\Lambda(-0.2 + 0.8X))\)</span>, with <span class="math inline">\(\Lambda\)</span> the logistic function, so a higher <span class="math inline">\(X\)</span> makes treatment more likely. The outcome is <span class="math inline">\(Y = 1 + 1.5A + 0.7X + 0.3\varepsilon\)</span> with <span class="math inline">\(\varepsilon \sim N(0,1)\)</span>. The effect is constant across units, so the ACE is 1.5.</p>
+<p>We draw <span class="math inline">\(n = 400\)</span> observations. The confounder is <span class="math inline">\(X \sim N(0,1)\)</span>. Treatment is <span class="math inline">\(A \sim \text{Bernoulli}(\Lambda(-0.2 + 0.8X))\)</span>, with <span class="math inline">\(\Lambda\)</span> the logistic function, so a higher <span class="math inline">\(X\)</span> makes treatment more likely. The outcome is <span class="math inline">\(Y = 1 + 1.5A + 0.7X + 0.3\varepsilon\)</span> with <span class="math inline">\(\varepsilon \sim N(0,1)\)</span>. The effect is constant across units, so the ATE is 1.5.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">2026</span><span class="op">)</span></span>
 <span></span>
@@ -607,7 +607,7 @@ Figure&nbsp;3.2: Front-door ADMG: A and Y share an unobserved common cause (curv
 </div>
 </div>
 <p>There are none. No set of observed variables blocks the confounding, because the confounder is not observed.</p>
-<p>But the effect is still identified by the front-door criterion (Pearl, 1995). I call the Pearl-Shpitser ID algorithm in <code>causaleffect</code> to obtain the symbolic expression. The function wants the graph as an <code>igraph</code> object with bidirected edges encoded as two directed edges marked <code>description = "U"</code>:</p>
+<p>But the effect is still identified by the front-door criterion (Pearl, 1995). I call the Pearl-Shpitser ID algorithm in <code>causaleffect</code> to obtain the symbolic expression. The function wants the graph as an <code>igraph</code> object with bidirected edges encoded as two directed edges marked <code>description = "U"</code>. It returns the expression as a LaTeX string, so the printed line below is LaTeX source, not a typeset formula:</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">g_fd_ig</span> <span class="op">&lt;-</span> <span class="fu">graph_from_literal</span><span class="op">(</span><span class="va">A</span> <span class="op">-</span><span class="op">+</span> <span class="va">M</span>, <span class="va">M</span> <span class="op">-</span><span class="op">+</span> <span class="va">Y</span>, <span class="va">A</span> <span class="op">-</span><span class="op">+</span> <span class="va">Y</span>, <span class="va">Y</span> <span class="op">-</span><span class="op">+</span> <span class="va">A</span><span class="op">)</span></span>
 <span><span class="co"># Mark the A&lt;-&gt;Y bidirected edge (encoded as the two directed edges A-&gt;Y and</span></span>
@@ -749,11 +749,10 @@ g(c) = E_U\big[\Lambda(c + 0.7U)\big],
 </table>
 </div>
 </div>
-<p>The naive contrast is 0.1395, more than twice the true 0.0547. The front-door estimate is 0.0775 with a bootstrap standard error of 0.0189, and its 95% interval <span class="math inline">\([0.040, 0.115]\)</span> covers the truth. The confounding bias is removed; what is left is sampling noise, and the interval is wide relative to an effect of 0.05 because the formula estimates seven proportions from 400 binary observations.</p>
-<p>This is the practical advantage of separating identification from estimation. State the graph first. Then use the estimator that matches the identified functional.</p>
+<p>The naive contrast is 0.1395, more than twice the true 0.0547. The front-door estimate is 0.0775 with a bootstrap standard error of 0.0189, and its 95% interval <span class="math inline">\([0.040, 0.115]\)</span> covers the truth. The confounding bias is removed; what is left is sampling noise, and the interval is wide relative to an effect of 0.05 because the formula estimates seven proportions from 400 binary observations: <span class="math inline">\(P(A=1)\)</span>, the two mediator probabilities <span class="math inline">\(P(M=1 \mid A=a)\)</span>, and the four outcome probabilities <span class="math inline">\(P(Y=1 \mid A=a, M=m)\)</span>.</p>
 </section><section id="general-id-algorithm" class="level2" data-number="3.6"><h2 data-number="3.6" class="anchored" data-anchor-id="general-id-algorithm">
 <span class="header-section-number">3.6</span> General ID Algorithm</h2>
-<p>The named routes above are useful because they are easy to estimate: backdoor adjustment and the front-door formula. ADMGs can be more general. The Pearl-Shpitser ID algorithm asks the broader question:</p>
+<p>Backdoor adjustment and the front-door formula are useful because they are easy to estimate. ADMGs can be more general. The Pearl-Shpitser ID algorithm asks the broader question:</p>
 <pre class="text"><code>Can P(Y | do(A)) be written using only the observed joint law P(V)?</code></pre>
 <p>The algorithm works recursively:</p>
 <ol type="1">
@@ -807,7 +806,7 @@ Figure&nbsp;3.3: Bow ADMG: a direct edge A → Y plus a bidirected A ↔︎ Y. T
 <pre><code>[1] "Not identifiable: Not identifiable."</code></pre>
 </div>
 </div>
-<p><code>causaleffect</code> raises an error message indicating the effect is not identifiable. This is a useful failure mode. If the graph does not justify the causal effect, the estimator should not manufacture one.</p>
+<p><code>causaleffect</code> raises an error message indicating the effect is not identifiable.</p>
 </section><section id="practical-workflow" class="level2" data-number="3.8"><h2 data-number="3.8" class="anchored" data-anchor-id="practical-workflow">
 <span class="header-section-number">3.8</span> Practical Workflow</h2>
 <p>For applied work, a useful workflow is:</p>
@@ -1363,7 +1362,7 @@ Figure&nbsp;3.3: Bow ADMG: a direct edge A → Y plus a bidirected A ↔︎ Y. T
 <span id="cb22-85"><a href="#cb22-85" aria-hidden="true" tabindex="-1"></a>$A \sim \text{Bernoulli}(\Lambda(-0.2 + 0.8X))$, with $\Lambda$ the logistic</span>
 <span id="cb22-86"><a href="#cb22-86" aria-hidden="true" tabindex="-1"></a>function, so a higher $X$ makes treatment more likely. The outcome is</span>
 <span id="cb22-87"><a href="#cb22-87" aria-hidden="true" tabindex="-1"></a>$Y = 1 + 1.5A + 0.7X + 0.3\varepsilon$ with $\varepsilon \sim N(0,1)$. The</span>
-<span id="cb22-88"><a href="#cb22-88" aria-hidden="true" tabindex="-1"></a>effect is constant across units, so the ACE is 1.5.</span>
+<span id="cb22-88"><a href="#cb22-88" aria-hidden="true" tabindex="-1"></a>effect is constant across units, so the ATE is 1.5.</span>
 <span id="cb22-89"><a href="#cb22-89" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-92"><a href="#cb22-92" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
 <span id="cb22-93"><a href="#cb22-93" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
@@ -1474,7 +1473,7 @@ Figure&nbsp;3.3: Bow ADMG: a direct edge A → Y plus a bidirected A ↔︎ Y. T
 <span id="cb22-206"><a href="#cb22-206" aria-hidden="true" tabindex="-1"></a>There are none. No set of observed variables blocks the confounding, because</span>
 <span id="cb22-207"><a href="#cb22-207" aria-hidden="true" tabindex="-1"></a>the confounder is not observed.</span>
 <span id="cb22-208"><a href="#cb22-208" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-209"><a href="#cb22-209" aria-hidden="true" tabindex="-1"></a>But the effect is still identified by the front-door criterion (Pearl, 1995). I call the Pearl-Shpitser ID algorithm in <span class="in">`causaleffect`</span> to obtain the symbolic expression. The function wants the graph as an <span class="in">`igraph`</span> object with bidirected edges encoded as two directed edges marked <span class="in">`description = "U"`</span>:</span>
+<span id="cb22-209"><a href="#cb22-209" aria-hidden="true" tabindex="-1"></a>But the effect is still identified by the front-door criterion (Pearl, 1995). I call the Pearl-Shpitser ID algorithm in <span class="in">`causaleffect`</span> to obtain the symbolic expression. The function wants the graph as an <span class="in">`igraph`</span> object with bidirected edges encoded as two directed edges marked <span class="in">`description = "U"`</span>. It returns the expression as a LaTeX string, so the printed line below is LaTeX source, not a typeset formula:</span>
 <span id="cb22-210"><a href="#cb22-210" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-213"><a href="#cb22-213" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
 <span id="cb22-214"><a href="#cb22-214" aria-hidden="true" tabindex="-1"></a>g_fd_ig <span class="ot">&lt;-</span> <span class="fu">graph_from_literal</span>(A <span class="sc">-+</span> M, M <span class="sc">-+</span> Y, A <span class="sc">-+</span> Y, Y <span class="sc">-+</span> A)</span>
@@ -1599,78 +1598,77 @@ Figure&nbsp;3.3: Bow ADMG: a direct edge A → Y plus a bidirected A ↔︎ Y. T
 <span id="cb22-337"><a href="#cb22-337" aria-hidden="true" tabindex="-1"></a>interval $<span class="co">[</span><span class="ot">0.040, 0.115</span><span class="co">]</span>$ covers the truth. The confounding bias is removed;</span>
 <span id="cb22-338"><a href="#cb22-338" aria-hidden="true" tabindex="-1"></a>what is left is sampling noise, and the interval is wide relative to an effect</span>
 <span id="cb22-339"><a href="#cb22-339" aria-hidden="true" tabindex="-1"></a>of 0.05 because the formula estimates seven proportions from 400 binary</span>
-<span id="cb22-340"><a href="#cb22-340" aria-hidden="true" tabindex="-1"></a>observations.</span>
-<span id="cb22-341"><a href="#cb22-341" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-342"><a href="#cb22-342" aria-hidden="true" tabindex="-1"></a>This is the practical advantage of separating identification from estimation. State the graph first. Then use the estimator that matches the identified functional.</span>
-<span id="cb22-343"><a href="#cb22-343" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-344"><a href="#cb22-344" aria-hidden="true" tabindex="-1"></a><span class="fu">## General ID Algorithm</span></span>
-<span id="cb22-345"><a href="#cb22-345" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-346"><a href="#cb22-346" aria-hidden="true" tabindex="-1"></a>The named routes above are useful because they are easy to estimate: backdoor adjustment and the front-door formula. ADMGs can be more general. The Pearl-Shpitser ID algorithm asks the broader question:</span>
-<span id="cb22-347"><a href="#cb22-347" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-348"><a href="#cb22-348" aria-hidden="true" tabindex="-1"></a><span class="in">```text</span></span>
-<span id="cb22-349"><a href="#cb22-349" aria-hidden="true" tabindex="-1"></a><span class="in">Can P(Y | do(A)) be written using only the observed joint law P(V)?</span></span>
-<span id="cb22-350"><a href="#cb22-350" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb22-351"><a href="#cb22-351" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-352"><a href="#cb22-352" aria-hidden="true" tabindex="-1"></a>The algorithm works recursively:</span>
-<span id="cb22-353"><a href="#cb22-353" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-354"><a href="#cb22-354" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>remove variables that are not ancestors of the outcome;</span>
-<span id="cb22-355"><a href="#cb22-355" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>add interventions that are irrelevant after graph surgery;</span>
-<span id="cb22-356"><a href="#cb22-356" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>split the remaining graph into bidirected districts;</span>
-<span id="cb22-357"><a href="#cb22-357" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>identify each district as a factor of the observed law, if possible;</span>
-<span id="cb22-358"><a href="#cb22-358" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>return a hedge witness when no such reduction is possible.</span>
-<span id="cb22-359"><a href="#cb22-359" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-360"><a href="#cb22-360" aria-hidden="true" tabindex="-1"></a>For the front-door graph, the general ID algorithm succeeds and returns the same front-door formula we obtained above. For more complex ADMGs it may yield novel functionals that no named estimator covers — this is where the plug-in approach is essential.</span>
-<span id="cb22-361"><a href="#cb22-361" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-362"><a href="#cb22-362" aria-hidden="true" tabindex="-1"></a><span class="fu">## When the Graph Says No</span></span>
-<span id="cb22-363"><a href="#cb22-363" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-364"><a href="#cb22-364" aria-hidden="true" tabindex="-1"></a>The **bow graph** has both a direct causal edge and unobserved confounding between the same two variables:</span>
-<span id="cb22-365"><a href="#cb22-365" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-368"><a href="#cb22-368" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb22-369"><a href="#cb22-369" aria-hidden="true" tabindex="-1"></a>g_bow <span class="ot">&lt;-</span> <span class="fu">dagitty</span>(<span class="st">"dag {</span></span>
-<span id="cb22-370"><a href="#cb22-370" aria-hidden="true" tabindex="-1"></a><span class="st">  A -&gt; Y</span></span>
-<span id="cb22-371"><a href="#cb22-371" aria-hidden="true" tabindex="-1"></a><span class="st">  A &lt;-&gt; Y</span></span>
-<span id="cb22-372"><a href="#cb22-372" aria-hidden="true" tabindex="-1"></a><span class="st">}"</span>)</span>
-<span id="cb22-373"><a href="#cb22-373" aria-hidden="true" tabindex="-1"></a><span class="fu">coordinates</span>(g_bow) <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb22-374"><a href="#cb22-374" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> <span class="fu">c</span>(<span class="at">A =</span> <span class="dv">0</span>, <span class="at">Y =</span> <span class="dv">1</span>),</span>
-<span id="cb22-375"><a href="#cb22-375" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> <span class="fu">c</span>(<span class="at">A =</span> <span class="dv">0</span>, <span class="at">Y =</span> <span class="dv">0</span>)</span>
-<span id="cb22-376"><a href="#cb22-376" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb22-377"><a href="#cb22-377" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb22-378"><a href="#cb22-378" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-381"><a href="#cb22-381" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb22-382"><a href="#cb22-382" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-bow</span></span>
-<span id="cb22-383"><a href="#cb22-383" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Bow ADMG: a direct edge A → Y plus a bidirected A ↔ Y. The effect is not identified."</span></span>
-<span id="cb22-384"><a href="#cb22-384" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 4</span></span>
-<span id="cb22-385"><a href="#cb22-385" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 2.5</span></span>
-<span id="cb22-386"><a href="#cb22-386" aria-hidden="true" tabindex="-1"></a><span class="fu">ggdag</span>(g_bow) <span class="sc">+</span> <span class="fu">theme_dag_blank</span>()</span>
-<span id="cb22-387"><a href="#cb22-387" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb22-388"><a href="#cb22-388" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-389"><a href="#cb22-389" aria-hidden="true" tabindex="-1"></a>The effect of <span class="in">`A`</span> on <span class="in">`Y`</span> is not identified in this ADMG. The observed association mixes the direct causal effect with the latent common cause.</span>
-<span id="cb22-390"><a href="#cb22-390" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-393"><a href="#cb22-393" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb22-394"><a href="#cb22-394" aria-hidden="true" tabindex="-1"></a>g_bow_ig <span class="ot">&lt;-</span> <span class="fu">graph_from_literal</span>(A <span class="sc">-+</span> Y, Y <span class="sc">-+</span> A)</span>
-<span id="cb22-395"><a href="#cb22-395" aria-hidden="true" tabindex="-1"></a>g_bow_ig <span class="ot">&lt;-</span> <span class="fu">set_edge_attr</span>(g_bow_ig, <span class="st">"description"</span>,</span>
-<span id="cb22-396"><a href="#cb22-396" aria-hidden="true" tabindex="-1"></a>                          <span class="at">index =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), <span class="at">value =</span> <span class="st">"U"</span>)</span>
-<span id="cb22-397"><a href="#cb22-397" aria-hidden="true" tabindex="-1"></a>g_bow_ig <span class="ot">&lt;-</span> <span class="fu">add_edges</span>(g_bow_ig, <span class="fu">c</span>(<span class="st">"A"</span>, <span class="st">"Y"</span>))   <span class="co"># add the direct A -&gt; Y</span></span>
-<span id="cb22-398"><a href="#cb22-398" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-399"><a href="#cb22-399" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(</span>
-<span id="cb22-400"><a href="#cb22-400" aria-hidden="true" tabindex="-1"></a>  <span class="fu">causal.effect</span>(<span class="at">y =</span> <span class="st">"Y"</span>, <span class="at">x =</span> <span class="st">"A"</span>, <span class="at">G =</span> g_bow_ig, <span class="at">simp =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb22-401"><a href="#cb22-401" aria-hidden="true" tabindex="-1"></a>  <span class="at">error =</span> <span class="cf">function</span>(e) <span class="fu">paste</span>(<span class="st">"Not identifiable:"</span>, <span class="fu">conditionMessage</span>(e))</span>
-<span id="cb22-402"><a href="#cb22-402" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb22-403"><a href="#cb22-403" aria-hidden="true" tabindex="-1"></a>result</span>
-<span id="cb22-404"><a href="#cb22-404" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb22-405"><a href="#cb22-405" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-406"><a href="#cb22-406" aria-hidden="true" tabindex="-1"></a><span class="in">`causaleffect`</span> raises an error message indicating the effect is not identifiable. This is a useful failure mode. If the graph does not justify the causal effect, the estimator should not manufacture one.</span>
-<span id="cb22-407"><a href="#cb22-407" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-408"><a href="#cb22-408" aria-hidden="true" tabindex="-1"></a><span class="fu">## Practical Workflow</span></span>
-<span id="cb22-409"><a href="#cb22-409" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-410"><a href="#cb22-410" aria-hidden="true" tabindex="-1"></a>For applied work, a useful workflow is:</span>
-<span id="cb22-411"><a href="#cb22-411" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-412"><a href="#cb22-412" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>write the graph before looking at estimates;</span>
-<span id="cb22-413"><a href="#cb22-413" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>use bidirected edges for latent common causes;</span>
-<span id="cb22-414"><a href="#cb22-414" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>ask <span class="in">`dagitty::adjustmentSets(graph, exposure, outcome)`</span> — if non-empty, you have a backdoor route;</span>
-<span id="cb22-415"><a href="#cb22-415" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>if no adjustment set exists, call <span class="in">`causaleffect::causal.effect(y, x, G)`</span> — if it returns an expression, the effect is identified by a more general route; if it errors, the effect is not identified in this ADMG;</span>
-<span id="cb22-416"><a href="#cb22-416" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>estimate using AIPW for backdoor effects, the front-door formula when the algorithm returns that pattern, or a plug-in evaluation of the symbolic expression for general ID functionals;</span>
-<span id="cb22-417"><a href="#cb22-417" aria-hidden="true" tabindex="-1"></a><span class="ss">6. </span>report the graph and the identification route along with the estimate.</span>
+<span id="cb22-340"><a href="#cb22-340" aria-hidden="true" tabindex="-1"></a>observations: $P(A=1)$, the two mediator probabilities $P(M=1 \mid A=a)$, and</span>
+<span id="cb22-341"><a href="#cb22-341" aria-hidden="true" tabindex="-1"></a>the four outcome probabilities $P(Y=1 \mid A=a, M=m)$.</span>
+<span id="cb22-342"><a href="#cb22-342" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-343"><a href="#cb22-343" aria-hidden="true" tabindex="-1"></a><span class="fu">## General ID Algorithm</span></span>
+<span id="cb22-344"><a href="#cb22-344" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-345"><a href="#cb22-345" aria-hidden="true" tabindex="-1"></a>Backdoor adjustment and the front-door formula are useful because they are easy to estimate. ADMGs can be more general. The Pearl-Shpitser ID algorithm asks the broader question:</span>
+<span id="cb22-346"><a href="#cb22-346" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-347"><a href="#cb22-347" aria-hidden="true" tabindex="-1"></a><span class="in">```text</span></span>
+<span id="cb22-348"><a href="#cb22-348" aria-hidden="true" tabindex="-1"></a><span class="in">Can P(Y | do(A)) be written using only the observed joint law P(V)?</span></span>
+<span id="cb22-349"><a href="#cb22-349" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-350"><a href="#cb22-350" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-351"><a href="#cb22-351" aria-hidden="true" tabindex="-1"></a>The algorithm works recursively:</span>
+<span id="cb22-352"><a href="#cb22-352" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-353"><a href="#cb22-353" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>remove variables that are not ancestors of the outcome;</span>
+<span id="cb22-354"><a href="#cb22-354" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>add interventions that are irrelevant after graph surgery;</span>
+<span id="cb22-355"><a href="#cb22-355" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>split the remaining graph into bidirected districts;</span>
+<span id="cb22-356"><a href="#cb22-356" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>identify each district as a factor of the observed law, if possible;</span>
+<span id="cb22-357"><a href="#cb22-357" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>return a hedge witness when no such reduction is possible.</span>
+<span id="cb22-358"><a href="#cb22-358" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-359"><a href="#cb22-359" aria-hidden="true" tabindex="-1"></a>For the front-door graph, the general ID algorithm succeeds and returns the same front-door formula we obtained above. For more complex ADMGs it may yield novel functionals that no named estimator covers — this is where the plug-in approach is essential.</span>
+<span id="cb22-360"><a href="#cb22-360" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-361"><a href="#cb22-361" aria-hidden="true" tabindex="-1"></a><span class="fu">## When the Graph Says No</span></span>
+<span id="cb22-362"><a href="#cb22-362" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-363"><a href="#cb22-363" aria-hidden="true" tabindex="-1"></a>The **bow graph** has both a direct causal edge and unobserved confounding between the same two variables:</span>
+<span id="cb22-364"><a href="#cb22-364" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-367"><a href="#cb22-367" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb22-368"><a href="#cb22-368" aria-hidden="true" tabindex="-1"></a>g_bow <span class="ot">&lt;-</span> <span class="fu">dagitty</span>(<span class="st">"dag {</span></span>
+<span id="cb22-369"><a href="#cb22-369" aria-hidden="true" tabindex="-1"></a><span class="st">  A -&gt; Y</span></span>
+<span id="cb22-370"><a href="#cb22-370" aria-hidden="true" tabindex="-1"></a><span class="st">  A &lt;-&gt; Y</span></span>
+<span id="cb22-371"><a href="#cb22-371" aria-hidden="true" tabindex="-1"></a><span class="st">}"</span>)</span>
+<span id="cb22-372"><a href="#cb22-372" aria-hidden="true" tabindex="-1"></a><span class="fu">coordinates</span>(g_bow) <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb22-373"><a href="#cb22-373" aria-hidden="true" tabindex="-1"></a>  <span class="at">x =</span> <span class="fu">c</span>(<span class="at">A =</span> <span class="dv">0</span>, <span class="at">Y =</span> <span class="dv">1</span>),</span>
+<span id="cb22-374"><a href="#cb22-374" aria-hidden="true" tabindex="-1"></a>  <span class="at">y =</span> <span class="fu">c</span>(<span class="at">A =</span> <span class="dv">0</span>, <span class="at">Y =</span> <span class="dv">0</span>)</span>
+<span id="cb22-375"><a href="#cb22-375" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-376"><a href="#cb22-376" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-377"><a href="#cb22-377" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-380"><a href="#cb22-380" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb22-381"><a href="#cb22-381" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-bow</span></span>
+<span id="cb22-382"><a href="#cb22-382" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Bow ADMG: a direct edge A → Y plus a bidirected A ↔ Y. The effect is not identified."</span></span>
+<span id="cb22-383"><a href="#cb22-383" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 4</span></span>
+<span id="cb22-384"><a href="#cb22-384" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 2.5</span></span>
+<span id="cb22-385"><a href="#cb22-385" aria-hidden="true" tabindex="-1"></a><span class="fu">ggdag</span>(g_bow) <span class="sc">+</span> <span class="fu">theme_dag_blank</span>()</span>
+<span id="cb22-386"><a href="#cb22-386" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-387"><a href="#cb22-387" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-388"><a href="#cb22-388" aria-hidden="true" tabindex="-1"></a>The effect of <span class="in">`A`</span> on <span class="in">`Y`</span> is not identified in this ADMG. The observed association mixes the direct causal effect with the latent common cause.</span>
+<span id="cb22-389"><a href="#cb22-389" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-392"><a href="#cb22-392" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb22-393"><a href="#cb22-393" aria-hidden="true" tabindex="-1"></a>g_bow_ig <span class="ot">&lt;-</span> <span class="fu">graph_from_literal</span>(A <span class="sc">-+</span> Y, Y <span class="sc">-+</span> A)</span>
+<span id="cb22-394"><a href="#cb22-394" aria-hidden="true" tabindex="-1"></a>g_bow_ig <span class="ot">&lt;-</span> <span class="fu">set_edge_attr</span>(g_bow_ig, <span class="st">"description"</span>,</span>
+<span id="cb22-395"><a href="#cb22-395" aria-hidden="true" tabindex="-1"></a>                          <span class="at">index =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), <span class="at">value =</span> <span class="st">"U"</span>)</span>
+<span id="cb22-396"><a href="#cb22-396" aria-hidden="true" tabindex="-1"></a>g_bow_ig <span class="ot">&lt;-</span> <span class="fu">add_edges</span>(g_bow_ig, <span class="fu">c</span>(<span class="st">"A"</span>, <span class="st">"Y"</span>))   <span class="co"># add the direct A -&gt; Y</span></span>
+<span id="cb22-397"><a href="#cb22-397" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-398"><a href="#cb22-398" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(</span>
+<span id="cb22-399"><a href="#cb22-399" aria-hidden="true" tabindex="-1"></a>  <span class="fu">causal.effect</span>(<span class="at">y =</span> <span class="st">"Y"</span>, <span class="at">x =</span> <span class="st">"A"</span>, <span class="at">G =</span> g_bow_ig, <span class="at">simp =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb22-400"><a href="#cb22-400" aria-hidden="true" tabindex="-1"></a>  <span class="at">error =</span> <span class="cf">function</span>(e) <span class="fu">paste</span>(<span class="st">"Not identifiable:"</span>, <span class="fu">conditionMessage</span>(e))</span>
+<span id="cb22-401"><a href="#cb22-401" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-402"><a href="#cb22-402" aria-hidden="true" tabindex="-1"></a>result</span>
+<span id="cb22-403"><a href="#cb22-403" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb22-404"><a href="#cb22-404" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-405"><a href="#cb22-405" aria-hidden="true" tabindex="-1"></a><span class="in">`causaleffect`</span> raises an error message indicating the effect is not identifiable.</span>
+<span id="cb22-406"><a href="#cb22-406" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-407"><a href="#cb22-407" aria-hidden="true" tabindex="-1"></a><span class="fu">## Practical Workflow</span></span>
+<span id="cb22-408"><a href="#cb22-408" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-409"><a href="#cb22-409" aria-hidden="true" tabindex="-1"></a>For applied work, a useful workflow is:</span>
+<span id="cb22-410"><a href="#cb22-410" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-411"><a href="#cb22-411" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>write the graph before looking at estimates;</span>
+<span id="cb22-412"><a href="#cb22-412" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>use bidirected edges for latent common causes;</span>
+<span id="cb22-413"><a href="#cb22-413" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>ask <span class="in">`dagitty::adjustmentSets(graph, exposure, outcome)`</span> — if non-empty, you have a backdoor route;</span>
+<span id="cb22-414"><a href="#cb22-414" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>if no adjustment set exists, call <span class="in">`causaleffect::causal.effect(y, x, G)`</span> — if it returns an expression, the effect is identified by a more general route; if it errors, the effect is not identified in this ADMG;</span>
+<span id="cb22-415"><a href="#cb22-415" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>estimate using AIPW for backdoor effects, the front-door formula when the algorithm returns that pattern, or a plug-in evaluation of the symbolic expression for general ID functionals;</span>
+<span id="cb22-416"><a href="#cb22-416" aria-hidden="true" tabindex="-1"></a><span class="ss">6. </span>report the graph and the identification route along with the estimate.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

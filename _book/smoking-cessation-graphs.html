@@ -713,7 +713,7 @@ E[Y(a)] = E_X\{E(Y \mid A=a, X)\}.
 <pre><code>Number of sufficient adjustment sets: 0 </code></pre>
 </div>
 </div>
-<p>The count is zero. One edge changes the identifying conclusion: under this graph the observed NHEFS variables are not enough to identify the effect, and no adjustment set exists. The data are the same as in the previous section, and the 3.29 kg is still computable, but nothing licenses reading it as a causal effect. This is why the graph has to come before the estimator.</p>
+<p>The count is zero. One edge changes the identifying conclusion: under this graph the observed NHEFS variables are not enough to identify the effect, and no adjustment set exists. The data are the same as in the previous section, and the 3.29 kg is still computable, but nothing in this graph justifies reading it as a causal effect. This is why the graph has to come before the estimator.</p>
 </section><section id="structured-baseline-graph" class="level2" data-number="4.6"><h2 data-number="4.6" class="anchored" data-anchor-id="structured-baseline-graph">
 <span class="header-section-number">4.6</span> Structured Baseline Graph</h2>
 <p>The simple adjustment graph is often the clearest starting point. A more detailed DAG can record baseline ordering: demographics may precede education, smoking history, activity, and baseline weight; those variables may then affect quitting and later weight change. We write that graph out, ask for its minimal adjustment set, and check whether the set equals the full baseline we used before.</p>
@@ -784,7 +784,8 @@ E[Y(a)] = E_X\{E(Y \mid A=a, X)\}.
 </table>
 </div>
 </div>
-<p>The check returns <code>TRUE</code>. For this treatment effect the detailed baseline DAG is adjustment-equivalent to the simpler expanded DAG: same sufficient adjustment set, same identifying functional, and therefore the same 3.29 kg estimate. The extra arrows among baseline variables may be useful for documentation, but they are also extra causal assumptions. If those assumptions are not needed for the estimand, the grouped adjustment graph is usually easier to defend.</p>
+<p>The check returns <code>TRUE</code>, and the reason is worth spelling out, because it is not an accident of this data set. Every arrow we added runs between baseline variables, and every baseline variable is pre-treatment and in the adjustment set. A back-door path from <code>qsmk</code> to <code>wt82_71</code> has to leave <code>qsmk</code> through an incoming arrow, travel among the baseline variables, and then enter <code>wt82_71</code> from one of them. That last baseline variable has an arrow pointing into the outcome, so on this path it is a non-collider, and we are conditioning on it. The path is blocked whatever the arrows upstream of it look like. The minimal sufficient set is therefore still the full baseline, the identifying functional is unchanged, and the estimate is still 3.29 kg.</p>
+<p>That does not make the detail useless. It records what we believe about the baseline ordering, which a reader may want to see. But each arrow is a causal assumption that can be wrong, and here none of them buys anything for this estimand. The grouped adjustment graph asserts less and identifies the same thing.</p>
 
 
 <!-- -->
@@ -1460,7 +1461,7 @@ E[Y(a)] = E_X\{E(Y \mid A=a, X)\}.
 <span id="cb18-226"><a href="#cb18-226" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Number of sufficient adjustment sets:"</span>, <span class="fu">length</span>(sens_adj), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
 <span id="cb18-227"><a href="#cb18-227" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb18-228"><a href="#cb18-228" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-229"><a href="#cb18-229" aria-hidden="true" tabindex="-1"></a>The count is zero. One edge changes the identifying conclusion: under this graph the observed NHEFS variables are not enough to identify the effect, and no adjustment set exists. The data are the same as in the previous section, and the 3.29 kg is still computable, but nothing licenses reading it as a causal effect. This is why the graph has to come before the estimator.</span>
+<span id="cb18-229"><a href="#cb18-229" aria-hidden="true" tabindex="-1"></a>The count is zero. One edge changes the identifying conclusion: under this graph the observed NHEFS variables are not enough to identify the effect, and no adjustment set exists. The data are the same as in the previous section, and the 3.29 kg is still computable, but nothing in this graph justifies reading it as a causal effect. This is why the graph has to come before the estimator.</span>
 <span id="cb18-230"><a href="#cb18-230" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb18-231"><a href="#cb18-231" aria-hidden="true" tabindex="-1"></a><span class="fu">## Structured Baseline Graph</span></span>
 <span id="cb18-232"><a href="#cb18-232" aria-hidden="true" tabindex="-1"></a></span>
@@ -1520,7 +1521,22 @@ E[Y(a)] = E_X\{E(Y \mid A=a, X)\}.
 <span id="cb18-288"><a href="#cb18-288" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span> <span class="fu">kable</span>()</span>
 <span id="cb18-289"><a href="#cb18-289" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb18-290"><a href="#cb18-290" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-291"><a href="#cb18-291" aria-hidden="true" tabindex="-1"></a>The check returns <span class="in">`TRUE`</span>. For this treatment effect the detailed baseline DAG is adjustment-equivalent to the simpler expanded DAG: same sufficient adjustment set, same identifying functional, and therefore the same 3.29 kg estimate. The extra arrows among baseline variables may be useful for documentation, but they are also extra causal assumptions. If those assumptions are not needed for the estimand, the grouped adjustment graph is usually easier to defend.</span>
+<span id="cb18-291"><a href="#cb18-291" aria-hidden="true" tabindex="-1"></a>The check returns <span class="in">`TRUE`</span>, and the reason is worth spelling out, because it is</span>
+<span id="cb18-292"><a href="#cb18-292" aria-hidden="true" tabindex="-1"></a>not an accident of this data set. Every arrow we added runs between baseline</span>
+<span id="cb18-293"><a href="#cb18-293" aria-hidden="true" tabindex="-1"></a>variables, and every baseline variable is pre-treatment and in the adjustment</span>
+<span id="cb18-294"><a href="#cb18-294" aria-hidden="true" tabindex="-1"></a>set. A back-door path from <span class="in">`qsmk`</span> to <span class="in">`wt82_71`</span> has to leave <span class="in">`qsmk`</span> through an</span>
+<span id="cb18-295"><a href="#cb18-295" aria-hidden="true" tabindex="-1"></a>incoming arrow, travel among the baseline variables, and then enter <span class="in">`wt82_71`</span></span>
+<span id="cb18-296"><a href="#cb18-296" aria-hidden="true" tabindex="-1"></a>from one of them. That last baseline variable has an arrow pointing into the</span>
+<span id="cb18-297"><a href="#cb18-297" aria-hidden="true" tabindex="-1"></a>outcome, so on this path it is a non-collider, and we are conditioning on it.</span>
+<span id="cb18-298"><a href="#cb18-298" aria-hidden="true" tabindex="-1"></a>The path is blocked whatever the arrows upstream of it look like. The minimal</span>
+<span id="cb18-299"><a href="#cb18-299" aria-hidden="true" tabindex="-1"></a>sufficient set is therefore still the full baseline, the identifying functional</span>
+<span id="cb18-300"><a href="#cb18-300" aria-hidden="true" tabindex="-1"></a>is unchanged, and the estimate is still 3.29 kg.</span>
+<span id="cb18-301"><a href="#cb18-301" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-302"><a href="#cb18-302" aria-hidden="true" tabindex="-1"></a>That does not make the detail useless. It records what we believe about the</span>
+<span id="cb18-303"><a href="#cb18-303" aria-hidden="true" tabindex="-1"></a>baseline ordering, which a reader may want to see. But each arrow is a causal</span>
+<span id="cb18-304"><a href="#cb18-304" aria-hidden="true" tabindex="-1"></a>assumption that can be wrong, and here none of them buys anything for this</span>
+<span id="cb18-305"><a href="#cb18-305" aria-hidden="true" tabindex="-1"></a>estimand. The grouped adjustment graph asserts less and identifies the same</span>
+<span id="cb18-306"><a href="#cb18-306" aria-hidden="true" tabindex="-1"></a>thing.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

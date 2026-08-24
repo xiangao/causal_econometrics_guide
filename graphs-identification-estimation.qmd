@@ -77,7 +77,7 @@ We draw $n = 400$ observations. The confounder is $X \sim N(0,1)$. Treatment is
 $A \sim \text{Bernoulli}(\Lambda(-0.2 + 0.8X))$, with $\Lambda$ the logistic
 function, so a higher $X$ makes treatment more likely. The outcome is
 $Y = 1 + 1.5A + 0.7X + 0.3\varepsilon$ with $\varepsilon \sim N(0,1)$. The
-effect is constant across units, so the ACE is 1.5.
+effect is constant across units, so the ATE is 1.5.
 
 ```{r}
 #| warning: false
@@ -188,7 +188,7 @@ cat("Valid backdoor adjustment sets:", length(sets_fd), "\n")
 There are none. No set of observed variables blocks the confounding, because
 the confounder is not observed.
 
-But the effect is still identified by the front-door criterion (Pearl, 1995). I call the Pearl-Shpitser ID algorithm in `causaleffect` to obtain the symbolic expression. The function wants the graph as an `igraph` object with bidirected edges encoded as two directed edges marked `description = "U"`:
+But the effect is still identified by the front-door criterion (Pearl, 1995). I call the Pearl-Shpitser ID algorithm in `causaleffect` to obtain the symbolic expression. The function wants the graph as an `igraph` object with bidirected edges encoded as two directed edges marked `description = "U"`. It returns the expression as a LaTeX string, so the printed line below is LaTeX source, not a typeset formula:
 
 ```{r}
 g_fd_ig <- graph_from_literal(A -+ M, M -+ Y, A -+ Y, Y -+ A)
@@ -313,13 +313,12 @@ estimate is 0.0775 with a bootstrap standard error of 0.0189, and its 95%
 interval $[0.040, 0.115]$ covers the truth. The confounding bias is removed;
 what is left is sampling noise, and the interval is wide relative to an effect
 of 0.05 because the formula estimates seven proportions from 400 binary
-observations.
-
-This is the practical advantage of separating identification from estimation. State the graph first. Then use the estimator that matches the identified functional.
+observations: $P(A=1)$, the two mediator probabilities $P(M=1 \mid A=a)$, and
+the four outcome probabilities $P(Y=1 \mid A=a, M=m)$.
 
 ## General ID Algorithm
 
-The named routes above are useful because they are easy to estimate: backdoor adjustment and the front-door formula. ADMGs can be more general. The Pearl-Shpitser ID algorithm asks the broader question:
+Backdoor adjustment and the front-door formula are useful because they are easy to estimate. ADMGs can be more general. The Pearl-Shpitser ID algorithm asks the broader question:
 
 ```text
 Can P(Y | do(A)) be written using only the observed joint law P(V)?
@@ -373,7 +372,7 @@ result <- tryCatch(
 result
 ```
 
-`causaleffect` raises an error message indicating the effect is not identifiable. This is a useful failure mode. If the graph does not justify the causal effect, the estimator should not manufacture one.
+`causaleffect` raises an error message indicating the effect is not identifiable.
 
 ## Practical Workflow
 

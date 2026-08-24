@@ -4,20 +4,17 @@
 #| include: false
 library(ggplot2)
 library(dplyr)
-library(gridExtra)
 ```
 
 ```{r}
 #| eval: false
 library(ggplot2)
 library(dplyr)
-library(gridExtra)
 ```
 
 Before choosing an estimator, we need to know the estimand. ATE, ATT,
 LATE, CATE and QTE are not five ways to estimate the same object. They are
-five different objects. Sometimes they are numerically close, but that is a
-feature of the data-generating process, not a general result.
+five different objects.
 
 Here I use one simulated data set so we can calculate all of them. The
 simulation is useful because we observe both potential outcomes. In real
@@ -250,59 +247,6 @@ treatment adds most to the units that were already high in the control
 distribution. Treatment stretches the distribution rather than shifting it.
 The median QTE happens to sit near the ATE here, and there is no general
 reason for that.
-
-## All five estimands on two plots
-
-The left panel plots the binned CATE against the true $\tau(x)$, with ATE, ATT
-and LATE drawn as horizontal lines so the collapse to a scalar is visible. The
-right panel plots QTE($q$) across the grid with the ATE marked for reference.
-
-```{r}
-#| label: estimand-plot
-#| cache: true
-#| fig-cap: "Five views of the same DGP. The horizontal lines for ATE/ATT/LATE collapse the effect to a single scalar. CATE(x) shows how the effect varies with X. QTE(q) shows how the effect varies across the outcome distribution. Each curve answers a different question."
-#| fig-width: 10
-#| fig-height: 4
-
-df_cate <- data.frame(x = centers, cate = as.numeric(cate_est),
-                      true_tau = tau_fn(centers))
-df_qte  <- data.frame(q = qte_grid, qte = as.numeric(qte_est))
-
-p1 <- ggplot(df_cate, aes(x = x)) +
-  geom_line(aes(y = cate, colour = "CATE(x)"), linewidth = 1.2) +
-  geom_line(aes(y = true_tau, colour = "True τ(x)"),
-            linetype = "dotted", linewidth = 1) +
-  geom_hline(aes(yintercept = ate_true,  colour = "ATE"),  linetype = "dashed") +
-  geom_hline(aes(yintercept = att_true,  colour = "ATT"),  linetype = "dashed") +
-  geom_hline(aes(yintercept = late_true, colour = "LATE"), linetype = "dashed") +
-  scale_colour_manual(values = c(
-    "CATE(x)" = "#c0392b", "True τ(x)" = "#e74c3c",
-    "ATE" = "#2c3e50", "ATT" = "#2980b9", "LATE" = "#27ae60"
-  )) +
-  labs(x = "X (covariate)", y = "Effect", colour = NULL,
-       title = "CATE(x) vs scalar estimands") +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-
-p2 <- ggplot(df_qte, aes(x = q, y = qte)) +
-  geom_line(colour = "#8e44ad", linewidth = 1.2) +
-  geom_hline(yintercept = ate_true, linetype = "dashed", colour = "#2c3e50") +
-  annotate("text", x = 0.07, y = ate_true + 0.06, label = "ATE",
-           colour = "#2c3e50", size = 3) +
-  labs(x = "Quantile q", y = "QTE(q)",
-       title = "QTE — distribution-level effect") +
-  theme_minimal()
-
-grid.arrange(p1, p2, ncol = 2)
-```
-
-The left panel shows why the scalar estimands can differ. ATE averages
-$\tau(x)$ over the whole population. ATT averages it over the treated.
-LATE averages it over compliers. CATE does not collapse the curve.
-
-QTE, in the right panel, is different again. It describes how the treatment
-changes the outcome distribution. It is not a conditional treatment effect
-as a function of $X$.
 
 ## When the estimands differ
 

@@ -149,17 +149,19 @@ estimate is robust to a confounder resembling the ones we already control for.
 The same information is easier to read as a contour plot. The horizontal axis
 is the confounder's partial $R^2$ with the treatment, the vertical axis its
 partial $R^2$ with the outcome, and the contours give the adjusted estimate at
-each combination. The benchmark dots mark 1x, 2x and 3x smoking intensity and
-years smoked.
+each combination. The benchmark diamonds mark 1x, 2x and 3x smoking intensity
+and years smoked. All six sit very close to the origin, so we cut the axes at
+0.06 and 0.006 to keep their labels apart; the robustness value of 0.177 that
+would drive the estimate to zero is far outside this window.
 
 ```{r}
 #| label: sens-plot
 #| cache: true
-#| fig-cap: "Cinelli-Hazlett sensitivity contour. The dashed lines show benchmarks based on smokeintensity and smokeyrs at 1x, 2x, and 3x strength. Confounders falling in the shaded region would reduce the estimate to zero."
+#| fig-cap: "Cinelli-Hazlett sensitivity contour, with the axes cut at 0.06 and 0.006 so the benchmark labels stay legible. Contours give the adjusted estimate at each pair of partial R-squared values. Diamonds mark confounders as strong as 1x, 2x and 3x smokeintensity and smokeyrs, with the implied estimate in parentheses. The contour reaching zero lies far outside this window."
 #| fig-width: 7
 #| fig-height: 5
 
-plot(sens)
+plot(sens, lim = 0.06, lim.y = 0.006, cex.label.text = 0.6)
 ```
 
 All six benchmark points sit below 0.05 on the treatment axis and below 0.005
@@ -367,8 +369,10 @@ under weaker assumptions.
 The Manski (1990) "no-assumption" bounds say:
 
 $$
-\text{ATE} \in \Big[\; \mathbb{E}[Y|D{=}1]P(D{=}1) - \big(\mathbb{E}[Y|D{=}0]P(D{=}0) + K\,P(D{=}1)\big),\;\;
-\big(\mathbb{E}[Y|D{=}1]P(D{=}1) + K\,P(D{=}0)\big) - \mathbb{E}[Y|D{=}0]P(D{=}0) \;\Big].
+\begin{aligned}
+\text{ATE} &\ge \mathbb{E}[Y|D{=}1]P(D{=}1) - \mathbb{E}[Y|D{=}0]P(D{=}0) - K\,P(D{=}1), \\
+\text{ATE} &\le \mathbb{E}[Y|D{=}1]P(D{=}1) - \mathbb{E}[Y|D{=}0]P(D{=}0) + K\,P(D{=}0).
+\end{aligned}
 $$ {#eq-sensitivity-analysis-1}
 
 Each potential-outcome mean is split by the law of total expectation, filling

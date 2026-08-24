@@ -28,7 +28,7 @@ library(mlr3learners)
 Considerations:
 
 -   Plug-in (g-computation) estimators are easy.
--   The problem is not the decomposition into $E[Y(0)]$ and $E[Y(1)]$ itself: with correctly specified models and regularity, a plug-in estimator can be efficient. The real issue is that a flexible/regularized nuisance estimate carries a first-order *regularization bias* into the plug-in target, and the plug-in lacks the augmentation (correction) term that would make the estimator first-order insensitive to nuisance error.
+-   The problem is not the decomposition into $E[Y(0)]$ and $E[Y(1)]$ itself: with correctly specified models and regularity, a plug-in estimator can be efficient. The problem appears once the nuisance models are flexible and regularised. Then the error in the nuisance estimate enters the plug-in target *linearly*, and the plug-in has no term that cancels it. An influence-function estimator adds exactly such a term, and the error that survives is a product of two nuisance errors rather than one. @sec-plug-in-bias does the algebra.
 -   So they can be consistent, but the convergence rate inherits the (often slow) nuisance rate, which is especially bad in high dimensions.
 -   Ideally we remove that first-order sensitivity using an orthogonal influence function, and get $\sqrt{n}$ efficiency.
 -   Influence-function-based (one-step/AIPW/TMLE) estimators are shown to be efficient and orthogonal to first-order nuisance error.
@@ -50,6 +50,58 @@ For example, an IF-based bias-corrected estimator $$\hat \psi = P_n [ \frac{A}{\
 Since we know the influence function, we can estimate the asymptotic variance. The uncentered summand $\frac{A}{\hat\pi(X)}\{Y-\hat\mu(X)\}+\hat\mu(X)$ differs from $\phi$ only by the constant $\psi_1$, so the two have the same variance. We can use any estimators for the nuisance parameters; the sample mean of the summand is then $\hat\psi_1$, its sample variance estimates $var(\phi)$, and the standard error of $\hat\psi_1$ is $sd(\hat\phi)/\sqrt{n}$ (differencing the two arms gives the ATE).
 
 In this estimator, both $\hat \mu$ and $\hat \pi$ can be done using any estimator, such as machine learning. One caveat: $\sqrt n$ inference with flexible ML nuisances requires either Donsker-type complexity restrictions or sample splitting (cross-fitting), where the nuisance models are fit on one fold and evaluated on another. The manual estimators below use in-sample predictions for simplicity; the `npcausal` calls cross-fit with `nsplits=2`, and the DoubleML section below returns to sample splitting as a key ingredient.
+
+### Why the Plug-In Is Off {#sec-plug-in-bias}
+
+The bullets above claimed that the plug-in inherits the nuisance error at first
+order and that the augmentation term removes it. That is algebra, not a
+simulation finding, so it is worth doing before we run anything.
+
+Take $\psi_1 = E[\mu(X)]$ with $\mu(x) = E(Y \mid X = x, A = 1)$. The plug-in
+estimator is $\hat\psi_1^{\,\text{pi}} = P_n[\hat\mu(X)]$. Split its error into
+a sampling part and a nuisance part:
+
+$$
+\hat\psi_1^{\,\text{pi}} - \psi_1
+= \underbrace{(P_n - P)[\mu]}_{O_P(n^{-1/2})}
+\; + \; \underbrace{P[\hat\mu - \mu]}_{\text{nuisance error, linear}}
+\; + \; \underbrace{(P_n - P)[\hat\mu - \mu]}_{\text{smaller still}} .
+$$ {#eq-nonparametric-plugin}
+
+The middle term is $E[\hat\mu(X) - \mu(X)]$, and it is linear in the nuisance
+error. If $\hat\mu$ converges at rate $n^{-\alpha}$, that term is of order
+$n^{-\alpha}$, and a regularised learner in even a moderate number of
+dimensions gives $\alpha < 1/2$. The nuisance error then dominates the sampling
+error, the estimator is not $\sqrt n$ consistent, and nothing in the plug-in
+cancels it. That is what it means to say the regularisation bias passes straight
+into the average.
+
+Now do the same for the AIPW estimator of @eq-nonparametric-3. Evaluate it under
+the population distribution, holding the estimated nuisances fixed. Because
+$E[A\{Y - \hat\mu(X)\} \mid X] = \pi(X)\{\mu(X) - \hat\mu(X)\}$,
+
+$$
+P\Bigl[\frac{A}{\hat\pi(X)}\bigl\{Y - \hat\mu(X)\bigr\} + \hat\mu(X)\Bigr]
+= \psi_1 + E\Bigl[\frac{\pi(X) - \hat\pi(X)}{\hat\pi(X)}\,
+                  \bigl\{\mu(X) - \hat\mu(X)\bigr\}\Bigr].
+$$ {#eq-nonparametric-drift}
+
+The bias is a *product* of the two nuisance errors, and that is the entire
+difference between the two estimators. The term linear in $\hat\mu - \mu$ has
+cancelled: the $\hat\mu$ that the outcome model carries in is subtracted back
+out by the $\hat\mu$ sitting inside the augmentation, and what survives is
+multiplied by the propensity-score error. By Cauchy-Schwarz the bias is bounded
+by $\lVert \pi - \hat\pi \rVert \, \lVert \mu - \hat\mu \rVert$ up to the
+overlap constant, so rates of $o(n^{-1/4})$ on each nuisance suffice to make it
+$o(n^{-1/2})$ --- slower than $\sqrt n$ on each piece, fast enough for $\sqrt n$
+on the target.
+
+Two familiar facts fall out of @eq-nonparametric-drift directly. Double
+robustness is immediate: if either factor is zero the whole bias is zero, which
+is why one correct model is enough. And the $n^{-1/4}$ requirement is the reason
+cross-fitting matters, since reusing the same observations to fit and to
+evaluate $\hat\mu$ makes the product term behave worse than the rate
+calculation assumes.
 
 ### Simulation Setup
 
@@ -151,10 +203,11 @@ mu0hat<- predict(mufit, newdata=data %>% dplyr::select(w1,w2,w3,w4,A) %>% mutate
 mean(mu1hat-mu0hat)
 ```
 
-The plug-in gives 0.1825 against the true 0.2028. It comes with no standard
-error, and this is the point of the section: the super learner's regularisation
-bias passes straight into the average, and there is no correction term to
-remove it.
+The plug-in gives 0.1825 against the true 0.2028, and comes with no standard
+error. The gap is the linear nuisance term $E[\hat\mu - \mu]$ of
+@eq-nonparametric-plugin showing up in one sample: the super learner's
+regularisation bias passes into the average with nothing to cancel it. The
+number illustrates the algebra; it is not the evidence for it.
 
 ### AIPW ATE
 

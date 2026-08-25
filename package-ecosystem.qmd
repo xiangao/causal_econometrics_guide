@@ -2,7 +2,9 @@
 
 This appendix lists the R packages used in the book. The point is practical: for each method, which package does the computation, and which chapters use it?
 
-Most packages live on CRAN. A few dependencies for `pcalg` (`graph`, `RBGL`, `Rgraphviz`) come from Bioconductor and require `BiocManager`. Two packages are GitHub-only: `npcausal` (`remotes::install_github("ehkennedy/npcausal")`) and `medoutcon` (`remotes::install_github("nhejazi/medoutcon")`).
+Most packages live on CRAN. `graph`, `RBGL` and `Rgraphviz`, which `pcalg` needs, come from Bioconductor and require `BiocManager`. Eight are GitHub-only: `npcausal`, `medoutcon`, `synthdid`, `bartik.weight`, `ShiftShareSE`, `ssaggregate`, and two of my own, `didint` and `tvhte`. `MASS`, `boot`, `survival` and `parallel` ship with R and need no installation.
+
+Five of those GitHub packages appear only in chunks marked `eval: false` --- `bartik.weight`, `ShiftShareSE` and `ssaggregate` in the shift-share chapter, `didint` and `tvhte` in the DiD chapter. The book renders without them. Install them only to run those examples yourself.
 
 ## Working With The Environment
 
@@ -10,15 +12,29 @@ A minimal reproducible workflow is:
 
 ```bash
 cd ~/projects/books/causal_econometrics_guide
-# Install Bioconductor dependencies once (needed by pcalg)
+
+# 1. Bioconductor dependencies of pcalg (once)
 Rscript -e 'install.packages("BiocManager"); BiocManager::install(c("graph","RBGL","Rgraphviz"))'
-# Install the CRAN packages used across the book
-Rscript -e 'install.packages(c("tidyverse","dagitty","ggdag","causaleffect","igraph",
-  "haven","causaldata","hdm","MatchIt","WeightIt","gmm","grf","fixest","did",
-  "synthdid","rdrobust","DoubleML","mlr3","mlr3learners","SuperLearner","tmle",
-  "mediation","lavaan","lavaan.survey","blavaan","bnlearn","pcalg","MASS"))'
-# GitHub-only packages
-Rscript -e 'remotes::install_github(c("ehkennedy/npcausal","nhejazi/medoutcon"))'
+
+# 2. Every CRAN package the chapters load
+Rscript -e 'install.packages(c(
+  "remotes", "BART", "bcf", "broom", "causaldata", "causaldrf",
+  "causaleffect", "cobalt", "dagitty", "data.table", "did", "DoubleML",
+  "etwfe", "EValue", "fixest", "ggdag", "gmm", "grf", "haven", "hdm",
+  "igraph", "ipw", "ivreg", "knitr", "lavaan", "lmtest", "lmtp", "ltmle",
+  "marginaleffects", "MatchIt", "mlr3", "mlr3learners", "pcalg",
+  "policytree", "ranger", "rdrobust", "riskRegression", "sandwich", "sem",
+  "sensemakr", "SuperLearner", "survey", "survminer", "tidyverse", "tmle",
+  "WeightIt"))'
+
+# 3. GitHub packages the book needs in order to render
+Rscript -e 'remotes::install_github(c("ehkennedy/npcausal", "nhejazi/medoutcon",
+  "synth-inference/synthdid"))'
+
+# 4. Optional --- only for the `eval: false` examples
+Rscript -e 'remotes::install_github(c("paulgp/bartik-weight", "kolesarm/ShiftShareSE",
+  "borusyak/shift-share", "xiangao/didint", "xiangao/tvhte"))'
+
 quarto render
 ```
 
@@ -52,6 +68,37 @@ The book uses Quarto's `execute: freeze: auto` setting (configured in `_quarto.y
 | `pcalg` | PC, GES, FCI, RFCI causal-discovery algorithms | Causal Discovery (both chapters) |
 | `igraph` | Graph plotting for CPDAGs/PAGs; graph objects for `causaleffect` | Causal Discovery, DAG workflow |
 | `Rgraphviz`, `graph` | Install-time dependencies of `pcalg` (graph classes; pcalg's own plot methods) | Causal Discovery (indirect) |
+| `MatchIt` | Nearest-neighbour, optimal and full matching | Matching |
+| `WeightIt` | Weighting for ATE/ATT, including CBPS and entropy balancing | Matching, Continuous treatments |
+| `cobalt` | Covariate-balance tables and love plots | Matching |
+| `marginaleffects` | Contrasts and marginal effects after weighting | Matching |
+| `grf` | Generalized random forests; causal forests | Heterogeneous effects |
+| `policytree` | Optimal policy trees from causal-forest scores | Heterogeneous effects |
+| `ranger` | Fast random forests, used as a `SuperLearner` library | Nonparametric |
+| `boot` | Bootstrap standard errors (ships with R) | Nonparametric |
+| `lmtp` | Longitudinal modified treatment policies | Continuous treatments |
+| `causaldrf` | Ready-made GPS and dose-response estimators | Continuous treatments |
+| `ltmle` | Longitudinal TMLE for time-varying treatments | G-methods |
+| `ipw` | Inverse-probability weights for time-varying treatments | G-methods |
+| `survey` | `svydesign`/`svyglm` for the weighted marginal structural model | G-methods |
+| `survival` | Cox and Kaplan-Meier fitting (ships with R) | Survival |
+| `survminer` | Survival-curve plots | Survival |
+| `riskRegression` | Cause-specific and absolute-risk regression | Survival |
+| `BART` | Bayesian additive regression trees for the outcome model | Bayesian |
+| `bcf` | Bayesian causal forests for heterogeneous effects | Bayesian |
+| `sensemakr` | Omitted-variable-bias sensitivity contours | Sensitivity analysis |
+| `EValue` | E-values for unmeasured confounding | Sensitivity analysis |
+| `ivreg` | Two-stage least squares with diagnostic tests | IV/RDD |
+| `lmtest`, `sandwich` | Robust and clustered covariance matrices, and the tests that use them | Estimation, IV/RDD |
+| `broom` | Tidying model objects into data frames for tables and plots | Most estimation chapters |
+| `data.table` | Builds the `medoutcon` example dataset (`as.data.table`, `setnames`) | Mediation |
+| `knitr` | Table rendering with `kable` | Ten chapters, throughout |
+| `parallel` | `parLapply` cluster bootstrap of the second-stage SEs (ships with R) | Poisson-IV |
+| `bartik.weight` | Rotemberg weights for shift-share designs (GitHub; `eval: false`) | Shift-share IV |
+| `ShiftShareSE` | Adao-Kolesar-Morales standard errors (GitHub; `eval: false`) | Shift-share IV |
+| `ssaggregate` | BHJ shock-level aggregation and inference (GitHub; `eval: false`) | Shift-share IV |
+| `didint` | Difference-in-differences with spatial interference (mine; `eval: false`) | DiD |
+| `tvhte` | Time-varying heterogeneous event-study effects (mine; `eval: false`) | DiD |
 
 ## `dagitty` and `ggdag`
 

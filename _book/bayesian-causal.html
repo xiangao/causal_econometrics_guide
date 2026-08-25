@@ -756,7 +756,7 @@ from x,np,p: 6, 2000
 <span class="header-section-number">11.5</span> Practical guidance</h2>
 <ul>
 <li>Start with BCF if the goal is heterogeneous effects.</li>
-<li>Check MCMC diagnostics. A bad chain makes the posterior summaries useless.</li>
+<li>Check MCMC diagnostics. A bad chain makes the posterior summaries useless. Note that the fit above cannot support them: it runs a single chain with a 200-iteration burn-in, short of the package’s own recommendation, so BCF emits a warning and no between-chain diagnostic is available. Treat it as a deterministic rendering demonstration. Its posterior intervals show the shape of the output, not the precision of a production analysis, which would use the recommended burn-in and several chains.</li>
 <li>For BCF, pay attention to <code>piHat</code>; it is part of the model input.</li>
 <li>Report posterior mean, posterior SD, and credible intervals for ATE and meaningful CATE summaries.</li>
 </ul></section><section id="connections" class="level2" data-number="11.6"><h2 data-number="11.6" class="anchored" data-anchor-id="connections">
@@ -1572,33 +1572,39 @@ from x,np,p: 6, 2000
 <span id="cb33-348"><a href="#cb33-348" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb33-349"><a href="#cb33-349" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Start with BCF if the goal is heterogeneous effects.</span>
 <span id="cb33-350"><a href="#cb33-350" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Check MCMC diagnostics. A bad chain makes the posterior summaries useless.</span>
-<span id="cb33-351"><a href="#cb33-351" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>For BCF, pay attention to <span class="in">`piHat`</span>; it is part of the model input.</span>
-<span id="cb33-352"><a href="#cb33-352" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Report posterior mean, posterior SD, and credible intervals for ATE and</span>
-<span id="cb33-353"><a href="#cb33-353" aria-hidden="true" tabindex="-1"></a>  meaningful CATE summaries.</span>
-<span id="cb33-354"><a href="#cb33-354" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-355"><a href="#cb33-355" aria-hidden="true" tabindex="-1"></a><span class="fu">## Connections</span></span>
-<span id="cb33-356"><a href="#cb33-356" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-357"><a href="#cb33-357" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">Heterogeneous Treatment Effects</span><span class="co">](heterogeneous-effects.qmd)</span></span>
-<span id="cb33-358"><a href="#cb33-358" aria-hidden="true" tabindex="-1"></a>  chapter covers frequentist meta-learners (S/T/X/R/DR) and causal</span>
-<span id="cb33-359"><a href="#cb33-359" aria-hidden="true" tabindex="-1"></a>  forests via <span class="in">`grf`</span>. BCF can be viewed as the Bayesian counterpart to</span>
-<span id="cb33-360"><a href="#cb33-360" aria-hidden="true" tabindex="-1"></a>  causal forests: both use ensembles of trees, but BCF puts priors on</span>
-<span id="cb33-361"><a href="#cb33-361" aria-hidden="true" tabindex="-1"></a>  the trees while <span class="in">`grf`</span> uses honest sample-splitting.</span>
-<span id="cb33-362"><a href="#cb33-362" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">Sensitivity Analysis</span><span class="co">](sensitivity-analysis.qmd)</span> chapter's</span>
-<span id="cb33-363"><a href="#cb33-363" aria-hidden="true" tabindex="-1"></a>  Cinelli-Hazlett bounds are frequentist; the Bayesian analog is a</span>
-<span id="cb33-364"><a href="#cb33-364" aria-hidden="true" tabindex="-1"></a>  prior on the unmeasured-confounder strength (cf. McCandless et al.</span>
-<span id="cb33-365"><a href="#cb33-365" aria-hidden="true" tabindex="-1"></a>  2007).</span>
-<span id="cb33-366"><a href="#cb33-366" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>For Bayesian *Numpyro*-style hierarchical models, see the [companion</span>
-<span id="cb33-367"><a href="#cb33-367" aria-hidden="true" tabindex="-1"></a>  blog chapter](https://xiangao.github.io/blog_book/numpyro.html).</span>
-<span id="cb33-368"><a href="#cb33-368" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-369"><a href="#cb33-369" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
-<span id="cb33-370"><a href="#cb33-370" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-371"><a href="#cb33-371" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>BART estimates counterfactual outcomes by fitting a flexible outcome model.</span>
-<span id="cb33-372"><a href="#cb33-372" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>BCF separates baseline outcome prediction from treatment-effect</span>
-<span id="cb33-373"><a href="#cb33-373" aria-hidden="true" tabindex="-1"></a>  heterogeneity.</span>
-<span id="cb33-374"><a href="#cb33-374" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The main output is the posterior, especially for individual effects or</span>
-<span id="cb33-375"><a href="#cb33-375" aria-hidden="true" tabindex="-1"></a>  policy decisions.</span>
-<span id="cb33-376"><a href="#cb33-376" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Computation is the main cost. For very large data, frequentist HTE methods</span>
-<span id="cb33-377"><a href="#cb33-377" aria-hidden="true" tabindex="-1"></a>  are usually easier.</span>
+<span id="cb33-351"><a href="#cb33-351" aria-hidden="true" tabindex="-1"></a>  Note that the fit above cannot support them: it runs a single chain with a</span>
+<span id="cb33-352"><a href="#cb33-352" aria-hidden="true" tabindex="-1"></a>  200-iteration burn-in, short of the package's own recommendation, so BCF</span>
+<span id="cb33-353"><a href="#cb33-353" aria-hidden="true" tabindex="-1"></a>  emits a warning and no between-chain diagnostic is available. Treat it as a</span>
+<span id="cb33-354"><a href="#cb33-354" aria-hidden="true" tabindex="-1"></a>  deterministic rendering demonstration. Its posterior intervals show the shape</span>
+<span id="cb33-355"><a href="#cb33-355" aria-hidden="true" tabindex="-1"></a>  of the output, not the precision of a production analysis, which would use</span>
+<span id="cb33-356"><a href="#cb33-356" aria-hidden="true" tabindex="-1"></a>  the recommended burn-in and several chains.</span>
+<span id="cb33-357"><a href="#cb33-357" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>For BCF, pay attention to <span class="in">`piHat`</span>; it is part of the model input.</span>
+<span id="cb33-358"><a href="#cb33-358" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Report posterior mean, posterior SD, and credible intervals for ATE and</span>
+<span id="cb33-359"><a href="#cb33-359" aria-hidden="true" tabindex="-1"></a>  meaningful CATE summaries.</span>
+<span id="cb33-360"><a href="#cb33-360" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-361"><a href="#cb33-361" aria-hidden="true" tabindex="-1"></a><span class="fu">## Connections</span></span>
+<span id="cb33-362"><a href="#cb33-362" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-363"><a href="#cb33-363" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">Heterogeneous Treatment Effects</span><span class="co">](heterogeneous-effects.qmd)</span></span>
+<span id="cb33-364"><a href="#cb33-364" aria-hidden="true" tabindex="-1"></a>  chapter covers frequentist meta-learners (S/T/X/R/DR) and causal</span>
+<span id="cb33-365"><a href="#cb33-365" aria-hidden="true" tabindex="-1"></a>  forests via <span class="in">`grf`</span>. BCF can be viewed as the Bayesian counterpart to</span>
+<span id="cb33-366"><a href="#cb33-366" aria-hidden="true" tabindex="-1"></a>  causal forests: both use ensembles of trees, but BCF puts priors on</span>
+<span id="cb33-367"><a href="#cb33-367" aria-hidden="true" tabindex="-1"></a>  the trees while <span class="in">`grf`</span> uses honest sample-splitting.</span>
+<span id="cb33-368"><a href="#cb33-368" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">Sensitivity Analysis</span><span class="co">](sensitivity-analysis.qmd)</span> chapter's</span>
+<span id="cb33-369"><a href="#cb33-369" aria-hidden="true" tabindex="-1"></a>  Cinelli-Hazlett bounds are frequentist; the Bayesian analog is a</span>
+<span id="cb33-370"><a href="#cb33-370" aria-hidden="true" tabindex="-1"></a>  prior on the unmeasured-confounder strength (cf. McCandless et al.</span>
+<span id="cb33-371"><a href="#cb33-371" aria-hidden="true" tabindex="-1"></a>  2007).</span>
+<span id="cb33-372"><a href="#cb33-372" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>For Bayesian *Numpyro*-style hierarchical models, see the [companion</span>
+<span id="cb33-373"><a href="#cb33-373" aria-hidden="true" tabindex="-1"></a>  blog chapter](https://xiangao.github.io/blog_book/numpyro.html).</span>
+<span id="cb33-374"><a href="#cb33-374" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-375"><a href="#cb33-375" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb33-376"><a href="#cb33-376" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-377"><a href="#cb33-377" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>BART estimates counterfactual outcomes by fitting a flexible outcome model.</span>
+<span id="cb33-378"><a href="#cb33-378" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>BCF separates baseline outcome prediction from treatment-effect</span>
+<span id="cb33-379"><a href="#cb33-379" aria-hidden="true" tabindex="-1"></a>  heterogeneity.</span>
+<span id="cb33-380"><a href="#cb33-380" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The main output is the posterior, especially for individual effects or</span>
+<span id="cb33-381"><a href="#cb33-381" aria-hidden="true" tabindex="-1"></a>  policy decisions.</span>
+<span id="cb33-382"><a href="#cb33-382" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Computation is the main cost. For very large data, frequentist HTE methods</span>
+<span id="cb33-383"><a href="#cb33-383" aria-hidden="true" tabindex="-1"></a>  are usually easier.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

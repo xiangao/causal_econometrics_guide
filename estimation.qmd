@@ -17,9 +17,9 @@ Once the causal effect is identified, we need an estimator. This chapter covers 
 
 ## Experimental Data
 
-With experimental data the assumptions hold by design. A difference-in-means estimator suffices (under randomization ATE = ATT = ATU): $$ \hat{\tau} = \bar Y_1 - \bar Y_0 $$ {#eq-estimation-1}
+With experimental data the assumptions hold by design. A difference-in-means estimator suffices, and under randomization the ATE, ATT and ATU coincide as estimands: $$ \hat{\tau} = \bar Y_1 - \bar Y_0 $$ {#eq-estimation-1}
 
-A $t$-test or a regression of $Y$ on $W$ and $X$ both recover the same estimate.
+They coincide in expectation, not arithmetically in the sample at hand. A $t$-test and a regression of $Y$ on $W$ and $X$ are both design-valid for the same estimand, and they will generally give different numbers in a finite sample -- adding covariates changes the finite-sample estimate even when it changes nothing about what is being estimated.
 
 ## Adjustment Formula
 
@@ -209,7 +209,15 @@ first-baby status and education. We form the AIPW summand for each arm and
 average the difference.
 
 ```{r aipw1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
-data <- read_dta(file="https://www.stata-press.com/data/r18/cattaneo2.dta")
+# Cattaneo (2010) birth-weight data, as distributed with Stata 18. Fetched once
+# and cached beside the source, so a build touches the network at most once
+# rather than on every chunk that needs it.
+cattaneo_file <- "cattaneo2.dta"
+if (!file.exists(cattaneo_file)) {
+  download.file("https://www.stata-press.com/data/r18/cattaneo2.dta",
+                cattaneo_file, mode = "wb", quiet = TRUE)
+}
+data <- read_dta(cattaneo_file)
 mu <- lm(bweight ~ mbsmoke*(prenatal1 + mmarried + mage + fbaby), data=data)
 pi <- glm( mbsmoke ~ mmarried + mage + fbaby + medu, data=data, family=binomial(link="logit"))
 mm1 <- predict(mu, newdata=data %>% mutate(mbsmoke=1))
@@ -220,12 +228,22 @@ data <- data %>%
 data2 <- data %>%
   mutate(mu1=(w*(y-m1)/pi1 + m1), mu0=((1-w)*(y-m0)/(1-pi1) + m0)) %>%
   mutate(tau=mu1-mu0)
-data2 %>% summarise(mean(tau))
+# The per-unit AIPW summand is the influence function for the ATE, so its sample
+# standard deviation gives the asymptotic standard error directly.
+data2 %>% summarise(ATE = mean(tau),
+                    se  = sd(tau) / sqrt(n()),
+                    lo  = mean(tau) - 1.96 * sd(tau) / sqrt(n()),
+                    hi  = mean(tau) + 1.96 * sd(tau) / sqrt(n()))
 ```
 
-AIPW gives $-234$ g. Adjustment moves the estimate about 41 g toward zero from
-the raw $-275$ g, so part of the raw gap is composition: smokers differ from
-non-smokers in age, education and marital status.
+AIPW gives $-234$ g, with a standard error of 23 g and a 95% interval of
+$[-279, -188]$. That interval comes almost free: the per-unit AIPW summand is the
+influence function for the ATE, so its sample standard deviation over $\sqrt n$
+is the asymptotic standard error, and no bootstrap is needed. Adjustment moves
+the estimate about 41 g toward zero from the raw $-275$ g, so part of the raw gap
+is composition: smokers differ from non-smokers in age, education and marital
+status. The interval sits well away from zero, so what remains after adjustment
+is not a sampling artefact.
 
 ### IPWRA
 
@@ -243,7 +261,15 @@ AIPW, so the two estimates differ only in how the outcome and treatment models
 are combined.
 
 ```{r ipwra1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
-data <- read_dta(file="https://www.stata-press.com/data/r18/cattaneo2.dta")
+# Cattaneo (2010) birth-weight data, as distributed with Stata 18. Fetched once
+# and cached beside the source, so a build touches the network at most once
+# rather than on every chunk that needs it.
+cattaneo_file <- "cattaneo2.dta"
+if (!file.exists(cattaneo_file)) {
+  download.file("https://www.stata-press.com/data/r18/cattaneo2.dta",
+                cattaneo_file, mode = "wb", quiet = TRUE)
+}
+data <- read_dta(cattaneo_file)
 pi <- glm( mbsmoke ~ mmarried + mage + fbaby + medu, data=data, family=binomial(link="logit"))
 pi1 <- predict(pi, newdata=data, type="response")
 data <- data %>%
@@ -258,7 +284,11 @@ data <- data %>%
   mutate(w=mbsmoke, y=bweight, m1=mm1, m0=mm0, pi1=pi1)
 data2 <- data %>%
   mutate(tau=m1-m0)
-data2 %>% summarise(mean(tau))
+# No influence-function shortcut here: these per-unit tau are differences of
+# fitted values from weighted regressions, not the estimator's influence
+# function, so sd(tau)/sqrt(n) would not be its standard error. An interval for
+# IPWRA needs a bootstrap over both stages.
+data2 %>% summarise(ATE = mean(tau))
 ```
 
 IPWRA gives $-233$ g, within a gram of the AIPW estimate. Both are doubly

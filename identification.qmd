@@ -65,7 +65,9 @@ ggdag(g)
 
 ## Controlled and Uncontrolled Confounders
 
-If we can control for all confounders, correlation does imply causation. The two questions are: do we observe all confounders, and how do we control for them? In a randomized experiment neither question arises. In an observational study both do. If $c_2$ is unobserved, any estimate of the effect of $w$ on $y$ is biased.
+If we can control for all confounders, correlation comes close to implying causation -- but adjustment alone does not finish the job. It has to be joined by the conditions set out below: consistency, positivity, and no interference, along with adjusting on the right set and estimating it correctly. Controlling for confounders is necessary, not sufficient. Two questions follow from it: do we observe all confounders, and how do we control for them? In a randomized experiment neither arises. In an observational study both do.
+
+If $c_2$ is unobserved, adjusting on the observed covariates will not recover the effect of $w$ on $y$. That is a statement about backdoor adjustment, not about the effect being beyond reach: instrumental variables, front-door adjustment, regression discontinuity and panel designs can each identify an effect in the presence of an unmeasured common cause, and the rest of this book develops them.
 
 ## Potential Outcome Setup
 
@@ -142,7 +144,7 @@ We need four assumptions for identification:
 
 ## Observational Data Flowchart
 
-In observational studies, I summarise the decision what method to use for identification of causal effect:
+In observational studies, this is the map I keep in mind -- which designs are available, and what each one asks you to assume:
 
 ```{mermaid}
 %%| fig-width: 6.5
@@ -160,9 +162,22 @@ flowchart LR
   B --> | No | K{Panel data?}
   K --> | Yes | L{Parallel Trend?}
   L --> | Yes | M(DID)
-  L --> | No | N(Synthetic Control)
-  L --> | No | O(Synthetic DID)
-  K --> | No | P{Instrument?}
-  P --> | Yes | Q(IV or RDD)
-  P --> | No | R(You are stuck!)
+  L --> | No, but factor structure and pre-period fit | N(Synthetic Control)
+  L --> | No, but factor structure and pre-period fit | O(Synthetic DID)
+  K --> | No | P{Assignment rule?}
+  P --> | Cutoff, with continuity at the threshold | Q2(RDD)
+  P --> | Instrument, relevant and excludable | Q(IV)
+  P --> | Neither | R(Bounds and sensitivity analysis)
 ```
+
+Read that as a map of designs and their assumptions, not as a decision rule.
+None of the branches is an assumption-free repair; each trades one assumption
+for another. Synthetic control and synthetic DiD do not dispense with a
+counterfactual assumption when parallel trends fails -- they replace it with a
+factor structure and a stability condition, which the pre-period fit is meant to
+make credible rather than to prove. Regression discontinuity replaces
+unconfoundedness with continuity of potential outcomes at the cutoff, which is
+why it needs its own branch rather than sharing one with instrumental variables.
+And the last box is not quite a dead end: when no design identifies the effect,
+bounds and sensitivity analysis are what remain, and the
+[sensitivity analysis chapter](sensitivity-analysis.qmd) takes them up.

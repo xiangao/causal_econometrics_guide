@@ -64,7 +64,7 @@ The book uses Quarto's `execute: freeze: auto` setting (configured in `_quarto.y
 | `rdrobust` | Local-polynomial RDD, sharp and fuzzy designs | IV/RDD |
 | `gmm` | Generalized method of moments for nonlinear IV | Poisson-IV |
 | `lavaan` | SEM and CFA syntax for classical mediation | Mediation |
-| `medoutcon` | Causal mediation: controlled, natural, interventional effects | Mediation |
+| `medoutcon` | Causal mediation: natural and interventional (in)direct effects | Mediation |
 | `pcalg` | PC, GES, FCI, RFCI causal-discovery algorithms | Causal Discovery (both chapters) |
 | `igraph` | Graph plotting for CPDAGs/PAGs; graph objects for `causaleffect` | Causal Discovery, DAG workflow |
 | `Rgraphviz`, `graph` | Install-time dependencies of `pcalg` (graph classes; pcalg's own plot methods) | Causal Discovery (indirect) |
@@ -134,7 +134,14 @@ library(igraph)
 library(causaleffect)
 
 g <- graph_from_literal(A -+ M, M -+ Y, A -+ Y, Y -+ A)
-g <- set_edge_attr(g, "description", index = c(2, 4), value = "U")
+
+# Select the A<->Y pair by endpoint name. igraph's edge ordering is not part of
+# its documented contract, so a literal index like c(2, 4) can break silently.
+edge_ends  <- ends(g, E(g))
+confounded <- (edge_ends[, 1] == "A" & edge_ends[, 2] == "Y") |
+              (edge_ends[, 1] == "Y" & edge_ends[, 2] == "A")
+g <- set_edge_attr(g, "description", index = which(confounded), value = "U")
+
 causal.effect(y = "Y", x = "A", G = g, simp = TRUE)
 # → \sum_{M} P(M|A)\left(\sum_{A} P(Y|A,M) P(A)\right)
 ```
@@ -206,7 +213,7 @@ fit <- sem(model, data = df)
 parameterEstimates(fit)
 ```
 
-For causal mediation under the potential-outcomes framework, the book uses `medoutcon` (Hejazi & van der Laan), which estimates controlled, natural, and interventional direct/indirect effects with cross-fitted nuisance estimators.
+For causal mediation under the potential-outcomes framework, the book uses `medoutcon` (Hejazi & van der Laan), which estimates natural and interventional (in)direct effects with cross-fitted nuisance estimators.  The interventional effects are the ones to reach for when a treatment-induced confounder of the mediator is present, since the natural effects are not identified in that case.
 
 ## Practical Advice
 

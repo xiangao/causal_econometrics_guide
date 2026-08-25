@@ -353,10 +353,18 @@ observations. Weighting keeps observations but changes their contribution so
 the treated and control covariate distributions become closer.
 
 When overlap is good, both approaches often give similar answers. When
-overlap is bad, both approaches become fragile. Then the honest choices are
-to change the target population, report the lack of overlap, or use a
-doubly-robust estimator such as [AIPW](estimation.qmd) or
-[TMLE](nonparametric.qmd) while still being clear about the support problem.
+overlap is bad, both approaches become fragile. The honest choices then are to
+change the target population, to report the lack of overlap plainly, to move to
+overlap weights or another explicitly chosen target, or to trim -- accepting
+that trimming changes the estimand rather than rescuing the original one.
+
+Doubly-robust estimators do not belong on that list. [AIPW](estimation.qmd) and
+[TMLE](nonparametric.qmd) protect against misspecification of the nuisance
+models, and they still require the treatment probabilities to be bounded away
+from zero, and away from one for an ATE. Where support is genuinely missing the
+inverse weights are extreme, and a doubly-robust estimator is then less stable
+than a simple one, not more. Robustness to a wrong model is not robustness to a
+missing comparison.
 
 ## Weighting Alternatives
 
@@ -585,9 +593,12 @@ AIPW uses both columns. Start from regression adjustment, then add the
 odds-weighted average of the control residuals $Y - \hat\mu_0(X)$. It is
 consistent if either model is right. The section on estimation after matching
 did an informal version of the same thing: match first, then run a regression
-with treatment-covariate interactions on the matched sample. That is
-@abadie-imbens-2011 bias-corrected matching, and the regression plays the part of
-the augmentation term.
+with treatment-covariate interactions on the matched sample. That is regression adjustment after
+matching, and the regression plays the part of the augmentation term. It is a
+relative of @abadie-imbens-2011 bias-corrected matching rather than the same
+estimator: their correction is applied unit by unit to matched outcomes and comes
+with its own variance theory, neither of which a post-matching interacted
+regression reproduces.
 
 Five routes, one data set. Each row below is built by hand from the weight
 representation so the arithmetic is visible.
@@ -662,7 +673,10 @@ and are deliberately left out: matching is not a smooth functional of the data,
 so the bootstrap is invalid for it [@abadie-imbens-2008] and the subclass
 clustering used earlier is needed, while IPW and AIPW have influence-function
 variances and AIPW attains the semiparametric efficiency bound that fixed-$M$
-matching does not. The lesson from the column of estimates is the same one the
+matching does not --- given positivity, enough regularity, nuisance estimators
+converging fast enough (with cross-fitting when they are flexible), and both
+nuisance limits at the truth. The bound is a property of the estimator plus those
+conditions, not of the name. The lesson from the column of estimates is the same one the
 matching-versus-weighting comparison gave: with overlap this weak, the choice
 of route moves the answer by more than one standard error, so report several
 routes rather than the one that reads best.

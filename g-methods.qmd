@@ -299,6 +299,10 @@ regression of $Y$ on treatment history:
 df$sw_trimmed <- sw_trimmed
 design <- svydesign(ids = ~1, weights = ~sw_trimmed, data = df)
 msm_fit <- svyglm(Y ~ A0 + A1, design = design)
+# Note: svyglm treats these weights as given. It does not propagate the
+# uncertainty from estimating the weights in the first stage, and trimming
+# changes the estimand as well as the variance. A bootstrap over the whole
+# two-stage procedure is the honest interval here.
 
 tidy(msm_fit) |> knitr::kable(digits = 3,
                               caption = "MSM coefficients with stabilized weights")

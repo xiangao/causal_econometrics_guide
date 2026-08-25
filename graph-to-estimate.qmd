@@ -321,10 +321,27 @@ g_dag <- pcalg2dagitty(t(as(pc_fit@graph, "matrix")),
                         colnames(data_obs), type = "cpdag")
 sets  <- adjustmentSets(g_dag, exposure = "A", outcome = "Y")
 
-# Step 3: if backdoor set found, estimate with AIPW
-# Step 4: if not, call causaleffect::causal.effect() for the ID expression
+# Step 3: if an adjustment set is valid for every DAG in the class, estimate
+#         it with AIPW
+# Step 4: if the CPDAG is still unresolved, do NOT hand it to
+#         causaleffect::causal.effect() -- that function expects a specified
+#         DAG/ADMG, and different orientations in the class can imply
+#         different effects, different valid adjustment sets, or a different
+#         identification status. Instead either
+#           (a) orient the remaining edges with background knowledge and then
+#               run ordinary identification, or
+#           (b) report what the whole class permits: pcalg::ida() for
+#               linear-Gaussian total effects, otherwise enumerate the
+#               compatible DAGs and keep only conclusions that hold across
+#               all of them.
 # Step 5: estimate the returned functional by plug-in or regression
 ```
+
+Step 4 is where this workflow most often goes wrong, so it is worth stating
+plainly: a CPDAG is an equivalence class, not a graph. An empty adjustment-set
+result for a CPDAG is not permission to pass one arbitrary orientation to the ID
+algorithm. The [causal discovery chapter](causal-discovery.qmd) sets out what to
+do instead.
 
 In applied work, I would not trust the discovered graph blindly. A more
 reasonable workflow is:

@@ -694,7 +694,12 @@ trt=1     461 1494    897   4.40    0.0317   7.73    6.94    8.85
 <span><span class="va">ps_for_ate</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/glm.html">glm</a></span><span class="op">(</span><span class="va">trt_f</span> <span class="op">~</span> <span class="va">age</span> <span class="op">+</span> <span class="va">sex</span>, data <span class="op">=</span> <span class="va">df</span>, family <span class="op">=</span> <span class="va">binomial</span>, x <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co"># With right-censoring, the IPTW/AIPTW survival estimator needs a model for</span></span>
 <span><span class="co"># the censoring mechanism (a Cox model for time-to-censoring).</span></span>
-<span><span class="va">cens_for_ate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/coxph.html">coxph</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">event</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span> <span class="op">~</span> <span class="va">age</span> <span class="op">+</span> <span class="va">sex</span>, data <span class="op">=</span> <span class="va">df</span>,</span>
+<span><span class="co"># Treatment belongs in the censoring model unless design knowledge rules it out.</span></span>
+<span><span class="co"># Censoring is treatment-independent in this simulation, so including trt_f</span></span>
+<span><span class="co"># changes little here -- but the assumption that has to hold is independent</span></span>
+<span><span class="co"># censoring *conditional on treatment and covariates*, plus censoring</span></span>
+<span><span class="co"># positivity, and the code should say so to be reusable.</span></span>
+<span><span class="va">cens_for_ate</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/coxph.html">coxph</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">event</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span> <span class="op">~</span> <span class="va">trt_f</span> <span class="op">+</span> <span class="va">age</span> <span class="op">+</span> <span class="va">sex</span>, data <span class="op">=</span> <span class="va">df</span>,</span>
 <span>                      x <span class="op">=</span> <span class="cn">TRUE</span>, y <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">ate_surv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/riskRegression/man/ate.html">ate</a></span><span class="op">(</span></span>
@@ -773,7 +778,7 @@ trt=1     461 1494    897   4.40    0.0317   7.73    6.94    8.85
 <td style="text-align: right;">-0.095</td>
 <td style="text-align: right;">0.027</td>
 <td style="text-align: right;">-0.148</td>
-<td style="text-align: right;">-0.041</td>
+<td style="text-align: right;">-0.043</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">AIPTW</td>
@@ -793,7 +798,7 @@ trt=1     461 1494    897   4.40    0.0317   7.73    6.94    8.85
 <li>
 <strong>IPTW</strong> — inverse probability of treatment weighting.</li>
 <li>
-<strong>AIPTW</strong> — augmented IPTW (doubly robust); the recommended default.</li>
+<strong>AIPTW</strong> — augmented IPTW (doubly robust); usually the best default, though not unconditionally. It earns that status when the nuisance models are flexible and cross-fitted, treatment and censoring probabilities stay away from zero, and the censoring assumption holds conditional on treatment and covariates. Where positivity is thin it can be less stable than a simpler estimator.</li>
 </ul>
 <p>All three agree, and all three are close to the truth: <span class="math inline">\(-0.106\)</span>, <span class="math inline">\(-0.095\)</span> and <span class="math inline">\(-0.099\)</span> against a true risk difference of <span class="math inline">\(-0.108\)</span>. Treatment cuts the five-year risk of the event by about ten percentage points. The g-formula has the smallest standard error, 0.018 against 0.027 for the other two, because it leans entirely on the Cox model, which is correctly specified here. That is an efficiency gain bought with an assumption, and AIPTW’s wider interval is the price of not needing it.</p>
 <p>Agreement across these estimates is reassuring. Disagreement is a warning about model specification.</p>
@@ -1622,87 +1627,97 @@ Hernán, Miguel A. 2010. <span>“The Hazards of Hazard Ratios.”</span> <em>Ep
 <span id="cb19-316"><a href="#cb19-316" aria-hidden="true" tabindex="-1"></a>ps_for_ate  <span class="ot">&lt;-</span> <span class="fu">glm</span>(trt_f <span class="sc">~</span> age <span class="sc">+</span> sex, <span class="at">data =</span> df, <span class="at">family =</span> binomial, <span class="at">x =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb19-317"><a href="#cb19-317" aria-hidden="true" tabindex="-1"></a><span class="co"># With right-censoring, the IPTW/AIPTW survival estimator needs a model for</span></span>
 <span id="cb19-318"><a href="#cb19-318" aria-hidden="true" tabindex="-1"></a><span class="co"># the censoring mechanism (a Cox model for time-to-censoring).</span></span>
-<span id="cb19-319"><a href="#cb19-319" aria-hidden="true" tabindex="-1"></a>cens_for_ate <span class="ot">&lt;-</span> <span class="fu">coxph</span>(<span class="fu">Surv</span>(time, event <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">~</span> age <span class="sc">+</span> sex, <span class="at">data =</span> df,</span>
-<span id="cb19-320"><a href="#cb19-320" aria-hidden="true" tabindex="-1"></a>                      <span class="at">x =</span> <span class="cn">TRUE</span>, <span class="at">y =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb19-321"><a href="#cb19-321" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-322"><a href="#cb19-322" aria-hidden="true" tabindex="-1"></a>ate_surv <span class="ot">&lt;-</span> <span class="fu">ate</span>(</span>
-<span id="cb19-323"><a href="#cb19-323" aria-hidden="true" tabindex="-1"></a>  <span class="at">event       =</span> cox_for_ate,</span>
-<span id="cb19-324"><a href="#cb19-324" aria-hidden="true" tabindex="-1"></a>  <span class="at">treatment   =</span> ps_for_ate,</span>
-<span id="cb19-325"><a href="#cb19-325" aria-hidden="true" tabindex="-1"></a>  <span class="at">censor      =</span> cens_for_ate,</span>
-<span id="cb19-326"><a href="#cb19-326" aria-hidden="true" tabindex="-1"></a>  <span class="at">data        =</span> df,</span>
-<span id="cb19-327"><a href="#cb19-327" aria-hidden="true" tabindex="-1"></a>  <span class="at">times       =</span> <span class="dv">5</span>,</span>
-<span id="cb19-328"><a href="#cb19-328" aria-hidden="true" tabindex="-1"></a>  <span class="at">estimator   =</span> <span class="fu">c</span>(<span class="st">"Gformula"</span>, <span class="st">"IPTW"</span>, <span class="st">"AIPTW"</span>),</span>
-<span id="cb19-329"><a href="#cb19-329" aria-hidden="true" tabindex="-1"></a>  <span class="at">cause       =</span> <span class="dv">1</span>,</span>
-<span id="cb19-330"><a href="#cb19-330" aria-hidden="true" tabindex="-1"></a>  <span class="at">se          =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb19-331"><a href="#cb19-331" aria-hidden="true" tabindex="-1"></a>  <span class="at">B           =</span> <span class="dv">0</span>,</span>
-<span id="cb19-332"><a href="#cb19-332" aria-hidden="true" tabindex="-1"></a>  <span class="at">verbose     =</span> <span class="cn">FALSE</span></span>
-<span id="cb19-333"><a href="#cb19-333" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb19-334"><a href="#cb19-334" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-335"><a href="#cb19-335" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(ate_surv)</span>
-<span id="cb19-336"><a href="#cb19-336" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-337"><a href="#cb19-337" aria-hidden="true" tabindex="-1"></a><span class="co"># The summary displays one estimator; put all three side by side</span></span>
-<span id="cb19-338"><a href="#cb19-338" aria-hidden="true" tabindex="-1"></a>ate_tab <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(data.table<span class="sc">::</span><span class="fu">as.data.table</span>(ate_surv, <span class="at">type =</span> <span class="st">"diffRisk"</span>))</span>
-<span id="cb19-339"><a href="#cb19-339" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(ate_tab[, <span class="fu">c</span>(<span class="st">"estimator"</span>, <span class="st">"estimate"</span>, <span class="st">"se"</span>, <span class="st">"lower"</span>, <span class="st">"upper"</span>)],</span>
-<span id="cb19-340"><a href="#cb19-340" aria-hidden="true" tabindex="-1"></a>             <span class="at">digits =</span> <span class="dv">3</span>,</span>
-<span id="cb19-341"><a href="#cb19-341" aria-hidden="true" tabindex="-1"></a>             <span class="at">caption =</span> <span class="st">"Risk difference at t = 5 under each estimator."</span>)</span>
-<span id="cb19-342"><a href="#cb19-342" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb19-343"><a href="#cb19-343" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-344"><a href="#cb19-344" aria-hidden="true" tabindex="-1"></a>The object contains three estimators, shown side-by-side in the table:</span>
-<span id="cb19-345"><a href="#cb19-345" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-346"><a href="#cb19-346" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Gformula** — parametric g-computation using the Cox model only.</span>
-<span id="cb19-347"><a href="#cb19-347" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**IPTW** — inverse probability of treatment weighting.</span>
-<span id="cb19-348"><a href="#cb19-348" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**AIPTW** — augmented IPTW (doubly robust); the recommended default.</span>
-<span id="cb19-349"><a href="#cb19-349" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-350"><a href="#cb19-350" aria-hidden="true" tabindex="-1"></a>All three agree, and all three are close to the truth: $-0.106$, $-0.095$ and</span>
-<span id="cb19-351"><a href="#cb19-351" aria-hidden="true" tabindex="-1"></a>$-0.099$ against a true risk difference of $-0.108$. Treatment cuts the</span>
-<span id="cb19-352"><a href="#cb19-352" aria-hidden="true" tabindex="-1"></a>five-year risk of the event by about ten percentage points. The g-formula has</span>
-<span id="cb19-353"><a href="#cb19-353" aria-hidden="true" tabindex="-1"></a>the smallest standard error, 0.018 against 0.027 for the other two, because it</span>
-<span id="cb19-354"><a href="#cb19-354" aria-hidden="true" tabindex="-1"></a>leans entirely on the Cox model, which is correctly specified here. That is an</span>
-<span id="cb19-355"><a href="#cb19-355" aria-hidden="true" tabindex="-1"></a>efficiency gain bought with an assumption, and AIPTW's wider interval is the</span>
-<span id="cb19-356"><a href="#cb19-356" aria-hidden="true" tabindex="-1"></a>price of not needing it.</span>
-<span id="cb19-357"><a href="#cb19-357" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-358"><a href="#cb19-358" aria-hidden="true" tabindex="-1"></a>Agreement across these estimates is reassuring. Disagreement is a warning</span>
-<span id="cb19-359"><a href="#cb19-359" aria-hidden="true" tabindex="-1"></a>about model specification.</span>
-<span id="cb19-360"><a href="#cb19-360" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-361"><a href="#cb19-361" aria-hidden="true" tabindex="-1"></a><span class="fu">## Hazard ratio vs RMST: which to report?</span></span>
-<span id="cb19-362"><a href="#cb19-362" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-363"><a href="#cb19-363" aria-hidden="true" tabindex="-1"></a>For causal reporting, RMST is often easier to defend than the hazard ratio:</span>
-<span id="cb19-364"><a href="#cb19-364" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-365"><a href="#cb19-365" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Quantity <span class="pp">|</span> Pro <span class="pp">|</span> Con <span class="pp">|</span></span>
-<span id="cb19-366"><a href="#cb19-366" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
-<span id="cb19-367"><a href="#cb19-367" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Hazard ratio** <span class="pp">|</span> Compact summary; familiar <span class="pp">|</span> Requires PH; no causal interpretation; conditional on survivors <span class="pp">|</span></span>
-<span id="cb19-368"><a href="#cb19-368" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **RMST difference** <span class="pp">|</span> Directly interpretable as "years gained"; no PH assumption <span class="pp">|</span> Depends on cutoff $\tau$; less familiar <span class="pp">|</span></span>
-<span id="cb19-369"><a href="#cb19-369" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Survival probability difference at t** <span class="pp">|</span> Direct probability statement <span class="pp">|</span> Depends on choice of $t$ <span class="pp">|</span></span>
+<span id="cb19-319"><a href="#cb19-319" aria-hidden="true" tabindex="-1"></a><span class="co"># Treatment belongs in the censoring model unless design knowledge rules it out.</span></span>
+<span id="cb19-320"><a href="#cb19-320" aria-hidden="true" tabindex="-1"></a><span class="co"># Censoring is treatment-independent in this simulation, so including trt_f</span></span>
+<span id="cb19-321"><a href="#cb19-321" aria-hidden="true" tabindex="-1"></a><span class="co"># changes little here -- but the assumption that has to hold is independent</span></span>
+<span id="cb19-322"><a href="#cb19-322" aria-hidden="true" tabindex="-1"></a><span class="co"># censoring *conditional on treatment and covariates*, plus censoring</span></span>
+<span id="cb19-323"><a href="#cb19-323" aria-hidden="true" tabindex="-1"></a><span class="co"># positivity, and the code should say so to be reusable.</span></span>
+<span id="cb19-324"><a href="#cb19-324" aria-hidden="true" tabindex="-1"></a>cens_for_ate <span class="ot">&lt;-</span> <span class="fu">coxph</span>(<span class="fu">Surv</span>(time, event <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">~</span> trt_f <span class="sc">+</span> age <span class="sc">+</span> sex, <span class="at">data =</span> df,</span>
+<span id="cb19-325"><a href="#cb19-325" aria-hidden="true" tabindex="-1"></a>                      <span class="at">x =</span> <span class="cn">TRUE</span>, <span class="at">y =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb19-326"><a href="#cb19-326" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-327"><a href="#cb19-327" aria-hidden="true" tabindex="-1"></a>ate_surv <span class="ot">&lt;-</span> <span class="fu">ate</span>(</span>
+<span id="cb19-328"><a href="#cb19-328" aria-hidden="true" tabindex="-1"></a>  <span class="at">event       =</span> cox_for_ate,</span>
+<span id="cb19-329"><a href="#cb19-329" aria-hidden="true" tabindex="-1"></a>  <span class="at">treatment   =</span> ps_for_ate,</span>
+<span id="cb19-330"><a href="#cb19-330" aria-hidden="true" tabindex="-1"></a>  <span class="at">censor      =</span> cens_for_ate,</span>
+<span id="cb19-331"><a href="#cb19-331" aria-hidden="true" tabindex="-1"></a>  <span class="at">data        =</span> df,</span>
+<span id="cb19-332"><a href="#cb19-332" aria-hidden="true" tabindex="-1"></a>  <span class="at">times       =</span> <span class="dv">5</span>,</span>
+<span id="cb19-333"><a href="#cb19-333" aria-hidden="true" tabindex="-1"></a>  <span class="at">estimator   =</span> <span class="fu">c</span>(<span class="st">"Gformula"</span>, <span class="st">"IPTW"</span>, <span class="st">"AIPTW"</span>),</span>
+<span id="cb19-334"><a href="#cb19-334" aria-hidden="true" tabindex="-1"></a>  <span class="at">cause       =</span> <span class="dv">1</span>,</span>
+<span id="cb19-335"><a href="#cb19-335" aria-hidden="true" tabindex="-1"></a>  <span class="at">se          =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb19-336"><a href="#cb19-336" aria-hidden="true" tabindex="-1"></a>  <span class="at">B           =</span> <span class="dv">0</span>,</span>
+<span id="cb19-337"><a href="#cb19-337" aria-hidden="true" tabindex="-1"></a>  <span class="at">verbose     =</span> <span class="cn">FALSE</span></span>
+<span id="cb19-338"><a href="#cb19-338" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb19-339"><a href="#cb19-339" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-340"><a href="#cb19-340" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(ate_surv)</span>
+<span id="cb19-341"><a href="#cb19-341" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-342"><a href="#cb19-342" aria-hidden="true" tabindex="-1"></a><span class="co"># The summary displays one estimator; put all three side by side</span></span>
+<span id="cb19-343"><a href="#cb19-343" aria-hidden="true" tabindex="-1"></a>ate_tab <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(data.table<span class="sc">::</span><span class="fu">as.data.table</span>(ate_surv, <span class="at">type =</span> <span class="st">"diffRisk"</span>))</span>
+<span id="cb19-344"><a href="#cb19-344" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(ate_tab[, <span class="fu">c</span>(<span class="st">"estimator"</span>, <span class="st">"estimate"</span>, <span class="st">"se"</span>, <span class="st">"lower"</span>, <span class="st">"upper"</span>)],</span>
+<span id="cb19-345"><a href="#cb19-345" aria-hidden="true" tabindex="-1"></a>             <span class="at">digits =</span> <span class="dv">3</span>,</span>
+<span id="cb19-346"><a href="#cb19-346" aria-hidden="true" tabindex="-1"></a>             <span class="at">caption =</span> <span class="st">"Risk difference at t = 5 under each estimator."</span>)</span>
+<span id="cb19-347"><a href="#cb19-347" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb19-348"><a href="#cb19-348" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-349"><a href="#cb19-349" aria-hidden="true" tabindex="-1"></a>The object contains three estimators, shown side-by-side in the table:</span>
+<span id="cb19-350"><a href="#cb19-350" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-351"><a href="#cb19-351" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Gformula** — parametric g-computation using the Cox model only.</span>
+<span id="cb19-352"><a href="#cb19-352" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**IPTW** — inverse probability of treatment weighting.</span>
+<span id="cb19-353"><a href="#cb19-353" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**AIPTW** — augmented IPTW (doubly robust); usually the best default, though</span>
+<span id="cb19-354"><a href="#cb19-354" aria-hidden="true" tabindex="-1"></a>  not unconditionally. It earns that status when the nuisance models are</span>
+<span id="cb19-355"><a href="#cb19-355" aria-hidden="true" tabindex="-1"></a>  flexible and cross-fitted, treatment and censoring probabilities stay away</span>
+<span id="cb19-356"><a href="#cb19-356" aria-hidden="true" tabindex="-1"></a>  from zero, and the censoring assumption holds conditional on treatment and</span>
+<span id="cb19-357"><a href="#cb19-357" aria-hidden="true" tabindex="-1"></a>  covariates. Where positivity is thin it can be less stable than a simpler</span>
+<span id="cb19-358"><a href="#cb19-358" aria-hidden="true" tabindex="-1"></a>  estimator.</span>
+<span id="cb19-359"><a href="#cb19-359" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-360"><a href="#cb19-360" aria-hidden="true" tabindex="-1"></a>All three agree, and all three are close to the truth: $-0.106$, $-0.095$ and</span>
+<span id="cb19-361"><a href="#cb19-361" aria-hidden="true" tabindex="-1"></a>$-0.099$ against a true risk difference of $-0.108$. Treatment cuts the</span>
+<span id="cb19-362"><a href="#cb19-362" aria-hidden="true" tabindex="-1"></a>five-year risk of the event by about ten percentage points. The g-formula has</span>
+<span id="cb19-363"><a href="#cb19-363" aria-hidden="true" tabindex="-1"></a>the smallest standard error, 0.018 against 0.027 for the other two, because it</span>
+<span id="cb19-364"><a href="#cb19-364" aria-hidden="true" tabindex="-1"></a>leans entirely on the Cox model, which is correctly specified here. That is an</span>
+<span id="cb19-365"><a href="#cb19-365" aria-hidden="true" tabindex="-1"></a>efficiency gain bought with an assumption, and AIPTW's wider interval is the</span>
+<span id="cb19-366"><a href="#cb19-366" aria-hidden="true" tabindex="-1"></a>price of not needing it.</span>
+<span id="cb19-367"><a href="#cb19-367" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-368"><a href="#cb19-368" aria-hidden="true" tabindex="-1"></a>Agreement across these estimates is reassuring. Disagreement is a warning</span>
+<span id="cb19-369"><a href="#cb19-369" aria-hidden="true" tabindex="-1"></a>about model specification.</span>
 <span id="cb19-370"><a href="#cb19-370" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-371"><a href="#cb19-371" aria-hidden="true" tabindex="-1"></a>In practice, report at least:</span>
+<span id="cb19-371"><a href="#cb19-371" aria-hidden="true" tabindex="-1"></a><span class="fu">## Hazard ratio vs RMST: which to report?</span></span>
 <span id="cb19-372"><a href="#cb19-372" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-373"><a href="#cb19-373" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>The KM curves with risk tables (description).</span>
-<span id="cb19-374"><a href="#cb19-374" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>The Cox HR with adjustment (familiar comparison to literature).</span>
-<span id="cb19-375"><a href="#cb19-375" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>The RMST difference at a clinically meaningful $\tau$ (interpretable</span>
-<span id="cb19-376"><a href="#cb19-376" aria-hidden="true" tabindex="-1"></a>   causal contrast).</span>
-<span id="cb19-377"><a href="#cb19-377" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>The DR ATE on survival probability at one or two follow-up times.</span>
-<span id="cb19-378"><a href="#cb19-378" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-379"><a href="#cb19-379" aria-hidden="true" tabindex="-1"></a><span class="fu">## Connections</span></span>
+<span id="cb19-373"><a href="#cb19-373" aria-hidden="true" tabindex="-1"></a>For causal reporting, RMST is often easier to defend than the hazard ratio:</span>
+<span id="cb19-374"><a href="#cb19-374" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-375"><a href="#cb19-375" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Quantity <span class="pp">|</span> Pro <span class="pp">|</span> Con <span class="pp">|</span></span>
+<span id="cb19-376"><a href="#cb19-376" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
+<span id="cb19-377"><a href="#cb19-377" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Hazard ratio** <span class="pp">|</span> Compact summary; familiar <span class="pp">|</span> Requires PH; no causal interpretation; conditional on survivors <span class="pp">|</span></span>
+<span id="cb19-378"><a href="#cb19-378" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **RMST difference** <span class="pp">|</span> Directly interpretable as "years gained"; no PH assumption <span class="pp">|</span> Depends on cutoff $\tau$; less familiar <span class="pp">|</span></span>
+<span id="cb19-379"><a href="#cb19-379" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Survival probability difference at t** <span class="pp">|</span> Direct probability statement <span class="pp">|</span> Depends on choice of $t$ <span class="pp">|</span></span>
 <span id="cb19-380"><a href="#cb19-380" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-381"><a href="#cb19-381" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">G-Methods chapter</span><span class="co">](g-methods.qmd)</span> covers IPTW with time-varying</span>
-<span id="cb19-382"><a href="#cb19-382" aria-hidden="true" tabindex="-1"></a>  treatments — directly applicable when treatment evolves during</span>
-<span id="cb19-383"><a href="#cb19-383" aria-hidden="true" tabindex="-1"></a>  follow-up. The IPCW machinery here is the censoring analogue.</span>
-<span id="cb19-384"><a href="#cb19-384" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">Heterogeneous Effects chapter</span><span class="co">](heterogeneous-effects.qmd)</span> ML</span>
-<span id="cb19-385"><a href="#cb19-385" aria-hidden="true" tabindex="-1"></a>  methods extend to survival via causal survival forests</span>
-<span id="cb19-386"><a href="#cb19-386" aria-hidden="true" tabindex="-1"></a>  (<span class="in">`grf::causal_survival_forest`</span>).</span>
-<span id="cb19-387"><a href="#cb19-387" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">Bayesian Causal Inference chapter</span><span class="co">](bayesian-causal.qmd)</span> extends</span>
-<span id="cb19-388"><a href="#cb19-388" aria-hidden="true" tabindex="-1"></a>  to survival via Bayesian additive regression trees for time-to-event</span>
-<span id="cb19-389"><a href="#cb19-389" aria-hidden="true" tabindex="-1"></a>  outcomes (<span class="in">`BART::surv.bart`</span> for discrete-time survival, or <span class="in">`BART::abart`</span></span>
-<span id="cb19-390"><a href="#cb19-390" aria-hidden="true" tabindex="-1"></a>  for an accelerated-failure-time model with right-censoring).</span>
-<span id="cb19-391"><a href="#cb19-391" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-392"><a href="#cb19-392" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
-<span id="cb19-393"><a href="#cb19-393" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-394"><a href="#cb19-394" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Survival outcomes require methods that handle censoring.</span>
-<span id="cb19-395"><a href="#cb19-395" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Cox models are familiar, but hazard ratios are hard to interpret causally.</span>
-<span id="cb19-396"><a href="#cb19-396" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>RMST differences are often the clearest causal summary.</span>
-<span id="cb19-397"><a href="#cb19-397" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>IPCW handles informative censoring.</span>
-<span id="cb19-398"><a href="#cb19-398" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`riskRegression::ate`</span> reports g-formula, IPTW, and AIPTW estimates for</span>
-<span id="cb19-399"><a href="#cb19-399" aria-hidden="true" tabindex="-1"></a>  survival probabilities.</span>
+<span id="cb19-381"><a href="#cb19-381" aria-hidden="true" tabindex="-1"></a>In practice, report at least:</span>
+<span id="cb19-382"><a href="#cb19-382" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-383"><a href="#cb19-383" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>The KM curves with risk tables (description).</span>
+<span id="cb19-384"><a href="#cb19-384" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>The Cox HR with adjustment (familiar comparison to literature).</span>
+<span id="cb19-385"><a href="#cb19-385" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>The RMST difference at a clinically meaningful $\tau$ (interpretable</span>
+<span id="cb19-386"><a href="#cb19-386" aria-hidden="true" tabindex="-1"></a>   causal contrast).</span>
+<span id="cb19-387"><a href="#cb19-387" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>The DR ATE on survival probability at one or two follow-up times.</span>
+<span id="cb19-388"><a href="#cb19-388" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-389"><a href="#cb19-389" aria-hidden="true" tabindex="-1"></a><span class="fu">## Connections</span></span>
+<span id="cb19-390"><a href="#cb19-390" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-391"><a href="#cb19-391" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">G-Methods chapter</span><span class="co">](g-methods.qmd)</span> covers IPTW with time-varying</span>
+<span id="cb19-392"><a href="#cb19-392" aria-hidden="true" tabindex="-1"></a>  treatments — directly applicable when treatment evolves during</span>
+<span id="cb19-393"><a href="#cb19-393" aria-hidden="true" tabindex="-1"></a>  follow-up. The IPCW machinery here is the censoring analogue.</span>
+<span id="cb19-394"><a href="#cb19-394" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">Heterogeneous Effects chapter</span><span class="co">](heterogeneous-effects.qmd)</span> ML</span>
+<span id="cb19-395"><a href="#cb19-395" aria-hidden="true" tabindex="-1"></a>  methods extend to survival via causal survival forests</span>
+<span id="cb19-396"><a href="#cb19-396" aria-hidden="true" tabindex="-1"></a>  (<span class="in">`grf::causal_survival_forest`</span>).</span>
+<span id="cb19-397"><a href="#cb19-397" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The <span class="co">[</span><span class="ot">Bayesian Causal Inference chapter</span><span class="co">](bayesian-causal.qmd)</span> extends</span>
+<span id="cb19-398"><a href="#cb19-398" aria-hidden="true" tabindex="-1"></a>  to survival via Bayesian additive regression trees for time-to-event</span>
+<span id="cb19-399"><a href="#cb19-399" aria-hidden="true" tabindex="-1"></a>  outcomes (<span class="in">`BART::surv.bart`</span> for discrete-time survival, or <span class="in">`BART::abart`</span></span>
+<span id="cb19-400"><a href="#cb19-400" aria-hidden="true" tabindex="-1"></a>  for an accelerated-failure-time model with right-censoring).</span>
+<span id="cb19-401"><a href="#cb19-401" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-402"><a href="#cb19-402" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb19-403"><a href="#cb19-403" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-404"><a href="#cb19-404" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Survival outcomes require methods that handle censoring.</span>
+<span id="cb19-405"><a href="#cb19-405" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Cox models are familiar, but hazard ratios are hard to interpret causally.</span>
+<span id="cb19-406"><a href="#cb19-406" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>RMST differences are often the clearest causal summary.</span>
+<span id="cb19-407"><a href="#cb19-407" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>IPCW handles informative censoring.</span>
+<span id="cb19-408"><a href="#cb19-408" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`riskRegression::ate`</span> reports g-formula, IPTW, and AIPTW estimates for</span>
+<span id="cb19-409"><a href="#cb19-409" aria-hidden="true" tabindex="-1"></a>  survival probabilities.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

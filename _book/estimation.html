@@ -448,8 +448,8 @@ window.Quarto = {
 </header><p>Once the causal effect is identified, we need an estimator. This chapter covers four: regression adjustment (RA), inverse probability weighting (IPW), augmented IPW (AIPW), and inverse-probability-weighted regression adjustment (IPWRA).</p>
 <section id="experimental-data" class="level2" data-number="6.1"><h2 data-number="6.1" class="anchored" data-anchor-id="experimental-data">
 <span class="header-section-number">6.1</span> Experimental Data</h2>
-<p>With experimental data the assumptions hold by design. A difference-in-means estimator suffices (under randomization ATE = ATT = ATU): <span id="eq-estimation-1"><span class="math display">\[ \hat{\tau} = \bar Y_1 - \bar Y_0  \tag{6.1}\]</span></span></p>
-<p>A <span class="math inline">\(t\)</span>-test or a regression of <span class="math inline">\(Y\)</span> on <span class="math inline">\(W\)</span> and <span class="math inline">\(X\)</span> both recover the same estimate.</p>
+<p>With experimental data the assumptions hold by design. A difference-in-means estimator suffices, and under randomization the ATE, ATT and ATU coincide as estimands: <span id="eq-estimation-1"><span class="math display">\[ \hat{\tau} = \bar Y_1 - \bar Y_0  \tag{6.1}\]</span></span></p>
+<p>They coincide in expectation, not arithmetically in the sample at hand. A <span class="math inline">\(t\)</span>-test and a regression of <span class="math inline">\(Y\)</span> on <span class="math inline">\(W\)</span> and <span class="math inline">\(X\)</span> are both design-valid for the same estimand, and they will generally give different numbers in a finite sample – adding covariates changes the finite-sample estimate even when it changes nothing about what is being estimated.</p>
 </section><section id="adjustment-formula" class="level2" data-number="6.2"><h2 data-number="6.2" class="anchored" data-anchor-id="adjustment-formula">
 <span class="header-section-number">6.2</span> Adjustment Formula</h2>
 <p>The adjustment formula connects causal and statistical quantities: <span id="eq-estimation-2"><span class="math display">\[
@@ -595,7 +595,15 @@ E[Y(w)] &amp;= E[E[Y|W=w,X]] \\
 <p>We switch to the Cattaneo (2010) birth-weight data used in the Stata manuals: 4,642 births, outcome <code>bweight</code> in grams, treatment <code>mbsmoke</code> for maternal smoking during pregnancy (864 mothers), and covariates <code>prenatal1</code> (a prenatal visit in the first trimester), <code>mmarried</code>, <code>mage</code> (mother’s age), <code>fbaby</code> (first baby) and <code>medu</code> (mother’s education). Smokers’ babies weigh 3,137.7 g on average and non-smokers’ 3,412.9 g, a raw gap of <span class="math inline">\(-275.3\)</span> g.</p>
 <p>The outcome model is a linear regression of birth weight on smoking interacted with prenatal care, marital status, mother’s age and first-baby status. The propensity model is a logit of smoking on marital status, mother’s age, first-baby status and education. We form the AIPW summand for each arm and average the difference.</p>
 <div class="cell">
-<details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu">read_dta</span><span class="op">(</span>file<span class="op">=</span><span class="st">"https://www.stata-press.com/data/r18/cattaneo2.dta"</span><span class="op">)</span></span>
+<details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># Cattaneo (2010) birth-weight data, as distributed with Stata 18. Fetched once</span></span>
+<span><span class="co"># and cached beside the source, so a build touches the network at most once</span></span>
+<span><span class="co"># rather than on every chunk that needs it.</span></span>
+<span><span class="va">cattaneo_file</span> <span class="op">&lt;-</span> <span class="st">"cattaneo2.dta"</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files.html">file.exists</a></span><span class="op">(</span><span class="va">cattaneo_file</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/download.file.html">download.file</a></span><span class="op">(</span><span class="st">"https://www.stata-press.com/data/r18/cattaneo2.dta"</span>,</span>
+<span>                <span class="va">cattaneo_file</span>, mode <span class="op">=</span> <span class="st">"wb"</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu">read_dta</span><span class="op">(</span><span class="va">cattaneo_file</span><span class="op">)</span></span>
 <span><span class="va">mu</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html">lm</a></span><span class="op">(</span><span class="va">bweight</span> <span class="op">~</span> <span class="va">mbsmoke</span><span class="op">*</span><span class="op">(</span><span class="va">prenatal1</span> <span class="op">+</span> <span class="va">mmarried</span> <span class="op">+</span> <span class="va">mage</span> <span class="op">+</span> <span class="va">fbaby</span><span class="op">)</span>, data<span class="op">=</span><span class="va">data</span><span class="op">)</span></span>
 <span><span class="va">pi</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/glm.html">glm</a></span><span class="op">(</span> <span class="va">mbsmoke</span> <span class="op">~</span> <span class="va">mmarried</span> <span class="op">+</span> <span class="va">mage</span> <span class="op">+</span> <span class="va">fbaby</span> <span class="op">+</span> <span class="va">medu</span>, data<span class="op">=</span><span class="va">data</span>, family<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/stats/family.html">binomial</a></span><span class="op">(</span>link<span class="op">=</span><span class="st">"logit"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">mm1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span><span class="op">(</span><span class="va">mu</span>, newdata<span class="op">=</span><span class="va">data</span> <span class="op">%&gt;%</span> <span class="fu">mutate</span><span class="op">(</span>mbsmoke<span class="op">=</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
@@ -606,15 +614,20 @@ E[Y(w)] &amp;= E[E[Y|W=w,X]] \\
 <span><span class="va">data2</span> <span class="op">&lt;-</span> <span class="va">data</span> <span class="op">%&gt;%</span></span>
 <span>  <span class="fu">mutate</span><span class="op">(</span>mu1<span class="op">=</span><span class="op">(</span><span class="va">w</span><span class="op">*</span><span class="op">(</span><span class="va">y</span><span class="op">-</span><span class="va">m1</span><span class="op">)</span><span class="op">/</span><span class="va">pi1</span> <span class="op">+</span> <span class="va">m1</span><span class="op">)</span>, mu0<span class="op">=</span><span class="op">(</span><span class="op">(</span><span class="fl">1</span><span class="op">-</span><span class="va">w</span><span class="op">)</span><span class="op">*</span><span class="op">(</span><span class="va">y</span><span class="op">-</span><span class="va">m0</span><span class="op">)</span><span class="op">/</span><span class="op">(</span><span class="fl">1</span><span class="op">-</span><span class="va">pi1</span><span class="op">)</span> <span class="op">+</span> <span class="va">m0</span><span class="op">)</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
 <span>  <span class="fu">mutate</span><span class="op">(</span>tau<span class="op">=</span><span class="va">mu1</span><span class="op">-</span><span class="va">mu0</span><span class="op">)</span></span>
-<span><span class="va">data2</span> <span class="op">%&gt;%</span> <span class="fu">summarise</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">tau</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span><span class="co"># The per-unit AIPW summand is the influence function for the ATE, so its sample</span></span>
+<span><span class="co"># standard deviation gives the asymptotic standard error directly.</span></span>
+<span><span class="va">data2</span> <span class="op">%&gt;%</span> <span class="fu">summarise</span><span class="op">(</span>ATE <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">tau</span><span class="op">)</span>,</span>
+<span>                    se  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/sd.html">sd</a></span><span class="op">(</span><span class="va">tau</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="fu">n</span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                    lo  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">tau</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1.96</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/stats/sd.html">sd</a></span><span class="op">(</span><span class="va">tau</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="fu">n</span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                    hi  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">tau</span><span class="op">)</span> <span class="op">+</span> <span class="fl">1.96</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/stats/sd.html">sd</a></span><span class="op">(</span><span class="va">tau</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="fu">n</span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details><div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 1 × 1
-  `mean(tau)`
-        &lt;dbl&gt;
-1       -234.</code></pre>
+<pre><code># A tibble: 1 × 4
+    ATE    se    lo    hi
+  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+1 -234.  23.3 -279. -188.</code></pre>
 </div>
 </div>
-<p>AIPW gives <span class="math inline">\(-234\)</span> g. Adjustment moves the estimate about 41 g toward zero from the raw <span class="math inline">\(-275\)</span> g, so part of the raw gap is composition: smokers differ from non-smokers in age, education and marital status.</p>
+<p>AIPW gives <span class="math inline">\(-234\)</span> g, with a standard error of 23 g and a 95% interval of <span class="math inline">\([-279, -188]\)</span>. That interval comes almost free: the per-unit AIPW summand is the influence function for the ATE, so its sample standard deviation over <span class="math inline">\(\sqrt n\)</span> is the asymptotic standard error, and no bootstrap is needed. Adjustment moves the estimate about 41 g toward zero from the raw <span class="math inline">\(-275\)</span> g, so part of the raw gap is composition: smokers differ from non-smokers in age, education and marital status. The interval sits well away from zero, so what remains after adjustment is not a sampling artefact.</p>
 </section><section id="ipwra" class="level3" data-number="6.6.2"><h3 data-number="6.6.2" class="anchored" data-anchor-id="ipwra">
 <span class="header-section-number">6.6.2</span> IPWRA</h3>
 <p>The idea of IPWRA is to combine RA and IPW. Basically RA with IPW weights.</p>
@@ -627,7 +640,15 @@ E[Y(w)] &amp;= E[E[Y|W=w,X]] \\
 </ul>
 <p>We run this on the same birth-weight data and the same propensity model as AIPW, so the two estimates differ only in how the outcome and treatment models are combined.</p>
 <div class="cell">
-<details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu">read_dta</span><span class="op">(</span>file<span class="op">=</span><span class="st">"https://www.stata-press.com/data/r18/cattaneo2.dta"</span><span class="op">)</span></span>
+<details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># Cattaneo (2010) birth-weight data, as distributed with Stata 18. Fetched once</span></span>
+<span><span class="co"># and cached beside the source, so a build touches the network at most once</span></span>
+<span><span class="co"># rather than on every chunk that needs it.</span></span>
+<span><span class="va">cattaneo_file</span> <span class="op">&lt;-</span> <span class="st">"cattaneo2.dta"</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files.html">file.exists</a></span><span class="op">(</span><span class="va">cattaneo_file</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/download.file.html">download.file</a></span><span class="op">(</span><span class="st">"https://www.stata-press.com/data/r18/cattaneo2.dta"</span>,</span>
+<span>                <span class="va">cattaneo_file</span>, mode <span class="op">=</span> <span class="st">"wb"</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu">read_dta</span><span class="op">(</span><span class="va">cattaneo_file</span><span class="op">)</span></span>
 <span><span class="va">pi</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/glm.html">glm</a></span><span class="op">(</span> <span class="va">mbsmoke</span> <span class="op">~</span> <span class="va">mmarried</span> <span class="op">+</span> <span class="va">mage</span> <span class="op">+</span> <span class="va">fbaby</span> <span class="op">+</span> <span class="va">medu</span>, data<span class="op">=</span><span class="va">data</span>, family<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/stats/family.html">binomial</a></span><span class="op">(</span>link<span class="op">=</span><span class="st">"logit"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">pi1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html">predict</a></span><span class="op">(</span><span class="va">pi</span>, newdata<span class="op">=</span><span class="va">data</span>, type<span class="op">=</span><span class="st">"response"</span><span class="op">)</span></span>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="va">data</span> <span class="op">%&gt;%</span></span>
@@ -642,12 +663,16 @@ E[Y(w)] &amp;= E[E[Y|W=w,X]] \\
 <span>  <span class="fu">mutate</span><span class="op">(</span>w<span class="op">=</span><span class="va">mbsmoke</span>, y<span class="op">=</span><span class="va">bweight</span>, m1<span class="op">=</span><span class="va">mm1</span>, m0<span class="op">=</span><span class="va">mm0</span>, pi1<span class="op">=</span><span class="va">pi1</span><span class="op">)</span></span>
 <span><span class="va">data2</span> <span class="op">&lt;-</span> <span class="va">data</span> <span class="op">%&gt;%</span></span>
 <span>  <span class="fu">mutate</span><span class="op">(</span>tau<span class="op">=</span><span class="va">m1</span><span class="op">-</span><span class="va">m0</span><span class="op">)</span></span>
-<span><span class="va">data2</span> <span class="op">%&gt;%</span> <span class="fu">summarise</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">tau</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span><span class="co"># No influence-function shortcut here: these per-unit tau are differences of</span></span>
+<span><span class="co"># fitted values from weighted regressions, not the estimator's influence</span></span>
+<span><span class="co"># function, so sd(tau)/sqrt(n) would not be its standard error. An interval for</span></span>
+<span><span class="co"># IPWRA needs a bootstrap over both stages.</span></span>
+<span><span class="va">data2</span> <span class="op">%&gt;%</span> <span class="fu">summarise</span><span class="op">(</span>ATE <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">tau</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details><div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 1 × 1
-  `mean(tau)`
-        &lt;dbl&gt;
-1       -233.</code></pre>
+    ATE
+  &lt;dbl&gt;
+1 -233.</code></pre>
 </div>
 </div>
 <p>IPWRA gives <span class="math inline">\(-233\)</span> g, within a gram of the AIPW estimate. Both are doubly robust and both use the same two nuisance models here, so they can only differ in how the models are combined.</p>
@@ -1140,9 +1165,9 @@ Słoczyński, Tymon. 2022. <span>“Interpreting <span>OLS</span> Estimands When
 <span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="fu">## Experimental Data</span></span>
 <span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>With experimental data the assumptions hold by design. A difference-in-means estimator suffices (under randomization ATE = ATT = ATU): $$ \hat{\tau} = \bar Y_1 - \bar Y_0 $$ {#eq-estimation-1}</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>With experimental data the assumptions hold by design. A difference-in-means estimator suffices, and under randomization the ATE, ATT and ATU coincide as estimands: $$ \hat{\tau} = \bar Y_1 - \bar Y_0 $$ {#eq-estimation-1}</span>
 <span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>A $t$-test or a regression of $Y$ on $W$ and $X$ both recover the same estimate.</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>They coincide in expectation, not arithmetically in the sample at hand. A $t$-test and a regression of $Y$ on $W$ and $X$ are both design-valid for the same estimand, and they will generally give different numbers in a finite sample -- adding covariates changes the finite-sample estimate even when it changes nothing about what is being estimated.</span>
 <span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a><span class="fu">## Adjustment Formula</span></span>
 <span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a></span>
@@ -1332,61 +1357,91 @@ Słoczyński, Tymon. 2022. <span>“Interpreting <span>OLS</span> Estimands When
 <span id="cb8-211"><a href="#cb8-211" aria-hidden="true" tabindex="-1"></a>average the difference.</span>
 <span id="cb8-212"><a href="#cb8-212" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-213"><a href="#cb8-213" aria-hidden="true" tabindex="-1"></a><span class="in">```{r aipw1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb8-214"><a href="#cb8-214" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">read_dta</span>(<span class="at">file=</span><span class="st">"https://www.stata-press.com/data/r18/cattaneo2.dta"</span>)</span>
-<span id="cb8-215"><a href="#cb8-215" aria-hidden="true" tabindex="-1"></a>mu <span class="ot">&lt;-</span> <span class="fu">lm</span>(bweight <span class="sc">~</span> mbsmoke<span class="sc">*</span>(prenatal1 <span class="sc">+</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby), <span class="at">data=</span>data)</span>
-<span id="cb8-216"><a href="#cb8-216" aria-hidden="true" tabindex="-1"></a>pi <span class="ot">&lt;-</span> <span class="fu">glm</span>( mbsmoke <span class="sc">~</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby <span class="sc">+</span> medu, <span class="at">data=</span>data, <span class="at">family=</span><span class="fu">binomial</span>(<span class="at">link=</span><span class="st">"logit"</span>))</span>
-<span id="cb8-217"><a href="#cb8-217" aria-hidden="true" tabindex="-1"></a>mm1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">mbsmoke=</span><span class="dv">1</span>))</span>
-<span id="cb8-218"><a href="#cb8-218" aria-hidden="true" tabindex="-1"></a>mm0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">mbsmoke=</span><span class="dv">0</span>))</span>
-<span id="cb8-219"><a href="#cb8-219" aria-hidden="true" tabindex="-1"></a>pi1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(pi, <span class="at">newdata=</span>data, <span class="at">type=</span><span class="st">"response"</span>)</span>
-<span id="cb8-220"><a href="#cb8-220" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
-<span id="cb8-221"><a href="#cb8-221" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">w=</span>mbsmoke, <span class="at">y=</span>bweight, <span class="at">m1=</span>mm1, <span class="at">m0=</span>mm0, <span class="at">pi1=</span>pi1)</span>
-<span id="cb8-222"><a href="#cb8-222" aria-hidden="true" tabindex="-1"></a>data2 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
-<span id="cb8-223"><a href="#cb8-223" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">mu1=</span>(w<span class="sc">*</span>(y<span class="sc">-</span>m1)<span class="sc">/</span>pi1 <span class="sc">+</span> m1), <span class="at">mu0=</span>((<span class="dv">1</span><span class="sc">-</span>w)<span class="sc">*</span>(y<span class="sc">-</span>m0)<span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>pi1) <span class="sc">+</span> m0)) <span class="sc">%&gt;%</span></span>
-<span id="cb8-224"><a href="#cb8-224" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">tau=</span>mu1<span class="sc">-</span>mu0)</span>
-<span id="cb8-225"><a href="#cb8-225" aria-hidden="true" tabindex="-1"></a>data2 <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="fu">mean</span>(tau))</span>
-<span id="cb8-226"><a href="#cb8-226" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb8-227"><a href="#cb8-227" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-228"><a href="#cb8-228" aria-hidden="true" tabindex="-1"></a>AIPW gives $-234$ g. Adjustment moves the estimate about 41 g toward zero from</span>
-<span id="cb8-229"><a href="#cb8-229" aria-hidden="true" tabindex="-1"></a>the raw $-275$ g, so part of the raw gap is composition: smokers differ from</span>
-<span id="cb8-230"><a href="#cb8-230" aria-hidden="true" tabindex="-1"></a>non-smokers in age, education and marital status.</span>
-<span id="cb8-231"><a href="#cb8-231" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-232"><a href="#cb8-232" aria-hidden="true" tabindex="-1"></a><span class="fu">### IPWRA</span></span>
-<span id="cb8-233"><a href="#cb8-233" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-234"><a href="#cb8-234" aria-hidden="true" tabindex="-1"></a>The idea of IPWRA is to combine RA and IPW. Basically RA with IPW weights.</span>
-<span id="cb8-235"><a href="#cb8-235" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-236"><a href="#cb8-236" aria-hidden="true" tabindex="-1"></a>Implementation:</span>
-<span id="cb8-237"><a href="#cb8-237" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-238"><a href="#cb8-238" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Estimate propensity score. Get predicted probability of treated for each observation.</span>
-<span id="cb8-239"><a href="#cb8-239" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Estimate outcome model with the IPW weights: two separate equations, one for treated (weights $1/\hat \pi(X)$) and one for control (weights $1/(1-\hat \pi(X))$). Equivalently, one weighted regression with full treatment–covariate interaction — the interacted design matrix is block-diagonal across the two groups, so the weighted normal equations decouple and the two routes give identical fits.</span>
-<span id="cb8-240"><a href="#cb8-240" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Get predicted values for setting everyone treated. Get predicted values for setting everyone control. These are the two potential outcomes.</span>
-<span id="cb8-241"><a href="#cb8-241" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Take difference. The average is the ATE.</span>
-<span id="cb8-242"><a href="#cb8-242" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-243"><a href="#cb8-243" aria-hidden="true" tabindex="-1"></a>We run this on the same birth-weight data and the same propensity model as</span>
-<span id="cb8-244"><a href="#cb8-244" aria-hidden="true" tabindex="-1"></a>AIPW, so the two estimates differ only in how the outcome and treatment models</span>
-<span id="cb8-245"><a href="#cb8-245" aria-hidden="true" tabindex="-1"></a>are combined.</span>
-<span id="cb8-246"><a href="#cb8-246" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-247"><a href="#cb8-247" aria-hidden="true" tabindex="-1"></a><span class="in">```{r ipwra1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb8-248"><a href="#cb8-248" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">read_dta</span>(<span class="at">file=</span><span class="st">"https://www.stata-press.com/data/r18/cattaneo2.dta"</span>)</span>
-<span id="cb8-249"><a href="#cb8-249" aria-hidden="true" tabindex="-1"></a>pi <span class="ot">&lt;-</span> <span class="fu">glm</span>( mbsmoke <span class="sc">~</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby <span class="sc">+</span> medu, <span class="at">data=</span>data, <span class="at">family=</span><span class="fu">binomial</span>(<span class="at">link=</span><span class="st">"logit"</span>))</span>
-<span id="cb8-250"><a href="#cb8-250" aria-hidden="true" tabindex="-1"></a>pi1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(pi, <span class="at">newdata=</span>data, <span class="at">type=</span><span class="st">"response"</span>)</span>
-<span id="cb8-251"><a href="#cb8-251" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
-<span id="cb8-252"><a href="#cb8-252" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pi1=</span>pi1)</span>
-<span id="cb8-253"><a href="#cb8-253" aria-hidden="true" tabindex="-1"></a>data1 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span> <span class="fu">filter</span>(mbsmoke<span class="sc">==</span><span class="dv">1</span>)</span>
-<span id="cb8-254"><a href="#cb8-254" aria-hidden="true" tabindex="-1"></a>data0 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span> <span class="fu">filter</span>(mbsmoke<span class="sc">==</span><span class="dv">0</span>)</span>
-<span id="cb8-255"><a href="#cb8-255" aria-hidden="true" tabindex="-1"></a>mu1 <span class="ot">&lt;-</span> <span class="fu">lm</span>(bweight <span class="sc">~</span> prenatal1 <span class="sc">+</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby, <span class="at">data=</span>data1, <span class="at">weights=</span><span class="dv">1</span><span class="sc">/</span>data1<span class="sc">$</span>pi1)</span>
-<span id="cb8-256"><a href="#cb8-256" aria-hidden="true" tabindex="-1"></a>mu0 <span class="ot">&lt;-</span> <span class="fu">lm</span>(bweight <span class="sc">~</span> prenatal1 <span class="sc">+</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby, <span class="at">data=</span>data0, <span class="at">weights=</span><span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>data0<span class="sc">$</span>pi1))</span>
-<span id="cb8-257"><a href="#cb8-257" aria-hidden="true" tabindex="-1"></a>mm1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu1, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">mbsmoke=</span><span class="dv">1</span>))</span>
-<span id="cb8-258"><a href="#cb8-258" aria-hidden="true" tabindex="-1"></a>mm0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu0, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">mbsmoke=</span><span class="dv">0</span>))</span>
-<span id="cb8-259"><a href="#cb8-259" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
-<span id="cb8-260"><a href="#cb8-260" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">w=</span>mbsmoke, <span class="at">y=</span>bweight, <span class="at">m1=</span>mm1, <span class="at">m0=</span>mm0, <span class="at">pi1=</span>pi1)</span>
-<span id="cb8-261"><a href="#cb8-261" aria-hidden="true" tabindex="-1"></a>data2 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
-<span id="cb8-262"><a href="#cb8-262" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">tau=</span>m1<span class="sc">-</span>m0)</span>
-<span id="cb8-263"><a href="#cb8-263" aria-hidden="true" tabindex="-1"></a>data2 <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="fu">mean</span>(tau))</span>
-<span id="cb8-264"><a href="#cb8-264" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb8-265"><a href="#cb8-265" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-266"><a href="#cb8-266" aria-hidden="true" tabindex="-1"></a>IPWRA gives $-233$ g, within a gram of the AIPW estimate. Both are doubly</span>
-<span id="cb8-267"><a href="#cb8-267" aria-hidden="true" tabindex="-1"></a>robust and both use the same two nuisance models here, so they can only differ</span>
-<span id="cb8-268"><a href="#cb8-268" aria-hidden="true" tabindex="-1"></a>in how the models are combined.</span>
+<span id="cb8-214"><a href="#cb8-214" aria-hidden="true" tabindex="-1"></a><span class="co"># Cattaneo (2010) birth-weight data, as distributed with Stata 18. Fetched once</span></span>
+<span id="cb8-215"><a href="#cb8-215" aria-hidden="true" tabindex="-1"></a><span class="co"># and cached beside the source, so a build touches the network at most once</span></span>
+<span id="cb8-216"><a href="#cb8-216" aria-hidden="true" tabindex="-1"></a><span class="co"># rather than on every chunk that needs it.</span></span>
+<span id="cb8-217"><a href="#cb8-217" aria-hidden="true" tabindex="-1"></a>cattaneo_file <span class="ot">&lt;-</span> <span class="st">"cattaneo2.dta"</span></span>
+<span id="cb8-218"><a href="#cb8-218" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">file.exists</span>(cattaneo_file)) {</span>
+<span id="cb8-219"><a href="#cb8-219" aria-hidden="true" tabindex="-1"></a>  <span class="fu">download.file</span>(<span class="st">"https://www.stata-press.com/data/r18/cattaneo2.dta"</span>,</span>
+<span id="cb8-220"><a href="#cb8-220" aria-hidden="true" tabindex="-1"></a>                cattaneo_file, <span class="at">mode =</span> <span class="st">"wb"</span>, <span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb8-221"><a href="#cb8-221" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-222"><a href="#cb8-222" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">read_dta</span>(cattaneo_file)</span>
+<span id="cb8-223"><a href="#cb8-223" aria-hidden="true" tabindex="-1"></a>mu <span class="ot">&lt;-</span> <span class="fu">lm</span>(bweight <span class="sc">~</span> mbsmoke<span class="sc">*</span>(prenatal1 <span class="sc">+</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby), <span class="at">data=</span>data)</span>
+<span id="cb8-224"><a href="#cb8-224" aria-hidden="true" tabindex="-1"></a>pi <span class="ot">&lt;-</span> <span class="fu">glm</span>( mbsmoke <span class="sc">~</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby <span class="sc">+</span> medu, <span class="at">data=</span>data, <span class="at">family=</span><span class="fu">binomial</span>(<span class="at">link=</span><span class="st">"logit"</span>))</span>
+<span id="cb8-225"><a href="#cb8-225" aria-hidden="true" tabindex="-1"></a>mm1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">mbsmoke=</span><span class="dv">1</span>))</span>
+<span id="cb8-226"><a href="#cb8-226" aria-hidden="true" tabindex="-1"></a>mm0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">mbsmoke=</span><span class="dv">0</span>))</span>
+<span id="cb8-227"><a href="#cb8-227" aria-hidden="true" tabindex="-1"></a>pi1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(pi, <span class="at">newdata=</span>data, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb8-228"><a href="#cb8-228" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
+<span id="cb8-229"><a href="#cb8-229" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">w=</span>mbsmoke, <span class="at">y=</span>bweight, <span class="at">m1=</span>mm1, <span class="at">m0=</span>mm0, <span class="at">pi1=</span>pi1)</span>
+<span id="cb8-230"><a href="#cb8-230" aria-hidden="true" tabindex="-1"></a>data2 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
+<span id="cb8-231"><a href="#cb8-231" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">mu1=</span>(w<span class="sc">*</span>(y<span class="sc">-</span>m1)<span class="sc">/</span>pi1 <span class="sc">+</span> m1), <span class="at">mu0=</span>((<span class="dv">1</span><span class="sc">-</span>w)<span class="sc">*</span>(y<span class="sc">-</span>m0)<span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>pi1) <span class="sc">+</span> m0)) <span class="sc">%&gt;%</span></span>
+<span id="cb8-232"><a href="#cb8-232" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">tau=</span>mu1<span class="sc">-</span>mu0)</span>
+<span id="cb8-233"><a href="#cb8-233" aria-hidden="true" tabindex="-1"></a><span class="co"># The per-unit AIPW summand is the influence function for the ATE, so its sample</span></span>
+<span id="cb8-234"><a href="#cb8-234" aria-hidden="true" tabindex="-1"></a><span class="co"># standard deviation gives the asymptotic standard error directly.</span></span>
+<span id="cb8-235"><a href="#cb8-235" aria-hidden="true" tabindex="-1"></a>data2 <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">ATE =</span> <span class="fu">mean</span>(tau),</span>
+<span id="cb8-236"><a href="#cb8-236" aria-hidden="true" tabindex="-1"></a>                    <span class="at">se  =</span> <span class="fu">sd</span>(tau) <span class="sc">/</span> <span class="fu">sqrt</span>(<span class="fu">n</span>()),</span>
+<span id="cb8-237"><a href="#cb8-237" aria-hidden="true" tabindex="-1"></a>                    <span class="at">lo  =</span> <span class="fu">mean</span>(tau) <span class="sc">-</span> <span class="fl">1.96</span> <span class="sc">*</span> <span class="fu">sd</span>(tau) <span class="sc">/</span> <span class="fu">sqrt</span>(<span class="fu">n</span>()),</span>
+<span id="cb8-238"><a href="#cb8-238" aria-hidden="true" tabindex="-1"></a>                    <span class="at">hi  =</span> <span class="fu">mean</span>(tau) <span class="sc">+</span> <span class="fl">1.96</span> <span class="sc">*</span> <span class="fu">sd</span>(tau) <span class="sc">/</span> <span class="fu">sqrt</span>(<span class="fu">n</span>()))</span>
+<span id="cb8-239"><a href="#cb8-239" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb8-240"><a href="#cb8-240" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-241"><a href="#cb8-241" aria-hidden="true" tabindex="-1"></a>AIPW gives $-234$ g, with a standard error of 23 g and a 95% interval of</span>
+<span id="cb8-242"><a href="#cb8-242" aria-hidden="true" tabindex="-1"></a>$<span class="co">[</span><span class="ot">-279, -188</span><span class="co">]</span>$. That interval comes almost free: the per-unit AIPW summand is the</span>
+<span id="cb8-243"><a href="#cb8-243" aria-hidden="true" tabindex="-1"></a>influence function for the ATE, so its sample standard deviation over $\sqrt n$</span>
+<span id="cb8-244"><a href="#cb8-244" aria-hidden="true" tabindex="-1"></a>is the asymptotic standard error, and no bootstrap is needed. Adjustment moves</span>
+<span id="cb8-245"><a href="#cb8-245" aria-hidden="true" tabindex="-1"></a>the estimate about 41 g toward zero from the raw $-275$ g, so part of the raw gap</span>
+<span id="cb8-246"><a href="#cb8-246" aria-hidden="true" tabindex="-1"></a>is composition: smokers differ from non-smokers in age, education and marital</span>
+<span id="cb8-247"><a href="#cb8-247" aria-hidden="true" tabindex="-1"></a>status. The interval sits well away from zero, so what remains after adjustment</span>
+<span id="cb8-248"><a href="#cb8-248" aria-hidden="true" tabindex="-1"></a>is not a sampling artefact.</span>
+<span id="cb8-249"><a href="#cb8-249" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-250"><a href="#cb8-250" aria-hidden="true" tabindex="-1"></a><span class="fu">### IPWRA</span></span>
+<span id="cb8-251"><a href="#cb8-251" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-252"><a href="#cb8-252" aria-hidden="true" tabindex="-1"></a>The idea of IPWRA is to combine RA and IPW. Basically RA with IPW weights.</span>
+<span id="cb8-253"><a href="#cb8-253" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-254"><a href="#cb8-254" aria-hidden="true" tabindex="-1"></a>Implementation:</span>
+<span id="cb8-255"><a href="#cb8-255" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-256"><a href="#cb8-256" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Estimate propensity score. Get predicted probability of treated for each observation.</span>
+<span id="cb8-257"><a href="#cb8-257" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Estimate outcome model with the IPW weights: two separate equations, one for treated (weights $1/\hat \pi(X)$) and one for control (weights $1/(1-\hat \pi(X))$). Equivalently, one weighted regression with full treatment–covariate interaction — the interacted design matrix is block-diagonal across the two groups, so the weighted normal equations decouple and the two routes give identical fits.</span>
+<span id="cb8-258"><a href="#cb8-258" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Get predicted values for setting everyone treated. Get predicted values for setting everyone control. These are the two potential outcomes.</span>
+<span id="cb8-259"><a href="#cb8-259" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Take difference. The average is the ATE.</span>
+<span id="cb8-260"><a href="#cb8-260" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-261"><a href="#cb8-261" aria-hidden="true" tabindex="-1"></a>We run this on the same birth-weight data and the same propensity model as</span>
+<span id="cb8-262"><a href="#cb8-262" aria-hidden="true" tabindex="-1"></a>AIPW, so the two estimates differ only in how the outcome and treatment models</span>
+<span id="cb8-263"><a href="#cb8-263" aria-hidden="true" tabindex="-1"></a>are combined.</span>
+<span id="cb8-264"><a href="#cb8-264" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-265"><a href="#cb8-265" aria-hidden="true" tabindex="-1"></a><span class="in">```{r ipwra1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb8-266"><a href="#cb8-266" aria-hidden="true" tabindex="-1"></a><span class="co"># Cattaneo (2010) birth-weight data, as distributed with Stata 18. Fetched once</span></span>
+<span id="cb8-267"><a href="#cb8-267" aria-hidden="true" tabindex="-1"></a><span class="co"># and cached beside the source, so a build touches the network at most once</span></span>
+<span id="cb8-268"><a href="#cb8-268" aria-hidden="true" tabindex="-1"></a><span class="co"># rather than on every chunk that needs it.</span></span>
+<span id="cb8-269"><a href="#cb8-269" aria-hidden="true" tabindex="-1"></a>cattaneo_file <span class="ot">&lt;-</span> <span class="st">"cattaneo2.dta"</span></span>
+<span id="cb8-270"><a href="#cb8-270" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">file.exists</span>(cattaneo_file)) {</span>
+<span id="cb8-271"><a href="#cb8-271" aria-hidden="true" tabindex="-1"></a>  <span class="fu">download.file</span>(<span class="st">"https://www.stata-press.com/data/r18/cattaneo2.dta"</span>,</span>
+<span id="cb8-272"><a href="#cb8-272" aria-hidden="true" tabindex="-1"></a>                cattaneo_file, <span class="at">mode =</span> <span class="st">"wb"</span>, <span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb8-273"><a href="#cb8-273" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-274"><a href="#cb8-274" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">read_dta</span>(cattaneo_file)</span>
+<span id="cb8-275"><a href="#cb8-275" aria-hidden="true" tabindex="-1"></a>pi <span class="ot">&lt;-</span> <span class="fu">glm</span>( mbsmoke <span class="sc">~</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby <span class="sc">+</span> medu, <span class="at">data=</span>data, <span class="at">family=</span><span class="fu">binomial</span>(<span class="at">link=</span><span class="st">"logit"</span>))</span>
+<span id="cb8-276"><a href="#cb8-276" aria-hidden="true" tabindex="-1"></a>pi1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(pi, <span class="at">newdata=</span>data, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb8-277"><a href="#cb8-277" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
+<span id="cb8-278"><a href="#cb8-278" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pi1=</span>pi1)</span>
+<span id="cb8-279"><a href="#cb8-279" aria-hidden="true" tabindex="-1"></a>data1 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span> <span class="fu">filter</span>(mbsmoke<span class="sc">==</span><span class="dv">1</span>)</span>
+<span id="cb8-280"><a href="#cb8-280" aria-hidden="true" tabindex="-1"></a>data0 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span> <span class="fu">filter</span>(mbsmoke<span class="sc">==</span><span class="dv">0</span>)</span>
+<span id="cb8-281"><a href="#cb8-281" aria-hidden="true" tabindex="-1"></a>mu1 <span class="ot">&lt;-</span> <span class="fu">lm</span>(bweight <span class="sc">~</span> prenatal1 <span class="sc">+</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby, <span class="at">data=</span>data1, <span class="at">weights=</span><span class="dv">1</span><span class="sc">/</span>data1<span class="sc">$</span>pi1)</span>
+<span id="cb8-282"><a href="#cb8-282" aria-hidden="true" tabindex="-1"></a>mu0 <span class="ot">&lt;-</span> <span class="fu">lm</span>(bweight <span class="sc">~</span> prenatal1 <span class="sc">+</span> mmarried <span class="sc">+</span> mage <span class="sc">+</span> fbaby, <span class="at">data=</span>data0, <span class="at">weights=</span><span class="dv">1</span><span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>data0<span class="sc">$</span>pi1))</span>
+<span id="cb8-283"><a href="#cb8-283" aria-hidden="true" tabindex="-1"></a>mm1 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu1, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">mbsmoke=</span><span class="dv">1</span>))</span>
+<span id="cb8-284"><a href="#cb8-284" aria-hidden="true" tabindex="-1"></a>mm0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu0, <span class="at">newdata=</span>data <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">mbsmoke=</span><span class="dv">0</span>))</span>
+<span id="cb8-285"><a href="#cb8-285" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
+<span id="cb8-286"><a href="#cb8-286" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">w=</span>mbsmoke, <span class="at">y=</span>bweight, <span class="at">m1=</span>mm1, <span class="at">m0=</span>mm0, <span class="at">pi1=</span>pi1)</span>
+<span id="cb8-287"><a href="#cb8-287" aria-hidden="true" tabindex="-1"></a>data2 <span class="ot">&lt;-</span> data <span class="sc">%&gt;%</span></span>
+<span id="cb8-288"><a href="#cb8-288" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">tau=</span>m1<span class="sc">-</span>m0)</span>
+<span id="cb8-289"><a href="#cb8-289" aria-hidden="true" tabindex="-1"></a><span class="co"># No influence-function shortcut here: these per-unit tau are differences of</span></span>
+<span id="cb8-290"><a href="#cb8-290" aria-hidden="true" tabindex="-1"></a><span class="co"># fitted values from weighted regressions, not the estimator's influence</span></span>
+<span id="cb8-291"><a href="#cb8-291" aria-hidden="true" tabindex="-1"></a><span class="co"># function, so sd(tau)/sqrt(n) would not be its standard error. An interval for</span></span>
+<span id="cb8-292"><a href="#cb8-292" aria-hidden="true" tabindex="-1"></a><span class="co"># IPWRA needs a bootstrap over both stages.</span></span>
+<span id="cb8-293"><a href="#cb8-293" aria-hidden="true" tabindex="-1"></a>data2 <span class="sc">%&gt;%</span> <span class="fu">summarise</span>(<span class="at">ATE =</span> <span class="fu">mean</span>(tau))</span>
+<span id="cb8-294"><a href="#cb8-294" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb8-295"><a href="#cb8-295" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-296"><a href="#cb8-296" aria-hidden="true" tabindex="-1"></a>IPWRA gives $-233$ g, within a gram of the AIPW estimate. Both are doubly</span>
+<span id="cb8-297"><a href="#cb8-297" aria-hidden="true" tabindex="-1"></a>robust and both use the same two nuisance models here, so they can only differ</span>
+<span id="cb8-298"><a href="#cb8-298" aria-hidden="true" tabindex="-1"></a>in how the models are combined.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

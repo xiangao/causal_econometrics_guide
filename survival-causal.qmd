@@ -298,7 +298,12 @@ cox_for_ate <- coxph(Surv(time, event) ~ trt_f + age + sex, data = df,
 ps_for_ate  <- glm(trt_f ~ age + sex, data = df, family = binomial, x = TRUE)
 # With right-censoring, the IPTW/AIPTW survival estimator needs a model for
 # the censoring mechanism (a Cox model for time-to-censoring).
-cens_for_ate <- coxph(Surv(time, event == 0) ~ age + sex, data = df,
+# Treatment belongs in the censoring model unless design knowledge rules it out.
+# Censoring is treatment-independent in this simulation, so including trt_f
+# changes little here -- but the assumption that has to hold is independent
+# censoring *conditional on treatment and covariates*, plus censoring
+# positivity, and the code should say so to be reusable.
+cens_for_ate <- coxph(Surv(time, event == 0) ~ trt_f + age + sex, data = df,
                       x = TRUE, y = TRUE)
 
 ate_surv <- ate(
@@ -327,7 +332,12 @@ The object contains three estimators, shown side-by-side in the table:
 
 - **Gformula** — parametric g-computation using the Cox model only.
 - **IPTW** — inverse probability of treatment weighting.
-- **AIPTW** — augmented IPTW (doubly robust); the recommended default.
+- **AIPTW** — augmented IPTW (doubly robust); usually the best default, though
+  not unconditionally. It earns that status when the nuisance models are
+  flexible and cross-fitted, treatment and censoring probabilities stay away
+  from zero, and the censoring assumption holds conditional on treatment and
+  covariates. Where positivity is thin it can be less stable than a simpler
+  estimator.
 
 All three agree, and all three are close to the truth: $-0.106$, $-0.095$ and
 $-0.099$ against a true risk difference of $-0.108$. Treatment cuts the

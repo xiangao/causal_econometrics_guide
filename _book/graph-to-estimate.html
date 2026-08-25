@@ -674,11 +674,23 @@ Identifying expression:</code></pre>
 <span>                        <span class="fu"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span><span class="op">(</span><span class="va">data_obs</span><span class="op">)</span>, type <span class="op">=</span> <span class="st">"cpdag"</span><span class="op">)</span></span>
 <span><span class="va">sets</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/dagitty/man/adjustmentSets.html">adjustmentSets</a></span><span class="op">(</span><span class="va">g_dag</span>, exposure <span class="op">=</span> <span class="st">"A"</span>, outcome <span class="op">=</span> <span class="st">"Y"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Step 3: if backdoor set found, estimate with AIPW</span></span>
-<span><span class="co"># Step 4: if not, call causaleffect::causal.effect() for the ID expression</span></span>
+<span><span class="co"># Step 3: if an adjustment set is valid for every DAG in the class, estimate</span></span>
+<span><span class="co">#         it with AIPW</span></span>
+<span><span class="co"># Step 4: if the CPDAG is still unresolved, do NOT hand it to</span></span>
+<span><span class="co">#         causaleffect::causal.effect() -- that function expects a specified</span></span>
+<span><span class="co">#         DAG/ADMG, and different orientations in the class can imply</span></span>
+<span><span class="co">#         different effects, different valid adjustment sets, or a different</span></span>
+<span><span class="co">#         identification status. Instead either</span></span>
+<span><span class="co">#           (a) orient the remaining edges with background knowledge and then</span></span>
+<span><span class="co">#               run ordinary identification, or</span></span>
+<span><span class="co">#           (b) report what the whole class permits: pcalg::ida() for</span></span>
+<span><span class="co">#               linear-Gaussian total effects, otherwise enumerate the</span></span>
+<span><span class="co">#               compatible DAGs and keep only conclusions that hold across</span></span>
+<span><span class="co">#               all of them.</span></span>
 <span><span class="co"># Step 5: estimate the returned functional by plug-in or regression</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
+<p>Step 4 is where this workflow most often goes wrong, so it is worth stating plainly: a CPDAG is an equivalence class, not a graph. An empty adjustment-set result for a CPDAG is not permission to pass one arbitrary orientation to the ID algorithm. The <a href="./causal-discovery.html">causal discovery chapter</a> sets out what to do instead.</p>
 <p>In applied work, I would not trust the discovered graph blindly. A more reasonable workflow is:</p>
 <ol type="1">
 <li>
@@ -1501,49 +1513,66 @@ Identifying expression:</code></pre>
 <span id="cb28-339"><a href="#cb28-339" aria-hidden="true" tabindex="-1"></a>                        <span class="fu">colnames</span>(data_obs), <span class="at">type =</span> <span class="st">"cpdag"</span>)</span>
 <span id="cb28-340"><a href="#cb28-340" aria-hidden="true" tabindex="-1"></a>sets  <span class="ot">&lt;-</span> <span class="fu">adjustmentSets</span>(g_dag, <span class="at">exposure =</span> <span class="st">"A"</span>, <span class="at">outcome =</span> <span class="st">"Y"</span>)</span>
 <span id="cb28-341"><a href="#cb28-341" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-342"><a href="#cb28-342" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 3: if backdoor set found, estimate with AIPW</span></span>
-<span id="cb28-343"><a href="#cb28-343" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 4: if not, call causaleffect::causal.effect() for the ID expression</span></span>
-<span id="cb28-344"><a href="#cb28-344" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 5: estimate the returned functional by plug-in or regression</span></span>
-<span id="cb28-345"><a href="#cb28-345" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb28-346"><a href="#cb28-346" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-347"><a href="#cb28-347" aria-hidden="true" tabindex="-1"></a>In applied work, I would not trust the discovered graph blindly. A more</span>
-<span id="cb28-348"><a href="#cb28-348" aria-hidden="true" tabindex="-1"></a>reasonable workflow is:</span>
-<span id="cb28-349"><a href="#cb28-349" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-350"><a href="#cb28-350" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Hypothesise** a graph based on subject-matter knowledge</span>
-<span id="cb28-351"><a href="#cb28-351" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Discover** a data-driven graph using PC/GES/FCI</span>
-<span id="cb28-352"><a href="#cb28-352" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Compare** the two — disagreement points to substantive questions</span>
-<span id="cb28-353"><a href="#cb28-353" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Identify** under both graphs separately</span>
-<span id="cb28-354"><a href="#cb28-354" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>**Estimate** under both, and report the range as part of the result</span>
-<span id="cb28-355"><a href="#cb28-355" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-356"><a href="#cb28-356" aria-hidden="true" tabindex="-1"></a>If the estimate changes a lot across plausible graphs, the data alone is not</span>
-<span id="cb28-357"><a href="#cb28-357" aria-hidden="true" tabindex="-1"></a>settling the question.</span>
-<span id="cb28-358"><a href="#cb28-358" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-359"><a href="#cb28-359" aria-hidden="true" tabindex="-1"></a><span class="fu">## Why this matters</span></span>
-<span id="cb28-360"><a href="#cb28-360" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-361"><a href="#cb28-361" aria-hidden="true" tabindex="-1"></a>The graph-identification-estimation sequence matters because:</span>
-<span id="cb28-362"><a href="#cb28-362" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-363"><a href="#cb28-363" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Backdoor adjustment is not always available.** Many real DAGs have</span>
-<span id="cb28-364"><a href="#cb28-364" aria-hidden="true" tabindex="-1"></a>  hidden confounders. Front-door, nested, and general ID algorithms are</span>
-<span id="cb28-365"><a href="#cb28-365" aria-hidden="true" tabindex="-1"></a>  the recourse, but they are too complex to derive by hand for non-trivial</span>
-<span id="cb28-366"><a href="#cb28-366" aria-hidden="true" tabindex="-1"></a>  graphs.</span>
-<span id="cb28-367"><a href="#cb28-367" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The right estimator depends on the identification strategy.**</span>
-<span id="cb28-368"><a href="#cb28-368" aria-hidden="true" tabindex="-1"></a>  AIPW-for-backdoor uses a different formula than the front-door plug-in.</span>
-<span id="cb28-369"><a href="#cb28-369" aria-hidden="true" tabindex="-1"></a>  Matching the estimator to the identification result avoids the common</span>
-<span id="cb28-370"><a href="#cb28-370" aria-hidden="true" tabindex="-1"></a>  mistake of plugging a graph into the wrong estimator.</span>
-<span id="cb28-371"><a href="#cb28-371" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Reporting becomes more disciplined.** Once the workflow forces you to</span>
-<span id="cb28-372"><a href="#cb28-372" aria-hidden="true" tabindex="-1"></a>  specify a graph, it becomes harder to wave hands about "unconfoundedness"</span>
-<span id="cb28-373"><a href="#cb28-373" aria-hidden="true" tabindex="-1"></a>  — you have to say exactly which variables are doing the unconfounding</span>
-<span id="cb28-374"><a href="#cb28-374" aria-hidden="true" tabindex="-1"></a>  work.</span>
+<span id="cb28-342"><a href="#cb28-342" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 3: if an adjustment set is valid for every DAG in the class, estimate</span></span>
+<span id="cb28-343"><a href="#cb28-343" aria-hidden="true" tabindex="-1"></a><span class="co">#         it with AIPW</span></span>
+<span id="cb28-344"><a href="#cb28-344" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 4: if the CPDAG is still unresolved, do NOT hand it to</span></span>
+<span id="cb28-345"><a href="#cb28-345" aria-hidden="true" tabindex="-1"></a><span class="co">#         causaleffect::causal.effect() -- that function expects a specified</span></span>
+<span id="cb28-346"><a href="#cb28-346" aria-hidden="true" tabindex="-1"></a><span class="co">#         DAG/ADMG, and different orientations in the class can imply</span></span>
+<span id="cb28-347"><a href="#cb28-347" aria-hidden="true" tabindex="-1"></a><span class="co">#         different effects, different valid adjustment sets, or a different</span></span>
+<span id="cb28-348"><a href="#cb28-348" aria-hidden="true" tabindex="-1"></a><span class="co">#         identification status. Instead either</span></span>
+<span id="cb28-349"><a href="#cb28-349" aria-hidden="true" tabindex="-1"></a><span class="co">#           (a) orient the remaining edges with background knowledge and then</span></span>
+<span id="cb28-350"><a href="#cb28-350" aria-hidden="true" tabindex="-1"></a><span class="co">#               run ordinary identification, or</span></span>
+<span id="cb28-351"><a href="#cb28-351" aria-hidden="true" tabindex="-1"></a><span class="co">#           (b) report what the whole class permits: pcalg::ida() for</span></span>
+<span id="cb28-352"><a href="#cb28-352" aria-hidden="true" tabindex="-1"></a><span class="co">#               linear-Gaussian total effects, otherwise enumerate the</span></span>
+<span id="cb28-353"><a href="#cb28-353" aria-hidden="true" tabindex="-1"></a><span class="co">#               compatible DAGs and keep only conclusions that hold across</span></span>
+<span id="cb28-354"><a href="#cb28-354" aria-hidden="true" tabindex="-1"></a><span class="co">#               all of them.</span></span>
+<span id="cb28-355"><a href="#cb28-355" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 5: estimate the returned functional by plug-in or regression</span></span>
+<span id="cb28-356"><a href="#cb28-356" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb28-357"><a href="#cb28-357" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-358"><a href="#cb28-358" aria-hidden="true" tabindex="-1"></a>Step 4 is where this workflow most often goes wrong, so it is worth stating</span>
+<span id="cb28-359"><a href="#cb28-359" aria-hidden="true" tabindex="-1"></a>plainly: a CPDAG is an equivalence class, not a graph. An empty adjustment-set</span>
+<span id="cb28-360"><a href="#cb28-360" aria-hidden="true" tabindex="-1"></a>result for a CPDAG is not permission to pass one arbitrary orientation to the ID</span>
+<span id="cb28-361"><a href="#cb28-361" aria-hidden="true" tabindex="-1"></a>algorithm. The <span class="co">[</span><span class="ot">causal discovery chapter</span><span class="co">](causal-discovery.qmd)</span> sets out what to</span>
+<span id="cb28-362"><a href="#cb28-362" aria-hidden="true" tabindex="-1"></a>do instead.</span>
+<span id="cb28-363"><a href="#cb28-363" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-364"><a href="#cb28-364" aria-hidden="true" tabindex="-1"></a>In applied work, I would not trust the discovered graph blindly. A more</span>
+<span id="cb28-365"><a href="#cb28-365" aria-hidden="true" tabindex="-1"></a>reasonable workflow is:</span>
+<span id="cb28-366"><a href="#cb28-366" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-367"><a href="#cb28-367" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Hypothesise** a graph based on subject-matter knowledge</span>
+<span id="cb28-368"><a href="#cb28-368" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Discover** a data-driven graph using PC/GES/FCI</span>
+<span id="cb28-369"><a href="#cb28-369" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Compare** the two — disagreement points to substantive questions</span>
+<span id="cb28-370"><a href="#cb28-370" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Identify** under both graphs separately</span>
+<span id="cb28-371"><a href="#cb28-371" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>**Estimate** under both, and report the range as part of the result</span>
+<span id="cb28-372"><a href="#cb28-372" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-373"><a href="#cb28-373" aria-hidden="true" tabindex="-1"></a>If the estimate changes a lot across plausible graphs, the data alone is not</span>
+<span id="cb28-374"><a href="#cb28-374" aria-hidden="true" tabindex="-1"></a>settling the question.</span>
 <span id="cb28-375"><a href="#cb28-375" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-376"><a href="#cb28-376" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb28-376"><a href="#cb28-376" aria-hidden="true" tabindex="-1"></a><span class="fu">## Why this matters</span></span>
 <span id="cb28-377"><a href="#cb28-377" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-378"><a href="#cb28-378" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A graph is not an estimate. Identification is the bridge.</span>
-<span id="cb28-379"><a href="#cb28-379" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`dagitty`</span> handles backdoor and front-door checks; <span class="in">`causaleffect`</span> handles</span>
-<span id="cb28-380"><a href="#cb28-380" aria-hidden="true" tabindex="-1"></a>  general ADMG identification.</span>
-<span id="cb28-381"><a href="#cb28-381" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Backdoor effects can be estimated with AIPW.</span>
-<span id="cb28-382"><a href="#cb28-382" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Front-door effects require estimating the front-door functional.</span>
-<span id="cb28-383"><a href="#cb28-383" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>If the effect is not identified, report that instead of forcing a biased</span>
-<span id="cb28-384"><a href="#cb28-384" aria-hidden="true" tabindex="-1"></a>  regression estimate.</span>
+<span id="cb28-378"><a href="#cb28-378" aria-hidden="true" tabindex="-1"></a>The graph-identification-estimation sequence matters because:</span>
+<span id="cb28-379"><a href="#cb28-379" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-380"><a href="#cb28-380" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Backdoor adjustment is not always available.** Many real DAGs have</span>
+<span id="cb28-381"><a href="#cb28-381" aria-hidden="true" tabindex="-1"></a>  hidden confounders. Front-door, nested, and general ID algorithms are</span>
+<span id="cb28-382"><a href="#cb28-382" aria-hidden="true" tabindex="-1"></a>  the recourse, but they are too complex to derive by hand for non-trivial</span>
+<span id="cb28-383"><a href="#cb28-383" aria-hidden="true" tabindex="-1"></a>  graphs.</span>
+<span id="cb28-384"><a href="#cb28-384" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The right estimator depends on the identification strategy.**</span>
+<span id="cb28-385"><a href="#cb28-385" aria-hidden="true" tabindex="-1"></a>  AIPW-for-backdoor uses a different formula than the front-door plug-in.</span>
+<span id="cb28-386"><a href="#cb28-386" aria-hidden="true" tabindex="-1"></a>  Matching the estimator to the identification result avoids the common</span>
+<span id="cb28-387"><a href="#cb28-387" aria-hidden="true" tabindex="-1"></a>  mistake of plugging a graph into the wrong estimator.</span>
+<span id="cb28-388"><a href="#cb28-388" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Reporting becomes more disciplined.** Once the workflow forces you to</span>
+<span id="cb28-389"><a href="#cb28-389" aria-hidden="true" tabindex="-1"></a>  specify a graph, it becomes harder to wave hands about "unconfoundedness"</span>
+<span id="cb28-390"><a href="#cb28-390" aria-hidden="true" tabindex="-1"></a>  — you have to say exactly which variables are doing the unconfounding</span>
+<span id="cb28-391"><a href="#cb28-391" aria-hidden="true" tabindex="-1"></a>  work.</span>
+<span id="cb28-392"><a href="#cb28-392" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-393"><a href="#cb28-393" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb28-394"><a href="#cb28-394" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-395"><a href="#cb28-395" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A graph is not an estimate. Identification is the bridge.</span>
+<span id="cb28-396"><a href="#cb28-396" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`dagitty`</span> handles backdoor and front-door checks; <span class="in">`causaleffect`</span> handles</span>
+<span id="cb28-397"><a href="#cb28-397" aria-hidden="true" tabindex="-1"></a>  general ADMG identification.</span>
+<span id="cb28-398"><a href="#cb28-398" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Backdoor effects can be estimated with AIPW.</span>
+<span id="cb28-399"><a href="#cb28-399" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Front-door effects require estimating the front-door functional.</span>
+<span id="cb28-400"><a href="#cb28-400" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>If the effect is not identified, report that instead of forcing a biased</span>
+<span id="cb28-401"><a href="#cb28-401" aria-hidden="true" tabindex="-1"></a>  regression estimate.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

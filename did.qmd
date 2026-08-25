@@ -14,10 +14,10 @@ library(ggplot2)
 
 When unconfoundedness fails, we need weaker assumptions. The parallel trends assumption leads to the difference-in-differences estimator.
 
-> **Related reading**: For a side-by-side comparison of DiD, synthetic
-> control, synthetic DiD, and multivariate SC on a *single* panel — and
-> how the choice of estimator changes the answer — see the
-> [Same data, different estimators](https://xiangao.github.io/blog_book/same-data-different-estimators.html)
+> **Related reading**: For a side-by-side comparison of DiD, synthetic DiD,
+> synthetic control, and TASC on a *single* panel — the Proposition 99
+> California smoking data, where the four estimators do not agree — see the
+> [Same data, different estimators](https://xiangao.github.io/blog_book/tasc-time-aware-synthetic-control.html)
 > chapter in *Topics on Econometrics and Causal Inference*.
 
 ## $T=2$ Panel Data
@@ -509,15 +509,28 @@ Standard event-study TWFE regressions like
 
 $$ Y_{it} = \alpha_i + \gamma_t + \sum_{j} D_{it}^j \delta_j + X_{it}'\beta + U_{it} $$ {#eq-did-13}
 
-implicitly assume the residual has no serial dependence once unit and
-time fixed effects are absorbed. When outcomes are genuinely
-persistent — earnings, employment, consumption, anything with habits
-or adjustment costs — that assumption fails. The event-time dummies
-pick up the persistence on top of the true causal effect, producing
-spurious pre-trends and biased post-treatment estimates. With a true
-AR(1) DGP and persistence $\rho_Y$, the omitted-variable bias on the
-event-time coefficients grows geometrically with the event-time
-horizon (Botosaru and Liu, 2025, Figure 1).
+leave the dynamics of $Y$ unmodelled. Three things get run together here and
+are worth separating.
+
+The first is serial correlation in $U_{it}$. That is an inference problem rather
+than an identification one: with exogenous treatment timing the event-time
+coefficients remain consistent, but conventional standard errors are wrong,
+which is why DiD is routinely clustered by unit.
+
+The second is dynamic selection. If units are treated *because* of their recent
+outcomes, then treatment timing is related to lagged $Y$ and the parallel-trends
+restriction the specification relies on no longer holds. That is an
+identification failure, and no amount of clustering repairs it.
+
+The third is what motivates the rest of this section. When the outcome is
+genuinely persistent — earnings, employment, consumption, anything with habits
+or adjustment costs — the *structural* process carries its own lag, and
+@eq-did-13 is a static equation fitted to dynamic data. The event-time dummies
+then absorb the propagation of earlier shocks along with the treatment response,
+and the bias on those coefficients grows with the event-time horizon (Botosaru
+and Liu, 2025, Figure 1). Note where the bias comes from: not from persistence
+in the residual, which on its own does no such thing, but from fitting a static
+specification to a dynamic process.
 
 Botosaru and Liu [-@botosaru-liu-2025] introduce a **dynamic panel
 with correlated random coefficients** that handles both persistence

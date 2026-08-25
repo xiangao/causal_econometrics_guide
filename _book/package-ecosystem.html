@@ -572,7 +572,7 @@ try {
 </tr>
 <tr class="odd">
 <td><code>medoutcon</code></td>
-<td>Causal mediation: controlled, natural, interventional effects</td>
+<td>Causal mediation: natural and interventional (in)direct effects</td>
 <td>Mediation</td>
 </tr>
 <tr class="even">
@@ -772,9 +772,16 @@ try {
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(causaleffect)</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">graph_from_literal</span>(A <span class="sc">-+</span> M, M <span class="sc">-+</span> Y, A <span class="sc">-+</span> Y, Y <span class="sc">-+</span> A)</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">set_edge_attr</span>(g, <span class="st">"description"</span>, <span class="at">index =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">4</span>), <span class="at">value =</span> <span class="st">"U"</span>)</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="fu">causal.effect</span>(<span class="at">y =</span> <span class="st">"Y"</span>, <span class="at">x =</span> <span class="st">"A"</span>, <span class="at">G =</span> g, <span class="at">simp =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co"># → \sum_{M} P(M|A)\left(\sum_{A} P(Y|A,M) P(A)\right)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Select the A&lt;-&gt;Y pair by endpoint name. igraph's edge ordering is not part of</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co"># its documented contract, so a literal index like c(2, 4) can break silently.</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>edge_ends  <span class="ot">&lt;-</span> <span class="fu">ends</span>(g, <span class="fu">E</span>(g))</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>confounded <span class="ot">&lt;-</span> (edge_ends[, <span class="dv">1</span>] <span class="sc">==</span> <span class="st">"A"</span> <span class="sc">&amp;</span> edge_ends[, <span class="dv">2</span>] <span class="sc">==</span> <span class="st">"Y"</span>) <span class="sc">|</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>              (edge_ends[, <span class="dv">1</span>] <span class="sc">==</span> <span class="st">"Y"</span> <span class="sc">&amp;</span> edge_ends[, <span class="dv">2</span>] <span class="sc">==</span> <span class="st">"A"</span>)</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">set_edge_attr</span>(g, <span class="st">"description"</span>, <span class="at">index =</span> <span class="fu">which</span>(confounded), <span class="at">value =</span> <span class="st">"U"</span>)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="fu">causal.effect</span>(<span class="at">y =</span> <span class="st">"Y"</span>, <span class="at">x =</span> <span class="st">"A"</span>, <span class="at">G =</span> g, <span class="at">simp =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="co"># → \sum_{M} P(M|A)\left(\sum_{A} P(Y|A,M) P(A)\right)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The bidirected edge convention is two reciprocal directed edges with <code>description = "U"</code>. The function either returns a symbolic identification expression or raises an error indicating the effect is not identifiable.</p>
 </section>
 <section id="etwfe-and-fixest" class="level2" data-number="22.5">
@@ -826,7 +833,7 @@ try {
 <span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="st">"</span></span>
 <span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">sem</span>(model, <span class="at">data =</span> df)</span>
 <span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="fu">parameterEstimates</span>(fit)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>For causal mediation under the potential-outcomes framework, the book uses <code>medoutcon</code> (Hejazi &amp; van der Laan), which estimates controlled, natural, and interventional direct/indirect effects with cross-fitted nuisance estimators.</p>
+<p>For causal mediation under the potential-outcomes framework, the book uses <code>medoutcon</code> (Hejazi &amp; van der Laan), which estimates natural and interventional (in)direct effects with cross-fitted nuisance estimators. The interventional effects are the ones to reach for when a treatment-induced confounder of the mediator is present, since the natural effects are not identified in that case.</p>
 </section>
 <section id="practical-advice" class="level2" data-number="22.8">
 <h2 data-number="22.8" class="anchored" data-anchor-id="practical-advice"><span class="header-section-number">22.8</span> Practical Advice</h2>
@@ -1375,7 +1382,7 @@ try {
 <span id="cb9-64"><a href="#cb9-64" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`rdrobust`</span> <span class="pp">|</span> Local-polynomial RDD, sharp and fuzzy designs <span class="pp">|</span> IV/RDD <span class="pp">|</span></span>
 <span id="cb9-65"><a href="#cb9-65" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`gmm`</span> <span class="pp">|</span> Generalized method of moments for nonlinear IV <span class="pp">|</span> Poisson-IV <span class="pp">|</span></span>
 <span id="cb9-66"><a href="#cb9-66" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`lavaan`</span> <span class="pp">|</span> SEM and CFA syntax for classical mediation <span class="pp">|</span> Mediation <span class="pp">|</span></span>
-<span id="cb9-67"><a href="#cb9-67" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`medoutcon`</span> <span class="pp">|</span> Causal mediation: controlled, natural, interventional effects <span class="pp">|</span> Mediation <span class="pp">|</span></span>
+<span id="cb9-67"><a href="#cb9-67" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`medoutcon`</span> <span class="pp">|</span> Causal mediation: natural and interventional (in)direct effects <span class="pp">|</span> Mediation <span class="pp">|</span></span>
 <span id="cb9-68"><a href="#cb9-68" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`pcalg`</span> <span class="pp">|</span> PC, GES, FCI, RFCI causal-discovery algorithms <span class="pp">|</span> Causal Discovery (both chapters) <span class="pp">|</span></span>
 <span id="cb9-69"><a href="#cb9-69" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`igraph`</span> <span class="pp">|</span> Graph plotting for CPDAGs/PAGs; graph objects for <span class="in">`causaleffect`</span> <span class="pp">|</span> Causal Discovery, DAG workflow <span class="pp">|</span></span>
 <span id="cb9-70"><a href="#cb9-70" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="in">`Rgraphviz`</span>, <span class="in">`graph`</span> <span class="pp">|</span> Install-time dependencies of <span class="in">`pcalg`</span> (graph classes; pcalg's own plot methods) <span class="pp">|</span> Causal Discovery (indirect) <span class="pp">|</span></span>
@@ -1445,91 +1452,98 @@ try {
 <span id="cb9-134"><a href="#cb9-134" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(causaleffect)</span>
 <span id="cb9-135"><a href="#cb9-135" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-136"><a href="#cb9-136" aria-hidden="true" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">graph_from_literal</span>(A <span class="sc">-+</span> M, M <span class="sc">-+</span> Y, A <span class="sc">-+</span> Y, Y <span class="sc">-+</span> A)</span>
-<span id="cb9-137"><a href="#cb9-137" aria-hidden="true" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">set_edge_attr</span>(g, <span class="st">"description"</span>, <span class="at">index =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">4</span>), <span class="at">value =</span> <span class="st">"U"</span>)</span>
-<span id="cb9-138"><a href="#cb9-138" aria-hidden="true" tabindex="-1"></a><span class="fu">causal.effect</span>(<span class="at">y =</span> <span class="st">"Y"</span>, <span class="at">x =</span> <span class="st">"A"</span>, <span class="at">G =</span> g, <span class="at">simp =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb9-139"><a href="#cb9-139" aria-hidden="true" tabindex="-1"></a><span class="co"># → \sum_{M} P(M|A)\left(\sum_{A} P(Y|A,M) P(A)\right)</span></span>
-<span id="cb9-140"><a href="#cb9-140" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb9-141"><a href="#cb9-141" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-142"><a href="#cb9-142" aria-hidden="true" tabindex="-1"></a>The bidirected edge convention is two reciprocal directed edges with <span class="in">`description = "U"`</span>. The function either returns a symbolic identification expression or raises an error indicating the effect is not identifiable.</span>
-<span id="cb9-143"><a href="#cb9-143" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-144"><a href="#cb9-144" aria-hidden="true" tabindex="-1"></a><span class="fu">## `etwfe` and `fixest`</span></span>
-<span id="cb9-145"><a href="#cb9-145" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-146"><a href="#cb9-146" aria-hidden="true" tabindex="-1"></a><span class="in">`fixest`</span> handles the regression models with high-dimensional fixed effects. Its <span class="in">`feols`</span>, <span class="in">`fepois`</span>, and <span class="in">`feglm`</span> use a formula syntax that keeps DiD and IV specifications readable:</span>
-<span id="cb9-147"><a href="#cb9-147" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-148"><a href="#cb9-148" aria-hidden="true" tabindex="-1"></a><span class="in">```r</span></span>
-<span id="cb9-149"><a href="#cb9-149" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fixest)</span>
+<span id="cb9-137"><a href="#cb9-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-138"><a href="#cb9-138" aria-hidden="true" tabindex="-1"></a><span class="co"># Select the A&lt;-&gt;Y pair by endpoint name. igraph's edge ordering is not part of</span></span>
+<span id="cb9-139"><a href="#cb9-139" aria-hidden="true" tabindex="-1"></a><span class="co"># its documented contract, so a literal index like c(2, 4) can break silently.</span></span>
+<span id="cb9-140"><a href="#cb9-140" aria-hidden="true" tabindex="-1"></a>edge_ends  <span class="ot">&lt;-</span> <span class="fu">ends</span>(g, <span class="fu">E</span>(g))</span>
+<span id="cb9-141"><a href="#cb9-141" aria-hidden="true" tabindex="-1"></a>confounded <span class="ot">&lt;-</span> (edge_ends[, <span class="dv">1</span>] <span class="sc">==</span> <span class="st">"A"</span> <span class="sc">&amp;</span> edge_ends[, <span class="dv">2</span>] <span class="sc">==</span> <span class="st">"Y"</span>) <span class="sc">|</span></span>
+<span id="cb9-142"><a href="#cb9-142" aria-hidden="true" tabindex="-1"></a>              (edge_ends[, <span class="dv">1</span>] <span class="sc">==</span> <span class="st">"Y"</span> <span class="sc">&amp;</span> edge_ends[, <span class="dv">2</span>] <span class="sc">==</span> <span class="st">"A"</span>)</span>
+<span id="cb9-143"><a href="#cb9-143" aria-hidden="true" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">set_edge_attr</span>(g, <span class="st">"description"</span>, <span class="at">index =</span> <span class="fu">which</span>(confounded), <span class="at">value =</span> <span class="st">"U"</span>)</span>
+<span id="cb9-144"><a href="#cb9-144" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-145"><a href="#cb9-145" aria-hidden="true" tabindex="-1"></a><span class="fu">causal.effect</span>(<span class="at">y =</span> <span class="st">"Y"</span>, <span class="at">x =</span> <span class="st">"A"</span>, <span class="at">G =</span> g, <span class="at">simp =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb9-146"><a href="#cb9-146" aria-hidden="true" tabindex="-1"></a><span class="co"># → \sum_{M} P(M|A)\left(\sum_{A} P(Y|A,M) P(A)\right)</span></span>
+<span id="cb9-147"><a href="#cb9-147" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb9-148"><a href="#cb9-148" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-149"><a href="#cb9-149" aria-hidden="true" tabindex="-1"></a>The bidirected edge convention is two reciprocal directed edges with <span class="in">`description = "U"`</span>. The function either returns a symbolic identification expression or raises an error indicating the effect is not identifiable.</span>
 <span id="cb9-150"><a href="#cb9-150" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-151"><a href="#cb9-151" aria-hidden="true" tabindex="-1"></a><span class="fu">feols</span>(y <span class="sc">~</span> x <span class="sc">|</span> id <span class="sc">+</span> year, <span class="at">data =</span> df, <span class="at">vcov =</span> <span class="sc">~</span>id)        <span class="co"># TWFE, clustered SE</span></span>
-<span id="cb9-152"><a href="#cb9-152" aria-hidden="true" tabindex="-1"></a><span class="fu">fepois</span>(y <span class="sc">~</span> x <span class="sc">+</span> <span class="fu">offset</span>(<span class="fu">log</span>(pop)) <span class="sc">|</span> id <span class="sc">+</span> year, <span class="at">data =</span> df)  <span class="co"># Poisson with FE</span></span>
-<span id="cb9-153"><a href="#cb9-153" aria-hidden="true" tabindex="-1"></a><span class="fu">feols</span>(y <span class="sc">~</span> x <span class="sc">|</span> id <span class="sc">+</span> year <span class="sc">|</span> x_endo <span class="sc">~</span> z, <span class="at">data =</span> df)         <span class="co"># IV/2SLS</span></span>
-<span id="cb9-154"><a href="#cb9-154" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb9-155"><a href="#cb9-155" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-156"><a href="#cb9-156" aria-hidden="true" tabindex="-1"></a><span class="in">`etwfe`</span> wraps <span class="in">`fixest`</span> for Wooldridge's extended two-way fixed-effects DiD:</span>
+<span id="cb9-151"><a href="#cb9-151" aria-hidden="true" tabindex="-1"></a><span class="fu">## `etwfe` and `fixest`</span></span>
+<span id="cb9-152"><a href="#cb9-152" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-153"><a href="#cb9-153" aria-hidden="true" tabindex="-1"></a><span class="in">`fixest`</span> handles the regression models with high-dimensional fixed effects. Its <span class="in">`feols`</span>, <span class="in">`fepois`</span>, and <span class="in">`feglm`</span> use a formula syntax that keeps DiD and IV specifications readable:</span>
+<span id="cb9-154"><a href="#cb9-154" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-155"><a href="#cb9-155" aria-hidden="true" tabindex="-1"></a><span class="in">```r</span></span>
+<span id="cb9-156"><a href="#cb9-156" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fixest)</span>
 <span id="cb9-157"><a href="#cb9-157" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-158"><a href="#cb9-158" aria-hidden="true" tabindex="-1"></a><span class="in">```r</span></span>
-<span id="cb9-159"><a href="#cb9-159" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(etwfe)</span>
-<span id="cb9-160"><a href="#cb9-160" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-161"><a href="#cb9-161" aria-hidden="true" tabindex="-1"></a>mod <span class="ot">&lt;-</span> <span class="fu">etwfe</span>(<span class="at">fml =</span> lemp <span class="sc">~</span> lpop, <span class="at">tvar =</span> year, <span class="at">gvar =</span> first.treat,</span>
-<span id="cb9-162"><a href="#cb9-162" aria-hidden="true" tabindex="-1"></a>             <span class="at">data =</span> mpdta, <span class="at">vcov =</span> <span class="sc">~</span>countyreal)</span>
-<span id="cb9-163"><a href="#cb9-163" aria-hidden="true" tabindex="-1"></a><span class="fu">emfx</span>(mod, <span class="at">type =</span> <span class="st">"event"</span>)</span>
-<span id="cb9-164"><a href="#cb9-164" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb9-165"><a href="#cb9-165" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-166"><a href="#cb9-166" aria-hidden="true" tabindex="-1"></a><span class="in">`emfx()`</span> aggregates the cohort × time interaction coefficients into an overall ATT, event-time effects, or calendar-time effects.</span>
+<span id="cb9-158"><a href="#cb9-158" aria-hidden="true" tabindex="-1"></a><span class="fu">feols</span>(y <span class="sc">~</span> x <span class="sc">|</span> id <span class="sc">+</span> year, <span class="at">data =</span> df, <span class="at">vcov =</span> <span class="sc">~</span>id)        <span class="co"># TWFE, clustered SE</span></span>
+<span id="cb9-159"><a href="#cb9-159" aria-hidden="true" tabindex="-1"></a><span class="fu">fepois</span>(y <span class="sc">~</span> x <span class="sc">+</span> <span class="fu">offset</span>(<span class="fu">log</span>(pop)) <span class="sc">|</span> id <span class="sc">+</span> year, <span class="at">data =</span> df)  <span class="co"># Poisson with FE</span></span>
+<span id="cb9-160"><a href="#cb9-160" aria-hidden="true" tabindex="-1"></a><span class="fu">feols</span>(y <span class="sc">~</span> x <span class="sc">|</span> id <span class="sc">+</span> year <span class="sc">|</span> x_endo <span class="sc">~</span> z, <span class="at">data =</span> df)         <span class="co"># IV/2SLS</span></span>
+<span id="cb9-161"><a href="#cb9-161" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb9-162"><a href="#cb9-162" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-163"><a href="#cb9-163" aria-hidden="true" tabindex="-1"></a><span class="in">`etwfe`</span> wraps <span class="in">`fixest`</span> for Wooldridge's extended two-way fixed-effects DiD:</span>
+<span id="cb9-164"><a href="#cb9-164" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-165"><a href="#cb9-165" aria-hidden="true" tabindex="-1"></a><span class="in">```r</span></span>
+<span id="cb9-166"><a href="#cb9-166" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(etwfe)</span>
 <span id="cb9-167"><a href="#cb9-167" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-168"><a href="#cb9-168" aria-hidden="true" tabindex="-1"></a><span class="fu">## `pcalg`</span></span>
-<span id="cb9-169"><a href="#cb9-169" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-170"><a href="#cb9-170" aria-hidden="true" tabindex="-1"></a><span class="in">`pcalg`</span> provides PC, GES, FCI, RFCI, GIES, and LINGAM under one consistent S4 interface. It uses the <span class="in">`graph`</span> package for graph objects and (for its own plot methods) <span class="in">`Rgraphviz`</span>; the discovery chapters in this book plot with <span class="in">`igraph`</span> instead. The Bioconductor dependencies must be installed via <span class="in">`BiocManager`</span> before <span class="in">`pcalg`</span> can be installed from CRAN.</span>
-<span id="cb9-171"><a href="#cb9-171" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-172"><a href="#cb9-172" aria-hidden="true" tabindex="-1"></a><span class="in">```r</span></span>
-<span id="cb9-173"><a href="#cb9-173" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pcalg)</span>
+<span id="cb9-168"><a href="#cb9-168" aria-hidden="true" tabindex="-1"></a>mod <span class="ot">&lt;-</span> <span class="fu">etwfe</span>(<span class="at">fml =</span> lemp <span class="sc">~</span> lpop, <span class="at">tvar =</span> year, <span class="at">gvar =</span> first.treat,</span>
+<span id="cb9-169"><a href="#cb9-169" aria-hidden="true" tabindex="-1"></a>             <span class="at">data =</span> mpdta, <span class="at">vcov =</span> <span class="sc">~</span>countyreal)</span>
+<span id="cb9-170"><a href="#cb9-170" aria-hidden="true" tabindex="-1"></a><span class="fu">emfx</span>(mod, <span class="at">type =</span> <span class="st">"event"</span>)</span>
+<span id="cb9-171"><a href="#cb9-171" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb9-172"><a href="#cb9-172" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-173"><a href="#cb9-173" aria-hidden="true" tabindex="-1"></a><span class="in">`emfx()`</span> aggregates the cohort × time interaction coefficients into an overall ATT, event-time effects, or calendar-time effects.</span>
 <span id="cb9-174"><a href="#cb9-174" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-175"><a href="#cb9-175" aria-hidden="true" tabindex="-1"></a><span class="co"># Constraint-based: PC algorithm</span></span>
-<span id="cb9-176"><a href="#cb9-176" aria-hidden="true" tabindex="-1"></a>pc_fit <span class="ot">&lt;-</span> <span class="fu">pc</span>(<span class="at">suffStat =</span> <span class="fu">list</span>(<span class="at">C =</span> <span class="fu">cor</span>(data), <span class="at">n =</span> <span class="fu">nrow</span>(data)),</span>
-<span id="cb9-177"><a href="#cb9-177" aria-hidden="true" tabindex="-1"></a>             <span class="at">indepTest =</span> gaussCItest, <span class="at">labels =</span> <span class="fu">colnames</span>(data),</span>
-<span id="cb9-178"><a href="#cb9-178" aria-hidden="true" tabindex="-1"></a>             <span class="at">alpha =</span> <span class="fl">0.01</span>)</span>
-<span id="cb9-179"><a href="#cb9-179" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-180"><a href="#cb9-180" aria-hidden="true" tabindex="-1"></a><span class="co"># Score-based: Greedy Equivalence Search</span></span>
-<span id="cb9-181"><a href="#cb9-181" aria-hidden="true" tabindex="-1"></a>ges_fit <span class="ot">&lt;-</span> <span class="fu">ges</span>(<span class="fu">new</span>(<span class="st">"GaussL0penObsScore"</span>, data))</span>
-<span id="cb9-182"><a href="#cb9-182" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-183"><a href="#cb9-183" aria-hidden="true" tabindex="-1"></a><span class="co"># Latent-variable case: FCI / RFCI</span></span>
-<span id="cb9-184"><a href="#cb9-184" aria-hidden="true" tabindex="-1"></a>fci_fit  <span class="ot">&lt;-</span> <span class="fu">fci</span>(<span class="at">suffStat =</span> <span class="fu">list</span>(<span class="at">C =</span> <span class="fu">cor</span>(data), <span class="at">n =</span> <span class="fu">nrow</span>(data)),</span>
-<span id="cb9-185"><a href="#cb9-185" aria-hidden="true" tabindex="-1"></a>                <span class="at">indepTest =</span> gaussCItest, <span class="at">labels =</span> <span class="fu">colnames</span>(data), <span class="at">alpha =</span> <span class="fl">0.01</span>)</span>
-<span id="cb9-186"><a href="#cb9-186" aria-hidden="true" tabindex="-1"></a>rfci_fit <span class="ot">&lt;-</span> <span class="fu">rfci</span>(<span class="at">suffStat =</span> <span class="fu">list</span>(<span class="at">C =</span> <span class="fu">cor</span>(data), <span class="at">n =</span> <span class="fu">nrow</span>(data)),</span>
-<span id="cb9-187"><a href="#cb9-187" aria-hidden="true" tabindex="-1"></a>                 <span class="at">indepTest =</span> gaussCItest, <span class="at">labels =</span> <span class="fu">colnames</span>(data), <span class="at">alpha =</span> <span class="fl">0.01</span>)</span>
-<span id="cb9-188"><a href="#cb9-188" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb9-175"><a href="#cb9-175" aria-hidden="true" tabindex="-1"></a><span class="fu">## `pcalg`</span></span>
+<span id="cb9-176"><a href="#cb9-176" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-177"><a href="#cb9-177" aria-hidden="true" tabindex="-1"></a><span class="in">`pcalg`</span> provides PC, GES, FCI, RFCI, GIES, and LINGAM under one consistent S4 interface. It uses the <span class="in">`graph`</span> package for graph objects and (for its own plot methods) <span class="in">`Rgraphviz`</span>; the discovery chapters in this book plot with <span class="in">`igraph`</span> instead. The Bioconductor dependencies must be installed via <span class="in">`BiocManager`</span> before <span class="in">`pcalg`</span> can be installed from CRAN.</span>
+<span id="cb9-178"><a href="#cb9-178" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-179"><a href="#cb9-179" aria-hidden="true" tabindex="-1"></a><span class="in">```r</span></span>
+<span id="cb9-180"><a href="#cb9-180" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pcalg)</span>
+<span id="cb9-181"><a href="#cb9-181" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-182"><a href="#cb9-182" aria-hidden="true" tabindex="-1"></a><span class="co"># Constraint-based: PC algorithm</span></span>
+<span id="cb9-183"><a href="#cb9-183" aria-hidden="true" tabindex="-1"></a>pc_fit <span class="ot">&lt;-</span> <span class="fu">pc</span>(<span class="at">suffStat =</span> <span class="fu">list</span>(<span class="at">C =</span> <span class="fu">cor</span>(data), <span class="at">n =</span> <span class="fu">nrow</span>(data)),</span>
+<span id="cb9-184"><a href="#cb9-184" aria-hidden="true" tabindex="-1"></a>             <span class="at">indepTest =</span> gaussCItest, <span class="at">labels =</span> <span class="fu">colnames</span>(data),</span>
+<span id="cb9-185"><a href="#cb9-185" aria-hidden="true" tabindex="-1"></a>             <span class="at">alpha =</span> <span class="fl">0.01</span>)</span>
+<span id="cb9-186"><a href="#cb9-186" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-187"><a href="#cb9-187" aria-hidden="true" tabindex="-1"></a><span class="co"># Score-based: Greedy Equivalence Search</span></span>
+<span id="cb9-188"><a href="#cb9-188" aria-hidden="true" tabindex="-1"></a>ges_fit <span class="ot">&lt;-</span> <span class="fu">ges</span>(<span class="fu">new</span>(<span class="st">"GaussL0penObsScore"</span>, data))</span>
 <span id="cb9-189"><a href="#cb9-189" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-190"><a href="#cb9-190" aria-hidden="true" tabindex="-1"></a>Both observed (PC, GES) and latent (FCI, RFCI) chapters use these as the primary algorithms.</span>
-<span id="cb9-191"><a href="#cb9-191" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-192"><a href="#cb9-192" aria-hidden="true" tabindex="-1"></a><span class="fu">## `lavaan` and `medoutcon`</span></span>
-<span id="cb9-193"><a href="#cb9-193" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-194"><a href="#cb9-194" aria-hidden="true" tabindex="-1"></a><span class="in">`lavaan`</span> ports the SEM model-string syntax familiar from EQS, Mplus, and LISREL into R. It is used in the mediation chapter for classical SEM mediation:</span>
-<span id="cb9-195"><a href="#cb9-195" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-196"><a href="#cb9-196" aria-hidden="true" tabindex="-1"></a><span class="in">```r</span></span>
-<span id="cb9-197"><a href="#cb9-197" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lavaan)</span>
+<span id="cb9-190"><a href="#cb9-190" aria-hidden="true" tabindex="-1"></a><span class="co"># Latent-variable case: FCI / RFCI</span></span>
+<span id="cb9-191"><a href="#cb9-191" aria-hidden="true" tabindex="-1"></a>fci_fit  <span class="ot">&lt;-</span> <span class="fu">fci</span>(<span class="at">suffStat =</span> <span class="fu">list</span>(<span class="at">C =</span> <span class="fu">cor</span>(data), <span class="at">n =</span> <span class="fu">nrow</span>(data)),</span>
+<span id="cb9-192"><a href="#cb9-192" aria-hidden="true" tabindex="-1"></a>                <span class="at">indepTest =</span> gaussCItest, <span class="at">labels =</span> <span class="fu">colnames</span>(data), <span class="at">alpha =</span> <span class="fl">0.01</span>)</span>
+<span id="cb9-193"><a href="#cb9-193" aria-hidden="true" tabindex="-1"></a>rfci_fit <span class="ot">&lt;-</span> <span class="fu">rfci</span>(<span class="at">suffStat =</span> <span class="fu">list</span>(<span class="at">C =</span> <span class="fu">cor</span>(data), <span class="at">n =</span> <span class="fu">nrow</span>(data)),</span>
+<span id="cb9-194"><a href="#cb9-194" aria-hidden="true" tabindex="-1"></a>                 <span class="at">indepTest =</span> gaussCItest, <span class="at">labels =</span> <span class="fu">colnames</span>(data), <span class="at">alpha =</span> <span class="fl">0.01</span>)</span>
+<span id="cb9-195"><a href="#cb9-195" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb9-196"><a href="#cb9-196" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-197"><a href="#cb9-197" aria-hidden="true" tabindex="-1"></a>Both observed (PC, GES) and latent (FCI, RFCI) chapters use these as the primary algorithms.</span>
 <span id="cb9-198"><a href="#cb9-198" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-199"><a href="#cb9-199" aria-hidden="true" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="st">"</span></span>
-<span id="cb9-200"><a href="#cb9-200" aria-hidden="true" tabindex="-1"></a><span class="st">  m ~ a * x</span></span>
-<span id="cb9-201"><a href="#cb9-201" aria-hidden="true" tabindex="-1"></a><span class="st">  y ~ b * m + c * x</span></span>
-<span id="cb9-202"><a href="#cb9-202" aria-hidden="true" tabindex="-1"></a><span class="st">  indirect := a * b</span></span>
-<span id="cb9-203"><a href="#cb9-203" aria-hidden="true" tabindex="-1"></a><span class="st">  total    := c + indirect</span></span>
-<span id="cb9-204"><a href="#cb9-204" aria-hidden="true" tabindex="-1"></a><span class="st">"</span></span>
-<span id="cb9-205"><a href="#cb9-205" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">sem</span>(model, <span class="at">data =</span> df)</span>
-<span id="cb9-206"><a href="#cb9-206" aria-hidden="true" tabindex="-1"></a><span class="fu">parameterEstimates</span>(fit)</span>
-<span id="cb9-207"><a href="#cb9-207" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb9-208"><a href="#cb9-208" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-209"><a href="#cb9-209" aria-hidden="true" tabindex="-1"></a>For causal mediation under the potential-outcomes framework, the book uses <span class="in">`medoutcon`</span> (Hejazi &amp; van der Laan), which estimates controlled, natural, and interventional direct/indirect effects with cross-fitted nuisance estimators.</span>
-<span id="cb9-210"><a href="#cb9-210" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-211"><a href="#cb9-211" aria-hidden="true" tabindex="-1"></a><span class="fu">## Practical Advice</span></span>
-<span id="cb9-212"><a href="#cb9-212" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-213"><a href="#cb9-213" aria-hidden="true" tabindex="-1"></a>The packages above cover the examples in this book. A few useful packages outside the main text are:</span>
-<span id="cb9-214"><a href="#cb9-214" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-215"><a href="#cb9-215" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`MatchIt`</span> and <span class="in">`WeightIt`</span> for matching and weighting estimators of the ATE/ATT</span>
-<span id="cb9-216"><a href="#cb9-216" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`grf`</span> (Generalized Random Forests) for heterogeneous treatment effects and instrumental-forest IV</span>
-<span id="cb9-217"><a href="#cb9-217" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`bnlearn`</span> for an alternative causal-discovery toolkit focused on Bayesian networks</span>
-<span id="cb9-218"><a href="#cb9-218" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`lavaan.survey`</span> and <span class="in">`blavaan`</span> for survey-weighted and Bayesian SEM</span>
-<span id="cb9-219"><a href="#cb9-219" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`mediation`</span> for the classical Imai/Keele/Tingley mediation framework</span>
-<span id="cb9-220"><a href="#cb9-220" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-221"><a href="#cb9-221" aria-hidden="true" tabindex="-1"></a>When upgrading any of these packages, re-render affected chapters after deleting the relevant <span class="in">`_freeze/&lt;chapter&gt;/`</span> directory so that Quarto does not reuse stale cached results.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+<span id="cb9-199"><a href="#cb9-199" aria-hidden="true" tabindex="-1"></a><span class="fu">## `lavaan` and `medoutcon`</span></span>
+<span id="cb9-200"><a href="#cb9-200" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-201"><a href="#cb9-201" aria-hidden="true" tabindex="-1"></a><span class="in">`lavaan`</span> ports the SEM model-string syntax familiar from EQS, Mplus, and LISREL into R. It is used in the mediation chapter for classical SEM mediation:</span>
+<span id="cb9-202"><a href="#cb9-202" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-203"><a href="#cb9-203" aria-hidden="true" tabindex="-1"></a><span class="in">```r</span></span>
+<span id="cb9-204"><a href="#cb9-204" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lavaan)</span>
+<span id="cb9-205"><a href="#cb9-205" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-206"><a href="#cb9-206" aria-hidden="true" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="st">"</span></span>
+<span id="cb9-207"><a href="#cb9-207" aria-hidden="true" tabindex="-1"></a><span class="st">  m ~ a * x</span></span>
+<span id="cb9-208"><a href="#cb9-208" aria-hidden="true" tabindex="-1"></a><span class="st">  y ~ b * m + c * x</span></span>
+<span id="cb9-209"><a href="#cb9-209" aria-hidden="true" tabindex="-1"></a><span class="st">  indirect := a * b</span></span>
+<span id="cb9-210"><a href="#cb9-210" aria-hidden="true" tabindex="-1"></a><span class="st">  total    := c + indirect</span></span>
+<span id="cb9-211"><a href="#cb9-211" aria-hidden="true" tabindex="-1"></a><span class="st">"</span></span>
+<span id="cb9-212"><a href="#cb9-212" aria-hidden="true" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">sem</span>(model, <span class="at">data =</span> df)</span>
+<span id="cb9-213"><a href="#cb9-213" aria-hidden="true" tabindex="-1"></a><span class="fu">parameterEstimates</span>(fit)</span>
+<span id="cb9-214"><a href="#cb9-214" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb9-215"><a href="#cb9-215" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-216"><a href="#cb9-216" aria-hidden="true" tabindex="-1"></a>For causal mediation under the potential-outcomes framework, the book uses <span class="in">`medoutcon`</span> (Hejazi &amp; van der Laan), which estimates natural and interventional (in)direct effects with cross-fitted nuisance estimators.  The interventional effects are the ones to reach for when a treatment-induced confounder of the mediator is present, since the natural effects are not identified in that case.</span>
+<span id="cb9-217"><a href="#cb9-217" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-218"><a href="#cb9-218" aria-hidden="true" tabindex="-1"></a><span class="fu">## Practical Advice</span></span>
+<span id="cb9-219"><a href="#cb9-219" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-220"><a href="#cb9-220" aria-hidden="true" tabindex="-1"></a>The packages above cover the examples in this book. A few useful packages outside the main text are:</span>
+<span id="cb9-221"><a href="#cb9-221" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-222"><a href="#cb9-222" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`MatchIt`</span> and <span class="in">`WeightIt`</span> for matching and weighting estimators of the ATE/ATT</span>
+<span id="cb9-223"><a href="#cb9-223" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`grf`</span> (Generalized Random Forests) for heterogeneous treatment effects and instrumental-forest IV</span>
+<span id="cb9-224"><a href="#cb9-224" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`bnlearn`</span> for an alternative causal-discovery toolkit focused on Bayesian networks</span>
+<span id="cb9-225"><a href="#cb9-225" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`lavaan.survey`</span> and <span class="in">`blavaan`</span> for survey-weighted and Bayesian SEM</span>
+<span id="cb9-226"><a href="#cb9-226" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`mediation`</span> for the classical Imai/Keele/Tingley mediation framework</span>
+<span id="cb9-227"><a href="#cb9-227" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-228"><a href="#cb9-228" aria-hidden="true" tabindex="-1"></a>When upgrading any of these packages, re-render affected chapters after deleting the relevant <span class="in">`_freeze/&lt;chapter&gt;/`</span> directory so that Quarto does not reuse stale cached results.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 

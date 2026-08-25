@@ -22,9 +22,16 @@ CI auto-publishes to GitHub Pages on push to `master` via `.github/workflows/pub
 
 ## Requirements
 
-R with the following CRAN packages: `ggplot2`, `ggdag`, `dagitty`, `causaleffect`, `tidyverse`, `haven`, `causaldata`, `hdm`, `SuperLearner`, `tmle`, `DoubleML`, `mlr3`, `mlr3learners`, `did`, `etwfe`, `fixest`, `synthdid`, `sem`, `MASS`, `rdrobust`, `gmm`, `lavaan`, `pcalg`.
+R and Quarto. The authoritative dependency list is the book's own appendix,
+*R Packages Used in This Book* (`package-ecosystem.qmd`). It is derived from the
+`library()` calls in the chapters, separates CRAN from Bioconductor and
+GitHub-only sources, and marks the packages needed only for non-executed
+examples. Keeping a second list here just lets the two drift apart, which is what
+had happened: the list this replaces named 23 packages where the chapters load
+more than 60, and put `synthdid` among the CRAN installs when it is GitHub-only.
 
-Bioconductor packages (required by `pcalg`): `graph`, `RBGL`, `Rgraphviz`. Install once via:
+One thing worth doing before a first build, since it is easy to miss: `pcalg`
+needs Bioconductor dependencies, installed once.
 
 ```r
 install.packages("BiocManager")
@@ -32,12 +39,13 @@ BiocManager::install(c("graph", "RBGL", "Rgraphviz"))
 install.packages("pcalg")
 ```
 
-GitHub-only packages:
+Package versions are not pinned; an `renv.lock` would be the durable fix.
 
-```r
-remotes::install_github("ehkennedy/npcausal")
-remotes::install_github("nhejazi/medoutcon")
-```
+`execute: freeze: auto` means an ordinary render reuses stored results from
+`_freeze/` and only re-executes changed chapters. For a genuine cold build,
+`rm -rf _freeze && quarto render`. Render all formats in one command --- a
+format-specific render such as `quarto render --to html` clears `_book/` and
+takes the PDF with it.
 
 > **2026-06-07:** Math/code review pass — see `CLAUDE.md` (Review pass section) for the list of corrections. Audit trail in `../_review/`.
 >

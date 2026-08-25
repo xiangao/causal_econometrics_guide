@@ -699,7 +699,10 @@ E-values 1.732578 1.526206       NA</code></pre>
 <pre><code>Mean paired difference (matched ATT): 2.926 kg</code></pre>
 </div>
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># Rosenbaum bound calculation: range of p-values for Wilcoxon signed-rank</span></span>
-<span><span class="co"># under each Gamma. We compute this directly rather than using a package</span></span>
+<span><span class="co"># under each Gamma. We compute a large-sample NORMAL APPROXIMATION to the</span></span>
+<span><span class="co"># weighted Bernoulli rank sum directly rather than using a package. With 403</span></span>
+<span><span class="co"># pairs it tracks the canonical bound closely, but it is an approximation:</span></span>
+<span><span class="co"># there is no exact Poisson-binomial tail and no continuity correction here.</span></span>
 <span><span class="co"># to keep the dependency footprint small.</span></span>
 <span><span class="va">rosenbaum_pvalue</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">diffs</span>, <span class="va">gamma</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="co"># The Wilcoxon signed-rank protocol discards exact-zero paired differences</span></span>
@@ -1587,113 +1590,116 @@ E-values 1.732578 1.526206       NA</code></pre>
 <span id="cb27-306"><a href="#cb27-306" aria-hidden="true" tabindex="-1"></a>            <span class="fu">mean</span>(paired_diff)))</span>
 <span id="cb27-307"><a href="#cb27-307" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb27-308"><a href="#cb27-308" aria-hidden="true" tabindex="-1"></a><span class="co"># Rosenbaum bound calculation: range of p-values for Wilcoxon signed-rank</span></span>
-<span id="cb27-309"><a href="#cb27-309" aria-hidden="true" tabindex="-1"></a><span class="co"># under each Gamma. We compute this directly rather than using a package</span></span>
-<span id="cb27-310"><a href="#cb27-310" aria-hidden="true" tabindex="-1"></a><span class="co"># to keep the dependency footprint small.</span></span>
-<span id="cb27-311"><a href="#cb27-311" aria-hidden="true" tabindex="-1"></a>rosenbaum_pvalue <span class="ot">&lt;-</span> <span class="cf">function</span>(diffs, gamma) {</span>
-<span id="cb27-312"><a href="#cb27-312" aria-hidden="true" tabindex="-1"></a>  <span class="co"># The Wilcoxon signed-rank protocol discards exact-zero paired differences</span></span>
-<span id="cb27-313"><a href="#cb27-313" aria-hidden="true" tabindex="-1"></a>  <span class="co"># before ranking (a zero carries no information about the sign) and</span></span>
-<span id="cb27-314"><a href="#cb27-314" aria-hidden="true" tabindex="-1"></a>  <span class="co"># reduces the effective sample size accordingly; including them would</span></span>
-<span id="cb27-315"><a href="#cb27-315" aria-hidden="true" tabindex="-1"></a>  <span class="co"># skew both the rank sum and its null variance.</span></span>
-<span id="cb27-316"><a href="#cb27-316" aria-hidden="true" tabindex="-1"></a>  diffs <span class="ot">&lt;-</span> diffs[diffs <span class="sc">!=</span> <span class="dv">0</span>]</span>
-<span id="cb27-317"><a href="#cb27-317" aria-hidden="true" tabindex="-1"></a>  abs_d <span class="ot">&lt;-</span> <span class="fu">abs</span>(diffs)</span>
-<span id="cb27-318"><a href="#cb27-318" aria-hidden="true" tabindex="-1"></a>  signs <span class="ot">&lt;-</span> <span class="fu">sign</span>(diffs)</span>
-<span id="cb27-319"><a href="#cb27-319" aria-hidden="true" tabindex="-1"></a>  ranks <span class="ot">&lt;-</span> <span class="fu">rank</span>(abs_d)</span>
-<span id="cb27-320"><a href="#cb27-320" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Under Gamma, P(positive sign) is bounded between 1/(1+Γ) and Γ/(1+Γ).</span></span>
-<span id="cb27-321"><a href="#cb27-321" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Upper-bound p-value: assume P(positive) = Γ/(1+Γ) (against null of zero)</span></span>
-<span id="cb27-322"><a href="#cb27-322" aria-hidden="true" tabindex="-1"></a>  p_pos_upper <span class="ot">&lt;-</span> gamma <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">+</span> gamma)</span>
-<span id="cb27-323"><a href="#cb27-323" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Test statistic: sum of positive ranks</span></span>
-<span id="cb27-324"><a href="#cb27-324" aria-hidden="true" tabindex="-1"></a>  T_obs <span class="ot">&lt;-</span> <span class="fu">sum</span>(ranks[signs <span class="sc">&gt;</span> <span class="dv">0</span>])</span>
-<span id="cb27-325"><a href="#cb27-325" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">length</span>(diffs)</span>
-<span id="cb27-326"><a href="#cb27-326" aria-hidden="true" tabindex="-1"></a>  mu_upper  <span class="ot">&lt;-</span> p_pos_upper <span class="sc">*</span> <span class="fu">sum</span>(ranks)</span>
-<span id="cb27-327"><a href="#cb27-327" aria-hidden="true" tabindex="-1"></a>  var_upper <span class="ot">&lt;-</span> p_pos_upper <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> p_pos_upper) <span class="sc">*</span> <span class="fu">sum</span>(ranks<span class="sc">^</span><span class="dv">2</span>)</span>
-<span id="cb27-328"><a href="#cb27-328" aria-hidden="true" tabindex="-1"></a>  z <span class="ot">&lt;-</span> (T_obs <span class="sc">-</span> mu_upper) <span class="sc">/</span> <span class="fu">sqrt</span>(var_upper)</span>
-<span id="cb27-329"><a href="#cb27-329" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1</span> <span class="sc">-</span> <span class="fu">pnorm</span>(z)</span>
-<span id="cb27-330"><a href="#cb27-330" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb27-331"><a href="#cb27-331" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-332"><a href="#cb27-332" aria-hidden="true" tabindex="-1"></a>gammas <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">1</span>, <span class="dv">4</span>, <span class="at">by =</span> <span class="fl">0.25</span>)</span>
-<span id="cb27-333"><a href="#cb27-333" aria-hidden="true" tabindex="-1"></a>pvals  <span class="ot">&lt;-</span> <span class="fu">sapply</span>(gammas, <span class="cf">function</span>(g) <span class="fu">rosenbaum_pvalue</span>(paired_diff, g))</span>
+<span id="cb27-309"><a href="#cb27-309" aria-hidden="true" tabindex="-1"></a><span class="co"># under each Gamma. We compute a large-sample NORMAL APPROXIMATION to the</span></span>
+<span id="cb27-310"><a href="#cb27-310" aria-hidden="true" tabindex="-1"></a><span class="co"># weighted Bernoulli rank sum directly rather than using a package. With 403</span></span>
+<span id="cb27-311"><a href="#cb27-311" aria-hidden="true" tabindex="-1"></a><span class="co"># pairs it tracks the canonical bound closely, but it is an approximation:</span></span>
+<span id="cb27-312"><a href="#cb27-312" aria-hidden="true" tabindex="-1"></a><span class="co"># there is no exact Poisson-binomial tail and no continuity correction here.</span></span>
+<span id="cb27-313"><a href="#cb27-313" aria-hidden="true" tabindex="-1"></a><span class="co"># to keep the dependency footprint small.</span></span>
+<span id="cb27-314"><a href="#cb27-314" aria-hidden="true" tabindex="-1"></a>rosenbaum_pvalue <span class="ot">&lt;-</span> <span class="cf">function</span>(diffs, gamma) {</span>
+<span id="cb27-315"><a href="#cb27-315" aria-hidden="true" tabindex="-1"></a>  <span class="co"># The Wilcoxon signed-rank protocol discards exact-zero paired differences</span></span>
+<span id="cb27-316"><a href="#cb27-316" aria-hidden="true" tabindex="-1"></a>  <span class="co"># before ranking (a zero carries no information about the sign) and</span></span>
+<span id="cb27-317"><a href="#cb27-317" aria-hidden="true" tabindex="-1"></a>  <span class="co"># reduces the effective sample size accordingly; including them would</span></span>
+<span id="cb27-318"><a href="#cb27-318" aria-hidden="true" tabindex="-1"></a>  <span class="co"># skew both the rank sum and its null variance.</span></span>
+<span id="cb27-319"><a href="#cb27-319" aria-hidden="true" tabindex="-1"></a>  diffs <span class="ot">&lt;-</span> diffs[diffs <span class="sc">!=</span> <span class="dv">0</span>]</span>
+<span id="cb27-320"><a href="#cb27-320" aria-hidden="true" tabindex="-1"></a>  abs_d <span class="ot">&lt;-</span> <span class="fu">abs</span>(diffs)</span>
+<span id="cb27-321"><a href="#cb27-321" aria-hidden="true" tabindex="-1"></a>  signs <span class="ot">&lt;-</span> <span class="fu">sign</span>(diffs)</span>
+<span id="cb27-322"><a href="#cb27-322" aria-hidden="true" tabindex="-1"></a>  ranks <span class="ot">&lt;-</span> <span class="fu">rank</span>(abs_d)</span>
+<span id="cb27-323"><a href="#cb27-323" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Under Gamma, P(positive sign) is bounded between 1/(1+Γ) and Γ/(1+Γ).</span></span>
+<span id="cb27-324"><a href="#cb27-324" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Upper-bound p-value: assume P(positive) = Γ/(1+Γ) (against null of zero)</span></span>
+<span id="cb27-325"><a href="#cb27-325" aria-hidden="true" tabindex="-1"></a>  p_pos_upper <span class="ot">&lt;-</span> gamma <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">+</span> gamma)</span>
+<span id="cb27-326"><a href="#cb27-326" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Test statistic: sum of positive ranks</span></span>
+<span id="cb27-327"><a href="#cb27-327" aria-hidden="true" tabindex="-1"></a>  T_obs <span class="ot">&lt;-</span> <span class="fu">sum</span>(ranks[signs <span class="sc">&gt;</span> <span class="dv">0</span>])</span>
+<span id="cb27-328"><a href="#cb27-328" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">length</span>(diffs)</span>
+<span id="cb27-329"><a href="#cb27-329" aria-hidden="true" tabindex="-1"></a>  mu_upper  <span class="ot">&lt;-</span> p_pos_upper <span class="sc">*</span> <span class="fu">sum</span>(ranks)</span>
+<span id="cb27-330"><a href="#cb27-330" aria-hidden="true" tabindex="-1"></a>  var_upper <span class="ot">&lt;-</span> p_pos_upper <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">-</span> p_pos_upper) <span class="sc">*</span> <span class="fu">sum</span>(ranks<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb27-331"><a href="#cb27-331" aria-hidden="true" tabindex="-1"></a>  z <span class="ot">&lt;-</span> (T_obs <span class="sc">-</span> mu_upper) <span class="sc">/</span> <span class="fu">sqrt</span>(var_upper)</span>
+<span id="cb27-332"><a href="#cb27-332" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1</span> <span class="sc">-</span> <span class="fu">pnorm</span>(z)</span>
+<span id="cb27-333"><a href="#cb27-333" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb27-334"><a href="#cb27-334" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-335"><a href="#cb27-335" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">Gamma =</span> gammas, <span class="at">p_value_upper =</span> pvals)</span>
-<span id="cb27-336"><a href="#cb27-336" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(result, <span class="at">digits =</span> <span class="dv">4</span>,</span>
-<span id="cb27-337"><a href="#cb27-337" aria-hidden="true" tabindex="-1"></a>             <span class="at">caption =</span> <span class="st">"Upper-bound p-values from Rosenbaum sensitivity analysis"</span>)</span>
-<span id="cb27-338"><a href="#cb27-338" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb27-339"><a href="#cb27-339" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-340"><a href="#cb27-340" aria-hidden="true" tabindex="-1"></a>Matching gives 403 pairs, one per quitter, with a mean paired difference of</span>
-<span id="cb27-341"><a href="#cb27-341" aria-hidden="true" tabindex="-1"></a>2.926 kg. The upper-bound $p$-value is 0.0334 at $\Gamma = 1.50$ and 0.2905 at</span>
-<span id="cb27-342"><a href="#cb27-342" aria-hidden="true" tabindex="-1"></a>$\Gamma = 1.75$, so the crossing of 0.05 falls between those two grid points.</span>
-<span id="cb27-343"><a href="#cb27-343" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-344"><a href="#cb27-344" aria-hidden="true" tabindex="-1"></a>The **critical $\Gamma$** is the value at which the upper-bound $p$-value</span>
-<span id="cb27-345"><a href="#cb27-345" aria-hidden="true" tabindex="-1"></a>crosses 0.05. If it is around 2 or higher, the result is robust to moderate</span>
-<span id="cb27-346"><a href="#cb27-346" aria-hidden="true" tabindex="-1"></a>hidden bias. If it is close to 1, even small unmeasured confounding could</span>
-<span id="cb27-347"><a href="#cb27-347" aria-hidden="true" tabindex="-1"></a>overturn the conclusion. We read it off the grid:</span>
-<span id="cb27-348"><a href="#cb27-348" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-351"><a href="#cb27-351" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb27-352"><a href="#cb27-352" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: critical-gamma</span></span>
-<span id="cb27-353"><a href="#cb27-353" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb27-354"><a href="#cb27-354" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-355"><a href="#cb27-355" aria-hidden="true" tabindex="-1"></a>sig_idx <span class="ot">&lt;-</span> <span class="fu">which</span>(result<span class="sc">$</span>p_value_upper <span class="sc">&gt;</span> <span class="fl">0.05</span>)</span>
-<span id="cb27-356"><a href="#cb27-356" aria-hidden="true" tabindex="-1"></a>critical_gamma <span class="ot">&lt;-</span> <span class="cf">if</span> (<span class="fu">length</span>(sig_idx) <span class="sc">&gt;</span> <span class="dv">0</span>) result<span class="sc">$</span>Gamma[<span class="fu">min</span>(sig_idx)] <span class="cf">else</span> <span class="cn">NA</span></span>
-<span id="cb27-357"><a href="#cb27-357" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">is.na</span>(critical_gamma)) {</span>
-<span id="cb27-358"><a href="#cb27-358" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"No Gamma up to %.2f pushed the p-value above 0.05 -- the result is robust across the whole grid tested; extend `gammas` to find the true crossing.</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">max</span>(result<span class="sc">$</span>Gamma)))</span>
-<span id="cb27-359"><a href="#cb27-359" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
-<span id="cb27-360"><a href="#cb27-360" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Critical Gamma (p &gt; 0.05): %.2f</span><span class="sc">\n</span><span class="st">"</span>, critical_gamma))</span>
-<span id="cb27-361"><a href="#cb27-361" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb27-362"><a href="#cb27-362" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb27-363"><a href="#cb27-363" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-364"><a href="#cb27-364" aria-hidden="true" tabindex="-1"></a>The critical $\Gamma$ is 1.75. This is the first value *on the 0.25 grid* at</span>
-<span id="cb27-365"><a href="#cb27-365" aria-hidden="true" tabindex="-1"></a>which significance is lost; the true crossing lies between 1.50 and 1.75, and a</span>
-<span id="cb27-366"><a href="#cb27-366" aria-hidden="true" tabindex="-1"></a>finer grid would locate it more precisely. The convention in applied work is</span>
-<span id="cb27-367"><a href="#cb27-367" aria-hidden="true" tabindex="-1"></a>often to report the largest $\Gamma$ at which significance is retained, which</span>
-<span id="cb27-368"><a href="#cb27-368" aria-hidden="true" tabindex="-1"></a>here is 1.50.</span>
-<span id="cb27-369"><a href="#cb27-369" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-370"><a href="#cb27-370" aria-hidden="true" tabindex="-1"></a>So hidden bias that made one member of a matched pair up to about 1.5 times</span>
-<span id="cb27-371"><a href="#cb27-371" aria-hidden="true" tabindex="-1"></a>more likely to quit than the other would leave the result significant, and bias</span>
-<span id="cb27-372"><a href="#cb27-372" aria-hidden="true" tabindex="-1"></a>beyond that would not.</span>
-<span id="cb27-373"><a href="#cb27-373" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-374"><a href="#cb27-374" aria-hidden="true" tabindex="-1"></a>The three analyses do not share a scale. $\Gamma$ bounds an odds ratio within a</span>
-<span id="cb27-375"><a href="#cb27-375" aria-hidden="true" tabindex="-1"></a>matched pair, the E-value bounds a risk ratio, and the robustness value is a</span>
-<span id="cb27-376"><a href="#cb27-376" aria-hidden="true" tabindex="-1"></a>partial $R^2$. They also ask different questions: $\Gamma$ and the E-value ask</span>
-<span id="cb27-377"><a href="#cb27-377" aria-hidden="true" tabindex="-1"></a>when the result stops being significant, the robustness value asks when the</span>
-<span id="cb27-378"><a href="#cb27-378" aria-hidden="true" tabindex="-1"></a>point estimate reaches zero. Reporting one of them is normal practice; the</span>
-<span id="cb27-379"><a href="#cb27-379" aria-hidden="true" tabindex="-1"></a>numbers should not be averaged or compared directly.</span>
-<span id="cb27-380"><a href="#cb27-380" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-381"><a href="#cb27-381" aria-hidden="true" tabindex="-1"></a><span class="fu">## What about partial identification?</span></span>
-<span id="cb27-382"><a href="#cb27-382" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-383"><a href="#cb27-383" aria-hidden="true" tabindex="-1"></a>When sensitivity analysis shows the point estimate is fragile, partial</span>
-<span id="cb27-384"><a href="#cb27-384" aria-hidden="true" tabindex="-1"></a>identification is often the next step. Instead of one estimate, report bounds</span>
-<span id="cb27-385"><a href="#cb27-385" aria-hidden="true" tabindex="-1"></a>under weaker assumptions.</span>
-<span id="cb27-386"><a href="#cb27-386" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-387"><a href="#cb27-387" aria-hidden="true" tabindex="-1"></a>The Manski (1990) "no-assumption" bounds say:</span>
-<span id="cb27-388"><a href="#cb27-388" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-389"><a href="#cb27-389" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb27-390"><a href="#cb27-390" aria-hidden="true" tabindex="-1"></a>\begin{aligned}</span>
-<span id="cb27-391"><a href="#cb27-391" aria-hidden="true" tabindex="-1"></a>\text{ATE} &amp;\ge \mathbb{E}<span class="co">[</span><span class="ot">Y|D{=}1</span><span class="co">]</span>P(D{=}1) - \mathbb{E}<span class="co">[</span><span class="ot">Y|D{=}0</span><span class="co">]</span>P(D{=}0) - K\,P(D{=}1), <span class="sc">\\</span></span>
-<span id="cb27-392"><a href="#cb27-392" aria-hidden="true" tabindex="-1"></a>\text{ATE} &amp;\le \mathbb{E}<span class="co">[</span><span class="ot">Y|D{=}1</span><span class="co">]</span>P(D{=}1) - \mathbb{E}<span class="co">[</span><span class="ot">Y|D{=}0</span><span class="co">]</span>P(D{=}0) + K\,P(D{=}0).</span>
-<span id="cb27-393"><a href="#cb27-393" aria-hidden="true" tabindex="-1"></a>\end{aligned}</span>
-<span id="cb27-394"><a href="#cb27-394" aria-hidden="true" tabindex="-1"></a>$$ {#eq-sensitivity-analysis-1}</span>
-<span id="cb27-395"><a href="#cb27-395" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-396"><a href="#cb27-396" aria-hidden="true" tabindex="-1"></a>Each potential-outcome mean is split by the law of total expectation, filling</span>
-<span id="cb27-397"><a href="#cb27-397" aria-hidden="true" tabindex="-1"></a>in the unobserved arm with its worst/best case. With outcomes bounded in</span>
-<span id="cb27-398"><a href="#cb27-398" aria-hidden="true" tabindex="-1"></a>$Y \in <span class="co">[</span><span class="ot">0, K</span><span class="co">]</span>$, this is a single interval of width exactly $K$ — bounded, but</span>
-<span id="cb27-399"><a href="#cb27-399" aria-hidden="true" tabindex="-1"></a>often too wide to be useful. Tighter bounds come from adding structure to a</span>
-<span id="cb27-400"><a href="#cb27-400" aria-hidden="true" tabindex="-1"></a>specific problem: Lee (2009) bounds address sample selection/attrition (the</span>
-<span id="cb27-401"><a href="#cb27-401" aria-hidden="true" tabindex="-1"></a>outcome is observed only for selected units) by combining random assignment</span>
-<span id="cb27-402"><a href="#cb27-402" aria-hidden="true" tabindex="-1"></a>with monotone selection and trimming the over-selected arm. For IV settings,</span>
-<span id="cb27-403"><a href="#cb27-403" aria-hidden="true" tabindex="-1"></a>Mourifié and Wan (2017) provide a test of the LATE identifying assumptions</span>
-<span id="cb27-404"><a href="#cb27-404" aria-hidden="true" tabindex="-1"></a>(instrument validity plus monotonicity).</span>
-<span id="cb27-405"><a href="#cb27-405" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-406"><a href="#cb27-406" aria-hidden="true" tabindex="-1"></a>These bounds usually complement a point estimate. They are useful when the</span>
-<span id="cb27-407"><a href="#cb27-407" aria-hidden="true" tabindex="-1"></a>point estimate depends too much on an untestable assumption.</span>
+<span id="cb27-335"><a href="#cb27-335" aria-hidden="true" tabindex="-1"></a>gammas <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">1</span>, <span class="dv">4</span>, <span class="at">by =</span> <span class="fl">0.25</span>)</span>
+<span id="cb27-336"><a href="#cb27-336" aria-hidden="true" tabindex="-1"></a>pvals  <span class="ot">&lt;-</span> <span class="fu">sapply</span>(gammas, <span class="cf">function</span>(g) <span class="fu">rosenbaum_pvalue</span>(paired_diff, g))</span>
+<span id="cb27-337"><a href="#cb27-337" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-338"><a href="#cb27-338" aria-hidden="true" tabindex="-1"></a>result <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">Gamma =</span> gammas, <span class="at">p_value_upper =</span> pvals)</span>
+<span id="cb27-339"><a href="#cb27-339" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(result, <span class="at">digits =</span> <span class="dv">4</span>,</span>
+<span id="cb27-340"><a href="#cb27-340" aria-hidden="true" tabindex="-1"></a>             <span class="at">caption =</span> <span class="st">"Upper-bound p-values from Rosenbaum sensitivity analysis"</span>)</span>
+<span id="cb27-341"><a href="#cb27-341" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb27-342"><a href="#cb27-342" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-343"><a href="#cb27-343" aria-hidden="true" tabindex="-1"></a>Matching gives 403 pairs, one per quitter, with a mean paired difference of</span>
+<span id="cb27-344"><a href="#cb27-344" aria-hidden="true" tabindex="-1"></a>2.926 kg. The upper-bound $p$-value is 0.0334 at $\Gamma = 1.50$ and 0.2905 at</span>
+<span id="cb27-345"><a href="#cb27-345" aria-hidden="true" tabindex="-1"></a>$\Gamma = 1.75$, so the crossing of 0.05 falls between those two grid points.</span>
+<span id="cb27-346"><a href="#cb27-346" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-347"><a href="#cb27-347" aria-hidden="true" tabindex="-1"></a>The **critical $\Gamma$** is the value at which the upper-bound $p$-value</span>
+<span id="cb27-348"><a href="#cb27-348" aria-hidden="true" tabindex="-1"></a>crosses 0.05. If it is around 2 or higher, the result is robust to moderate</span>
+<span id="cb27-349"><a href="#cb27-349" aria-hidden="true" tabindex="-1"></a>hidden bias. If it is close to 1, even small unmeasured confounding could</span>
+<span id="cb27-350"><a href="#cb27-350" aria-hidden="true" tabindex="-1"></a>overturn the conclusion. We read it off the grid:</span>
+<span id="cb27-351"><a href="#cb27-351" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-354"><a href="#cb27-354" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb27-355"><a href="#cb27-355" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: critical-gamma</span></span>
+<span id="cb27-356"><a href="#cb27-356" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb27-357"><a href="#cb27-357" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-358"><a href="#cb27-358" aria-hidden="true" tabindex="-1"></a>sig_idx <span class="ot">&lt;-</span> <span class="fu">which</span>(result<span class="sc">$</span>p_value_upper <span class="sc">&gt;</span> <span class="fl">0.05</span>)</span>
+<span id="cb27-359"><a href="#cb27-359" aria-hidden="true" tabindex="-1"></a>critical_gamma <span class="ot">&lt;-</span> <span class="cf">if</span> (<span class="fu">length</span>(sig_idx) <span class="sc">&gt;</span> <span class="dv">0</span>) result<span class="sc">$</span>Gamma[<span class="fu">min</span>(sig_idx)] <span class="cf">else</span> <span class="cn">NA</span></span>
+<span id="cb27-360"><a href="#cb27-360" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">is.na</span>(critical_gamma)) {</span>
+<span id="cb27-361"><a href="#cb27-361" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"No Gamma up to %.2f pushed the p-value above 0.05 -- the result is robust across the whole grid tested; extend `gammas` to find the true crossing.</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">max</span>(result<span class="sc">$</span>Gamma)))</span>
+<span id="cb27-362"><a href="#cb27-362" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb27-363"><a href="#cb27-363" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Critical Gamma (p &gt; 0.05): %.2f</span><span class="sc">\n</span><span class="st">"</span>, critical_gamma))</span>
+<span id="cb27-364"><a href="#cb27-364" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb27-365"><a href="#cb27-365" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb27-366"><a href="#cb27-366" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-367"><a href="#cb27-367" aria-hidden="true" tabindex="-1"></a>The critical $\Gamma$ is 1.75. This is the first value *on the 0.25 grid* at</span>
+<span id="cb27-368"><a href="#cb27-368" aria-hidden="true" tabindex="-1"></a>which significance is lost; the true crossing lies between 1.50 and 1.75, and a</span>
+<span id="cb27-369"><a href="#cb27-369" aria-hidden="true" tabindex="-1"></a>finer grid would locate it more precisely. The convention in applied work is</span>
+<span id="cb27-370"><a href="#cb27-370" aria-hidden="true" tabindex="-1"></a>often to report the largest $\Gamma$ at which significance is retained, which</span>
+<span id="cb27-371"><a href="#cb27-371" aria-hidden="true" tabindex="-1"></a>here is 1.50.</span>
+<span id="cb27-372"><a href="#cb27-372" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-373"><a href="#cb27-373" aria-hidden="true" tabindex="-1"></a>So hidden bias that made one member of a matched pair up to about 1.5 times</span>
+<span id="cb27-374"><a href="#cb27-374" aria-hidden="true" tabindex="-1"></a>more likely to quit than the other would leave the result significant, and bias</span>
+<span id="cb27-375"><a href="#cb27-375" aria-hidden="true" tabindex="-1"></a>beyond that would not.</span>
+<span id="cb27-376"><a href="#cb27-376" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-377"><a href="#cb27-377" aria-hidden="true" tabindex="-1"></a>The three analyses do not share a scale. $\Gamma$ bounds an odds ratio within a</span>
+<span id="cb27-378"><a href="#cb27-378" aria-hidden="true" tabindex="-1"></a>matched pair, the E-value bounds a risk ratio, and the robustness value is a</span>
+<span id="cb27-379"><a href="#cb27-379" aria-hidden="true" tabindex="-1"></a>partial $R^2$. They also ask different questions: $\Gamma$ and the E-value ask</span>
+<span id="cb27-380"><a href="#cb27-380" aria-hidden="true" tabindex="-1"></a>when the result stops being significant, the robustness value asks when the</span>
+<span id="cb27-381"><a href="#cb27-381" aria-hidden="true" tabindex="-1"></a>point estimate reaches zero. Reporting one of them is normal practice; the</span>
+<span id="cb27-382"><a href="#cb27-382" aria-hidden="true" tabindex="-1"></a>numbers should not be averaged or compared directly.</span>
+<span id="cb27-383"><a href="#cb27-383" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-384"><a href="#cb27-384" aria-hidden="true" tabindex="-1"></a><span class="fu">## What about partial identification?</span></span>
+<span id="cb27-385"><a href="#cb27-385" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-386"><a href="#cb27-386" aria-hidden="true" tabindex="-1"></a>When sensitivity analysis shows the point estimate is fragile, partial</span>
+<span id="cb27-387"><a href="#cb27-387" aria-hidden="true" tabindex="-1"></a>identification is often the next step. Instead of one estimate, report bounds</span>
+<span id="cb27-388"><a href="#cb27-388" aria-hidden="true" tabindex="-1"></a>under weaker assumptions.</span>
+<span id="cb27-389"><a href="#cb27-389" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-390"><a href="#cb27-390" aria-hidden="true" tabindex="-1"></a>The Manski (1990) "no-assumption" bounds say:</span>
+<span id="cb27-391"><a href="#cb27-391" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-392"><a href="#cb27-392" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb27-393"><a href="#cb27-393" aria-hidden="true" tabindex="-1"></a>\begin{aligned}</span>
+<span id="cb27-394"><a href="#cb27-394" aria-hidden="true" tabindex="-1"></a>\text{ATE} &amp;\ge \mathbb{E}<span class="co">[</span><span class="ot">Y|D{=}1</span><span class="co">]</span>P(D{=}1) - \mathbb{E}<span class="co">[</span><span class="ot">Y|D{=}0</span><span class="co">]</span>P(D{=}0) - K\,P(D{=}1), <span class="sc">\\</span></span>
+<span id="cb27-395"><a href="#cb27-395" aria-hidden="true" tabindex="-1"></a>\text{ATE} &amp;\le \mathbb{E}<span class="co">[</span><span class="ot">Y|D{=}1</span><span class="co">]</span>P(D{=}1) - \mathbb{E}<span class="co">[</span><span class="ot">Y|D{=}0</span><span class="co">]</span>P(D{=}0) + K\,P(D{=}0).</span>
+<span id="cb27-396"><a href="#cb27-396" aria-hidden="true" tabindex="-1"></a>\end{aligned}</span>
+<span id="cb27-397"><a href="#cb27-397" aria-hidden="true" tabindex="-1"></a>$$ {#eq-sensitivity-analysis-1}</span>
+<span id="cb27-398"><a href="#cb27-398" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-399"><a href="#cb27-399" aria-hidden="true" tabindex="-1"></a>Each potential-outcome mean is split by the law of total expectation, filling</span>
+<span id="cb27-400"><a href="#cb27-400" aria-hidden="true" tabindex="-1"></a>in the unobserved arm with its worst/best case. With outcomes bounded in</span>
+<span id="cb27-401"><a href="#cb27-401" aria-hidden="true" tabindex="-1"></a>$Y \in <span class="co">[</span><span class="ot">0, K</span><span class="co">]</span>$, this is a single interval of width exactly $K$ — bounded, but</span>
+<span id="cb27-402"><a href="#cb27-402" aria-hidden="true" tabindex="-1"></a>often too wide to be useful. Tighter bounds come from adding structure to a</span>
+<span id="cb27-403"><a href="#cb27-403" aria-hidden="true" tabindex="-1"></a>specific problem: Lee (2009) bounds address sample selection/attrition (the</span>
+<span id="cb27-404"><a href="#cb27-404" aria-hidden="true" tabindex="-1"></a>outcome is observed only for selected units) by combining random assignment</span>
+<span id="cb27-405"><a href="#cb27-405" aria-hidden="true" tabindex="-1"></a>with monotone selection and trimming the over-selected arm. For IV settings,</span>
+<span id="cb27-406"><a href="#cb27-406" aria-hidden="true" tabindex="-1"></a>Mourifié and Wan (2017) provide a test of the LATE identifying assumptions</span>
+<span id="cb27-407"><a href="#cb27-407" aria-hidden="true" tabindex="-1"></a>(instrument validity plus monotonicity).</span>
 <span id="cb27-408"><a href="#cb27-408" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-409"><a href="#cb27-409" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
-<span id="cb27-410"><a href="#cb27-410" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-411"><a href="#cb27-411" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Sensitivity analysis asks how strong hidden confounding must be to change</span>
-<span id="cb27-412"><a href="#cb27-412" aria-hidden="true" tabindex="-1"></a>  the result.</span>
-<span id="cb27-413"><a href="#cb27-413" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Cinelli-Hazlett bounds are useful for regression estimates.</span>
-<span id="cb27-414"><a href="#cb27-414" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>E-values are useful for risk ratios.</span>
-<span id="cb27-415"><a href="#cb27-415" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Rosenbaum bounds are useful for matched pairs.</span>
-<span id="cb27-416"><a href="#cb27-416" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Observational causal estimates should usually include at least one</span>
-<span id="cb27-417"><a href="#cb27-417" aria-hidden="true" tabindex="-1"></a>  sensitivity analysis.</span>
+<span id="cb27-409"><a href="#cb27-409" aria-hidden="true" tabindex="-1"></a>These bounds usually complement a point estimate. They are useful when the</span>
+<span id="cb27-410"><a href="#cb27-410" aria-hidden="true" tabindex="-1"></a>point estimate depends too much on an untestable assumption.</span>
+<span id="cb27-411"><a href="#cb27-411" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-412"><a href="#cb27-412" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb27-413"><a href="#cb27-413" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-414"><a href="#cb27-414" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Sensitivity analysis asks how strong hidden confounding must be to change</span>
+<span id="cb27-415"><a href="#cb27-415" aria-hidden="true" tabindex="-1"></a>  the result.</span>
+<span id="cb27-416"><a href="#cb27-416" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Cinelli-Hazlett bounds are useful for regression estimates.</span>
+<span id="cb27-417"><a href="#cb27-417" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>E-values are useful for risk ratios.</span>
+<span id="cb27-418"><a href="#cb27-418" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Rosenbaum bounds are useful for matched pairs.</span>
+<span id="cb27-419"><a href="#cb27-419" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Observational causal estimates should usually include at least one</span>
+<span id="cb27-420"><a href="#cb27-420" aria-hidden="true" tabindex="-1"></a>  sensitivity analysis.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

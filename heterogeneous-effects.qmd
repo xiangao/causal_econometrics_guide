@@ -445,41 +445,66 @@ cost <- 2     # cost of treating one unit, in outcome units
 # With tau(x) = 1 + 2*x1 in [1, 3], the optimal rule is: treat iff x1 > 0.5.
 Gamma[, "treated"] <- Gamma[, "treated"] - cost
 
-# Fit a depth-2 policy tree (shallow for interpretability)
-tree <- policy_tree(X, Gamma, depth = 2)
+# A policy that is learned and valued on the same rows is scoring its own
+# homework. Split first: learn the rule on one half, value it on the other.
+set.seed(99)
+learn <- sample(nrow(X), nrow(X) %/% 2)
+hold  <- setdiff(seq_len(nrow(X)), learn)
+
+# Fit a depth-2 policy tree (shallow for interpretability) on the learning half
+tree <- policy_tree(X[learn, ], Gamma[learn, ], depth = 2)
 print(tree)
 
-# Recommended action for each unit (1 = control, 2 = treated)
-actions <- predict(tree, X)
-cat(sprintf("\nTreatment rate under policy tree: %.1f%% (optimal: %.1f%%)\n",
-            mean(actions == 2) * 100, mean(X[, 1] > 0.5) * 100))
+# Recommended action for each held-out unit (1 = control, 2 = treated)
+actions <- predict(tree, X[hold, ])
+cat(sprintf("\nTreatment rate on the held-out half: %.1f%% (optimal: %.1f%%)\n",
+            mean(actions == 2) * 100, mean(X[hold, 1] > 0.5) * 100))
 
-# Value of the learned rule vs treating everyone, both evaluated with
-# the same doubly-robust scores
-welfare_tree <- mean(ifelse(actions == 2, Gamma[, "treated"], Gamma[, "control"]))
-welfare_all  <- mean(Gamma[, "treated"])
-cat(sprintf("Estimated welfare: policy tree %.3f vs treat-everyone %.3f (gain %.3f)\n",
-            welfare_tree, welfare_all, welfare_tree - welfare_all))
+# Held-out value of the learned rule against treating everyone. Both are
+# averages of the same doubly-robust scores, so the per-unit difference gives
+# the standard error of the gain directly.
+val_tree <- ifelse(actions == 2, Gamma[hold, "treated"], Gamma[hold, "control"])
+val_all  <- Gamma[hold, "treated"]
+gain     <- val_tree - val_all
+cat(sprintf("Held-out value: tree %.3f vs treat-everyone %.3f; gain %.3f (se %.3f)\n",
+            mean(val_tree), mean(val_all), mean(gain),
+            sd(gain) / sqrt(length(gain))))
+
+# The same comparison for a depth-1 tree, the better-specified model for this DGP
+tree1 <- policy_tree(X[learn, ], Gamma[learn, ], depth = 1)
+a1    <- predict(tree1, X[hold, ])
+g1    <- ifelse(a1 == 2, Gamma[hold, "treated"], Gamma[hold, "control"]) - val_all
+cat(sprintf("Depth-1 tree: gain %.3f (se %.3f)\n",
+            mean(g1), sd(g1) / sqrt(length(g1))))
 ```
 
-The tree splits on $X_1$ at every node, which is the true effect modifier, and
-treats 56.5% of units against an optimal 50.5%. Its estimated welfare is 0.525
-against 0.261 for treating everyone, a gain of 0.264 per unit. The rule beats
-treat-everyone because with a cost of 2 and $\tau(x) = 1+2x_1$, units with
-$x_1 < 0.5$ have $\tau(x) < 2$ and are not worth treating.
+The first split is on $X_5$, which is not an effect modifier at all --- only
+$X_1$ is --- and $X_1$ then appears in both branches, at $0.394$ and $0.626$. So
+the fitted rule makes the treatment threshold depend on a noise covariate. That
+is overfitting, and it is visible here only because the rule was learned on one
+half of the sample and valued on the other. On the held-out half it treats 42.8%
+of units against an optimal 49.7%.
 
-The point of the shallow tree is interpretability. It gives up some
-flexibility in exchange for a rule that can be inspected.
+The held-out value is $0.475$ against $0.262$ for treating everyone: a gain of
+$0.212$ per unit with a standard error of $0.032$. The gain is real, at about
+six and a half standard errors from zero, and the reason is the cost. With a cost
+of 2 and $\tau(x) = 1+2x_1$, units with $x_1 < 0.5$ have $\tau(x) < 2$ and are
+not worth treating.
 
-Inspect the printed tree rather than summarising it, though, because at depth 2
-both branches split $X_1$ again: the fitted rule treats $X_1 \in (0.422, 0.627]$
-and $X_1 > 0.644$, but not the sliver between them. Since $\tau(x) = 1 + 2x_1$
-is monotone, the optimal rule is a *single* threshold at $x_1 = 0.5$, so that gap
-is estimation noise and not a discovery. The effective lower cut of 0.42 rather
-than 0.50 is what produces the 56.5% treatment rate against an optimal 50.5%.
-A depth-1 tree is the better-specified model for this DGP, and the practical
-lesson is to fit the shallower tree too: a depth-2 structure should not be read
-as evidence of a genuinely non-monotone rule when a depth-1 tree does as well.
+The depth-1 tree, fitted on the same half, does better: a held-out gain of
+$0.243$ with a standard error of $0.029$, from one split rather than three. For
+this DGP the optimal rule is a single threshold at $x_1 = 0.5$, so the extra
+depth is spent on noise, and the held-out comparison prices it. The practical
+lesson is to fit the shallower tree as well and compare them out of sample,
+rather than by their training objective. The point of a shallow tree is
+interpretability; here it also happens to be the better rule.
+
+The split between learning and evaluation is doing more work than it looks.
+Value the depth-2 rule on the rows it was trained on and the same scores report a
+larger gain, because the tree was chosen to make exactly those rows look good.
+Honest forest scores control nuisance overfitting, not policy overfitting. Only
+holding out observations does that, and without it a policy-value number is a
+training objective wearing the clothes of an evaluation.
 
 For an extended walkthrough of policy trees with IPW and AIPW losses,
 see the [companion blog chapter on `policytree`](https://xiangao.github.io/blog_book/policytree.html).

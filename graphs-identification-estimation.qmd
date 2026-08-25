@@ -19,9 +19,9 @@ I use `dagitty` for graphs and backdoor adjustment, `causaleffect` for the gener
 
 ## DAGs and ADMGs
 
-A directed acyclic graph, or DAG, has directed arrows such as `X -> A`. In causal work, an arrow means a direct causal relation is allowed by the model. Absence of an arrow is also a substantive assumption.
+The graphical machinery in this chapter is Pearl's [-@pearl2009]. A directed acyclic graph, or DAG, has directed arrows such as `X -> A`. In causal work, an arrow means a direct causal relation is allowed by the model. Absence of an arrow is also a substantive assumption.
 
-An acyclic directed mixed graph, or ADMG, adds bidirected arrows such as `A <-> Y`. A bidirected edge represents an unobserved common cause. This is useful because many econometric applications have variables we cannot measure: ability, preferences, latent health, firm quality, and so on.
+An acyclic directed mixed graph, or ADMG, adds bidirected arrows such as `A <-> Y`. ADMGs are the graphs the general identification theory of Shpitser and Pearl [-@shpitser-pearl-2006] operates on, and `causaleffect` [@tikka-hyttinen-karvanen-2019] implements that theory. A bidirected edge represents an unobserved common cause. This is useful because many econometric applications have variables we cannot measure: ability, preferences, latent health, firm quality, and so on.
 
 The graph is not an estimator. It is a compact statement of assumptions. The workflow is:
 
@@ -31,7 +31,7 @@ The graph is not an estimator. It is a compact statement of assumptions. The wor
 
 ## A DAG: Backdoor Adjustment
 
-Start with a simple observational study. `A` is treatment, `Y` is the outcome, and `X` is an observed confounder:
+The criterion is Pearl's [-@pearl1995], and the adjustment sets below are found with `dagitty` [@textor-dagitty-2016]. Start with a simple observational study. `A` is treatment, `Y` is the outcome, and `X` is an observed confounder:
 
 ```{r}
 g_dag <- dagitty("dag {
@@ -70,7 +70,7 @@ So the graph has translated a causal query into an observed-data functional.
 
 ## Estimating the DAG Effect with AIPW
 
-We simulate data that match this graph, so we can check whether an estimator
+The augmented inverse-probability-weighted estimator comes from Robins, Rotnitzky and Zhao [-@robins-rotnitzky-zhao-1994]; Bang and Robins [-@bang-robins-2005] give the form used here. We simulate data that match this graph, so we can check whether an estimator
 built from the identified functional recovers an effect we already know.
 
 We draw $n = 400$ observations. The confounder is $X \sim N(0,1)$. Treatment is
@@ -154,7 +154,7 @@ plug-in SE will generally understate uncertainty.
 
 ## An ADMG: Front-Door Identification
 
-Now suppose treatment and outcome share an unobserved common cause. A simple adjustment argument no longer works. The front-door ADMG has a mediator `M` that transmits the effect of `A` to `Y`, while `A` and `Y` are hidden-confounded:
+The front-door criterion is also due to Pearl [-@pearl1995]. Now suppose treatment and outcome share an unobserved common cause. A simple adjustment argument no longer works. The front-door ADMG has a mediator `M` that transmits the effect of `A` to `Y`, while `A` and `Y` are hidden-confounded:
 
 ```{r}
 g_fd <- dagitty("dag {

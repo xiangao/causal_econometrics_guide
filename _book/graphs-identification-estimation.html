@@ -52,7 +52,27 @@ div.sourceCode
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="site_libs/quarto-nav/headroom.min.js"></script>
@@ -429,8 +449,8 @@ window.Quarto = {
 <p>I use <code>dagitty</code> for graphs and backdoor adjustment, <code>causaleffect</code> for the general Pearl-Shpitser ID algorithm, and small direct estimators for the examples. The goal is to keep the order clear: graph first, identified functional second, estimator third.</p>
 <section id="dags-and-admgs" class="level2" data-number="3.1"><h2 data-number="3.1" class="anchored" data-anchor-id="dags-and-admgs">
 <span class="header-section-number">3.1</span> DAGs and ADMGs</h2>
-<p>A directed acyclic graph, or DAG, has directed arrows such as <code>X -&gt; A</code>. In causal work, an arrow means a direct causal relation is allowed by the model. Absence of an arrow is also a substantive assumption.</p>
-<p>An acyclic directed mixed graph, or ADMG, adds bidirected arrows such as <code>A &lt;-&gt; Y</code>. A bidirected edge represents an unobserved common cause. This is useful because many econometric applications have variables we cannot measure: ability, preferences, latent health, firm quality, and so on.</p>
+<p>The graphical machinery in this chapter is Pearl’s <span class="citation" data-cites="pearl2009">(<a href="references.html#ref-pearl2009" role="doc-biblioref">2009</a>)</span>. A directed acyclic graph, or DAG, has directed arrows such as <code>X -&gt; A</code>. In causal work, an arrow means a direct causal relation is allowed by the model. Absence of an arrow is also a substantive assumption.</p>
+<p>An acyclic directed mixed graph, or ADMG, adds bidirected arrows such as <code>A &lt;-&gt; Y</code>. ADMGs are the graphs the general identification theory of Shpitser and Pearl <span class="citation" data-cites="shpitser-pearl-2006">(<a href="references.html#ref-shpitser-pearl-2006" role="doc-biblioref">2006</a>)</span> operates on, and <code>causaleffect</code> <span class="citation" data-cites="tikka-hyttinen-karvanen-2019">(<a href="references.html#ref-tikka-hyttinen-karvanen-2019" role="doc-biblioref">Tikka, Hyttinen, and Karvanen 2019</a>)</span> implements that theory. A bidirected edge represents an unobserved common cause. This is useful because many econometric applications have variables we cannot measure: ability, preferences, latent health, firm quality, and so on.</p>
 <p>The graph is not an estimator. It is a compact statement of assumptions. The workflow is:</p>
 <ol type="1">
 <li>write down a DAG or ADMG;</li>
@@ -438,7 +458,7 @@ window.Quarto = {
 <li>estimate the identified functional from data.</li>
 </ol></section><section id="a-dag-backdoor-adjustment" class="level2" data-number="3.2"><h2 data-number="3.2" class="anchored" data-anchor-id="a-dag-backdoor-adjustment">
 <span class="header-section-number">3.2</span> A DAG: Backdoor Adjustment</h2>
-<p>Start with a simple observational study. <code>A</code> is treatment, <code>Y</code> is the outcome, and <code>X</code> is an observed confounder:</p>
+<p>The criterion is Pearl’s <span class="citation" data-cites="pearl1995">(<a href="references.html#ref-pearl1995" role="doc-biblioref">1995</a>)</span>, and the adjustment sets below are found with <code>dagitty</code> <span class="citation" data-cites="textor-dagitty-2016">(<a href="references.html#ref-textor-dagitty-2016" role="doc-biblioref">Textor et al. 2016</a>)</span>. Start with a simple observational study. <code>A</code> is treatment, <code>Y</code> is the outcome, and <code>X</code> is an observed confounder:</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">g_dag</span> <span class="op">&lt;-</span> <span class="fu">dagitty</span><span class="op">(</span><span class="st">"dag {</span></span>
 <span><span class="st">  X -&gt; A</span></span>
@@ -479,7 +499,7 @@ E[Y(a)] = E_X\{E(Y \mid A=a, X)\}.
 <p>So the graph has translated a causal query into an observed-data functional.</p>
 </section><section id="estimating-the-dag-effect-with-aipw" class="level2" data-number="3.3"><h2 data-number="3.3" class="anchored" data-anchor-id="estimating-the-dag-effect-with-aipw">
 <span class="header-section-number">3.3</span> Estimating the DAG Effect with AIPW</h2>
-<p>We simulate data that match this graph, so we can check whether an estimator built from the identified functional recovers an effect we already know.</p>
+<p>The augmented inverse-probability-weighted estimator comes from Robins, Rotnitzky and Zhao <span class="citation" data-cites="robins-rotnitzky-zhao-1994">(<a href="references.html#ref-robins-rotnitzky-zhao-1994" role="doc-biblioref">1994</a>)</span>; Bang and Robins <span class="citation" data-cites="bang-robins-2005">(<a href="references.html#ref-bang-robins-2005" role="doc-biblioref">2005</a>)</span> give the form used here. We simulate data that match this graph, so we can check whether an estimator built from the identified functional recovers an effect we already know.</p>
 <p>We draw <span class="math inline">\(n = 400\)</span> observations. The confounder is <span class="math inline">\(X \sim N(0,1)\)</span>. Treatment is <span class="math inline">\(A \sim \text{Bernoulli}(\Lambda(-0.2 + 0.8X))\)</span>, with <span class="math inline">\(\Lambda\)</span> the logistic function, so a higher <span class="math inline">\(X\)</span> makes treatment more likely. The outcome is <span class="math inline">\(Y = 1 + 1.5A + 0.7X + 0.3\varepsilon\)</span> with <span class="math inline">\(\varepsilon \sim N(0,1)\)</span>. The effect is constant across units, so the ATE is 1.5.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">2026</span><span class="op">)</span></span>
@@ -570,7 +590,7 @@ E[Y(a)] = E_X\{E(Y \mid A=a, X)\}.
 </div>
 </section><section id="an-admg-front-door-identification" class="level2" data-number="3.4"><h2 data-number="3.4" class="anchored" data-anchor-id="an-admg-front-door-identification">
 <span class="header-section-number">3.4</span> An ADMG: Front-Door Identification</h2>
-<p>Now suppose treatment and outcome share an unobserved common cause. A simple adjustment argument no longer works. The front-door ADMG has a mediator <code>M</code> that transmits the effect of <code>A</code> to <code>Y</code>, while <code>A</code> and <code>Y</code> are hidden-confounded:</p>
+<p>The front-door criterion is also due to Pearl <span class="citation" data-cites="pearl1995">(<a href="references.html#ref-pearl1995" role="doc-biblioref">1995</a>)</span>. Now suppose treatment and outcome share an unobserved common cause. A simple adjustment argument no longer works. The front-door ADMG has a mediator <code>M</code> that transmits the effect of <code>A</code> to <code>Y</code>, while <code>A</code> and <code>Y</code> are hidden-confounded:</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">g_fd</span> <span class="op">&lt;-</span> <span class="fu">dagitty</span><span class="op">(</span><span class="st">"dag {</span></span>
 <span><span class="st">  A -&gt; M</span></span>
@@ -822,6 +842,29 @@ Figure&nbsp;3.3: Bow ADMG: a direct edge A → Y plus a bidirected A ↔︎ Y. T
 
 <!-- -->
 
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-bang-robins-2005" class="csl-entry" role="listitem">
+Bang, Heejung, and James M. Robins. 2005. <span>“Doubly Robust Estimation in Missing Data and Causal Inference Models.”</span> <em>Biometrics</em> 61 (4): 962–73.
+</div>
+<div id="ref-pearl1995" class="csl-entry" role="listitem">
+Pearl, Judea. 1995. <span>“Causal Diagrams for Empirical Research.”</span> <em>Biometrika</em> 82 (4): 669–88.
+</div>
+<div id="ref-pearl2009" class="csl-entry" role="listitem">
+———. 2009. <em>Causality: Models, Reasoning, and Inference</em>. 2nd ed. Cambridge University Press.
+</div>
+<div id="ref-robins-rotnitzky-zhao-1994" class="csl-entry" role="listitem">
+Robins, James M., Andrea Rotnitzky, and Lue Ping Zhao. 1994. <span>“Estimation of Regression Coefficients When Some Regressors Are Not Always Observed.”</span> <em>Journal of the American Statistical Association</em> 89 (427): 846–66.
+</div>
+<div id="ref-shpitser-pearl-2006" class="csl-entry" role="listitem">
+Shpitser, Ilya, and Judea Pearl. 2006. <span>“Identification of Joint Interventional Distributions in Recursive Semi-<span>M</span>arkovian Causal Models.”</span> In <em>Proceedings of the 21st National Conference on Artificial Intelligence (AAAI)</em>, 1219–26.
+</div>
+<div id="ref-textor-dagitty-2016" class="csl-entry" role="listitem">
+Textor, Johannes, Benito van der Zander, Mark S. Gilthorpe, Maciej Liśkiewicz, and George T. H. Ellison. 2016. <span>“Robust Causal Inference Using Directed Acyclic Graphs: The <span>R</span> Package <span class="nocase">dagitty</span>.”</span> <em>International Journal of Epidemiology</em> 45 (6): 1887–94.
+</div>
+<div id="ref-tikka-hyttinen-karvanen-2019" class="csl-entry" role="listitem">
+Tikka, Santtu, Antti Hyttinen, and Juha Karvanen. 2019. <span>“Causal Effect Identification from Multiple Incomplete Data Sources: A General Search-Based Approach.”</span> <em>Journal of Statistical Software</em> 99 (5).
+</div>
+</div>
 </section></main><!-- /main --><script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     const icon = "";
@@ -1304,9 +1347,9 @@ Figure&nbsp;3.3: Bow ADMG: a direct edge A → Y plus a bidirected A ↔︎ Y. T
 <span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a><span class="fu">## DAGs and ADMGs</span></span>
 <span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>A directed acyclic graph, or DAG, has directed arrows such as <span class="in">`X -&gt; A`</span>. In causal work, an arrow means a direct causal relation is allowed by the model. Absence of an arrow is also a substantive assumption.</span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>The graphical machinery in this chapter is Pearl's <span class="co">[</span><span class="ot">-@pearl2009</span><span class="co">]</span>. A directed acyclic graph, or DAG, has directed arrows such as <span class="in">`X -&gt; A`</span>. In causal work, an arrow means a direct causal relation is allowed by the model. Absence of an arrow is also a substantive assumption.</span>
 <span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>An acyclic directed mixed graph, or ADMG, adds bidirected arrows such as <span class="in">`A &lt;-&gt; Y`</span>. A bidirected edge represents an unobserved common cause. This is useful because many econometric applications have variables we cannot measure: ability, preferences, latent health, firm quality, and so on.</span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>An acyclic directed mixed graph, or ADMG, adds bidirected arrows such as <span class="in">`A &lt;-&gt; Y`</span>. ADMGs are the graphs the general identification theory of Shpitser and Pearl <span class="co">[</span><span class="ot">-@shpitser-pearl-2006</span><span class="co">]</span> operates on, and <span class="in">`causaleffect`</span> <span class="co">[</span><span class="ot">@tikka-hyttinen-karvanen-2019</span><span class="co">]</span> implements that theory. A bidirected edge represents an unobserved common cause. This is useful because many econometric applications have variables we cannot measure: ability, preferences, latent health, firm quality, and so on.</span>
 <span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a>The graph is not an estimator. It is a compact statement of assumptions. The workflow is:</span>
 <span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a></span>
@@ -1316,7 +1359,7 @@ Figure&nbsp;3.3: Bow ADMG: a direct edge A → Y plus a bidirected A ↔︎ Y. T
 <span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-34"><a href="#cb22-34" aria-hidden="true" tabindex="-1"></a><span class="fu">## A DAG: Backdoor Adjustment</span></span>
 <span id="cb22-35"><a href="#cb22-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a>Start with a simple observational study. <span class="in">`A`</span> is treatment, <span class="in">`Y`</span> is the outcome, and <span class="in">`X`</span> is an observed confounder:</span>
+<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a>The criterion is Pearl's <span class="co">[</span><span class="ot">-@pearl1995</span><span class="co">]</span>, and the adjustment sets below are found with <span class="in">`dagitty`</span> <span class="co">[</span><span class="ot">@textor-dagitty-2016</span><span class="co">]</span>. Start with a simple observational study. <span class="in">`A`</span> is treatment, <span class="in">`Y`</span> is the outcome, and <span class="in">`X`</span> is an observed confounder:</span>
 <span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-40"><a href="#cb22-40" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
 <span id="cb22-41"><a href="#cb22-41" aria-hidden="true" tabindex="-1"></a>g_dag <span class="ot">&lt;-</span> <span class="fu">dagitty</span>(<span class="st">"dag {</span></span>
@@ -1355,7 +1398,7 @@ Figure&nbsp;3.3: Bow ADMG: a direct edge A → Y plus a bidirected A ↔︎ Y. T
 <span id="cb22-78"><a href="#cb22-78" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-79"><a href="#cb22-79" aria-hidden="true" tabindex="-1"></a><span class="fu">## Estimating the DAG Effect with AIPW</span></span>
 <span id="cb22-80"><a href="#cb22-80" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-81"><a href="#cb22-81" aria-hidden="true" tabindex="-1"></a>We simulate data that match this graph, so we can check whether an estimator</span>
+<span id="cb22-81"><a href="#cb22-81" aria-hidden="true" tabindex="-1"></a>The augmented inverse-probability-weighted estimator comes from Robins, Rotnitzky and Zhao <span class="co">[</span><span class="ot">-@robins-rotnitzky-zhao-1994</span><span class="co">]</span>; Bang and Robins <span class="co">[</span><span class="ot">-@bang-robins-2005</span><span class="co">]</span> give the form used here. We simulate data that match this graph, so we can check whether an estimator</span>
 <span id="cb22-82"><a href="#cb22-82" aria-hidden="true" tabindex="-1"></a>built from the identified functional recovers an effect we already know.</span>
 <span id="cb22-83"><a href="#cb22-83" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-84"><a href="#cb22-84" aria-hidden="true" tabindex="-1"></a>We draw $n = 400$ observations. The confounder is $X \sim N(0,1)$. Treatment is</span>
@@ -1439,7 +1482,7 @@ Figure&nbsp;3.3: Bow ADMG: a direct edge A → Y plus a bidirected A ↔︎ Y. T
 <span id="cb22-166"><a href="#cb22-166" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-167"><a href="#cb22-167" aria-hidden="true" tabindex="-1"></a><span class="fu">## An ADMG: Front-Door Identification</span></span>
 <span id="cb22-168"><a href="#cb22-168" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-169"><a href="#cb22-169" aria-hidden="true" tabindex="-1"></a>Now suppose treatment and outcome share an unobserved common cause. A simple adjustment argument no longer works. The front-door ADMG has a mediator <span class="in">`M`</span> that transmits the effect of <span class="in">`A`</span> to <span class="in">`Y`</span>, while <span class="in">`A`</span> and <span class="in">`Y`</span> are hidden-confounded:</span>
+<span id="cb22-169"><a href="#cb22-169" aria-hidden="true" tabindex="-1"></a>The front-door criterion is also due to Pearl <span class="co">[</span><span class="ot">-@pearl1995</span><span class="co">]</span>. Now suppose treatment and outcome share an unobserved common cause. A simple adjustment argument no longer works. The front-door ADMG has a mediator <span class="in">`M`</span> that transmits the effect of <span class="in">`A`</span> to <span class="in">`Y`</span>, while <span class="in">`A`</span> and <span class="in">`Y`</span> are hidden-confounded:</span>
 <span id="cb22-170"><a href="#cb22-170" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-173"><a href="#cb22-173" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
 <span id="cb22-174"><a href="#cb22-174" aria-hidden="true" tabindex="-1"></a>g_fd <span class="ot">&lt;-</span> <span class="fu">dagitty</span>(<span class="st">"dag {</span></span>

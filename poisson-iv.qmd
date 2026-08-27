@@ -722,6 +722,32 @@ The logit first stage gives 0.8625 against the probit's 0.8544, a difference of
 0.008 on estimates whose standard errors are 0.032. The choice of link is not
 what matters here.
 
+### The dummies in the first stage need a long panel
+
+Both first stages above put the group dummies inside the probit or logit, which
+is safe here because each group has 250 observations. Applied panel work usually
+has the opposite shape: many units, a handful of periods each. A logit with unit
+dummies is badly biased in that case, and the size of the bias depends on
+observations per unit, not on how many units there are. Against a true slope of
+1 it returns about 2.0 at two observations per unit, 1.37 at four, 1.15 at six,
+1.04 at twenty-five, and essentially the truth by a hundred. A panel of a few
+thousand units with four or five observations each sits in the worst part of
+that range.
+
+The problem is specific to the nonlinear first stage. Poisson with unit dummies
+is consistent with the number of periods fixed, and so is a linear first stage.
+
+The fix is the Mundlak device: drop the unit dummies from the first stage and
+add unit means of the instrument and the time-varying controls instead. The
+instrument's own mean has to be among them, since the unit effect is being
+modelled as a function of those means and the instrument is one of the
+regressors it must be purged of. Conditional logit is also consistent with the
+number of periods fixed, but it eliminates the unit effects rather than
+estimating them, so it leaves no fitted index from which to build the
+generalized residual; the Mundlak version keeps the index. The construction is
+worked through in
+[IV Poisson with many fixed effects](https://xiangao.github.io/blog_book/poisson-iv-fe.html).
+
 ### Multiplicative-moment GMM
 
 Probit fitted probabilities as the instrument, via `gmm::gmm()` with
@@ -892,7 +918,9 @@ than either control function.
 - **With fixed effects and a binary $y_2$, use the generalized-residual CF.**
   Among the estimators that drop into FE-Poisson unmodified it is the
   theoretically motivated choice, and its error is *derived*, not assumed:
-  $O(\rho^2)$, shrinking as the endogeneity shrinks.
+  $O(\rho^2)$, shrinking as the endogeneity shrinks. Put the unit dummies in its
+  first stage only when each unit has many observations; with the short panels
+  usual in applied work, use the Mundlak means instead (§ above).
 
 - **Multiplicative-moment GMM trades bias for variance — decide which binds.**
   Mullahy's moments are *consistent* here, not merely accurate to first order,

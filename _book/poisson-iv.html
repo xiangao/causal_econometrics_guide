@@ -1055,8 +1055,13 @@ Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 </div>
 </div>
 <p>The logit first stage gives 0.8625 against the probit’s 0.8544, a difference of 0.008 on estimates whose standard errors are 0.032. The choice of link is not what matters here.</p>
-</section><section id="multiplicative-moment-gmm" class="level3" data-number="15.5.5"><h3 data-number="15.5.5" class="anchored" data-anchor-id="multiplicative-moment-gmm">
-<span class="header-section-number">15.5.5</span> Multiplicative-moment GMM</h3>
+</section><section id="the-dummies-in-the-first-stage-need-a-long-panel" class="level3" data-number="15.5.5"><h3 data-number="15.5.5" class="anchored" data-anchor-id="the-dummies-in-the-first-stage-need-a-long-panel">
+<span class="header-section-number">15.5.5</span> The dummies in the first stage need a long panel</h3>
+<p>Both first stages above put the group dummies inside the probit or logit, which is safe here because each group has 250 observations. Applied panel work usually has the opposite shape: many units, a handful of periods each. A logit with unit dummies is badly biased in that case, and the size of the bias depends on observations per unit, not on how many units there are. Against a true slope of 1 it returns about 2.0 at two observations per unit, 1.37 at four, 1.15 at six, 1.04 at twenty-five, and essentially the truth by a hundred. A panel of a few thousand units with four or five observations each sits in the worst part of that range.</p>
+<p>The problem is specific to the nonlinear first stage. Poisson with unit dummies is consistent with the number of periods fixed, and so is a linear first stage.</p>
+<p>The fix is the Mundlak device: drop the unit dummies from the first stage and add unit means of the instrument and the time-varying controls instead. The instrument’s own mean has to be among them, since the unit effect is being modelled as a function of those means and the instrument is one of the regressors it must be purged of. Conditional logit is also consistent with the number of periods fixed, but it eliminates the unit effects rather than estimating them, so it leaves no fitted index from which to build the generalized residual; the Mundlak version keeps the index. The construction is worked through in <a href="https://xiangao.github.io/blog_book/poisson-iv-fe.html">IV Poisson with many fixed effects</a>.</p>
+</section><section id="multiplicative-moment-gmm" class="level3" data-number="15.5.6"><h3 data-number="15.5.6" class="anchored" data-anchor-id="multiplicative-moment-gmm">
+<span class="header-section-number">15.5.6</span> Multiplicative-moment GMM</h3>
 <p>Probit fitted probabilities as the instrument, via <code><a href="https://rdrr.io/pkg/gmm/man/gmm.html">gmm::gmm()</a></code> with <a href="#eq-poisson-iv-12" class="quarto-xref">Equation&nbsp;<span>15.13</span></a>. The additive moments would be inconsistent on these data, because the DGP puts its unobservables (the <code>ad</code> effects, <code>female</code>, and <span class="math inline">\(\rho_2 e_2\)</span>) inside <span class="math inline">\(\exp(\cdot)\)</span> — running the additive version gives <span class="math inline">\(\hat\alpha_1 \approx 0.63\)</span>, a bias no intercept shift can absorb:</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb33"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># Probit without FE for fitted probabilities (instrument)</span></span>
@@ -1099,8 +1104,8 @@ Multiplicative-moment GMM (no FE, for illustration)</code></pre>
 </div>
 <p>GMM gives 0.7844 with a standard error of 0.0656 on <code>time_hi</code>, and 0.4576 on <code>frfam</code> against a true 0.4. The point estimate is the closest of the three to 0.8, and the standard error is twice the others’ — the trade-off the comparison below takes apart.</p>
 <p><strong>Why this one has no fixed effects.</strong> Adding them would require demeaning the regressor and instrument matrices within group before solving the Poisson moment conditions, and because Poisson is nonlinear that is not straightforward. Both control functions run unmodified in <code>feols</code>/<code>feglm</code> + <code>fepois</code>, so either is practical when many fixed effects are present.</p>
-</section><section id="control-function-and-gmm-are-not-equivalent-in-poisson" class="level3" data-number="15.5.6"><h3 data-number="15.5.6" class="anchored" data-anchor-id="control-function-and-gmm-are-not-equivalent-in-poisson">
-<span class="header-section-number">15.5.6</span> Control function and GMM are not equivalent in Poisson</h3>
+</section><section id="control-function-and-gmm-are-not-equivalent-in-poisson" class="level3" data-number="15.5.7"><h3 data-number="15.5.7" class="anchored" data-anchor-id="control-function-and-gmm-are-not-equivalent-in-poisson">
+<span class="header-section-number">15.5.7</span> Control function and GMM are not equivalent in Poisson</h3>
 <p>In a linear model, using <span class="math inline">\(\hat y_2\)</span> as an instrument (2SLS) is numerically identical to adding <span class="math inline">\(\hat v_2 = y_2 - \hat y_2\)</span> as a regressor, by Frisch–Waugh–Lovell. <strong>In Poisson this equivalence breaks</strong>, because the control function puts <span class="math inline">\(\hat v_2\)</span> inside <span class="math inline">\(\exp(\cdot)\)</span> while the GMM route uses <span class="math inline">\(\hat p_2\)</span> in the moment conditions without modifying the exponential mean.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb39"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">coef_a</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html">coef</a></span><span class="op">(</span><span class="va">m_a</span><span class="op">)</span><span class="op">[</span><span class="st">"time_hi"</span><span class="op">]</span></span>
@@ -1124,8 +1129,8 @@ Multiplicative-moment GMM (no FE, for illustration)</code></pre>
 </div>
 </div>
 <p>The three land at 0.8613, 0.8544 and 0.7844 against a true 0.8. They differ despite using the same exclusion restriction, which is the point: in a linear model FWL would force the first and third to agree exactly, and here they are 0.077 apart. <strong>2SLS <span class="math inline">\(\neq\)</span> CF for Poisson.</strong></p>
-</section><section id="bootstrap-for-the-binary-case" class="level3" data-number="15.5.7"><h3 data-number="15.5.7" class="anchored" data-anchor-id="bootstrap-for-the-binary-case">
-<span class="header-section-number">15.5.7</span> Bootstrap for the binary case</h3>
+</section><section id="bootstrap-for-the-binary-case" class="level3" data-number="15.5.8"><h3 data-number="15.5.8" class="anchored" data-anchor-id="bootstrap-for-the-binary-case">
+<span class="header-section-number">15.5.8</span> Bootstrap for the binary case</h3>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb47"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">bootstrap_cf_binary</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">df</span>, <span class="va">B</span> <span class="op">=</span> <span class="fl">500</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">clusters</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">df</span><span class="op">$</span><span class="va">ad</span><span class="op">)</span></span>
@@ -1180,8 +1185,8 @@ Multiplicative-moment GMM (no FE, for illustration)</code></pre>
 </div>
 </div>
 <p>The bootstrap standard error is 0.0331 against the naive 0.0321 — almost identical here, unlike Simulation 1 where the bootstrap was twice the naive figure. The binary first stage carries much less estimation uncertainty into the second stage than the continuous one did. The 95% interval <span class="math inline">\([0.803, 0.931]\)</span> excludes the true 0.8, which is the approximation bias showing up in inference, not a coverage failure of the bootstrap.</p>
-</section><section id="all-methods-side-by-side" class="level3" data-number="15.5.8"><h3 data-number="15.5.8" class="anchored" data-anchor-id="all-methods-side-by-side">
-<span class="header-section-number">15.5.8</span> All methods side by side</h3>
+</section><section id="all-methods-side-by-side" class="level3" data-number="15.5.9"><h3 data-number="15.5.9" class="anchored" data-anchor-id="all-methods-side-by-side">
+<span class="header-section-number">15.5.9</span> All methods side by side</h3>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb57"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">naive_p2</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://lrberge.github.io/fixest/reference/feglm.html">fepois</a></span><span class="op">(</span><span class="va">visits</span> <span class="op">~</span> <span class="va">time_hi</span> <span class="op">+</span> <span class="va">frfam</span> <span class="op">|</span> <span class="va">ad</span> <span class="op">+</span> <span class="va">female</span>, data <span class="op">=</span> <span class="va">df2</span><span class="op">)</span></span>
 <span><span class="va">coef_naive2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html">coef</a></span><span class="op">(</span><span class="va">naive_p2</span><span class="op">)</span><span class="op">[</span><span class="st">"time_hi"</span><span class="op">]</span></span>
@@ -1217,7 +1222,7 @@ Multiplicative-moment GMM (no FE, for illustration)</code></pre>
 </section></section><section id="practical-guidance" class="level2" data-number="15.6"><h2 data-number="15.6" class="anchored" data-anchor-id="practical-guidance">
 <span class="header-section-number">15.6</span> Practical guidance</h2>
 <ul>
-<li><p><strong>With fixed effects and a binary <span class="math inline">\(y_2\)</span>, use the generalized-residual CF.</strong> Among the estimators that drop into FE-Poisson unmodified it is the theoretically motivated choice, and its error is <em>derived</em>, not assumed: <span class="math inline">\(O(\rho^2)\)</span>, shrinking as the endogeneity shrinks.</p></li>
+<li><p><strong>With fixed effects and a binary <span class="math inline">\(y_2\)</span>, use the generalized-residual CF.</strong> Among the estimators that drop into FE-Poisson unmodified it is the theoretically motivated choice, and its error is <em>derived</em>, not assumed: <span class="math inline">\(O(\rho^2)\)</span>, shrinking as the endogeneity shrinks. Put the unit dummies in its first stage only when each unit has many observations; with the short panels usual in applied work, use the Mundlak means instead (§ above).</p></li>
 <li><p><strong>Multiplicative-moment GMM trades bias for variance — decide which binds.</strong> Mullahy’s moments are <em>consistent</em> here, not merely accurate to first order, whenever the multiplicative heterogeneity is independent of <span class="math inline">\(\mathbf{z}\)</span>. But consistency is not accuracy at a given sample size: over 10 seeds at <span class="math inline">\(n=5000\)</span> it is nearly unbiased (mean <span class="math inline">\(0.7985\)</span>) and yet almost three times as noisy (sd <span class="math inline">\(0.068\)</span> against <span class="math inline">\(0.026\)</span>), giving it the worst RMSE of the three. Prefer it once <span class="math inline">\(n\)</span> is large enough that variance is not the binding constraint — and note that it does not accommodate high-dimensional fixed effects either way.</p></li>
 <li><p><strong>The linear-residual CF is a fallback, not a first choice.</strong> It lands close to the truth at <span class="math inline">\(\rho = 0.2\)</span> here, but for binary <span class="math inline">\(y_2\)</span> it has no valid reduced-form assumption behind it. <strong>Do not lean on it when <span class="math inline">\(\rho\)</span> is not known to be small</strong> — and note that <span class="math inline">\(\rho\)</span> is estimated by the coefficient on the control function, so this is checkable rather than a matter of faith.</p></li>
 <li><p><strong>It remains fully valid as an exogeneity test.</strong> Under <span class="math inline">\(H_0: \rho = 0\)</span> none of the reduced-form assumptions are needed <span class="citation" data-cites="wooldridge-2010-crosssection">(<a href="references.html#ref-wooldridge-2010-crosssection" role="doc-biblioref">Wooldridge 2010, 744</a>)</span>. Use it to test; do not use it to correct.</p></li>
@@ -2433,203 +2438,231 @@ Wooldridge, Jeffrey M. 2010. <em>Econometric Analysis of Cross Section and Panel
 <span id="cb61-740"><a href="#cb61-740" aria-hidden="true" tabindex="-1"></a>0.008 on estimates whose standard errors are 0.032. The choice of link is not</span>
 <span id="cb61-741"><a href="#cb61-741" aria-hidden="true" tabindex="-1"></a>what matters here.</span>
 <span id="cb61-742"><a href="#cb61-742" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-743"><a href="#cb61-743" aria-hidden="true" tabindex="-1"></a><span class="fu">### Multiplicative-moment GMM</span></span>
+<span id="cb61-743"><a href="#cb61-743" aria-hidden="true" tabindex="-1"></a><span class="fu">### The dummies in the first stage need a long panel</span></span>
 <span id="cb61-744"><a href="#cb61-744" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-745"><a href="#cb61-745" aria-hidden="true" tabindex="-1"></a>Probit fitted probabilities as the instrument, via <span class="in">`gmm::gmm()`</span> with</span>
-<span id="cb61-746"><a href="#cb61-746" aria-hidden="true" tabindex="-1"></a>@eq-poisson-iv-12. The additive moments would be inconsistent on these data,</span>
-<span id="cb61-747"><a href="#cb61-747" aria-hidden="true" tabindex="-1"></a>because the DGP puts its unobservables (the <span class="in">`ad`</span> effects, <span class="in">`female`</span>, and</span>
-<span id="cb61-748"><a href="#cb61-748" aria-hidden="true" tabindex="-1"></a>$\rho_2 e_2$) inside $\exp(\cdot)$ — running the additive version gives</span>
-<span id="cb61-749"><a href="#cb61-749" aria-hidden="true" tabindex="-1"></a>$\hat\alpha_1 \approx 0.63$, a bias no intercept shift can absorb:</span>
-<span id="cb61-750"><a href="#cb61-750" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-753"><a href="#cb61-753" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb61-754"><a href="#cb61-754" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: true</span></span>
-<span id="cb61-755"><a href="#cb61-755" aria-hidden="true" tabindex="-1"></a><span class="co"># Probit without FE for fitted probabilities (instrument)</span></span>
-<span id="cb61-756"><a href="#cb61-756" aria-hidden="true" tabindex="-1"></a>fs_c     <span class="ot">&lt;-</span> <span class="fu">glm</span>(time_hi <span class="sc">~</span> phone <span class="sc">+</span> frfam, <span class="at">family =</span> <span class="fu">binomial</span>(probit), <span class="at">data =</span> df2)</span>
-<span id="cb61-757"><a href="#cb61-757" aria-hidden="true" tabindex="-1"></a>df2<span class="sc">$</span>phat <span class="ot">&lt;-</span> <span class="fu">fitted</span>(fs_c)</span>
-<span id="cb61-758"><a href="#cb61-758" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-759"><a href="#cb61-759" aria-hidden="true" tabindex="-1"></a><span class="co"># Multiplicative moment conditions (Mullahy 1997): Z'(y*exp(-X*beta) - 1) = 0</span></span>
-<span id="cb61-760"><a href="#cb61-760" aria-hidden="true" tabindex="-1"></a><span class="co"># X = [time_hi, frfam, 1],  Z = [phat, frfam, 1]</span></span>
-<span id="cb61-761"><a href="#cb61-761" aria-hidden="true" tabindex="-1"></a>gmm_moments <span class="ot">&lt;-</span> <span class="cf">function</span>(beta, x) {</span>
-<span id="cb61-762"><a href="#cb61-762" aria-hidden="true" tabindex="-1"></a>  y      <span class="ot">&lt;-</span> x[, <span class="st">"visits"</span>]</span>
-<span id="cb61-763"><a href="#cb61-763" aria-hidden="true" tabindex="-1"></a>  th     <span class="ot">&lt;-</span> x[, <span class="st">"time_hi"</span>]</span>
-<span id="cb61-764"><a href="#cb61-764" aria-hidden="true" tabindex="-1"></a>  fr     <span class="ot">&lt;-</span> x[, <span class="st">"frfam"</span>]</span>
-<span id="cb61-765"><a href="#cb61-765" aria-hidden="true" tabindex="-1"></a>  ph     <span class="ot">&lt;-</span> x[, <span class="st">"phat"</span>]</span>
-<span id="cb61-766"><a href="#cb61-766" aria-hidden="true" tabindex="-1"></a>  eta    <span class="ot">&lt;-</span> <span class="fu">pmin</span>(<span class="fu">pmax</span>(beta[<span class="dv">1</span>] <span class="sc">*</span> th <span class="sc">+</span> beta[<span class="dv">2</span>] <span class="sc">*</span> fr <span class="sc">+</span> beta[<span class="dv">3</span>], <span class="sc">-</span><span class="dv">30</span>), <span class="dv">30</span>)</span>
-<span id="cb61-767"><a href="#cb61-767" aria-hidden="true" tabindex="-1"></a>  resid  <span class="ot">&lt;-</span> y <span class="sc">*</span> <span class="fu">exp</span>(<span class="sc">-</span>eta) <span class="sc">-</span> <span class="dv">1</span></span>
-<span id="cb61-768"><a href="#cb61-768" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cbind</span>(ph <span class="sc">*</span> resid, fr <span class="sc">*</span> resid, resid)</span>
-<span id="cb61-769"><a href="#cb61-769" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb61-745"><a href="#cb61-745" aria-hidden="true" tabindex="-1"></a>Both first stages above put the group dummies inside the probit or logit, which</span>
+<span id="cb61-746"><a href="#cb61-746" aria-hidden="true" tabindex="-1"></a>is safe here because each group has 250 observations. Applied panel work usually</span>
+<span id="cb61-747"><a href="#cb61-747" aria-hidden="true" tabindex="-1"></a>has the opposite shape: many units, a handful of periods each. A logit with unit</span>
+<span id="cb61-748"><a href="#cb61-748" aria-hidden="true" tabindex="-1"></a>dummies is badly biased in that case, and the size of the bias depends on</span>
+<span id="cb61-749"><a href="#cb61-749" aria-hidden="true" tabindex="-1"></a>observations per unit, not on how many units there are. Against a true slope of</span>
+<span id="cb61-750"><a href="#cb61-750" aria-hidden="true" tabindex="-1"></a>1 it returns about 2.0 at two observations per unit, 1.37 at four, 1.15 at six,</span>
+<span id="cb61-751"><a href="#cb61-751" aria-hidden="true" tabindex="-1"></a>1.04 at twenty-five, and essentially the truth by a hundred. A panel of a few</span>
+<span id="cb61-752"><a href="#cb61-752" aria-hidden="true" tabindex="-1"></a>thousand units with four or five observations each sits in the worst part of</span>
+<span id="cb61-753"><a href="#cb61-753" aria-hidden="true" tabindex="-1"></a>that range.</span>
+<span id="cb61-754"><a href="#cb61-754" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-755"><a href="#cb61-755" aria-hidden="true" tabindex="-1"></a>The problem is specific to the nonlinear first stage. Poisson with unit dummies</span>
+<span id="cb61-756"><a href="#cb61-756" aria-hidden="true" tabindex="-1"></a>is consistent with the number of periods fixed, and so is a linear first stage.</span>
+<span id="cb61-757"><a href="#cb61-757" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-758"><a href="#cb61-758" aria-hidden="true" tabindex="-1"></a>The fix is the Mundlak device: drop the unit dummies from the first stage and</span>
+<span id="cb61-759"><a href="#cb61-759" aria-hidden="true" tabindex="-1"></a>add unit means of the instrument and the time-varying controls instead. The</span>
+<span id="cb61-760"><a href="#cb61-760" aria-hidden="true" tabindex="-1"></a>instrument's own mean has to be among them, since the unit effect is being</span>
+<span id="cb61-761"><a href="#cb61-761" aria-hidden="true" tabindex="-1"></a>modelled as a function of those means and the instrument is one of the</span>
+<span id="cb61-762"><a href="#cb61-762" aria-hidden="true" tabindex="-1"></a>regressors it must be purged of. Conditional logit is also consistent with the</span>
+<span id="cb61-763"><a href="#cb61-763" aria-hidden="true" tabindex="-1"></a>number of periods fixed, but it eliminates the unit effects rather than</span>
+<span id="cb61-764"><a href="#cb61-764" aria-hidden="true" tabindex="-1"></a>estimating them, so it leaves no fitted index from which to build the</span>
+<span id="cb61-765"><a href="#cb61-765" aria-hidden="true" tabindex="-1"></a>generalized residual; the Mundlak version keeps the index. The construction is</span>
+<span id="cb61-766"><a href="#cb61-766" aria-hidden="true" tabindex="-1"></a>worked through in</span>
+<span id="cb61-767"><a href="#cb61-767" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">IV Poisson with many fixed effects</span><span class="co">](https://xiangao.github.io/blog_book/poisson-iv-fe.html)</span>.</span>
+<span id="cb61-768"><a href="#cb61-768" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-769"><a href="#cb61-769" aria-hidden="true" tabindex="-1"></a><span class="fu">### Multiplicative-moment GMM</span></span>
 <span id="cb61-770"><a href="#cb61-770" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-771"><a href="#cb61-771" aria-hidden="true" tabindex="-1"></a>gmm_data <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(df2[, <span class="fu">c</span>(<span class="st">"visits"</span>, <span class="st">"time_hi"</span>, <span class="st">"frfam"</span>, <span class="st">"phat"</span>)])</span>
-<span id="cb61-772"><a href="#cb61-772" aria-hidden="true" tabindex="-1"></a>m_c      <span class="ot">&lt;-</span> <span class="fu">gmm</span>(gmm_moments, <span class="at">x =</span> gmm_data,</span>
-<span id="cb61-773"><a href="#cb61-773" aria-hidden="true" tabindex="-1"></a>                <span class="at">t0 =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="fu">log</span>(<span class="fu">mean</span>(df2<span class="sc">$</span>visits))))</span>
-<span id="cb61-774"><a href="#cb61-774" aria-hidden="true" tabindex="-1"></a>coef_c   <span class="ot">&lt;-</span> <span class="fu">coef</span>(m_c)</span>
-<span id="cb61-775"><a href="#cb61-775" aria-hidden="true" tabindex="-1"></a>se_c     <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">diag</span>(<span class="fu">vcov</span>(m_c)))</span>
+<span id="cb61-771"><a href="#cb61-771" aria-hidden="true" tabindex="-1"></a>Probit fitted probabilities as the instrument, via <span class="in">`gmm::gmm()`</span> with</span>
+<span id="cb61-772"><a href="#cb61-772" aria-hidden="true" tabindex="-1"></a>@eq-poisson-iv-12. The additive moments would be inconsistent on these data,</span>
+<span id="cb61-773"><a href="#cb61-773" aria-hidden="true" tabindex="-1"></a>because the DGP puts its unobservables (the <span class="in">`ad`</span> effects, <span class="in">`female`</span>, and</span>
+<span id="cb61-774"><a href="#cb61-774" aria-hidden="true" tabindex="-1"></a>$\rho_2 e_2$) inside $\exp(\cdot)$ — running the additive version gives</span>
+<span id="cb61-775"><a href="#cb61-775" aria-hidden="true" tabindex="-1"></a>$\hat\alpha_1 \approx 0.63$, a bias no intercept shift can absorb:</span>
 <span id="cb61-776"><a href="#cb61-776" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-777"><a href="#cb61-777" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Multiplicative-moment GMM (no FE, for illustration)</span><span class="sc">\n</span><span class="st">"</span>))</span>
-<span id="cb61-778"><a href="#cb61-778" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  time_hi:  coef = %7.4f   SE = %7.4f   z = %6.3f</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb61-779"><a href="#cb61-779" aria-hidden="true" tabindex="-1"></a>            coef_c[<span class="dv">1</span>], se_c[<span class="dv">1</span>], coef_c[<span class="dv">1</span>] <span class="sc">/</span> se_c[<span class="dv">1</span>]))</span>
-<span id="cb61-780"><a href="#cb61-780" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  frfam:    coef = %7.4f   SE = %7.4f   z = %6.3f</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb61-781"><a href="#cb61-781" aria-hidden="true" tabindex="-1"></a>            coef_c[<span class="dv">2</span>], se_c[<span class="dv">2</span>], coef_c[<span class="dv">2</span>] <span class="sc">/</span> se_c[<span class="dv">2</span>]))</span>
-<span id="cb61-782"><a href="#cb61-782" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb61-783"><a href="#cb61-783" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-784"><a href="#cb61-784" aria-hidden="true" tabindex="-1"></a>GMM gives 0.7844 with a standard error of 0.0656 on <span class="in">`time_hi`</span>, and 0.4576 on</span>
-<span id="cb61-785"><a href="#cb61-785" aria-hidden="true" tabindex="-1"></a><span class="in">`frfam`</span> against a true 0.4. The point estimate is the closest of the three to</span>
-<span id="cb61-786"><a href="#cb61-786" aria-hidden="true" tabindex="-1"></a>0.8, and the standard error is twice the others' — the trade-off the comparison</span>
-<span id="cb61-787"><a href="#cb61-787" aria-hidden="true" tabindex="-1"></a>below takes apart.</span>
-<span id="cb61-788"><a href="#cb61-788" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-789"><a href="#cb61-789" aria-hidden="true" tabindex="-1"></a>**Why this one has no fixed effects.** Adding them would require demeaning the regressor and instrument matrices within</span>
-<span id="cb61-790"><a href="#cb61-790" aria-hidden="true" tabindex="-1"></a>group before solving the Poisson moment conditions, and because Poisson is</span>
-<span id="cb61-791"><a href="#cb61-791" aria-hidden="true" tabindex="-1"></a>nonlinear that is not straightforward. Both control functions run unmodified in</span>
-<span id="cb61-792"><a href="#cb61-792" aria-hidden="true" tabindex="-1"></a><span class="in">`feols`</span>/<span class="in">`feglm`</span> + <span class="in">`fepois`</span>, so either is practical when many fixed effects are</span>
-<span id="cb61-793"><a href="#cb61-793" aria-hidden="true" tabindex="-1"></a>present.</span>
-<span id="cb61-794"><a href="#cb61-794" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-795"><a href="#cb61-795" aria-hidden="true" tabindex="-1"></a><span class="fu">### Control function and GMM are not equivalent in Poisson</span></span>
+<span id="cb61-779"><a href="#cb61-779" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb61-780"><a href="#cb61-780" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: true</span></span>
+<span id="cb61-781"><a href="#cb61-781" aria-hidden="true" tabindex="-1"></a><span class="co"># Probit without FE for fitted probabilities (instrument)</span></span>
+<span id="cb61-782"><a href="#cb61-782" aria-hidden="true" tabindex="-1"></a>fs_c     <span class="ot">&lt;-</span> <span class="fu">glm</span>(time_hi <span class="sc">~</span> phone <span class="sc">+</span> frfam, <span class="at">family =</span> <span class="fu">binomial</span>(probit), <span class="at">data =</span> df2)</span>
+<span id="cb61-783"><a href="#cb61-783" aria-hidden="true" tabindex="-1"></a>df2<span class="sc">$</span>phat <span class="ot">&lt;-</span> <span class="fu">fitted</span>(fs_c)</span>
+<span id="cb61-784"><a href="#cb61-784" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-785"><a href="#cb61-785" aria-hidden="true" tabindex="-1"></a><span class="co"># Multiplicative moment conditions (Mullahy 1997): Z'(y*exp(-X*beta) - 1) = 0</span></span>
+<span id="cb61-786"><a href="#cb61-786" aria-hidden="true" tabindex="-1"></a><span class="co"># X = [time_hi, frfam, 1],  Z = [phat, frfam, 1]</span></span>
+<span id="cb61-787"><a href="#cb61-787" aria-hidden="true" tabindex="-1"></a>gmm_moments <span class="ot">&lt;-</span> <span class="cf">function</span>(beta, x) {</span>
+<span id="cb61-788"><a href="#cb61-788" aria-hidden="true" tabindex="-1"></a>  y      <span class="ot">&lt;-</span> x[, <span class="st">"visits"</span>]</span>
+<span id="cb61-789"><a href="#cb61-789" aria-hidden="true" tabindex="-1"></a>  th     <span class="ot">&lt;-</span> x[, <span class="st">"time_hi"</span>]</span>
+<span id="cb61-790"><a href="#cb61-790" aria-hidden="true" tabindex="-1"></a>  fr     <span class="ot">&lt;-</span> x[, <span class="st">"frfam"</span>]</span>
+<span id="cb61-791"><a href="#cb61-791" aria-hidden="true" tabindex="-1"></a>  ph     <span class="ot">&lt;-</span> x[, <span class="st">"phat"</span>]</span>
+<span id="cb61-792"><a href="#cb61-792" aria-hidden="true" tabindex="-1"></a>  eta    <span class="ot">&lt;-</span> <span class="fu">pmin</span>(<span class="fu">pmax</span>(beta[<span class="dv">1</span>] <span class="sc">*</span> th <span class="sc">+</span> beta[<span class="dv">2</span>] <span class="sc">*</span> fr <span class="sc">+</span> beta[<span class="dv">3</span>], <span class="sc">-</span><span class="dv">30</span>), <span class="dv">30</span>)</span>
+<span id="cb61-793"><a href="#cb61-793" aria-hidden="true" tabindex="-1"></a>  resid  <span class="ot">&lt;-</span> y <span class="sc">*</span> <span class="fu">exp</span>(<span class="sc">-</span>eta) <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb61-794"><a href="#cb61-794" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cbind</span>(ph <span class="sc">*</span> resid, fr <span class="sc">*</span> resid, resid)</span>
+<span id="cb61-795"><a href="#cb61-795" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb61-796"><a href="#cb61-796" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-797"><a href="#cb61-797" aria-hidden="true" tabindex="-1"></a>In a linear model, using $\hat y_2$ as an instrument (2SLS) is numerically</span>
-<span id="cb61-798"><a href="#cb61-798" aria-hidden="true" tabindex="-1"></a>identical to adding $\hat v_2 = y_2 - \hat y_2$ as a regressor, by</span>
-<span id="cb61-799"><a href="#cb61-799" aria-hidden="true" tabindex="-1"></a>Frisch–Waugh–Lovell. **In Poisson this equivalence breaks**, because the control</span>
-<span id="cb61-800"><a href="#cb61-800" aria-hidden="true" tabindex="-1"></a>function puts $\hat v_2$ inside $\exp(\cdot)$ while the GMM route uses $\hat p_2$</span>
-<span id="cb61-801"><a href="#cb61-801" aria-hidden="true" tabindex="-1"></a>in the moment conditions without modifying the exponential mean.</span>
+<span id="cb61-797"><a href="#cb61-797" aria-hidden="true" tabindex="-1"></a>gmm_data <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(df2[, <span class="fu">c</span>(<span class="st">"visits"</span>, <span class="st">"time_hi"</span>, <span class="st">"frfam"</span>, <span class="st">"phat"</span>)])</span>
+<span id="cb61-798"><a href="#cb61-798" aria-hidden="true" tabindex="-1"></a>m_c      <span class="ot">&lt;-</span> <span class="fu">gmm</span>(gmm_moments, <span class="at">x =</span> gmm_data,</span>
+<span id="cb61-799"><a href="#cb61-799" aria-hidden="true" tabindex="-1"></a>                <span class="at">t0 =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="fu">log</span>(<span class="fu">mean</span>(df2<span class="sc">$</span>visits))))</span>
+<span id="cb61-800"><a href="#cb61-800" aria-hidden="true" tabindex="-1"></a>coef_c   <span class="ot">&lt;-</span> <span class="fu">coef</span>(m_c)</span>
+<span id="cb61-801"><a href="#cb61-801" aria-hidden="true" tabindex="-1"></a>se_c     <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">diag</span>(<span class="fu">vcov</span>(m_c)))</span>
 <span id="cb61-802"><a href="#cb61-802" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-805"><a href="#cb61-805" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb61-806"><a href="#cb61-806" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: true</span></span>
-<span id="cb61-807"><a href="#cb61-807" aria-hidden="true" tabindex="-1"></a>coef_a <span class="ot">&lt;-</span> <span class="fu">coef</span>(m_a)[<span class="st">"time_hi"</span>]</span>
-<span id="cb61-808"><a href="#cb61-808" aria-hidden="true" tabindex="-1"></a>coef_b <span class="ot">&lt;-</span> <span class="fu">coef</span>(m_b)[<span class="st">"time_hi"</span>]</span>
+<span id="cb61-803"><a href="#cb61-803" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Multiplicative-moment GMM (no FE, for illustration)</span><span class="sc">\n</span><span class="st">"</span>))</span>
+<span id="cb61-804"><a href="#cb61-804" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  time_hi:  coef = %7.4f   SE = %7.4f   z = %6.3f</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb61-805"><a href="#cb61-805" aria-hidden="true" tabindex="-1"></a>            coef_c[<span class="dv">1</span>], se_c[<span class="dv">1</span>], coef_c[<span class="dv">1</span>] <span class="sc">/</span> se_c[<span class="dv">1</span>]))</span>
+<span id="cb61-806"><a href="#cb61-806" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  frfam:    coef = %7.4f   SE = %7.4f   z = %6.3f</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb61-807"><a href="#cb61-807" aria-hidden="true" tabindex="-1"></a>            coef_c[<span class="dv">2</span>], se_c[<span class="dv">2</span>], coef_c[<span class="dv">2</span>] <span class="sc">/</span> se_c[<span class="dv">2</span>]))</span>
+<span id="cb61-808"><a href="#cb61-808" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb61-809"><a href="#cb61-809" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-810"><a href="#cb61-810" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Linear-residual CF       (with FE):  α̂₁ = %.4f</span><span class="sc">\n</span><span class="st">"</span>, coef_a))</span>
-<span id="cb61-811"><a href="#cb61-811" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Generalized-residual CF  (with FE):  α̂₁ = %.4f</span><span class="sc">\n</span><span class="st">"</span>, coef_b))</span>
-<span id="cb61-812"><a href="#cb61-812" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Multiplicative-moment GMM (no FE):   α̂₁ = %.4f</span><span class="sc">\n</span><span class="st">"</span>, coef_c[<span class="dv">1</span>]))</span>
-<span id="cb61-813"><a href="#cb61-813" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"True α₁ = %.1f</span><span class="sc">\n</span><span class="st">"</span>, true_alpha))</span>
-<span id="cb61-814"><a href="#cb61-814" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb61-815"><a href="#cb61-815" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-816"><a href="#cb61-816" aria-hidden="true" tabindex="-1"></a>The three land at 0.8613, 0.8544 and 0.7844 against a true 0.8. They differ</span>
-<span id="cb61-817"><a href="#cb61-817" aria-hidden="true" tabindex="-1"></a>despite using the same exclusion restriction, which is the point: in a linear</span>
-<span id="cb61-818"><a href="#cb61-818" aria-hidden="true" tabindex="-1"></a>model FWL would force the first and third to agree exactly, and here they are</span>
-<span id="cb61-819"><a href="#cb61-819" aria-hidden="true" tabindex="-1"></a>0.077 apart. **2SLS $\neq$ CF for Poisson.**</span>
+<span id="cb61-810"><a href="#cb61-810" aria-hidden="true" tabindex="-1"></a>GMM gives 0.7844 with a standard error of 0.0656 on <span class="in">`time_hi`</span>, and 0.4576 on</span>
+<span id="cb61-811"><a href="#cb61-811" aria-hidden="true" tabindex="-1"></a><span class="in">`frfam`</span> against a true 0.4. The point estimate is the closest of the three to</span>
+<span id="cb61-812"><a href="#cb61-812" aria-hidden="true" tabindex="-1"></a>0.8, and the standard error is twice the others' — the trade-off the comparison</span>
+<span id="cb61-813"><a href="#cb61-813" aria-hidden="true" tabindex="-1"></a>below takes apart.</span>
+<span id="cb61-814"><a href="#cb61-814" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-815"><a href="#cb61-815" aria-hidden="true" tabindex="-1"></a>**Why this one has no fixed effects.** Adding them would require demeaning the regressor and instrument matrices within</span>
+<span id="cb61-816"><a href="#cb61-816" aria-hidden="true" tabindex="-1"></a>group before solving the Poisson moment conditions, and because Poisson is</span>
+<span id="cb61-817"><a href="#cb61-817" aria-hidden="true" tabindex="-1"></a>nonlinear that is not straightforward. Both control functions run unmodified in</span>
+<span id="cb61-818"><a href="#cb61-818" aria-hidden="true" tabindex="-1"></a><span class="in">`feols`</span>/<span class="in">`feglm`</span> + <span class="in">`fepois`</span>, so either is practical when many fixed effects are</span>
+<span id="cb61-819"><a href="#cb61-819" aria-hidden="true" tabindex="-1"></a>present.</span>
 <span id="cb61-820"><a href="#cb61-820" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-821"><a href="#cb61-821" aria-hidden="true" tabindex="-1"></a><span class="fu">### Bootstrap for the binary case</span></span>
+<span id="cb61-821"><a href="#cb61-821" aria-hidden="true" tabindex="-1"></a><span class="fu">### Control function and GMM are not equivalent in Poisson</span></span>
 <span id="cb61-822"><a href="#cb61-822" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-825"><a href="#cb61-825" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb61-826"><a href="#cb61-826" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: true</span></span>
-<span id="cb61-827"><a href="#cb61-827" aria-hidden="true" tabindex="-1"></a>bootstrap_cf_binary <span class="ot">&lt;-</span> <span class="cf">function</span>(df, <span class="at">B =</span> <span class="dv">500</span>) {</span>
-<span id="cb61-828"><a href="#cb61-828" aria-hidden="true" tabindex="-1"></a>  clusters <span class="ot">&lt;-</span> <span class="fu">unique</span>(df<span class="sc">$</span>ad)</span>
-<span id="cb61-829"><a href="#cb61-829" aria-hidden="true" tabindex="-1"></a>  K        <span class="ot">&lt;-</span> <span class="fu">length</span>(clusters)</span>
-<span id="cb61-830"><a href="#cb61-830" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-831"><a href="#cb61-831" aria-hidden="true" tabindex="-1"></a>  boot_one <span class="ot">&lt;-</span> <span class="cf">function</span>(b) {</span>
-<span id="cb61-832"><a href="#cb61-832" aria-hidden="true" tabindex="-1"></a>    <span class="fu">library</span>(fixest)</span>
-<span id="cb61-833"><a href="#cb61-833" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set.seed</span>(b)</span>
-<span id="cb61-834"><a href="#cb61-834" aria-hidden="true" tabindex="-1"></a>    drawn <span class="ot">&lt;-</span> <span class="fu">sample</span>(clusters, K, <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb61-835"><a href="#cb61-835" aria-hidden="true" tabindex="-1"></a>    df_b  <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(<span class="fu">seq_along</span>(drawn), <span class="cf">function</span>(i) {</span>
-<span id="cb61-836"><a href="#cb61-836" aria-hidden="true" tabindex="-1"></a>      sub         <span class="ot">&lt;-</span> df[df<span class="sc">$</span>ad <span class="sc">==</span> drawn[i], ]</span>
-<span id="cb61-837"><a href="#cb61-837" aria-hidden="true" tabindex="-1"></a>      sub<span class="sc">$</span>ad_boot <span class="ot">&lt;-</span> i</span>
-<span id="cb61-838"><a href="#cb61-838" aria-hidden="true" tabindex="-1"></a>      sub</span>
-<span id="cb61-839"><a href="#cb61-839" aria-hidden="true" tabindex="-1"></a>    }))</span>
-<span id="cb61-840"><a href="#cb61-840" aria-hidden="true" tabindex="-1"></a>    fs         <span class="ot">&lt;-</span> <span class="fu">feols</span>(time_hi <span class="sc">~</span> phone <span class="sc">+</span> frfam <span class="sc">|</span> ad_boot <span class="sc">+</span> female, <span class="at">data =</span> df_b)</span>
-<span id="cb61-841"><a href="#cb61-841" aria-hidden="true" tabindex="-1"></a>    df_b<span class="sc">$</span>v2hat <span class="ot">&lt;-</span> <span class="fu">residuals</span>(fs)</span>
-<span id="cb61-842"><a href="#cb61-842" aria-hidden="true" tabindex="-1"></a>    ss         <span class="ot">&lt;-</span> <span class="fu">fepois</span>(visits <span class="sc">~</span> time_hi <span class="sc">+</span> v2hat <span class="sc">+</span> frfam <span class="sc">|</span> ad_boot <span class="sc">+</span> female, <span class="at">data =</span> df_b)</span>
-<span id="cb61-843"><a href="#cb61-843" aria-hidden="true" tabindex="-1"></a>    <span class="fu">coef</span>(ss)[<span class="st">"time_hi"</span>]</span>
-<span id="cb61-844"><a href="#cb61-844" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb61-845"><a href="#cb61-845" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-846"><a href="#cb61-846" aria-hidden="true" tabindex="-1"></a>  n_cores <span class="ot">&lt;-</span> <span class="fu">max</span>(<span class="dv">1</span>L, <span class="fu">detectCores</span>() <span class="sc">-</span> <span class="dv">1</span>L)</span>
-<span id="cb61-847"><a href="#cb61-847" aria-hidden="true" tabindex="-1"></a>  cl      <span class="ot">&lt;-</span> <span class="fu">makePSOCKcluster</span>(n_cores)</span>
-<span id="cb61-848"><a href="#cb61-848" aria-hidden="true" tabindex="-1"></a>  <span class="fu">clusterExport</span>(cl, <span class="fu">c</span>(<span class="st">"df"</span>, <span class="st">"clusters"</span>, <span class="st">"K"</span>), <span class="at">envir =</span> <span class="fu">environment</span>())</span>
-<span id="cb61-849"><a href="#cb61-849" aria-hidden="true" tabindex="-1"></a>  results <span class="ot">&lt;-</span> <span class="fu">parLapply</span>(cl, <span class="fu">seq_len</span>(B), boot_one)</span>
-<span id="cb61-850"><a href="#cb61-850" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopCluster</span>(cl)</span>
-<span id="cb61-851"><a href="#cb61-851" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unlist</span>(results)</span>
-<span id="cb61-852"><a href="#cb61-852" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb61-853"><a href="#cb61-853" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-854"><a href="#cb61-854" aria-hidden="true" tabindex="-1"></a>boot2     <span class="ot">&lt;-</span> <span class="fu">bootstrap_cf_binary</span>(df2, <span class="dv">500</span>)</span>
-<span id="cb61-855"><a href="#cb61-855" aria-hidden="true" tabindex="-1"></a>naive_se2 <span class="ot">&lt;-</span> <span class="fu">se</span>(m_a)[<span class="st">"time_hi"</span>]</span>
+<span id="cb61-823"><a href="#cb61-823" aria-hidden="true" tabindex="-1"></a>In a linear model, using $\hat y_2$ as an instrument (2SLS) is numerically</span>
+<span id="cb61-824"><a href="#cb61-824" aria-hidden="true" tabindex="-1"></a>identical to adding $\hat v_2 = y_2 - \hat y_2$ as a regressor, by</span>
+<span id="cb61-825"><a href="#cb61-825" aria-hidden="true" tabindex="-1"></a>Frisch–Waugh–Lovell. **In Poisson this equivalence breaks**, because the control</span>
+<span id="cb61-826"><a href="#cb61-826" aria-hidden="true" tabindex="-1"></a>function puts $\hat v_2$ inside $\exp(\cdot)$ while the GMM route uses $\hat p_2$</span>
+<span id="cb61-827"><a href="#cb61-827" aria-hidden="true" tabindex="-1"></a>in the moment conditions without modifying the exponential mean.</span>
+<span id="cb61-828"><a href="#cb61-828" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-831"><a href="#cb61-831" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb61-832"><a href="#cb61-832" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: true</span></span>
+<span id="cb61-833"><a href="#cb61-833" aria-hidden="true" tabindex="-1"></a>coef_a <span class="ot">&lt;-</span> <span class="fu">coef</span>(m_a)[<span class="st">"time_hi"</span>]</span>
+<span id="cb61-834"><a href="#cb61-834" aria-hidden="true" tabindex="-1"></a>coef_b <span class="ot">&lt;-</span> <span class="fu">coef</span>(m_b)[<span class="st">"time_hi"</span>]</span>
+<span id="cb61-835"><a href="#cb61-835" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-836"><a href="#cb61-836" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Linear-residual CF       (with FE):  α̂₁ = %.4f</span><span class="sc">\n</span><span class="st">"</span>, coef_a))</span>
+<span id="cb61-837"><a href="#cb61-837" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Generalized-residual CF  (with FE):  α̂₁ = %.4f</span><span class="sc">\n</span><span class="st">"</span>, coef_b))</span>
+<span id="cb61-838"><a href="#cb61-838" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Multiplicative-moment GMM (no FE):   α̂₁ = %.4f</span><span class="sc">\n</span><span class="st">"</span>, coef_c[<span class="dv">1</span>]))</span>
+<span id="cb61-839"><a href="#cb61-839" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"True α₁ = %.1f</span><span class="sc">\n</span><span class="st">"</span>, true_alpha))</span>
+<span id="cb61-840"><a href="#cb61-840" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb61-841"><a href="#cb61-841" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-842"><a href="#cb61-842" aria-hidden="true" tabindex="-1"></a>The three land at 0.8613, 0.8544 and 0.7844 against a true 0.8. They differ</span>
+<span id="cb61-843"><a href="#cb61-843" aria-hidden="true" tabindex="-1"></a>despite using the same exclusion restriction, which is the point: in a linear</span>
+<span id="cb61-844"><a href="#cb61-844" aria-hidden="true" tabindex="-1"></a>model FWL would force the first and third to agree exactly, and here they are</span>
+<span id="cb61-845"><a href="#cb61-845" aria-hidden="true" tabindex="-1"></a>0.077 apart. **2SLS $\neq$ CF for Poisson.**</span>
+<span id="cb61-846"><a href="#cb61-846" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-847"><a href="#cb61-847" aria-hidden="true" tabindex="-1"></a><span class="fu">### Bootstrap for the binary case</span></span>
+<span id="cb61-848"><a href="#cb61-848" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-851"><a href="#cb61-851" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb61-852"><a href="#cb61-852" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: true</span></span>
+<span id="cb61-853"><a href="#cb61-853" aria-hidden="true" tabindex="-1"></a>bootstrap_cf_binary <span class="ot">&lt;-</span> <span class="cf">function</span>(df, <span class="at">B =</span> <span class="dv">500</span>) {</span>
+<span id="cb61-854"><a href="#cb61-854" aria-hidden="true" tabindex="-1"></a>  clusters <span class="ot">&lt;-</span> <span class="fu">unique</span>(df<span class="sc">$</span>ad)</span>
+<span id="cb61-855"><a href="#cb61-855" aria-hidden="true" tabindex="-1"></a>  K        <span class="ot">&lt;-</span> <span class="fu">length</span>(clusters)</span>
 <span id="cb61-856"><a href="#cb61-856" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-857"><a href="#cb61-857" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Linear-residual CF bootstrap (binary EEV, 500 reps, cluster by ad)</span><span class="sc">\n</span><span class="st">"</span>))</span>
-<span id="cb61-858"><a href="#cb61-858" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Point estimate:     %.4f  (true %.1f)</span><span class="sc">\n</span><span class="st">"</span>, coef_a, true_alpha))</span>
-<span id="cb61-859"><a href="#cb61-859" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Naive 2nd-stage SE: %.4f</span><span class="sc">\n</span><span class="st">"</span>, naive_se2))</span>
-<span id="cb61-860"><a href="#cb61-860" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Bootstrap SE:       %.4f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">sd</span>(boot2)))</span>
-<span id="cb61-861"><a href="#cb61-861" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Bootstrap 95%% CI:  [%.4f, %.4f]</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb61-862"><a href="#cb61-862" aria-hidden="true" tabindex="-1"></a>            <span class="fu">quantile</span>(boot2, <span class="fl">0.025</span>), <span class="fu">quantile</span>(boot2, <span class="fl">0.975</span>)))</span>
-<span id="cb61-863"><a href="#cb61-863" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb61-864"><a href="#cb61-864" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-865"><a href="#cb61-865" aria-hidden="true" tabindex="-1"></a>The bootstrap standard error is 0.0331 against the naive 0.0321 — almost</span>
-<span id="cb61-866"><a href="#cb61-866" aria-hidden="true" tabindex="-1"></a>identical here, unlike Simulation 1 where the bootstrap was twice the naive</span>
-<span id="cb61-867"><a href="#cb61-867" aria-hidden="true" tabindex="-1"></a>figure. The binary first stage carries much less estimation uncertainty into the</span>
-<span id="cb61-868"><a href="#cb61-868" aria-hidden="true" tabindex="-1"></a>second stage than the continuous one did. The 95% interval $<span class="co">[</span><span class="ot">0.803, 0.931</span><span class="co">]</span>$</span>
-<span id="cb61-869"><a href="#cb61-869" aria-hidden="true" tabindex="-1"></a>excludes the true 0.8, which is the approximation bias showing up in inference,</span>
-<span id="cb61-870"><a href="#cb61-870" aria-hidden="true" tabindex="-1"></a>not a coverage failure of the bootstrap.</span>
+<span id="cb61-857"><a href="#cb61-857" aria-hidden="true" tabindex="-1"></a>  boot_one <span class="ot">&lt;-</span> <span class="cf">function</span>(b) {</span>
+<span id="cb61-858"><a href="#cb61-858" aria-hidden="true" tabindex="-1"></a>    <span class="fu">library</span>(fixest)</span>
+<span id="cb61-859"><a href="#cb61-859" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set.seed</span>(b)</span>
+<span id="cb61-860"><a href="#cb61-860" aria-hidden="true" tabindex="-1"></a>    drawn <span class="ot">&lt;-</span> <span class="fu">sample</span>(clusters, K, <span class="at">replace =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb61-861"><a href="#cb61-861" aria-hidden="true" tabindex="-1"></a>    df_b  <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, <span class="fu">lapply</span>(<span class="fu">seq_along</span>(drawn), <span class="cf">function</span>(i) {</span>
+<span id="cb61-862"><a href="#cb61-862" aria-hidden="true" tabindex="-1"></a>      sub         <span class="ot">&lt;-</span> df[df<span class="sc">$</span>ad <span class="sc">==</span> drawn[i], ]</span>
+<span id="cb61-863"><a href="#cb61-863" aria-hidden="true" tabindex="-1"></a>      sub<span class="sc">$</span>ad_boot <span class="ot">&lt;-</span> i</span>
+<span id="cb61-864"><a href="#cb61-864" aria-hidden="true" tabindex="-1"></a>      sub</span>
+<span id="cb61-865"><a href="#cb61-865" aria-hidden="true" tabindex="-1"></a>    }))</span>
+<span id="cb61-866"><a href="#cb61-866" aria-hidden="true" tabindex="-1"></a>    fs         <span class="ot">&lt;-</span> <span class="fu">feols</span>(time_hi <span class="sc">~</span> phone <span class="sc">+</span> frfam <span class="sc">|</span> ad_boot <span class="sc">+</span> female, <span class="at">data =</span> df_b)</span>
+<span id="cb61-867"><a href="#cb61-867" aria-hidden="true" tabindex="-1"></a>    df_b<span class="sc">$</span>v2hat <span class="ot">&lt;-</span> <span class="fu">residuals</span>(fs)</span>
+<span id="cb61-868"><a href="#cb61-868" aria-hidden="true" tabindex="-1"></a>    ss         <span class="ot">&lt;-</span> <span class="fu">fepois</span>(visits <span class="sc">~</span> time_hi <span class="sc">+</span> v2hat <span class="sc">+</span> frfam <span class="sc">|</span> ad_boot <span class="sc">+</span> female, <span class="at">data =</span> df_b)</span>
+<span id="cb61-869"><a href="#cb61-869" aria-hidden="true" tabindex="-1"></a>    <span class="fu">coef</span>(ss)[<span class="st">"time_hi"</span>]</span>
+<span id="cb61-870"><a href="#cb61-870" aria-hidden="true" tabindex="-1"></a>  }</span>
 <span id="cb61-871"><a href="#cb61-871" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-872"><a href="#cb61-872" aria-hidden="true" tabindex="-1"></a><span class="fu">### All methods side by side</span></span>
-<span id="cb61-873"><a href="#cb61-873" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-876"><a href="#cb61-876" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb61-877"><a href="#cb61-877" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: true</span></span>
-<span id="cb61-878"><a href="#cb61-878" aria-hidden="true" tabindex="-1"></a>naive_p2    <span class="ot">&lt;-</span> <span class="fu">fepois</span>(visits <span class="sc">~</span> time_hi <span class="sc">+</span> frfam <span class="sc">|</span> ad <span class="sc">+</span> female, <span class="at">data =</span> df2)</span>
-<span id="cb61-879"><a href="#cb61-879" aria-hidden="true" tabindex="-1"></a>coef_naive2 <span class="ot">&lt;-</span> <span class="fu">coef</span>(naive_p2)[<span class="st">"time_hi"</span>]</span>
-<span id="cb61-880"><a href="#cb61-880" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-881"><a href="#cb61-881" aria-hidden="true" tabindex="-1"></a>methods <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb61-882"><a href="#cb61-882" aria-hidden="true" tabindex="-1"></a>  <span class="st">"True value"</span>,</span>
-<span id="cb61-883"><a href="#cb61-883" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Naive Poisson (binary y₂)"</span>,</span>
-<span id="cb61-884"><a href="#cb61-884" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Linear-residual CF (with FE)"</span>,</span>
-<span id="cb61-885"><a href="#cb61-885" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Generalized-residual CF (with FE)"</span>,</span>
-<span id="cb61-886"><a href="#cb61-886" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Multiplicative-moment GMM (no FE)"</span></span>
-<span id="cb61-887"><a href="#cb61-887" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb61-888"><a href="#cb61-888" aria-hidden="true" tabindex="-1"></a>ests <span class="ot">&lt;-</span> <span class="fu">c</span>(true_alpha, coef_naive2, coef_a, coef_b, coef_c[<span class="dv">1</span>])</span>
-<span id="cb61-889"><a href="#cb61-889" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-890"><a href="#cb61-890" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">── Binary EEV: coefficient on time_hi ─────────────────────</span><span class="sc">\n</span><span class="st">"</span>)</span>
-<span id="cb61-891"><a href="#cb61-891" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_along</span>(methods)) {</span>
-<span id="cb61-892"><a href="#cb61-892" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  %-38s  α̂₁ = %6.4f</span><span class="sc">\n</span><span class="st">"</span>, methods[i], ests[i]))</span>
-<span id="cb61-893"><a href="#cb61-893" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb61-894"><a href="#cb61-894" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb61-895"><a href="#cb61-895" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-896"><a href="#cb61-896" aria-hidden="true" tabindex="-1"></a>The naive Poisson gives 1.0832 against a true 0.8, so ignoring the endogeneity</span>
-<span id="cb61-897"><a href="#cb61-897" aria-hidden="true" tabindex="-1"></a>overstates the effect by 35%. Both control functions recover the true value</span>
-<span id="cb61-898"><a href="#cb61-898" aria-hidden="true" tabindex="-1"></a>closely, at 0.8613 and 0.8544, with the small upward bias expected from</span>
-<span id="cb61-899"><a href="#cb61-899" aria-hidden="true" tabindex="-1"></a>$\rho = 0.2$ and the binary $y_2$.</span>
-<span id="cb61-900"><a href="#cb61-900" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-901"><a href="#cb61-901" aria-hidden="true" tabindex="-1"></a>The GMM estimate lands closest in this draw, and its near-centring is not luck:</span>
-<span id="cb61-902"><a href="#cb61-902" aria-hidden="true" tabindex="-1"></a>the omitted <span class="in">`ad`</span> and <span class="in">`female`</span> effects are independent multiplicative</span>
-<span id="cb61-903"><a href="#cb61-903" aria-hidden="true" tabindex="-1"></a>heterogeneity, absorbed by the intercept under the multiplicative moments</span>
-<span id="cb61-904"><a href="#cb61-904" aria-hidden="true" tabindex="-1"></a>($\beta_0 \to \beta_0 + \log E<span class="co">[</span><span class="ot">e^{c}</span><span class="co">]</span>$), so omitting the fixed effects costs no</span>
-<span id="cb61-905"><a href="#cb61-905" aria-hidden="true" tabindex="-1"></a>slope *bias* at all. Mullahy's moments are *consistent* for this DGP, where the</span>
-<span id="cb61-906"><a href="#cb61-906" aria-hidden="true" tabindex="-1"></a>control functions are only approximately unbiased: over 10 seeds at this $n$, GMM</span>
-<span id="cb61-907"><a href="#cb61-907" aria-hidden="true" tabindex="-1"></a>averages $0.7985$ against $0.8323$ and $0.8185$, and at $n = 10^6$ it sits at</span>
-<span id="cb61-908"><a href="#cb61-908" aria-hidden="true" tabindex="-1"></a>$0.8015$ (sd $0.0013$) against plims of $0.839$ and $0.822$.</span>
-<span id="cb61-909"><a href="#cb61-909" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-910"><a href="#cb61-910" aria-hidden="true" tabindex="-1"></a>The catch is variance rather than bias. Without the fixed effects GMM is about</span>
-<span id="cb61-911"><a href="#cb61-911" aria-hidden="true" tabindex="-1"></a>three times as noisy (sd $0.068$ at $n = 5000$, against $0.024$ and $0.026$), so</span>
-<span id="cb61-912"><a href="#cb61-912" aria-hidden="true" tabindex="-1"></a>at this sample size its RMSE is the **worst** of the three — $0.065$, against</span>
-<span id="cb61-913"><a href="#cb61-913" aria-hidden="true" tabindex="-1"></a>$0.039$ and $0.031$ — and a single draw can easily leave it further from $0.8$</span>
-<span id="cb61-914"><a href="#cb61-914" aria-hidden="true" tabindex="-1"></a>than either control function.</span>
+<span id="cb61-872"><a href="#cb61-872" aria-hidden="true" tabindex="-1"></a>  n_cores <span class="ot">&lt;-</span> <span class="fu">max</span>(<span class="dv">1</span>L, <span class="fu">detectCores</span>() <span class="sc">-</span> <span class="dv">1</span>L)</span>
+<span id="cb61-873"><a href="#cb61-873" aria-hidden="true" tabindex="-1"></a>  cl      <span class="ot">&lt;-</span> <span class="fu">makePSOCKcluster</span>(n_cores)</span>
+<span id="cb61-874"><a href="#cb61-874" aria-hidden="true" tabindex="-1"></a>  <span class="fu">clusterExport</span>(cl, <span class="fu">c</span>(<span class="st">"df"</span>, <span class="st">"clusters"</span>, <span class="st">"K"</span>), <span class="at">envir =</span> <span class="fu">environment</span>())</span>
+<span id="cb61-875"><a href="#cb61-875" aria-hidden="true" tabindex="-1"></a>  results <span class="ot">&lt;-</span> <span class="fu">parLapply</span>(cl, <span class="fu">seq_len</span>(B), boot_one)</span>
+<span id="cb61-876"><a href="#cb61-876" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopCluster</span>(cl)</span>
+<span id="cb61-877"><a href="#cb61-877" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unlist</span>(results)</span>
+<span id="cb61-878"><a href="#cb61-878" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb61-879"><a href="#cb61-879" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-880"><a href="#cb61-880" aria-hidden="true" tabindex="-1"></a>boot2     <span class="ot">&lt;-</span> <span class="fu">bootstrap_cf_binary</span>(df2, <span class="dv">500</span>)</span>
+<span id="cb61-881"><a href="#cb61-881" aria-hidden="true" tabindex="-1"></a>naive_se2 <span class="ot">&lt;-</span> <span class="fu">se</span>(m_a)[<span class="st">"time_hi"</span>]</span>
+<span id="cb61-882"><a href="#cb61-882" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-883"><a href="#cb61-883" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"Linear-residual CF bootstrap (binary EEV, 500 reps, cluster by ad)</span><span class="sc">\n</span><span class="st">"</span>))</span>
+<span id="cb61-884"><a href="#cb61-884" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Point estimate:     %.4f  (true %.1f)</span><span class="sc">\n</span><span class="st">"</span>, coef_a, true_alpha))</span>
+<span id="cb61-885"><a href="#cb61-885" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Naive 2nd-stage SE: %.4f</span><span class="sc">\n</span><span class="st">"</span>, naive_se2))</span>
+<span id="cb61-886"><a href="#cb61-886" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Bootstrap SE:       %.4f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">sd</span>(boot2)))</span>
+<span id="cb61-887"><a href="#cb61-887" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  Bootstrap 95%% CI:  [%.4f, %.4f]</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb61-888"><a href="#cb61-888" aria-hidden="true" tabindex="-1"></a>            <span class="fu">quantile</span>(boot2, <span class="fl">0.025</span>), <span class="fu">quantile</span>(boot2, <span class="fl">0.975</span>)))</span>
+<span id="cb61-889"><a href="#cb61-889" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb61-890"><a href="#cb61-890" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-891"><a href="#cb61-891" aria-hidden="true" tabindex="-1"></a>The bootstrap standard error is 0.0331 against the naive 0.0321 — almost</span>
+<span id="cb61-892"><a href="#cb61-892" aria-hidden="true" tabindex="-1"></a>identical here, unlike Simulation 1 where the bootstrap was twice the naive</span>
+<span id="cb61-893"><a href="#cb61-893" aria-hidden="true" tabindex="-1"></a>figure. The binary first stage carries much less estimation uncertainty into the</span>
+<span id="cb61-894"><a href="#cb61-894" aria-hidden="true" tabindex="-1"></a>second stage than the continuous one did. The 95% interval $<span class="co">[</span><span class="ot">0.803, 0.931</span><span class="co">]</span>$</span>
+<span id="cb61-895"><a href="#cb61-895" aria-hidden="true" tabindex="-1"></a>excludes the true 0.8, which is the approximation bias showing up in inference,</span>
+<span id="cb61-896"><a href="#cb61-896" aria-hidden="true" tabindex="-1"></a>not a coverage failure of the bootstrap.</span>
+<span id="cb61-897"><a href="#cb61-897" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-898"><a href="#cb61-898" aria-hidden="true" tabindex="-1"></a><span class="fu">### All methods side by side</span></span>
+<span id="cb61-899"><a href="#cb61-899" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-902"><a href="#cb61-902" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb61-903"><a href="#cb61-903" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: true</span></span>
+<span id="cb61-904"><a href="#cb61-904" aria-hidden="true" tabindex="-1"></a>naive_p2    <span class="ot">&lt;-</span> <span class="fu">fepois</span>(visits <span class="sc">~</span> time_hi <span class="sc">+</span> frfam <span class="sc">|</span> ad <span class="sc">+</span> female, <span class="at">data =</span> df2)</span>
+<span id="cb61-905"><a href="#cb61-905" aria-hidden="true" tabindex="-1"></a>coef_naive2 <span class="ot">&lt;-</span> <span class="fu">coef</span>(naive_p2)[<span class="st">"time_hi"</span>]</span>
+<span id="cb61-906"><a href="#cb61-906" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-907"><a href="#cb61-907" aria-hidden="true" tabindex="-1"></a>methods <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb61-908"><a href="#cb61-908" aria-hidden="true" tabindex="-1"></a>  <span class="st">"True value"</span>,</span>
+<span id="cb61-909"><a href="#cb61-909" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Naive Poisson (binary y₂)"</span>,</span>
+<span id="cb61-910"><a href="#cb61-910" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Linear-residual CF (with FE)"</span>,</span>
+<span id="cb61-911"><a href="#cb61-911" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Generalized-residual CF (with FE)"</span>,</span>
+<span id="cb61-912"><a href="#cb61-912" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Multiplicative-moment GMM (no FE)"</span></span>
+<span id="cb61-913"><a href="#cb61-913" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb61-914"><a href="#cb61-914" aria-hidden="true" tabindex="-1"></a>ests <span class="ot">&lt;-</span> <span class="fu">c</span>(true_alpha, coef_naive2, coef_a, coef_b, coef_c[<span class="dv">1</span>])</span>
 <span id="cb61-915"><a href="#cb61-915" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-916"><a href="#cb61-916" aria-hidden="true" tabindex="-1"></a><span class="fu">## Practical guidance</span></span>
-<span id="cb61-917"><a href="#cb61-917" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-918"><a href="#cb61-918" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**With fixed effects and a binary $y_2$, use the generalized-residual CF.**</span>
-<span id="cb61-919"><a href="#cb61-919" aria-hidden="true" tabindex="-1"></a>  Among the estimators that drop into FE-Poisson unmodified it is the</span>
-<span id="cb61-920"><a href="#cb61-920" aria-hidden="true" tabindex="-1"></a>  theoretically motivated choice, and its error is *derived*, not assumed:</span>
-<span id="cb61-921"><a href="#cb61-921" aria-hidden="true" tabindex="-1"></a>  $O(\rho^2)$, shrinking as the endogeneity shrinks.</span>
-<span id="cb61-922"><a href="#cb61-922" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-923"><a href="#cb61-923" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Multiplicative-moment GMM trades bias for variance — decide which binds.**</span>
-<span id="cb61-924"><a href="#cb61-924" aria-hidden="true" tabindex="-1"></a>  Mullahy's moments are *consistent* here, not merely accurate to first order,</span>
-<span id="cb61-925"><a href="#cb61-925" aria-hidden="true" tabindex="-1"></a>  whenever the multiplicative heterogeneity is independent of $\mathbf{z}$. But</span>
-<span id="cb61-926"><a href="#cb61-926" aria-hidden="true" tabindex="-1"></a>  consistency is not accuracy at a given sample size: over 10 seeds at $n=5000$</span>
-<span id="cb61-927"><a href="#cb61-927" aria-hidden="true" tabindex="-1"></a>  it is nearly unbiased (mean $0.7985$) and yet almost three times as noisy</span>
-<span id="cb61-928"><a href="#cb61-928" aria-hidden="true" tabindex="-1"></a>  (sd $0.068$ against $0.026$), giving it the worst RMSE of the three. Prefer it</span>
-<span id="cb61-929"><a href="#cb61-929" aria-hidden="true" tabindex="-1"></a>  once $n$ is large enough that variance is not the binding constraint — and note</span>
-<span id="cb61-930"><a href="#cb61-930" aria-hidden="true" tabindex="-1"></a>  that it does not accommodate high-dimensional fixed effects either way.</span>
-<span id="cb61-931"><a href="#cb61-931" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-932"><a href="#cb61-932" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The linear-residual CF is a fallback, not a first choice.** It lands close to</span>
-<span id="cb61-933"><a href="#cb61-933" aria-hidden="true" tabindex="-1"></a>  the truth at $\rho = 0.2$ here, but for binary $y_2$ it has no valid</span>
-<span id="cb61-934"><a href="#cb61-934" aria-hidden="true" tabindex="-1"></a>  reduced-form assumption behind it. **Do not lean on it when $\rho$ is not known</span>
-<span id="cb61-935"><a href="#cb61-935" aria-hidden="true" tabindex="-1"></a>  to be small** — and note that $\rho$ is estimated by the coefficient on the</span>
-<span id="cb61-936"><a href="#cb61-936" aria-hidden="true" tabindex="-1"></a>  control function, so this is checkable rather than a matter of faith.</span>
-<span id="cb61-937"><a href="#cb61-937" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-938"><a href="#cb61-938" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**It remains fully valid as an exogeneity test.** Under $H_0: \rho = 0$ none of</span>
-<span id="cb61-939"><a href="#cb61-939" aria-hidden="true" tabindex="-1"></a>  the reduced-form assumptions are needed</span>
-<span id="cb61-940"><a href="#cb61-940" aria-hidden="true" tabindex="-1"></a>  <span class="co">[</span><span class="ot">@wooldridge-2010-crosssection, p. 744</span><span class="co">]</span>. Use it to test; do not use it to</span>
-<span id="cb61-941"><a href="#cb61-941" aria-hidden="true" tabindex="-1"></a>  correct.</span>
-<span id="cb61-942"><a href="#cb61-942" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-943"><a href="#cb61-943" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Probit or logit both work for the generalized-residual CF.** Only Terza's</span>
-<span id="cb61-944"><a href="#cb61-944" aria-hidden="true" tabindex="-1"></a>  exact correction needs normality.</span>
-<span id="cb61-945"><a href="#cb61-945" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-946"><a href="#cb61-946" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Always bootstrap.** In every control-function specification above the</span>
-<span id="cb61-947"><a href="#cb61-947" aria-hidden="true" tabindex="-1"></a>  second-stage standard errors are wrong, because the residual is generated.</span>
+<span id="cb61-916"><a href="#cb61-916" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">── Binary EEV: coefficient on time_hi ─────────────────────</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb61-917"><a href="#cb61-917" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_along</span>(methods)) {</span>
+<span id="cb61-918"><a href="#cb61-918" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  %-38s  α̂₁ = %6.4f</span><span class="sc">\n</span><span class="st">"</span>, methods[i], ests[i]))</span>
+<span id="cb61-919"><a href="#cb61-919" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb61-920"><a href="#cb61-920" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb61-921"><a href="#cb61-921" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-922"><a href="#cb61-922" aria-hidden="true" tabindex="-1"></a>The naive Poisson gives 1.0832 against a true 0.8, so ignoring the endogeneity</span>
+<span id="cb61-923"><a href="#cb61-923" aria-hidden="true" tabindex="-1"></a>overstates the effect by 35%. Both control functions recover the true value</span>
+<span id="cb61-924"><a href="#cb61-924" aria-hidden="true" tabindex="-1"></a>closely, at 0.8613 and 0.8544, with the small upward bias expected from</span>
+<span id="cb61-925"><a href="#cb61-925" aria-hidden="true" tabindex="-1"></a>$\rho = 0.2$ and the binary $y_2$.</span>
+<span id="cb61-926"><a href="#cb61-926" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-927"><a href="#cb61-927" aria-hidden="true" tabindex="-1"></a>The GMM estimate lands closest in this draw, and its near-centring is not luck:</span>
+<span id="cb61-928"><a href="#cb61-928" aria-hidden="true" tabindex="-1"></a>the omitted <span class="in">`ad`</span> and <span class="in">`female`</span> effects are independent multiplicative</span>
+<span id="cb61-929"><a href="#cb61-929" aria-hidden="true" tabindex="-1"></a>heterogeneity, absorbed by the intercept under the multiplicative moments</span>
+<span id="cb61-930"><a href="#cb61-930" aria-hidden="true" tabindex="-1"></a>($\beta_0 \to \beta_0 + \log E<span class="co">[</span><span class="ot">e^{c}</span><span class="co">]</span>$), so omitting the fixed effects costs no</span>
+<span id="cb61-931"><a href="#cb61-931" aria-hidden="true" tabindex="-1"></a>slope *bias* at all. Mullahy's moments are *consistent* for this DGP, where the</span>
+<span id="cb61-932"><a href="#cb61-932" aria-hidden="true" tabindex="-1"></a>control functions are only approximately unbiased: over 10 seeds at this $n$, GMM</span>
+<span id="cb61-933"><a href="#cb61-933" aria-hidden="true" tabindex="-1"></a>averages $0.7985$ against $0.8323$ and $0.8185$, and at $n = 10^6$ it sits at</span>
+<span id="cb61-934"><a href="#cb61-934" aria-hidden="true" tabindex="-1"></a>$0.8015$ (sd $0.0013$) against plims of $0.839$ and $0.822$.</span>
+<span id="cb61-935"><a href="#cb61-935" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-936"><a href="#cb61-936" aria-hidden="true" tabindex="-1"></a>The catch is variance rather than bias. Without the fixed effects GMM is about</span>
+<span id="cb61-937"><a href="#cb61-937" aria-hidden="true" tabindex="-1"></a>three times as noisy (sd $0.068$ at $n = 5000$, against $0.024$ and $0.026$), so</span>
+<span id="cb61-938"><a href="#cb61-938" aria-hidden="true" tabindex="-1"></a>at this sample size its RMSE is the **worst** of the three — $0.065$, against</span>
+<span id="cb61-939"><a href="#cb61-939" aria-hidden="true" tabindex="-1"></a>$0.039$ and $0.031$ — and a single draw can easily leave it further from $0.8$</span>
+<span id="cb61-940"><a href="#cb61-940" aria-hidden="true" tabindex="-1"></a>than either control function.</span>
+<span id="cb61-941"><a href="#cb61-941" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-942"><a href="#cb61-942" aria-hidden="true" tabindex="-1"></a><span class="fu">## Practical guidance</span></span>
+<span id="cb61-943"><a href="#cb61-943" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-944"><a href="#cb61-944" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**With fixed effects and a binary $y_2$, use the generalized-residual CF.**</span>
+<span id="cb61-945"><a href="#cb61-945" aria-hidden="true" tabindex="-1"></a>  Among the estimators that drop into FE-Poisson unmodified it is the</span>
+<span id="cb61-946"><a href="#cb61-946" aria-hidden="true" tabindex="-1"></a>  theoretically motivated choice, and its error is *derived*, not assumed:</span>
+<span id="cb61-947"><a href="#cb61-947" aria-hidden="true" tabindex="-1"></a>  $O(\rho^2)$, shrinking as the endogeneity shrinks. Put the unit dummies in its</span>
+<span id="cb61-948"><a href="#cb61-948" aria-hidden="true" tabindex="-1"></a>  first stage only when each unit has many observations; with the short panels</span>
+<span id="cb61-949"><a href="#cb61-949" aria-hidden="true" tabindex="-1"></a>  usual in applied work, use the Mundlak means instead (§ above).</span>
+<span id="cb61-950"><a href="#cb61-950" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-951"><a href="#cb61-951" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Multiplicative-moment GMM trades bias for variance — decide which binds.**</span>
+<span id="cb61-952"><a href="#cb61-952" aria-hidden="true" tabindex="-1"></a>  Mullahy's moments are *consistent* here, not merely accurate to first order,</span>
+<span id="cb61-953"><a href="#cb61-953" aria-hidden="true" tabindex="-1"></a>  whenever the multiplicative heterogeneity is independent of $\mathbf{z}$. But</span>
+<span id="cb61-954"><a href="#cb61-954" aria-hidden="true" tabindex="-1"></a>  consistency is not accuracy at a given sample size: over 10 seeds at $n=5000$</span>
+<span id="cb61-955"><a href="#cb61-955" aria-hidden="true" tabindex="-1"></a>  it is nearly unbiased (mean $0.7985$) and yet almost three times as noisy</span>
+<span id="cb61-956"><a href="#cb61-956" aria-hidden="true" tabindex="-1"></a>  (sd $0.068$ against $0.026$), giving it the worst RMSE of the three. Prefer it</span>
+<span id="cb61-957"><a href="#cb61-957" aria-hidden="true" tabindex="-1"></a>  once $n$ is large enough that variance is not the binding constraint — and note</span>
+<span id="cb61-958"><a href="#cb61-958" aria-hidden="true" tabindex="-1"></a>  that it does not accommodate high-dimensional fixed effects either way.</span>
+<span id="cb61-959"><a href="#cb61-959" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-960"><a href="#cb61-960" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The linear-residual CF is a fallback, not a first choice.** It lands close to</span>
+<span id="cb61-961"><a href="#cb61-961" aria-hidden="true" tabindex="-1"></a>  the truth at $\rho = 0.2$ here, but for binary $y_2$ it has no valid</span>
+<span id="cb61-962"><a href="#cb61-962" aria-hidden="true" tabindex="-1"></a>  reduced-form assumption behind it. **Do not lean on it when $\rho$ is not known</span>
+<span id="cb61-963"><a href="#cb61-963" aria-hidden="true" tabindex="-1"></a>  to be small** — and note that $\rho$ is estimated by the coefficient on the</span>
+<span id="cb61-964"><a href="#cb61-964" aria-hidden="true" tabindex="-1"></a>  control function, so this is checkable rather than a matter of faith.</span>
+<span id="cb61-965"><a href="#cb61-965" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-966"><a href="#cb61-966" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**It remains fully valid as an exogeneity test.** Under $H_0: \rho = 0$ none of</span>
+<span id="cb61-967"><a href="#cb61-967" aria-hidden="true" tabindex="-1"></a>  the reduced-form assumptions are needed</span>
+<span id="cb61-968"><a href="#cb61-968" aria-hidden="true" tabindex="-1"></a>  <span class="co">[</span><span class="ot">@wooldridge-2010-crosssection, p. 744</span><span class="co">]</span>. Use it to test; do not use it to</span>
+<span id="cb61-969"><a href="#cb61-969" aria-hidden="true" tabindex="-1"></a>  correct.</span>
+<span id="cb61-970"><a href="#cb61-970" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-971"><a href="#cb61-971" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Probit or logit both work for the generalized-residual CF.** Only Terza's</span>
+<span id="cb61-972"><a href="#cb61-972" aria-hidden="true" tabindex="-1"></a>  exact correction needs normality.</span>
+<span id="cb61-973"><a href="#cb61-973" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-974"><a href="#cb61-974" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Always bootstrap.** In every control-function specification above the</span>
+<span id="cb61-975"><a href="#cb61-975" aria-hidden="true" tabindex="-1"></a>  second-stage standard errors are wrong, because the residual is generated.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

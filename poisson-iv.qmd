@@ -657,7 +657,7 @@ fs_a      <- feols(time_hi ~ phone + frfam | ad + female, data = df2)
 df2$v2hat <- residuals(fs_a)
 
 m_a <- fepois(visits ~ time_hi + v2hat + frfam | ad + female, data = df2)
-etable(m_a, title = "Approach A: OLS residual as control function")
+etable(m_a, title = "Linear-residual CF (OLS residual)")
 ```
 
 It gives 0.8613, with a coefficient of 0.2674 on `v2hat`.
@@ -676,7 +676,7 @@ df2$gr2  <- ifelse(df2$time_hi == 1,
                    -dnorm(eta) / (1 - pnorm(eta)))
 
 m_b <- fepois(visits ~ time_hi + gr2 + frfam | ad + female, data = df2)
-etable(m_b, title = "Approach B: probit generalized residual")
+etable(m_b, title = "Generalized-residual CF (probit)")
 ```
 
 It gives 0.8544, slightly closer to the truth than 0.8613, with a coefficient of
@@ -697,9 +697,9 @@ df2$phat_logit <- predict(fs_b_logit, type = "response")
 df2$gr2_logit  <- df2$time_hi - df2$phat_logit   # algebraically = generalized residual
 
 m_b_logit <- fepois(visits ~ time_hi + gr2_logit + frfam | ad + female, data = df2)
-etable(m_b_logit, title = "Approach B with a logit first stage")
-cat(sprintf("Probit-based Approach B: alpha1 = %.4f\n", coef(m_b)["time_hi"]))
-cat(sprintf("Logit-based  Approach B: alpha1 = %.4f\n", coef(m_b_logit)["time_hi"]))
+etable(m_b_logit, title = "Generalized-residual CF (logit first stage)")
+cat(sprintf("Probit first stage: alpha1 = %.4f\n", coef(m_b)["time_hi"]))
+cat(sprintf("Logit  first stage: alpha1 = %.4f\n", coef(m_b_logit)["time_hi"]))
 ```
 
 The logit first stage gives 0.8625 against the probit's 0.8544, a difference of
@@ -738,7 +738,7 @@ m_c      <- gmm(gmm_moments, x = gmm_data,
 coef_c   <- coef(m_c)
 se_c     <- sqrt(diag(vcov(m_c)))
 
-cat(sprintf("\nApproach C — IV/GMM Poisson (no FE, for illustration)\n"))
+cat(sprintf("\nMultiplicative-moment GMM (no FE, for illustration)\n"))
 cat(sprintf("  time_hi:  coef = %7.4f   SE = %7.4f   z = %6.3f\n",
             coef_c[1], se_c[1], coef_c[1] / se_c[1]))
 cat(sprintf("  frfam:    coef = %7.4f   SE = %7.4f   z = %6.3f\n",
@@ -769,9 +769,9 @@ in the moment conditions without modifying the exponential mean.
 coef_a <- coef(m_a)["time_hi"]
 coef_b <- coef(m_b)["time_hi"]
 
-cat(sprintf("Approach A  (CF, OLS residual, with FE):   α̂₁ = %.4f\n", coef_a))
-cat(sprintf("Approach B  (CF, probit GR, with FE):      α̂₁ = %.4f\n", coef_b))
-cat(sprintf("Approach C  (IV/GMM Poisson, no FE):       α̂₁ = %.4f\n", coef_c[1]))
+cat(sprintf("Linear-residual CF       (with FE):  α̂₁ = %.4f\n", coef_a))
+cat(sprintf("Generalized-residual CF  (with FE):  α̂₁ = %.4f\n", coef_b))
+cat(sprintf("Multiplicative-moment GMM (no FE):   α̂₁ = %.4f\n", coef_c[1]))
 cat(sprintf("True α₁ = %.1f\n", true_alpha))
 ```
 
@@ -814,7 +814,7 @@ bootstrap_cf_binary <- function(df, B = 500) {
 boot2     <- bootstrap_cf_binary(df2, 500)
 naive_se2 <- se(m_a)["time_hi"]
 
-cat(sprintf("Approach A bootstrap (binary EEV, 500 reps, cluster by ad)\n"))
+cat(sprintf("Linear-residual CF bootstrap (binary EEV, 500 reps, cluster by ad)\n"))
 cat(sprintf("  Point estimate:     %.4f  (true %.1f)\n", coef_a, true_alpha))
 cat(sprintf("  Naive 2nd-stage SE: %.4f\n", naive_se2))
 cat(sprintf("  Bootstrap SE:       %.4f\n", sd(boot2)))
@@ -839,9 +839,9 @@ coef_naive2 <- coef(naive_p2)["time_hi"]
 methods <- c(
   "True value",
   "Naive Poisson (binary y₂)",
-  "A: Linear CF (with FE)",
-  "B: Probit GR CF (with FE)",
-  "C: IV/GMM Poisson (no FE)"
+  "Linear-residual CF (with FE)",
+  "Generalized-residual CF (with FE)",
+  "Multiplicative-moment GMM (no FE)"
 )
 ests <- c(true_alpha, coef_naive2, coef_a, coef_b, coef_c[1])
 

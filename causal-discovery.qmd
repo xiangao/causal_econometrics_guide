@@ -208,7 +208,6 @@ cpdag_pc <- pc_fit@graph
 ci_tests_pc <- ci_pc$count()
 ```
 
-::: {.callout-note}
 **Reading the output: F1 scores**
 
 The **F1 score** is the harmonic mean of precision and recall, ranging from 0 (worst) to 1 (perfect).
@@ -217,7 +216,6 @@ The **F1 score** is the harmonic mean of precision and recall, ranging from 0 (w
 - **CPDAG F1** is stricter: a directed edge $X \to Y$ is only a true positive if the true DAG also has $X \to Y$; an undirected edge $X - Y$ counts as correct if the true DAG has *either* direction.
 
 A high skeleton F1 with lower CPDAG F1 means the algorithm found the right adjacencies but oriented some of them incorrectly. **Caveat:** this is an *orientation-error-only* score -- leaving a truly directed edge undirected is never penalized, only actively wrong directions are. It is therefore not a standard CPDAG accuracy metric (which would also penalize unresolved/uncompelled orientations), and it can flatter an algorithm that simply declines to orient edges. Read it as "of the orientations made, how many are right," not "how much of the true CPDAG was recovered."
-:::
 
 ```{r}
 # Helper: extract directed adjacency matrix from a graphNEL CPDAG.
@@ -331,7 +329,6 @@ orientation decisions. In GES, a wrong score move is usually more local.
 
 ## Comparison
 
-::: {.callout-note}
 **Reading the CPDAG figure**
 
 In the side-by-side graph display:
@@ -341,7 +338,6 @@ In the side-by-side graph display:
 - A **missing edge** means the algorithm found a conditional independence separating those two variables.
 
 Compare the estimated CPDAGs to the true DAG: extra edges are false positives; missing edges are false negatives.
-:::
 
 ```{r}
 #| label: tbl-comparison
@@ -367,7 +363,6 @@ plot_ig(ig_cpdag_ges,layout = dag_layout, main = "GES — estimated CPDAG")
 par(op)
 ```
 
-::: {.callout-note}
 **Interpreting the comparison table**
 
 - **Skeleton F1** is the primary metric for comparing algorithms: it measures edge recovery independent of orientation, since orientation accuracy is bounded by the MEC.
@@ -375,7 +370,6 @@ par(op)
 - **CI tests** is reported only for PC — GES is score-based and does not perform CI tests.
 
 On this dataset PC comes out ahead on both metrics: GES's backward phase prunes or merges a few true adjacencies, which costs it skeleton F1 and, through the lost edges, CPDAG F1 as well. There is no general ranking — both algorithms target the *same* CPDAG, and the BIC score carries no orientation information beyond the conditional-independence structure (all DAGs in one Markov equivalence class receive the same score). Which one gets closer in finite samples depends on the DGP, the sample size, and the tuning ($\alpha$ vs. the BIC penalty).
-:::
 
 ## Monte Carlo Evaluation
 
@@ -490,7 +484,6 @@ plabs <- colnames(Xp)
 sprintf("Students (complete cases): %d", nrow(Xp))
 ```
 
-::: {.callout-note}
 **Three honesty caveats**, kept explicit:
 
 - **Plausible values.** Each student's ability is reported as 10 plausible
@@ -500,7 +493,6 @@ sprintf("Students (complete cases): %d", nrow(Xp))
   assumes joint Gaussianity — a standard but imperfect approximation.
 - **One country, one wave.** Pooling would inject country/time structure that
   appears as spurious edges unless modelled as extra nodes.
-:::
 
 ### Respecting the survey design
 
@@ -600,7 +592,6 @@ plot_ig(ig_gesp, layout = lay_p, main = "GES — estimated CPDAG")
 par(op)
 ```
 
-::: {.callout-important}
 **Read the disagreement, not just the agreement.** A purely data-driven score
 may orient an edge as `MATH → HISEI` — a child's test score causing their
 parent's occupational status (GES does exactly this in the right panel). That
@@ -609,7 +600,6 @@ edge takes is not identifiable from observational data alone, so the
 orientation the algorithm prints reflects its (possibly mistaken) v-structure
 and score decisions under misspecification, not evidence about the true
 direction. This is exactly why background knowledge is not optional.
-:::
 
 ### Orienting with background knowledge
 
@@ -647,7 +637,6 @@ ig_orient <- igraph::graph_from_data_frame(edges_df, vertices = plabs)
 igraph::E(ig_orient)$undirected <- undir_flag
 ```
 
-::: {.callout-warning}
 **Where data-driven orientation disagreed with us.** Left to itself, PC
 oriented `HISEI → IMMIG` and `HOMEPOS → IMMIG` — parental status and home
 possessions causing immigration background, which our tier ordering puts the
@@ -657,7 +646,6 @@ right). These mistakes come from v-structure and score decisions made under
 misspecification; the data is not informative about these directions.
 Imposing the tier order overrides them. The lesson: **never ship a
 discovered orientation you have prior reason to disbelieve**.
-:::
 
 ```{r}
 #| label: fig-pisa-oriented
@@ -746,7 +734,6 @@ possible faithfulness problems.
 
 If some edges remain undirected after exhausting background knowledge, the bound over the equivalence class is not automatic. Something has to enumerate what the class permits. For total effects under a linear Gaussian model, IDA (intervention calculus when the DAG is absent) does exactly that: `pcalg::ida()` takes the CPDAG and the covariance matrix, works through the DAGs consistent with the estimated structure, and returns the multiset of possible effects, whose range is the bound. `idaFast()` does the same for many outcomes at once. Outside that model, or for estimands IDA does not cover, enumerate the admissible DAGs explicitly and report the spread of the identified functionals. The alternative is to collect interventional data and break the remaining equivalences.
 
-::: {.callout-note}
 **What cannot be recovered from observational data alone**
 
 Both algorithms identify the CPDAG, not necessarily the true DAG. Some edge
@@ -754,4 +741,4 @@ directions require extra assumptions, temporal ordering, or interventional
 data.
 
 The next chapter addresses a harder problem: recovering the causal skeleton when some variables are *unobserved*.
-:::
+

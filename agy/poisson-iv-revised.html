@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>IV in Poisson with Fixed Effects</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="poisson-iv-revised_files/libs/clipboard/clipboard.min.js"></script>
+<script src="poisson-iv-revised_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="poisson-iv-revised_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="poisson-iv-revised_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="poisson-iv-revised_files/libs/quarto-html/popper.min.js"></script>
+<script src="poisson-iv-revised_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="poisson-iv-revised_files/libs/quarto-html/anchor.min.js"></script>
+<link href="poisson-iv-revised_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="poisson-iv-revised_files/libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="poisson-iv-revised_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="poisson-iv-revised_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="poisson-iv-revised_files/libs/bootstrap/bootstrap-3b89f8177b1a2a82b23d4c23e004c95e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#the-model-and-setup" id="toc-the-model-and-setup" class="nav-link active" data-scroll-target="#the-model-and-setup">1. The Model and Setup</a>
+  <ul class="collapse">
+  <li><a href="#subscripts-index-equations" id="toc-subscripts-index-equations" class="nav-link" data-scroll-target="#subscripts-index-equations">Subscripts Index Equations</a></li>
+  </ul></li>
+  <li><a href="#theoretical-foundations-control-functions-vs.-gmm" id="toc-theoretical-foundations-control-functions-vs.-gmm" class="nav-link" data-scroll-target="#theoretical-foundations-control-functions-vs.-gmm">2. Theoretical Foundations: Control Functions vs.&nbsp;GMM</a>
+  <ul class="collapse">
+  <li><a href="#the-linear-second-stage-control-function-is-2sls" id="toc-the-linear-second-stage-control-function-is-2sls" class="nav-link" data-scroll-target="#the-linear-second-stage-control-function-is-2sls">2.1 The Linear Second Stage: Control Function <em>is</em> 2SLS</a></li>
+  <li><a href="#the-nonlinear-second-stage-control-function-requires-independence" id="toc-the-nonlinear-second-stage-control-function-requires-independence" class="nav-link" data-scroll-target="#the-nonlinear-second-stage-control-function-requires-independence">2.2 The Nonlinear Second Stage: Control Function Requires Independence</a></li>
+  </ul></li>
+  <li><a href="#estimators-for-endogenous-regressors" id="toc-estimators-for-endogenous-regressors" class="nav-link" data-scroll-target="#estimators-for-endogenous-regressors">3. Estimators for Endogenous Regressors</a>
+  <ul class="collapse">
+  <li><a href="#continuous-y_2-the-linear-reduced-form-holds" id="toc-continuous-y_2-the-linear-reduced-form-holds" class="nav-link" data-scroll-target="#continuous-y_2-the-linear-reduced-form-holds">3.1 Continuous <span class="math inline">\(y_2\)</span>: The Linear Reduced Form Holds</a></li>
+  <li><a href="#binary-y_2-why-the-linear-reduced-form-fails" id="toc-binary-y_2-why-the-linear-reduced-form-fails" class="nav-link" data-scroll-target="#binary-y_2-why-the-linear-reduced-form-fails">3.2 Binary <span class="math inline">\(y_2\)</span>: Why the Linear Reduced Form Fails</a></li>
+  <li><a href="#terzas-1998-exact-correction" id="toc-terzas-1998-exact-correction" class="nav-link" data-scroll-target="#terzas-1998-exact-correction">3.3 Terza’s (1998) Exact Correction</a></li>
+  <li><a href="#generalized-residual-cf-and-the-mundlak-device" id="toc-generalized-residual-cf-and-the-mundlak-device" class="nav-link" data-scroll-target="#generalized-residual-cf-and-the-mundlak-device">3.4 Generalized-Residual CF and the Mundlak Device</a></li>
+  <li><a href="#multiplicative-moment-gmm" id="toc-multiplicative-moment-gmm" class="nav-link" data-scroll-target="#multiplicative-moment-gmm">3.5 Multiplicative-Moment GMM</a></li>
+  </ul></li>
+  <li><a href="#why-recommend-generalized-residuals-instead-of-exact-terza" id="toc-why-recommend-generalized-residuals-instead-of-exact-terza" class="nav-link" data-scroll-target="#why-recommend-generalized-residuals-instead-of-exact-terza">4. Why Recommend Generalized Residuals Instead of Exact Terza?</a>
+  <ul class="collapse">
+  <li><a href="#built-in-hausman-exogeneity-test-in-a-single-step" id="toc-built-in-hausman-exogeneity-test-in-a-single-step" class="nav-link" data-scroll-target="#built-in-hausman-exogeneity-test-in-a-single-step">1. Built-in Hausman Exogeneity Test in a Single Step</a></li>
+  <li><a href="#standard-software-drop-in" id="toc-standard-software-drop-in" class="nav-link" data-scroll-target="#standard-software-drop-in">2. Standard Software Drop-in</a></li>
+  <li><a href="#distributional-flexibility-beyond-the-probit-link" id="toc-distributional-flexibility-beyond-the-probit-link" class="nav-link" data-scroll-target="#distributional-flexibility-beyond-the-probit-link">3. Distributional Flexibility: Beyond the Probit Link</a></li>
+  <li><a href="#robustness-against-non-normality-curvature-misspecification" id="toc-robustness-against-non-normality-curvature-misspecification" class="nav-link" data-scroll-target="#robustness-against-non-normality-curvature-misspecification">4. Robustness Against Non-Normality (Curvature Misspecification)</a></li>
+  <li><a href="#negligible-approximation-error-for-moderate-confounding" id="toc-negligible-approximation-error-for-moderate-confounding" class="nav-link" data-scroll-target="#negligible-approximation-error-for-moderate-confounding">5. Negligible Approximation Error for Moderate Confounding</a></li>
+  <li><a href="#practical-strategy" id="toc-practical-strategy" class="nav-link" data-scroll-target="#practical-strategy">Practical Strategy</a></li>
+  </ul></li>
+  <li><a href="#overview-and-comparison-of-the-four-estimators" id="toc-overview-and-comparison-of-the-four-estimators" class="nav-link" data-scroll-target="#overview-and-comparison-of-the-four-estimators">5. Overview and Comparison of the Four Estimators</a></li>
+  <li><a href="#practical-guidance-an-observable-diagnostic-workflow" id="toc-practical-guidance-an-observable-diagnostic-workflow" class="nav-link" data-scroll-target="#practical-guidance-an-observable-diagnostic-workflow">6. Practical Guidance: An Observable Diagnostic Workflow</a></li>
+  <li><a href="#implementation-demos-in-r-and-stata" id="toc-implementation-demos-in-r-and-stata" class="nav-link" data-scroll-target="#implementation-demos-in-r-and-stata">7. Implementation Demos in R and Stata</a>
+  <ul class="collapse">
+  <li><a href="#r-implementation-demo-fixest" id="toc-r-implementation-demo-fixest" class="nav-link" data-scroll-target="#r-implementation-demo-fixest">7.1 R Implementation Demo (<code>fixest</code>)</a></li>
+  <li><a href="#stata-implementation-demo-ppmlhdfe" id="toc-stata-implementation-demo-ppmlhdfe" class="nav-link" data-scroll-target="#stata-implementation-demo-ppmlhdfe">7.2 Stata Implementation Demo (<code>ppmlhdfe</code>)</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">IV in Poisson with Fixed Effects</h1><button type="button" class="btn code-tools-button dropdown-toggle" id="quarto-code-tools-menu" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi"></i> Code</button><ul class="dropdown-menu dropdown-menu-end" aria-labelelledby="quarto-code-tools-menu"><li><a id="quarto-show-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Show All Code</a></li><li><a id="quarto-hide-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Hide All Code</a></li><li><hr class="dropdown-divider"></li><li><a id="quarto-view-source" class="dropdown-item" href="javascript:void(0)" role="button">View Source</a></li></ul></div></div>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>Poisson regression specifies the conditional mean as an exponential function: <span class="math display">\[E(y \mid \mathbf{x}) = \exp(\mathbf{x}\boldsymbol{\beta})\]</span></p>
+<p>As a quasi-maximum likelihood estimator (QMLE), Poisson regression requires only that the conditional mean is correctly specified; the true count distribution does not need to follow a Poisson distribution, and standard errors are easily made robust to arbitrary overdispersion or heteroskedasticity.</p>
+<p>However, when an explanatory variable is <strong>endogenous</strong>—correlated with unobserved omitted factors—standard linear two-stage least squares (2SLS) intuition fails. Because the conditional mean is nonlinear, unobserved confounders enter multiplicatively inside the exponential function.</p>
+<p>This chapter covers:</p>
+<ol type="1">
+<li>Why linear 2SLS intuition fails in nonlinear exponential models.</li>
+<li>The control function approach for continuous vs.&nbsp;binary endogenous variables.</li>
+<li>Terza’s (1998) exact correction and its profile-likelihood implementation.</li>
+<li>Generalized residuals as a first-order local approximation, logit response residuals, and the Mundlak device for panel fixed effects (Lin and Wooldridge, 2019).</li>
+<li>Why applied econometrics generally recommends the generalized residual approach over the exact Terza correction.</li>
+<li>Multiplicative-moment GMM (Mullahy, 1997), quasi-differencing, and bias-variance trade-offs.</li>
+<li>Step-by-step implementation demos in R (<code>fixest</code>) and Stata (<code>ppmlhdfe</code>).</li>
+</ol>
+<hr>
+<section id="the-model-and-setup" class="level2">
+<h2 class="anchored" data-anchor-id="the-model-and-setup">1. The Model and Setup</h2>
+<p>Let <span class="math inline">\(y_1\)</span> denote the count outcome, <span class="math inline">\(y_2\)</span> the endogenous explanatory variable, and <span class="math inline">\(\mathbf{z} = (\mathbf{z}_1, \mathbf{z}_2)\)</span> the vector of exogenous variables (<span class="math inline">\(\mathbf{z}_1\)</span> included in the structural equation, <span class="math inline">\(\mathbf{z}_2\)</span> excluded instruments).</p>
+<p>The structural conditional mean is: <span id="eq-poisson-iv-1"><span class="math display">\[E(y_1 \mid \mathbf{z}_1, y_2, c_1) = \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + c_1) \tag{1}\]</span></span></p>
+<p>where <span class="math inline">\(c_1\)</span> is an unobserved omitted variable correlated with <span class="math inline">\(y_2\)</span>. Our primary estimand of interest is <span class="math inline">\(\alpha_1\)</span>, the structural semi-elasticity of <span class="math inline">\(y_1\)</span> with respect to <span class="math inline">\(y_2\)</span>.</p>
+<section id="subscripts-index-equations" class="level3">
+<h3 class="anchored" data-anchor-id="subscripts-index-equations">Subscripts Index Equations</h3>
+<p>Following the simultaneous-equations convention of Wooldridge (2010, Chapter 18), <strong>subscripts index equations rather than individual variables</strong>: - <strong>Equation 1 (Structural equation):</strong> outcome <span class="math inline">\(y_1\)</span>, parameters <span class="math inline">\((\boldsymbol{\delta}_1, \alpha_1)\)</span>, unobserved error <span class="math inline">\(c_1\)</span>. - <strong>Equation 2 (Reduced-form equation):</strong> outcome <span class="math inline">\(y_2\)</span>, coefficients <span class="math inline">\(\boldsymbol{\pi}_2\)</span>, reduced-form error <span class="math inline">\(v_2\)</span>.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 22%">
+<col style="width: 27%">
+<col style="width: 27%">
+<col style="width: 22%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Role</th>
+<th style="text-align: center;">Linear IV Notation</th>
+<th style="text-align: center;">Nonlinear Notation Here</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Outcome (the count)</td>
+<td style="text-align: center;"><span class="math inline">\(Y\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(y_1\)</span></td>
+<td style="text-align: left;">Dependent variable in structural equation</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Endogenous regressor</td>
+<td style="text-align: center;"><span class="math inline">\(W\)</span> or <span class="math inline">\(D\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(y_2\)</span></td>
+<td style="text-align: left;">Explanatory variable correlated with <span class="math inline">\(c_1\)</span></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Excluded instrument</td>
+<td style="text-align: center;"><span class="math inline">\(Z\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(\mathbf{z}_2\)</span></td>
+<td style="text-align: left;">Exogenous instrument excluded from Eq. 1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Included exogenous</td>
+<td style="text-align: center;"><span class="math inline">\(X\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(\mathbf{z}_1\)</span></td>
+<td style="text-align: left;">Exogenous covariates included in Eq. 1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Reduced-form error</td>
+<td style="text-align: center;"><span class="math inline">\(V\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(v_2\)</span></td>
+<td style="text-align: left;">Error from projecting <span class="math inline">\(y_2\)</span> on <span class="math inline">\(\mathbf{z}\)</span></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Structural unobservable</td>
+<td style="text-align: center;"><span class="math inline">\(U\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(c_1\)</span></td>
+<td style="text-align: left;">Confounder correlated with <span class="math inline">\(y_2\)</span></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Endogeneity parameter</td>
+<td style="text-align: center;"><span class="math inline">\(\rho\)</span></td>
+<td style="text-align: center;"><span class="math inline">\(\rho_1\)</span></td>
+<td style="text-align: left;">Projection coefficient: <span class="math inline">\(c_1 = \rho_1 v_2 + e_1\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>Two standard deviations from Wooldridge’s notation are maintained for clarity: 1. Wooldridge writes the coefficient on <span class="math inline">\(y_2\)</span> as <span class="math inline">\(\gamma_1\)</span>; we write <span class="math inline">\(\alpha_1\)</span> to align with standard treatment effect notation. 2. Where Wooldridge writes <span class="math inline">\(\mathbf{x}_1\boldsymbol{\beta}_1\)</span>, we write <span class="math inline">\(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2\)</span>.</p>
+<hr>
+</section>
+</section>
+<section id="theoretical-foundations-control-functions-vs.-gmm" class="level2">
+<h2 class="anchored" data-anchor-id="theoretical-foundations-control-functions-vs.-gmm">2. Theoretical Foundations: Control Functions vs.&nbsp;GMM</h2>
+<section id="the-linear-second-stage-control-function-is-2sls" class="level3">
+<h3 class="anchored" data-anchor-id="the-linear-second-stage-control-function-is-2sls">2.1 The Linear Second Stage: Control Function <em>is</em> 2SLS</h3>
+<p>To see where the nonlinear complication begins, consider first the linear model: <span class="math display">\[y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \varepsilon_1, \qquad E(\mathbf{z}'\varepsilon_1) = \mathbf{0}\]</span></p>
+<p>Two-stage least squares (2SLS) replaces <span class="math inline">\(y_2\)</span> with its linear projection <span class="math inline">\(\hat{y}_2 = \mathbf{z}\hat{\boldsymbol{\pi}}_2\)</span>: <span class="math display">\[y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 \hat{y}_2 + (\varepsilon_1 + \alpha_1 \hat{v}_2)\]</span> where <span class="math inline">\(\hat{v}_2 = y_2 - \hat{y}_2\)</span> is the OLS residual.</p>
+<p>Alternatively, the <strong>control function (CF)</strong> approach decomposes the structural error <span class="math inline">\(\varepsilon_1\)</span> via a linear projection on the first-stage residual <span class="math inline">\(v_2\)</span>: <span class="math display">\[\varepsilon_1 = \rho_1 v_2 + \eta_1\]</span> where <span class="math inline">\(\rho_1 = \frac{\mathrm{Cov}(\varepsilon_1, v_2)}{\mathrm{Var}(v_2)}\)</span>. By the properties of linear projection, <span class="math inline">\(E(v_2 \eta_1) = 0\)</span> and <span class="math inline">\(E(\mathbf{z}'\eta_1) = E(\mathbf{z}'\varepsilon_1) - \rho_1 E(\mathbf{z}'v_2) = \mathbf{0}\)</span>.</p>
+<p>Plugging this into the structural equation yields the augmented regression: <span class="math display">\[y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2 + \eta_1\]</span></p>
+<p>By the <strong>Frisch–Waugh–Lovell (FWL) theorem</strong>, OLS estimation of this augmented regression produces an estimate <span class="math inline">\(\hat{\alpha}_1\)</span> that is <strong>numerically identical to 2SLS</strong>. No additional distributional assumptions are required beyond the standard orthogonality condition <span class="math inline">\(E(\mathbf{z}'\varepsilon_1) = \mathbf{0}\)</span>.</p>
+</section>
+<section id="the-nonlinear-second-stage-control-function-requires-independence" class="level3">
+<h3 class="anchored" data-anchor-id="the-nonlinear-second-stage-control-function-requires-independence">2.2 The Nonlinear Second Stage: Control Function Requires Independence</h3>
+<p>When the conditional mean is exponential, this automatic numerical equivalence breaks down.</p>
+<p>Substituting the error decomposition <span class="math inline">\(c_1 = \rho_1 v_2 + e_1\)</span> into <a href="#eq-poisson-iv-1" class="quarto-xref">Equation&nbsp;1</a> yields: <span id="eq-poisson-iv-4"><span class="math display">\[\begin{aligned}
+E(y_1 \mid \mathbf{z}, y_2, v_2) &amp;= E\left[ \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 v_2 + e_1) \mid \mathbf{z}, y_2, v_2 \right] \\
+&amp;= \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 v_2) \cdot E\left[ \exp(e_1) \mid \mathbf{z}, y_2, v_2 \right]
+\end{aligned} \tag{2}\]</span></span></p>
+<p>For the augmented index <span class="math inline">\(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 v_2\)</span> to correctly specify the conditional mean in a Poisson second stage, the remaining expectation factor must be <strong>strictly constant</strong>: <span class="math display">\[E\left[ \exp(e_1) \mid \mathbf{z}, y_2, v_2 \right] = \text{constant}\]</span></p>
+<p>This is why Wooldridge (2010, Section 18.5) normalizes <span class="math inline">\(E[\exp(e_1)] = 1\)</span> rather than <span class="math inline">\(E(e_1) = 0\)</span>.</p>
+<p>This condition is a requirement on the <strong>moment-generating function</strong> of <span class="math inline">\(e_1\)</span>—a condition across all moments simultaneously, which requires that <span class="math inline">\(e_1\)</span> is <strong>fully independent</strong> of <span class="math inline">\((\mathbf{z}, v_2)\)</span>, and in turn that the reduced-form error <span class="math inline">\(v_2\)</span> is <strong>independent</strong> of <span class="math inline">\(\mathbf{z}\)</span> (<span class="math inline">\(v_2 \perp \mathbf{z}\)</span>).</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Property</th>
+<th style="text-align: left;">Linear Model (OLS / 2SLS)</th>
+<th style="text-align: left;">Nonlinear Model (Poisson CF)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Second stage</strong></td>
+<td style="text-align: left;"><span class="math inline">\(y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(y_1 \sim \text{Poisson}(\exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2))\)</span></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>CF vs.&nbsp;2SLS/GMM</strong></td>
+<td style="text-align: left;"><strong>Identical</strong> (by FWL theorem)</td>
+<td style="text-align: left;"><strong>Different</strong> (FWL does not hold)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Required assumption</strong></td>
+<td style="text-align: left;">Uncorrelatedness: <span class="math inline">\(E(\mathbf{z}'\varepsilon_1) = \mathbf{0}\)</span></td>
+<td style="text-align: left;"><strong>Full Independence:</strong> <span class="math inline">\(v_2 \perp \mathbf{z}\)</span> and <span class="math inline">\(e_1 \perp (\mathbf{z}, v_2)\)</span></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Second-stage standard errors</strong></td>
+<td style="text-align: left;">Valid under <span class="math inline">\(H_0: \rho_1 = 0\)</span></td>
+<td style="text-align: left;"><strong>Invalid</strong> (must bootstrap generated regressor)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Endogeneity test</strong></td>
+<td style="text-align: left;"><span class="math inline">\(t\)</span>-statistic on <span class="math inline">\(\hat{v}_2 = 0\)</span> (DWH test)</td>
+<td style="text-align: left;"><span class="math inline">\(t\)</span>-statistic on <span class="math inline">\(\hat{v}_2 = 0\)</span> (Variable addition test)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+</section>
+</section>
+<section id="estimators-for-endogenous-regressors" class="level2">
+<h2 class="anchored" data-anchor-id="estimators-for-endogenous-regressors">3. Estimators for Endogenous Regressors</h2>
+<section id="continuous-y_2-the-linear-reduced-form-holds" class="level3">
+<h3 class="anchored" data-anchor-id="continuous-y_2-the-linear-reduced-form-holds">3.1 Continuous <span class="math inline">\(y_2\)</span>: The Linear Reduced Form Holds</h3>
+<p>When <span class="math inline">\(y_2\)</span> is continuous (e.g., hours worked, prices, expenditures), a linear reduced form with additive errors is natural: <span id="eq-poisson-iv-3"><span class="math display">\[y_2 = \mathbf{z}\boldsymbol{\pi}_2 + v_2, \qquad c_1 = \rho_1 v_2 + e_1 \tag{3}\]</span></span></p>
+<p>with <span class="math inline">\(v_2 \perp \mathbf{z}\)</span> and <span class="math inline">\(e_1 \perp (\mathbf{z}, v_2)\)</span>. Under joint normality of <span class="math inline">\((c_1, v_2)\)</span>, these independence assumptions hold naturally. The structural conditional mean becomes: <span id="eq-poisson-iv-2"><span class="math display">\[E(y_1 \mid \mathbf{z}_1, y_2, v_2) = \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 v_2) \tag{4}\]</span></span></p>
+<p><strong>Estimation Procedure:</strong> 1. <strong>Step 1 (First Stage):</strong> Estimate the linear regression <span class="math inline">\(y_2 = \mathbf{z}\boldsymbol{\pi}_2 + v_2\)</span> by OLS (or with fixed effects absorbed) and compute residuals <span class="math inline">\(\hat{v}_2 = y_2 - \mathbf{z}\hat{\boldsymbol{\pi}}_2\)</span>. 2. <strong>Step 2 (Second Stage):</strong> Estimate Poisson QMLE with <span class="math inline">\(y_2\)</span> and <span class="math inline">\(\hat{v}_2\)</span> entering simultaneously: <span class="math display">\[y_1 \sim \text{Poisson}(\exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2))\]</span> 3. <strong>Inference:</strong> Standard errors must be bootstrapped (e.g., clustered by panel unit) to account for the first-stage estimation uncertainty of <span class="math inline">\(\hat{v}_2\)</span>.</p>
+<hr>
+</section>
+<section id="binary-y_2-why-the-linear-reduced-form-fails" class="level3">
+<h3 class="anchored" data-anchor-id="binary-y_2-why-the-linear-reduced-form-fails">3.2 Binary <span class="math inline">\(y_2\)</span>: Why the Linear Reduced Form Fails</h3>
+<p>When <span class="math inline">\(y_2 \in \{0, 1\}\)</span> is binary, the linear reduced-form residual <span class="math inline">\(v_2 = y_2 - \mathbf{z}\boldsymbol{\pi}_2\)</span> takes exactly two values conditional on <span class="math inline">\(\mathbf{z}\)</span>: <span id="eq-poisson-iv-5"><span class="math display">\[v_2 \mid \mathbf{z} = \begin{cases} 1 - \mathbf{z}\boldsymbol{\pi}_2 &amp; \text{with probability } p(\mathbf{z}) \\ -\mathbf{z}\boldsymbol{\pi}_2 &amp; \text{with probability } 1 - p(\mathbf{z}) \end{cases} \tag{5}\]</span></span></p>
+<p>The support <span class="math inline">\(\{-\mathbf{z}\boldsymbol{\pi}_2, 1 - \mathbf{z}\boldsymbol{\pi}_2\}\)</span>, the probabilities, and the conditional variance <span class="math inline">\(\mathrm{Var}(v_2 \mid \mathbf{z}) = p(\mathbf{z})[1 - p(\mathbf{z})]\)</span> are all <strong>direct functions of <span class="math inline">\(\mathbf{z}\)</span></strong>.</p>
+<p>As Wooldridge (2010, p.&nbsp;746) emphasizes: &gt; “The assumption that <span class="math inline">\(e_1\)</span> in (18.39) is independent of <span class="math inline">\(v_2\)</span> and <span class="math inline">\(\mathbf{z}\)</span> <strong>rules out most cases where <span class="math inline">\(y_2\)</span> has some discreteness, such as with binary, count, or corner responses.</strong> (In particular, the independence assumption likewise fails unless <span class="math inline">\(v_2\)</span> is independent of <span class="math inline">\(\mathbf{z}\)</span>, and it would be very unusual for a discrete variable to be expressible as a linear equation with additive error independent of <span class="math inline">\(\mathbf{z}\)</span>.)”</p>
+<p>A distribution whose support moves with <span class="math inline">\(\mathbf{z}\)</span> cannot be independent of <span class="math inline">\(\mathbf{z}\)</span> (unless <span class="math inline">\(\boldsymbol{\pi}_2 = \mathbf{0}\)</span>, meaning there is no first stage). Therefore, <span class="math inline">\(v_2 \perp \mathbf{z}\)</span> fails mathematically for any discrete endogenous variable.</p>
+<section id="where-the-independence-assumption-belongs" class="level4">
+<h4 class="anchored" data-anchor-id="where-the-independence-assumption-belongs">Where the Independence Assumption Belongs</h4>
+<p>The issue is not that the observed residual is discrete. The generalized residual of Section 3.4 is also two-valued given <span class="math inline">\(\mathbf{z}\)</span>.</p>
+<p>The critical distinction is <strong>which object independence is asserted about</strong>: - The linear CF asserts independence of the <strong>observed discrete residual</strong> <span class="math inline">\(v_2\)</span>, which is impossible. - Terza’s threshold model asserts independence of the <strong>continuous latent probit error</strong> <span class="math inline">\(v_2 \mid \mathbf{z} \sim N(0, 1)\)</span>, which is the standard assumption of probit models.</p>
+</section>
+<section id="what-survives-the-exogeneity-test" class="level4">
+<h4 class="anchored" data-anchor-id="what-survives-the-exogeneity-test">What Survives: The Exogeneity Test</h4>
+<p>The linear-residual construction remains <strong>fully valid as a Hausman-type exogeneity test</strong> (Wooldridge, 2010, p.&nbsp;744). Under the null hypothesis of exogeneity (<span class="math inline">\(H_0: \rho_1 = 0\)</span>), <span class="math inline">\(c_1\)</span> does not enter the model, so none of the joint independence assumptions are needed. A standard <span class="math inline">\(t\)</span>-test on <span class="math inline">\(\hat{v}_2 = 0\)</span> in the Poisson second stage provides an asymptotically valid test for endogeneity.</p>
+<hr>
+</section>
+</section>
+<section id="terzas-1998-exact-correction" class="level3">
+<h3 class="anchored" data-anchor-id="terzas-1998-exact-correction">3.3 Terza’s (1998) Exact Correction</h3>
+<p>To resolve the discreteness problem, Terza (1998) and Wooldridge (2010, Section 18.5) replace the linear probability model with a <strong>latent threshold model</strong>: <span id="eq-poisson-iv-6"><span class="math display">\[y_2 = \mathbf{1}[\mathbf{z}\boldsymbol{\pi}_2 + v_2 \ge 0], \qquad v_2 \mid \mathbf{z} \sim N(0, 1) \tag{6}\]</span></span></p>
+<p>Let <span class="math inline">\((c_1, v_2)\)</span> be jointly normal, mean zero, and independent of <span class="math inline">\(\mathbf{z}\)</span>, with <span class="math inline">\(c_1 = \rho_1 v_2 + e_1\)</span>, where <span class="math inline">\(e_1 \mid \mathbf{z}, v_2 \sim N(0, \tau_1^2 - \rho_1^2)\)</span>.</p>
+<p>Conditioning on the latent error <span class="math inline">\(v_2\)</span> yields: <span class="math display">\[E(y_1 \mid \mathbf{z}, v_2) = \exp\bigl((\tau_1^2 - \rho_1^2)/2 + \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2\bigr)\exp(\rho_1 v_2)\]</span></p>
+<p>Averaging over the truncated normal distribution of <span class="math inline">\(v_2\)</span> conditional on the observed binary outcome <span class="math inline">\(y_2 \in \{0, 1\}\)</span> gives the exact conditional mean: <span id="eq-poisson-iv-7"><span class="math display">\[E(y_1 \mid \mathbf{z}, y_2) = \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2) \cdot h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1) \tag{7}\]</span></span></p>
+<p>where: <span id="eq-poisson-iv-8"><span class="math display">\[h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1) = \exp(\rho_1^2 / 2) \left[ y_2 \frac{\Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} + (1 - y_2) \frac{1 - \Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2)} \right] \tag{8}\]</span></span></p>
+<p>Here <span class="math inline">\(\Phi(\cdot)\)</span> denotes the standard normal CDF, <span class="math inline">\(\rho_1 = \mathrm{Cov}(c_1, v_2)\)</span> is a projection coefficient on the scale of the probit index, and <span class="math inline">\(\exp(\rho_1^2 / 2)\)</span> is the lognormal correction factor.</p>
+<section id="estimation-via-1d-profile-likelihood-with-offset" class="level4">
+<h4 class="anchored" data-anchor-id="estimation-via-1d-profile-likelihood-with-offset">Estimation via 1D Profile Likelihood with Offset</h4>
+<p>Notice that for any fixed value of <span class="math inline">\(\rho_1\)</span>, <span class="math inline">\(\log h(y_2, \mathbf{z}\hat{\boldsymbol{\pi}}_2, \rho_1)\)</span> is a known data column. The conditional mean can be written as: <span id="eq-poisson-iv-9"><span class="math display">\[E(y_1 \mid \mathbf{z}, y_2, \alpha_i) = \exp\bigl(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \alpha_i + \log h(\rho_1)\bigr) \tag{9}\]</span></span></p>
+<p>This is a standard Poisson regression with an <strong>offset</strong>.</p>
+<p>Because <span class="math inline">\(h(\cdot)\)</span> enters multiplicatively, individual fixed effects factor out in closed form: <span class="math display">\[\exp(\hat{\alpha}_i) = \frac{\sum_t y_{1,it}}{\sum_t \exp(\mathbf{z}_{1,it}\boldsymbol{\delta}_1 + \alpha_1 y_{2,it}) h_{it}(\rho_1)}\]</span></p>
+<p>Fixed effects are absorbed without an incidental parameters problem. The full model is estimated by profiling out <span class="math inline">\((\boldsymbol{\delta}_1, \alpha_1)\)</span> and optimizing over the single scalar <span class="math inline">\(\rho_1 \in [-2, 2]\)</span> using 1D optimization.</p>
+</section>
+<section id="terzas-estimators-and-fiml" class="level4">
+<h4 class="anchored" data-anchor-id="terzas-estimators-and-fiml">Terza’s Estimators and FIML</h4>
+<p>Terza (1998) proposes three estimators: 1. <strong>Full-Information Maximum Likelihood (FIML):</strong> Evaluates the joint likelihood of <span class="math inline">\(y_1\)</span> and <span class="math inline">\(y_2\)</span> by integrating out <span class="math inline">\(v_2\)</span> via Gauss–Hermite quadrature. 2. <strong>Two-Stage Method of Moments / QMLE:</strong> The two-step estimator above (probit followed by QMLE on <a href="#eq-poisson-iv-7" class="quarto-xref">Equation&nbsp;7</a>). 3. <strong>Nonlinear Weighted Least Squares:</strong> For the fully parametric specification.</p>
+<p>In panel data, FIML has two major drawbacks: - It requires the full Poisson density inside the quadrature integral, losing QMLE robustness to overdispersion. - It cannot absorb fixed effects; entering unit dummies destroys likelihood separability, leading to severe incidental parameters bias and convergence failures.</p>
+<p>By contrast, the two-step profile QMLE concentrates out fixed effects cleanly.</p>
+<hr>
+</section>
+</section>
+<section id="generalized-residual-cf-and-the-mundlak-device" class="level3">
+<h3 class="anchored" data-anchor-id="generalized-residual-cf-and-the-mundlak-device">3.4 Generalized-Residual CF and the Mundlak Device</h3>
+<p>A first-order Taylor expansion of <span class="math inline">\(h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1)\)</span> around <span class="math inline">\(\rho_1 = 0\)</span> yields: <span id="eq-poisson-iv-10"><span class="math display">\[\left. \frac{\partial}{\partial \rho_1} \frac{\Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} \right|_{\rho_1 = 0} = \frac{\phi(\mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} \equiv \lambda(\mathbf{z}\boldsymbol{\pi}_2) \tag{10}\]</span></span> <span class="math display">\[\left. \frac{\partial}{\partial \rho_1} \frac{1 - \Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2)} \right|_{\rho_1 = 0} = -\frac{\phi(\mathbf{z}\boldsymbol{\pi}_2)}{1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2)} = -\lambda(-\mathbf{z}\boldsymbol{\pi}_2)\]</span></p>
+<p>Since <span class="math inline">\(h(y_2, \mathbf{z}\boldsymbol{\pi}_2, 0) = 1\)</span> and <span class="math inline">\(\left.\frac{d}{d\rho_1}\exp(\rho_1^2/2)\right|_{\rho_1=0} = 0\)</span>, we have: <span id="eq-poisson-iv-11"><span class="math display">\[h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1) \approx 1 + \rho_1 \hat{r}_2 \tag{11}\]</span></span></p>
+<p>where <span class="math inline">\(\hat{r}_2\)</span> is the <strong>generalized residual</strong> (Gourieroux, Monfort, Renault, and Trognon, 1987): <span class="math display">\[\hat{r}_2 = y_2 \frac{\phi(\mathbf{z}\hat{\boldsymbol{\pi}}_2)}{\Phi(\mathbf{z}\hat{\boldsymbol{\pi}}_2)} - (1 - y_2)\frac{\phi(\mathbf{z}\hat{\boldsymbol{\pi}}_2)}{1 - \Phi(\mathbf{z}\hat{\boldsymbol{\pi}}_2)}\]</span></p>
+<p>Using <span class="math inline">\(1 + u \approx \exp(u)\)</span> for small <span class="math inline">\(u = \rho_1 \hat{r}_2\)</span>, the conditional mean becomes: <span class="math display">\[E(y_1 \mid \mathbf{z}, y_2) \approx \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{r}_2)\]</span></p>
+<p>The generalized-residual CF is a <strong>first-order local approximation to Terza’s exact correction with error <span class="math inline">\(O(\rho_1^2)\)</span></strong>.</p>
+<section id="probit-vs.-logit-generalized-residuals" class="level4">
+<h4 class="anchored" data-anchor-id="probit-vs.-logit-generalized-residuals">Probit vs.&nbsp;Logit Generalized Residuals</h4>
+<p>For a <strong>logit</strong> first stage (<span class="math inline">\(\Lambda(\eta) = \frac{1}{1 + e^{-\eta}}\)</span>), the generalized residual collapses algebraically: <span id="eq-poisson-iv-12"><span class="math display">\[\hat{r}_2 = y_2 \frac{\Lambda'(\eta)}{\Lambda(\eta)} - (1 - y_2)\frac{\Lambda'(\eta)}{1 - \Lambda(\eta)} = y_2 (1 - \hat{p}_2) - (1 - y_2)\hat{p}_2 = y_2 - \hat{p}_2 \tag{12}\]</span></span></p>
+<p>The logit generalized residual is simply the <strong>raw response residual</strong> (<span class="math inline">\(y_2 - \hat{p}_2\)</span>).</p>
+</section>
+<section id="dealing-with-panel-fixed-effects-the-mundlak-device" class="level4">
+<h4 class="anchored" data-anchor-id="dealing-with-panel-fixed-effects-the-mundlak-device">Dealing with Panel Fixed Effects: The Mundlak Device</h4>
+<p>In short panels (<span class="math inline">\(T\)</span> small, <span class="math inline">\(N \to \infty\)</span>), estimating individual unit dummies in a nonlinear first stage (probit or logit) suffers from the <strong>incidental parameters problem</strong>, producing heavily biased first-stage estimates and distorted generalized residuals.</p>
+<p>As Lin and Wooldridge (2019) show, the standard solution is the <strong>Mundlak device</strong> (Correlated Random Effects): 1. Add the unit-specific time averages of all time-varying exogenous covariates and instruments: <span class="math display">\[\mathbf{w}_{it} = (1, \mathbf{z}_{it}, \bar{\mathbf{z}}_i)\]</span> 2. Estimate a pooled probit or logit model on <span class="math inline">\(\mathbf{w}_{it}\)</span> and compute the generalized residuals <span class="math inline">\(\hat{r}_{2,it}\)</span>. 3. Include <span class="math inline">\(\hat{r}_{2,it}\)</span> in standard fixed-effects Poisson regression, where fixed effects are absorbed in the second stage where Poisson QMLE is fully consistent.</p>
+<hr>
+</section>
+</section>
+<section id="multiplicative-moment-gmm" class="level3">
+<h3 class="anchored" data-anchor-id="multiplicative-moment-gmm">3.5 Multiplicative-Moment GMM</h3>
+<p>Instead of a control function, Mullahy (1997) proposes multiplicative moment conditions: <span id="eq-poisson-iv-13"><span class="math display">\[E\left[ \mathbf{z}' \left( y_1 \exp(-\mathbf{z}_1\boldsymbol{\delta}_1 - \alpha_1 y_2) - 1 \right) \right] = \mathbf{0} \tag{13}\]</span></span></p>
+<p>Under <span class="math inline">\(E[\exp(c_1) \mid \mathbf{z}] = 1\)</span>, this condition holds without requiring the first-stage model for <span class="math inline">\(y_2\)</span> to be correctly specified.</p>
+<section id="panel-fixed-effects-via-quasi-differencing" class="level4">
+<h4 class="anchored" data-anchor-id="panel-fixed-effects-via-quasi-differencing">Panel Fixed Effects via Quasi-Differencing</h4>
+<p>In panel data with unobserved individual heterogeneity <span class="math inline">\(\eta_i\)</span>, <span class="math inline">\(E[y_{it} \mid \mathbf{z}_i, \eta_i] = \eta_i \exp(\mathbf{x}_{it}\boldsymbol{\beta})\)</span>. Individual effects cannot be removed by additive demeaning; they must be eliminated via <strong>multiplicative quasi-differencing</strong> (Wooldridge, 2010): <span id="eq-poisson-iv-14"><span class="math display">\[E\left[ \mathbf{z}_{it}' \left( y_{it} \frac{\exp(\mathbf{x}_{is}\boldsymbol{\beta})}{\exp(\mathbf{x}_{it}\boldsymbol{\beta})} - y_{is} \right) \right] = \mathbf{0} \tag{14}\]</span></span></p>
+<p>This requires repeated time periods and strict exogeneity of instruments across periods.</p>
+<hr>
+</section>
+</section>
+</section>
+<section id="why-recommend-generalized-residuals-instead-of-exact-terza" class="level2">
+<h2 class="anchored" data-anchor-id="why-recommend-generalized-residuals-instead-of-exact-terza">4. Why Recommend Generalized Residuals Instead of Exact Terza?</h2>
+<p>Given that Terza’s (1998) correction is theoretically exact under bivariate normality, why do applied econometricians and textbooks (Wooldridge, 2010, 2014; Lin and Wooldridge, 2019) frequently recommend the <strong>Generalized-Residual Control Function</strong>?</p>
+<p>There are five key reasons:</p>
+<section id="built-in-hausman-exogeneity-test-in-a-single-step" class="level3">
+<h3 class="anchored" data-anchor-id="built-in-hausman-exogeneity-test-in-a-single-step">1. Built-in Hausman Exogeneity Test in a Single Step</h3>
+<p>In the generalized residual model: <span class="math display">\[\log E(y_1 \mid \mathbf{z}, y_2) = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{r}_2\]</span></p>
+<p>The coefficient on <span class="math inline">\(\hat{r}_2\)</span> estimates <span class="math inline">\(\rho_1\)</span>, and its <span class="math inline">\(t\)</span>-statistic is a <strong>direct, asymptotically valid variable-addition test for exogeneity</strong> (<span class="math inline">\(H_0: \rho_1 = 0\)</span>). - Under <span class="math inline">\(H_0\)</span>, none of the joint normality or reduced-form assumptions are required (Wooldridge, 2010, p.&nbsp;744). - Terza’s exact method does not yield a simple linear <span class="math inline">\(t\)</span>-statistic directly beside <span class="math inline">\(\hat{\alpha}_1\)</span>.</p>
+</section>
+<section id="standard-software-drop-in" class="level3">
+<h3 class="anchored" data-anchor-id="standard-software-drop-in">2. Standard Software Drop-in</h3>
+<ul>
+<li><strong>Generalized Residual:</strong> Fits directly in standard software without custom numerical optimization.</li>
+<li><strong>Terza’s Exact 2-Step:</strong> Requires writing a custom 1D profile likelihood wrapper to search over <span class="math inline">\(\rho_1\)</span> with an offset.</li>
+</ul>
+</section>
+<section id="distributional-flexibility-beyond-the-probit-link" class="level3">
+<h3 class="anchored" data-anchor-id="distributional-flexibility-beyond-the-probit-link">3. Distributional Flexibility: Beyond the Probit Link</h3>
+<ul>
+<li><strong>Terza’s <span class="math inline">\(h(\cdot)\)</span> is strictly probit-specific:</strong> The formula in <a href="#eq-poisson-iv-8" class="quarto-xref">Equation&nbsp;8</a> is derived exclusively from truncated moments of a bivariate normal distribution. There is no known closed-form analogue for logit or other distributions.</li>
+<li><strong>Generalized residuals apply to any GLM link:</strong> For logit, the generalized residual collapses to the simple <strong>raw response residual</strong> <span class="math inline">\(\hat{r}_2 = y_2 - \hat{p}_2\)</span>, requiring zero Mills-ratio machinery.</li>
+</ul>
+</section>
+<section id="robustness-against-non-normality-curvature-misspecification" class="level3">
+<h3 class="anchored" data-anchor-id="robustness-against-non-normality-curvature-misspecification">4. Robustness Against Non-Normality (Curvature Misspecification)</h3>
+<ul>
+<li>Terza’s correction is <strong>exact only under strict joint bivariate normality</strong>.</li>
+<li>If the true unobservables <span class="math inline">\((c_1, v_2)\)</span> are non-normal (e.g., skewed or heavy-tailed), imposing the full nonlinear curvature of <span class="math inline">\(\exp(\rho_1^2/2)\)</span> and the <span class="math inline">\(\Phi\)</span>-ratios can overfit and perform <em>worse</em> than the first-order linear approximation <span class="math inline">\(\rho_1 \hat{r}_2\)</span>.</li>
+<li>The generalized residual avoids imposing higher-order moments of the normal distribution on the structural mean.</li>
+</ul>
+</section>
+<section id="negligible-approximation-error-for-moderate-confounding" class="level3">
+<h3 class="anchored" data-anchor-id="negligible-approximation-error-for-moderate-confounding">5. Negligible Approximation Error for Moderate Confounding</h3>
+<p>The approximation error of the generalized residual is <span class="math inline">\(O(\rho_1^2)\)</span>: - For moderate endogeneity (<span class="math inline">\(|\rho_1| \le 0.3\)</span>), the approximation is practically indistinguishable from the exact method (bias <span class="math inline">\(&lt; 2\%\)</span>). - The error is asymmetric and negligible for negative confounding (<span class="math inline">\(\rho_1 &lt; 0\)</span>).</p>
+</section>
+<section id="practical-strategy" class="level3">
+<h3 class="anchored" data-anchor-id="practical-strategy">Practical Strategy</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Situation</th>
+<th style="text-align: left;">Recommended Estimator</th>
+<th style="text-align: left;">Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Routine empirical analysis &amp; testing</strong></td>
+<td style="text-align: left;"><strong>Generalized-Residual CF</strong></td>
+<td style="text-align: left;">Fast, standard 1-line command, built-in <span class="math inline">\(t\)</span>-test for <span class="math inline">\(\rho_1 = 0\)</span>, works with Logit (<span class="math inline">\(y_2 - \hat{p}_2\)</span>), handles panel FE via Mundlak.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Large, positive confounding (<span class="math inline">\(\hat{\rho}_1 &gt; 0.4\)</span>)</strong></td>
+<td style="text-align: left;"><strong>Terza Exact Profiled 2-Step</strong></td>
+<td style="text-align: left;">When <span class="math inline">\(\hat{\rho}_1\)</span> from the generalized residual comes back large and positive, fit Terza’s exact profile model alongside it to purge the <span class="math inline">\(O(\rho_1^2)\)</span> Taylor error.</td>
+</tr>
+</tbody>
+</table>
+<hr>
+</section>
+</section>
+<section id="overview-and-comparison-of-the-four-estimators" class="level2">
+<h2 class="anchored" data-anchor-id="overview-and-comparison-of-the-four-estimators">5. Overview and Comparison of the Four Estimators</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 13%">
+<col style="width: 17%">
+<col style="width: 17%">
+<col style="width: 17%">
+<col style="width: 17%">
+<col style="width: 17%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Estimator</th>
+<th style="text-align: center;">First Stage</th>
+<th style="text-align: center;">Second Stage Adjustment</th>
+<th style="text-align: center;">Consistency (Binary <span class="math inline">\(y_2\)</span>)</th>
+<th style="text-align: center;">Panel Fixed Effects</th>
+<th style="text-align: center;">Standard Errors</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Linear CF</strong></td>
+<td style="text-align: center;">Linear OLS</td>
+<td style="text-align: center;">Add <span class="math inline">\(\hat{v}_2\)</span> inside <span class="math inline">\(\exp(\cdot)\)</span></td>
+<td style="text-align: center;">Inconsistent</td>
+<td style="text-align: center;">Yes (Poisson with FE)</td>
+<td style="text-align: center;">Cluster Bootstrap</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Generalized CF</strong></td>
+<td style="text-align: center;">Probit / Logit (with Mundlak)</td>
+<td style="text-align: center;">Add <span class="math inline">\(\hat{r}_2\)</span> inside <span class="math inline">\(\exp(\cdot)\)</span></td>
+<td style="text-align: center;">Approx. (<span class="math inline">\(O(\rho_1^2)\)</span> error)</td>
+<td style="text-align: center;">Yes (Mundlak in 1st stage)</td>
+<td style="text-align: center;">Cluster Bootstrap</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Terza Exact 2-Step</strong></td>
+<td style="text-align: center;">Probit</td>
+<td style="text-align: center;">Profile <span class="math inline">\(\rho_1\)</span> with offset <span class="math inline">\(\log h(\rho_1)\)</span></td>
+<td style="text-align: center;"><strong>Yes</strong> (under normality)</td>
+<td style="text-align: center;">Yes (Poisson with offset)</td>
+<td style="text-align: center;">Cluster Bootstrap</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Multiplicative GMM</strong></td>
+<td style="text-align: center;">Any (<span class="math inline">\(\hat{p}_2\)</span>)</td>
+<td style="text-align: center;">Instrument <span class="math inline">\(y_2\)</span> in moments</td>
+<td style="text-align: center;"><strong>Yes</strong> (distribution-free)</td>
+<td style="text-align: center;">Needs quasi-differencing</td>
+<td style="text-align: center;">Sandwich vcov</td>
+</tr>
+</tbody>
+</table>
+<hr>
+</section>
+<section id="practical-guidance-an-observable-diagnostic-workflow" class="level2">
+<h2 class="anchored" data-anchor-id="practical-guidance-an-observable-diagnostic-workflow">6. Practical Guidance: An Observable Diagnostic Workflow</h2>
+<p>In empirical practice, we do not need to guess the confounding parameter <span class="math inline">\(\rho_1\)</span>—<strong>it is estimated directly as the coefficient on the generalized residual <span class="math inline">\(\hat{r}_2\)</span> in your second-stage Poisson regression table.</strong></p>
+<p>A standard applied workflow proceeds in three actionable steps:</p>
+<ol type="1">
+<li><p><strong>Estimate the Generalized-Residual CF as the baseline model:</strong></p>
+<ul>
+<li>For continuous <span class="math inline">\(y_2\)</span>: Add the OLS residual <span class="math inline">\(\hat{v}_2\)</span>.</li>
+<li>For binary <span class="math inline">\(y_2\)</span>: Add the generalized residual <span class="math inline">\(\hat{r}_2\)</span> (or raw response residual <span class="math inline">\(y_2 - \hat{p}_2\)</span> if using logit).</li>
+<li>In short panels (<span class="math inline">\(T\)</span> small): Use the Mundlak device (<span class="math inline">\(\mathbf{w}_{it} = (1, \mathbf{z}_{it}, \bar{\mathbf{z}}_i)\)</span>) in the first stage to avoid incidental parameters bias.</li>
+</ul></li>
+<li><p><strong>Check the <span class="math inline">\(t\)</span>-statistic on the residual (Exogeneity Test):</strong><br>
+The <span class="math inline">\(t\)</span>-statistic on <span class="math inline">\(\hat{r}_2\)</span> (testing <span class="math inline">\(\hat{\rho}_1 = 0\)</span>) is an asymptotically valid Hausman-type exogeneity test. If the coefficient is statistically indistinguishable from zero (<span class="math inline">\(p &gt; 0.05\)</span>), exogeneity is not rejected, and standard fixed-effects Poisson is supported.</p></li>
+<li><p><strong>Check the estimated coefficient <span class="math inline">\(\hat{\rho}_1\)</span> on <span class="math inline">\(\hat{r}_2\)</span> (Approximation Diagnostic):</strong></p>
+<ul>
+<li><strong>If <span class="math inline">\(\hat{\rho}_1\)</span> is small (<span class="math inline">\(|\hat{\rho}_1| \le 0.3\)</span>) or negative (<span class="math inline">\(\hat{\rho}_1 &lt; 0\)</span>):</strong> The first-order <span class="math inline">\(O(\rho_1^2)\)</span> approximation error is practically negligible (<span class="math inline">\(&lt; 2\%\)</span>). The Generalized-Residual CF is fully adequate.</li>
+<li><strong>If <span class="math inline">\(\hat{\rho}_1\)</span> is large and positive (<span class="math inline">\(\hat{\rho}_1 &gt; 0.4\)</span>):</strong> The linear Taylor approximation may overstate the treatment effect <span class="math inline">\(\alpha_1\)</span>. Fit Terza’s exact 2-step profile model alongside it as a robustness check.</li>
+</ul></li>
+<li><p><strong>Inference:</strong><br>
+Always compute standard errors using a cluster bootstrap over panel units to account for first-stage estimation uncertainty.</p></li>
+</ol>
+<hr>
+</section>
+<section id="implementation-demos-in-r-and-stata" class="level2">
+<h2 class="anchored" data-anchor-id="implementation-demos-in-r-and-stata">7. Implementation Demos in R and Stata</h2>
+<p>Below are concise, copy-pasteable implementation templates in R (<code>fixest</code>) and Stata (<code>ppmlhdfe</code>).</p>
+<section id="r-implementation-demo-fixest" class="level3">
+<h3 class="anchored" data-anchor-id="r-implementation-demo-fixest">7.1 R Implementation Demo (<code>fixest</code>)</h3>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fixest)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Simulate a short panel dataset (50 units, 5 periods)</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>n_i <span class="ot">&lt;-</span> <span class="dv">50</span>; n_t <span class="ot">&lt;-</span> <span class="dv">5</span>; n <span class="ot">&lt;-</span> n_i <span class="sc">*</span> n_t</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>id   <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>n_i, <span class="at">each =</span> n_t)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>time <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>n_t, <span class="at">times =</span> n_i)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>z    <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n) <span class="co"># Excluded instrument</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>x    <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n) <span class="co"># Exogenous covariate</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>c_i  <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n_i)[id]</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>e2   <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Endogenous binary treatment and Poisson outcome</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>y2     <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(<span class="fl">0.8</span> <span class="sc">*</span> z <span class="sc">+</span> <span class="fl">0.5</span> <span class="sc">*</span> x <span class="sc">+</span> c_i <span class="sc">+</span> e2 <span class="sc">&gt;=</span> <span class="dv">0</span>)</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>lambda <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="fl">0.5</span> <span class="sc">+</span> <span class="fl">0.8</span> <span class="sc">*</span> y2 <span class="sc">+</span> <span class="fl">0.4</span> <span class="sc">*</span> x <span class="sc">+</span> c_i <span class="sc">+</span> <span class="fl">0.2</span> <span class="sc">*</span> e2)</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>y1     <span class="ot">&lt;-</span> <span class="fu">rpois</span>(n, lambda)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>df     <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">y1 =</span> y1, <span class="at">y2 =</span> y2, <span class="at">z =</span> z, <span class="at">x =</span> x, <span class="at">id =</span> id, <span class="at">time =</span> time)</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Mundlak Device: calculate unit means</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>mean_z <span class="ot">&lt;-</span> <span class="fu">ave</span>(df<span class="sc">$</span>z, df<span class="sc">$</span>id)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>mean_x <span class="ot">&lt;-</span> <span class="fu">ave</span>(df<span class="sc">$</span>x, df<span class="sc">$</span>id)</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Step 1: Probit First Stage &amp; Generalized Residual</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>fs <span class="ot">&lt;-</span> <span class="fu">feglm</span>(y2 <span class="sc">~</span> z <span class="sc">+</span> x <span class="sc">+</span> mean_z <span class="sc">+</span> mean_x, <span class="at">data =</span> df, <span class="at">family =</span> <span class="fu">binomial</span>(probit))</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>eta <span class="ot">&lt;-</span> <span class="fu">predict</span>(fs, <span class="at">type =</span> <span class="st">"link"</span>)</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>r2 <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(df<span class="sc">$</span>y2 <span class="sc">==</span> <span class="dv">1</span>, <span class="fu">dnorm</span>(eta) <span class="sc">/</span> <span class="fu">pnorm</span>(eta), <span class="sc">-</span><span class="fu">dnorm</span>(eta) <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">-</span> <span class="fu">pnorm</span>(eta)))</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co"># (Note: If using Logit first stage, r2 is simply y2 - predict(fs, type = "response"))</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Step 2: Second Stage Poisson with High-Dimensional Fixed Effects</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>m_cf <span class="ot">&lt;-</span> <span class="fu">fepois</span>(y1 <span class="sc">~</span> y2 <span class="sc">+</span> r2 <span class="sc">+</span> x <span class="sc">|</span> id <span class="sc">+</span> time, <span class="at">data =</span> df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>NOTE: 1/0 fixed-effect (5 observations) removed because of only 0 outcomes or singletons.</code></pre>
+</div>
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">etable</span>(m_cf, <span class="at">headers =</span> <span class="st">"Generalized Residual CF"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>                                   m_cf
+                Generalized Residual CF
+Dependent Var.:                      y1
+                                       
+y2                   0.7503*** (0.1707)
+r2                     0.1937. (0.1026)
+x                    0.3992*** (0.0394)
+Fixed-Effects:       ------------------
+id                                  Yes
+time                                Yes
+_______________      __________________
+S.E. type                           IID
+Observations                        245
+Squared Cor.                    0.91694
+Pseudo R2                       0.68513
+BIC                             1,224.1
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+</div>
+</section>
+<section id="stata-implementation-demo-ppmlhdfe" class="level3">
+<h3 class="anchored" data-anchor-id="stata-implementation-demo-ppmlhdfe">7.2 Stata Implementation Demo (<code>ppmlhdfe</code>)</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode stata code-with-copy"><code class="sourceCode stata"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>* ==============================================================================</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>* Generalized-Residual Control Function <span class="kw">in</span> Stata <span class="kw">using</span> ppmlhdfe</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>* ==============================================================================</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>* 1. Mundlak Device: Calculate unit-<span class="dv">level</span> <span class="kw">means</span> <span class="kw">of</span> time-varying variables</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="kw">bysort</span> id: <span class="kw">egen</span> mean_z = <span class="kw">mean</span>(z)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="kw">bysort</span> id: <span class="kw">egen</span> mean_x = <span class="kw">mean</span>(x)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>* 2. Step 1: Probit First Stage <span class="kw">on</span> pooled <span class="kw">data</span> with Mundlak <span class="kw">means</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="kw">probit</span> y2 z x mean_z mean_x</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="kw">predict</span> <span class="kw">double</span> eta, <span class="kw">xb</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="kw">gen</span> <span class="kw">double</span> r2 = <span class="fu">cond</span>(y2 == 1, <span class="fu">normalden</span>(eta)/<span class="fu">normal</span>(eta), -<span class="fu">normalden</span>(eta)/(1 - <span class="fu">normal</span>(eta)))</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>* (Alternatively, <span class="kw">for</span> a Logit first stage: raw response residual)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>* <span class="kw">logit</span> y2 z x mean_z mean_x</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>* <span class="kw">predict</span> <span class="kw">double</span> phat, pr</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>* <span class="kw">gen</span> <span class="kw">double</span> r2 = y2 - phat</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>* 3. Step 2: Fixed-Effects Poisson Second Stage</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>ppmlhdfe y1 y2 r2 x, absorb(id time)</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>* 4. Inference: Panel Cluster Bootstrap Program</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a><span class="kw">capture</span> <span class="kw">program</span> <span class="kw">drop</span> boot_poisson_cf</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a><span class="kw">program</span> <span class="kw">define</span> boot_poisson_cf, rclass</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    * First stage</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    <span class="kw">quietly</span> <span class="kw">probit</span> y2 z x mean_z mean_x</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">quietly</span> <span class="kw">predict</span> <span class="kw">double</span> eta_b, <span class="kw">xb</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    <span class="kw">quietly</span> <span class="kw">gen</span> <span class="kw">double</span> r2_b = <span class="fu">cond</span>(y2 == 1, <span class="fu">normalden</span>(eta_b)/<span class="fu">normal</span>(eta_b), -<span class="fu">normalden</span>(eta_b)/(1 - <span class="fu">normal</span>(eta_b)))</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>    * Second stage</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>    <span class="kw">quietly</span> ppmlhdfe y1 y2 r2_b x, absorb(id time)</span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span> <span class="fu">scalar</span> alpha1 = _b[y2]</span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span> <span class="fu">scalar</span> rho1   = _b[r2_b]</span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    <span class="kw">drop</span> eta_b r2_b</span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a><span class="kw">bootstrap</span> <span class="fu">r</span>(alpha1) <span class="fu">r</span>(rho1), reps(500) <span class="kw">cluster</span>(id) idcluster(new_id): boot_poisson_cf</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+
+<!-- -->
+
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "IV in Poisson with Fixed Effects"</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="an">format:</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">  html:</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">    toc: true</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">    toc-depth: 3</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">    code-fold: show</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">    code-tools: true</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="co">    math: mathjax</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: false</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fixest)</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(MASS)</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>Poisson regression specifies the conditional mean as an exponential function:</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>$$E(y \mid \mathbf{x}) = \exp(\mathbf{x}\boldsymbol{\beta})$$</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>As a quasi-maximum likelihood estimator (QMLE), Poisson regression requires only that the conditional mean is correctly specified; the true count distribution does not need to follow a Poisson distribution, and standard errors are easily made robust to arbitrary overdispersion or heteroskedasticity.</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>However, when an explanatory variable is **endogenous**—correlated with unobserved omitted factors—standard linear two-stage least squares (2SLS) intuition fails. Because the conditional mean is nonlinear, unobserved confounders enter multiplicatively inside the exponential function.</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>This chapter covers:</span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Why linear 2SLS intuition fails in nonlinear exponential models.</span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>The control function approach for continuous vs. binary endogenous variables.</span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Terza's (1998) exact correction and its profile-likelihood implementation.</span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>Generalized residuals as a first-order local approximation, logit response residuals, and the Mundlak device for panel fixed effects (Lin and Wooldridge, 2019).</span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>Why applied econometrics generally recommends the generalized residual approach over the exact Terza correction.</span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a><span class="ss">6. </span>Multiplicative-moment GMM (Mullahy, 1997), quasi-differencing, and bias-variance trade-offs.</span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a><span class="ss">7. </span>Step-by-step implementation demos in R (<span class="in">`fixest`</span>) and Stata (<span class="in">`ppmlhdfe`</span>).</span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. The Model and Setup</span></span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>Let $y_1$ denote the count outcome, $y_2$ the endogenous explanatory variable, and $\mathbf{z} = (\mathbf{z}_1, \mathbf{z}_2)$ the vector of exogenous variables ($\mathbf{z}_1$ included in the structural equation, $\mathbf{z}_2$ excluded instruments).</span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>The structural conditional mean is:</span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}_1, y_2, c_1) = \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + c_1)$$ {#eq-poisson-iv-1}</span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a>where $c_1$ is an unobserved omitted variable correlated with $y_2$. Our primary estimand of interest is $\alpha_1$, the structural semi-elasticity of $y_1$ with respect to $y_2$.</span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a><span class="fu">### Subscripts Index Equations</span></span>
+<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a>Following the simultaneous-equations convention of Wooldridge (2010, Chapter 18), **subscripts index equations rather than individual variables**:</span>
+<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Equation 1 (Structural equation):** outcome $y_1$, parameters $(\boldsymbol{\delta}_1, \alpha_1)$, unobserved error $c_1$.</span>
+<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Equation 2 (Reduced-form equation):** outcome $y_2$, coefficients $\boldsymbol{\pi}_2$, reduced-form error $v_2$.</span>
+<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Role <span class="pp">|</span> Linear IV Notation <span class="pp">|</span> Nonlinear Notation Here <span class="pp">|</span> Description <span class="pp">|</span></span>
+<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a><span class="pp">|:---|:---:|:---:|:---|</span></span>
+<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Outcome (the count) <span class="pp">|</span> $Y$ <span class="pp">|</span> $y_1$ <span class="pp">|</span> Dependent variable in structural equation <span class="pp">|</span></span>
+<span id="cb6-58"><a href="#cb6-58" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Endogenous regressor <span class="pp">|</span> $W$ or $D$ <span class="pp">|</span> $y_2$ <span class="pp">|</span> Explanatory variable correlated with $c_1$ <span class="pp">|</span></span>
+<span id="cb6-59"><a href="#cb6-59" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Excluded instrument <span class="pp">|</span> $Z$ <span class="pp">|</span> $\mathbf{z}_2$ <span class="pp">|</span> Exogenous instrument excluded from Eq. 1 <span class="pp">|</span></span>
+<span id="cb6-60"><a href="#cb6-60" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Included exogenous <span class="pp">|</span> $X$ <span class="pp">|</span> $\mathbf{z}_1$ <span class="pp">|</span> Exogenous covariates included in Eq. 1 <span class="pp">|</span></span>
+<span id="cb6-61"><a href="#cb6-61" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Reduced-form error <span class="pp">|</span> $V$ <span class="pp">|</span> $v_2$ <span class="pp">|</span> Error from projecting $y_2$ on $\mathbf{z}$ <span class="pp">|</span></span>
+<span id="cb6-62"><a href="#cb6-62" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Structural unobservable <span class="pp">|</span> $U$ <span class="pp">|</span> $c_1$ <span class="pp">|</span> Confounder correlated with $y_2$ <span class="pp">|</span></span>
+<span id="cb6-63"><a href="#cb6-63" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Endogeneity parameter <span class="pp">|</span> $\rho$ <span class="pp">|</span> $\rho_1$ <span class="pp">|</span> Projection coefficient: $c_1 = \rho_1 v_2 + e_1$ <span class="pp">|</span></span>
+<span id="cb6-64"><a href="#cb6-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-65"><a href="#cb6-65" aria-hidden="true" tabindex="-1"></a>Two standard deviations from Wooldridge's notation are maintained for clarity:</span>
+<span id="cb6-66"><a href="#cb6-66" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Wooldridge writes the coefficient on $y_2$ as $\gamma_1$; we write $\alpha_1$ to align with standard treatment effect notation.</span>
+<span id="cb6-67"><a href="#cb6-67" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Where Wooldridge writes $\mathbf{x}_1\boldsymbol{\beta}_1$, we write $\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2$.</span>
+<span id="cb6-68"><a href="#cb6-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-69"><a href="#cb6-69" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb6-70"><a href="#cb6-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-71"><a href="#cb6-71" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2. Theoretical Foundations: Control Functions vs. GMM</span></span>
+<span id="cb6-72"><a href="#cb6-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-73"><a href="#cb6-73" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.1 The Linear Second Stage: Control Function *is* 2SLS</span></span>
+<span id="cb6-74"><a href="#cb6-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-75"><a href="#cb6-75" aria-hidden="true" tabindex="-1"></a>To see where the nonlinear complication begins, consider first the linear model:</span>
+<span id="cb6-76"><a href="#cb6-76" aria-hidden="true" tabindex="-1"></a>$$y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \varepsilon_1, \qquad E(\mathbf{z}'\varepsilon_1) = \mathbf{0}$$</span>
+<span id="cb6-77"><a href="#cb6-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-78"><a href="#cb6-78" aria-hidden="true" tabindex="-1"></a>Two-stage least squares (2SLS) replaces $y_2$ with its linear projection $\hat{y}_2 = \mathbf{z}\hat{\boldsymbol{\pi}}_2$:</span>
+<span id="cb6-79"><a href="#cb6-79" aria-hidden="true" tabindex="-1"></a>$$y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 \hat{y}_2 + (\varepsilon_1 + \alpha_1 \hat{v}_2)$$</span>
+<span id="cb6-80"><a href="#cb6-80" aria-hidden="true" tabindex="-1"></a>where $\hat{v}_2 = y_2 - \hat{y}_2$ is the OLS residual.</span>
+<span id="cb6-81"><a href="#cb6-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-82"><a href="#cb6-82" aria-hidden="true" tabindex="-1"></a>Alternatively, the **control function (CF)** approach decomposes the structural error $\varepsilon_1$ via a linear projection on the first-stage residual $v_2$:</span>
+<span id="cb6-83"><a href="#cb6-83" aria-hidden="true" tabindex="-1"></a>$$\varepsilon_1 = \rho_1 v_2 + \eta_1$$</span>
+<span id="cb6-84"><a href="#cb6-84" aria-hidden="true" tabindex="-1"></a>where $\rho_1 = \frac{\mathrm{Cov}(\varepsilon_1, v_2)}{\mathrm{Var}(v_2)}$. By the properties of linear projection, $E(v_2 \eta_1) = 0$ and $E(\mathbf{z}'\eta_1) = E(\mathbf{z}'\varepsilon_1) - \rho_1 E(\mathbf{z}'v_2) = \mathbf{0}$.</span>
+<span id="cb6-85"><a href="#cb6-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-86"><a href="#cb6-86" aria-hidden="true" tabindex="-1"></a>Plugging this into the structural equation yields the augmented regression:</span>
+<span id="cb6-87"><a href="#cb6-87" aria-hidden="true" tabindex="-1"></a>$$y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2 + \eta_1$$</span>
+<span id="cb6-88"><a href="#cb6-88" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-89"><a href="#cb6-89" aria-hidden="true" tabindex="-1"></a>By the **Frisch–Waugh–Lovell (FWL) theorem**, OLS estimation of this augmented regression produces an estimate $\hat{\alpha}_1$ that is **numerically identical to 2SLS**. No additional distributional assumptions are required beyond the standard orthogonality condition $E(\mathbf{z}'\varepsilon_1) = \mathbf{0}$.</span>
+<span id="cb6-90"><a href="#cb6-90" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-91"><a href="#cb6-91" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.2 The Nonlinear Second Stage: Control Function Requires Independence</span></span>
+<span id="cb6-92"><a href="#cb6-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-93"><a href="#cb6-93" aria-hidden="true" tabindex="-1"></a>When the conditional mean is exponential, this automatic numerical equivalence breaks down. </span>
+<span id="cb6-94"><a href="#cb6-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-95"><a href="#cb6-95" aria-hidden="true" tabindex="-1"></a>Substituting the error decomposition $c_1 = \rho_1 v_2 + e_1$ into @eq-poisson-iv-1 yields:</span>
+<span id="cb6-96"><a href="#cb6-96" aria-hidden="true" tabindex="-1"></a>$$\begin{aligned}</span>
+<span id="cb6-97"><a href="#cb6-97" aria-hidden="true" tabindex="-1"></a>E(y_1 \mid \mathbf{z}, y_2, v_2) &amp;= E\left<span class="co">[</span><span class="ot"> \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 v_2 + e_1) \mid \mathbf{z}, y_2, v_2 \right</span><span class="co">]</span> <span class="sc">\\</span></span>
+<span id="cb6-98"><a href="#cb6-98" aria-hidden="true" tabindex="-1"></a>&amp;= \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 v_2) \cdot E\left<span class="co">[</span><span class="ot"> \exp(e_1) \mid \mathbf{z}, y_2, v_2 \right</span><span class="co">]</span></span>
+<span id="cb6-99"><a href="#cb6-99" aria-hidden="true" tabindex="-1"></a>\end{aligned}$$ {#eq-poisson-iv-4}</span>
+<span id="cb6-100"><a href="#cb6-100" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-101"><a href="#cb6-101" aria-hidden="true" tabindex="-1"></a>For the augmented index $\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 v_2$ to correctly specify the conditional mean in a Poisson second stage, the remaining expectation factor must be **strictly constant**:</span>
+<span id="cb6-102"><a href="#cb6-102" aria-hidden="true" tabindex="-1"></a>$$E\left<span class="co">[</span><span class="ot"> \exp(e_1) \mid \mathbf{z}, y_2, v_2 \right</span><span class="co">]</span> = \text{constant}$$</span>
+<span id="cb6-103"><a href="#cb6-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-104"><a href="#cb6-104" aria-hidden="true" tabindex="-1"></a>This is why Wooldridge (2010, Section 18.5) normalizes $E<span class="co">[</span><span class="ot">\exp(e_1)</span><span class="co">]</span> = 1$ rather than $E(e_1) = 0$.</span>
+<span id="cb6-105"><a href="#cb6-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-106"><a href="#cb6-106" aria-hidden="true" tabindex="-1"></a>This condition is a requirement on the **moment-generating function** of $e_1$—a condition across all moments simultaneously, which requires that $e_1$ is **fully independent** of $(\mathbf{z}, v_2)$, and in turn that the reduced-form error $v_2$ is **independent** of $\mathbf{z}$ ($v_2 \perp \mathbf{z}$).</span>
+<span id="cb6-107"><a href="#cb6-107" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-108"><a href="#cb6-108" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Property <span class="pp">|</span> Linear Model (OLS / 2SLS) <span class="pp">|</span> Nonlinear Model (Poisson CF) <span class="pp">|</span></span>
+<span id="cb6-109"><a href="#cb6-109" aria-hidden="true" tabindex="-1"></a><span class="pp">|:---|:---|:---|</span></span>
+<span id="cb6-110"><a href="#cb6-110" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Second stage** <span class="pp">|</span> $y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2$ <span class="pp">|</span> $y_1 \sim \text{Poisson}(\exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2))$ <span class="pp">|</span></span>
+<span id="cb6-111"><a href="#cb6-111" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **CF vs. 2SLS/GMM** | **Identical** (by FWL theorem) | **Different** (FWL does not hold) <span class="pp">|</span></span>
+<span id="cb6-112"><a href="#cb6-112" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Required assumption** | Uncorrelatedness: $E(\mathbf{z}'\varepsilon_1) = \mathbf{0}$ | **Full Independence:** $v_2 \perp \mathbf{z}$ and $e_1 \perp (\mathbf{z}, v_2)$ <span class="pp">|</span></span>
+<span id="cb6-113"><a href="#cb6-113" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Second-stage standard errors** | Valid under $H_0: \rho_1 = 0$ | **Invalid** (must bootstrap generated regressor) <span class="pp">|</span></span>
+<span id="cb6-114"><a href="#cb6-114" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Endogeneity test** <span class="pp">|</span> $t$-statistic on $\hat{v}_2 = 0$ (DWH test) <span class="pp">|</span> $t$-statistic on $\hat{v}_2 = 0$ (Variable addition test) <span class="pp">|</span></span>
+<span id="cb6-115"><a href="#cb6-115" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-116"><a href="#cb6-116" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb6-117"><a href="#cb6-117" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-118"><a href="#cb6-118" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. Estimators for Endogenous Regressors</span></span>
+<span id="cb6-119"><a href="#cb6-119" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-120"><a href="#cb6-120" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.1 Continuous $y_2$: The Linear Reduced Form Holds</span></span>
+<span id="cb6-121"><a href="#cb6-121" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-122"><a href="#cb6-122" aria-hidden="true" tabindex="-1"></a>When $y_2$ is continuous (e.g., hours worked, prices, expenditures), a linear reduced form with additive errors is natural:</span>
+<span id="cb6-123"><a href="#cb6-123" aria-hidden="true" tabindex="-1"></a>$$y_2 = \mathbf{z}\boldsymbol{\pi}_2 + v_2, \qquad c_1 = \rho_1 v_2 + e_1$$ {#eq-poisson-iv-3}</span>
+<span id="cb6-124"><a href="#cb6-124" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-125"><a href="#cb6-125" aria-hidden="true" tabindex="-1"></a>with $v_2 \perp \mathbf{z}$ and $e_1 \perp (\mathbf{z}, v_2)$. Under joint normality of $(c_1, v_2)$, these independence assumptions hold naturally. The structural conditional mean becomes:</span>
+<span id="cb6-126"><a href="#cb6-126" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}_1, y_2, v_2) = \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 v_2)$$ {#eq-poisson-iv-2}</span>
+<span id="cb6-127"><a href="#cb6-127" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-128"><a href="#cb6-128" aria-hidden="true" tabindex="-1"></a>**Estimation Procedure:**</span>
+<span id="cb6-129"><a href="#cb6-129" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Step 1 (First Stage):** Estimate the linear regression $y_2 = \mathbf{z}\boldsymbol{\pi}_2 + v_2$ by OLS (or with fixed effects absorbed) and compute residuals $\hat{v}_2 = y_2 - \mathbf{z}\hat{\boldsymbol{\pi}}_2$.</span>
+<span id="cb6-130"><a href="#cb6-130" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Step 2 (Second Stage):** Estimate Poisson QMLE with $y_2$ and $\hat{v}_2$ entering simultaneously:</span>
+<span id="cb6-131"><a href="#cb6-131" aria-hidden="true" tabindex="-1"></a>   $$y_1 \sim \text{Poisson}(\exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2))$$</span>
+<span id="cb6-132"><a href="#cb6-132" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Inference:** Standard errors must be bootstrapped (e.g., clustered by panel unit) to account for the first-stage estimation uncertainty of $\hat{v}_2$.</span>
+<span id="cb6-133"><a href="#cb6-133" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-134"><a href="#cb6-134" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb6-135"><a href="#cb6-135" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-136"><a href="#cb6-136" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.2 Binary $y_2$: Why the Linear Reduced Form Fails</span></span>
+<span id="cb6-137"><a href="#cb6-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-138"><a href="#cb6-138" aria-hidden="true" tabindex="-1"></a>When $y_2 \in <span class="sc">\{</span>0, 1<span class="sc">\}</span>$ is binary, the linear reduced-form residual $v_2 = y_2 - \mathbf{z}\boldsymbol{\pi}_2$ takes exactly two values conditional on $\mathbf{z}$:</span>
+<span id="cb6-139"><a href="#cb6-139" aria-hidden="true" tabindex="-1"></a>$$v_2 \mid \mathbf{z} = \begin{cases} 1 - \mathbf{z}\boldsymbol{\pi}_2 &amp; \text{with probability } p(\mathbf{z}) <span class="sc">\\</span> -\mathbf{z}\boldsymbol{\pi}_2 &amp; \text{with probability } 1 - p(\mathbf{z}) \end{cases}$$ {#eq-poisson-iv-5}</span>
+<span id="cb6-140"><a href="#cb6-140" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-141"><a href="#cb6-141" aria-hidden="true" tabindex="-1"></a>The support $<span class="sc">\{</span>-\mathbf{z}\boldsymbol{\pi}_2, 1 - \mathbf{z}\boldsymbol{\pi}_2<span class="sc">\}</span>$, the probabilities, and the conditional variance $\mathrm{Var}(v_2 \mid \mathbf{z}) = p(\mathbf{z})<span class="co">[</span><span class="ot">1 - p(\mathbf{z})</span><span class="co">]</span>$ are all **direct functions of $\mathbf{z}$**.</span>
+<span id="cb6-142"><a href="#cb6-142" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-143"><a href="#cb6-143" aria-hidden="true" tabindex="-1"></a>As Wooldridge (2010, p. 746) emphasizes:</span>
+<span id="cb6-144"><a href="#cb6-144" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; "The assumption that $e_1$ in (18.39) is independent of $v_2$ and $\mathbf{z}$ **rules out most cases where $y_2$ has some discreteness, such as with binary, count, or corner responses.** (In particular, the independence assumption likewise fails unless $v_2$ is independent of $\mathbf{z}$, and it would be very unusual for a discrete variable to be expressible as a linear equation with additive error independent of $\mathbf{z}$.)"</span></span>
+<span id="cb6-145"><a href="#cb6-145" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-146"><a href="#cb6-146" aria-hidden="true" tabindex="-1"></a>A distribution whose support moves with $\mathbf{z}$ cannot be independent of $\mathbf{z}$ (unless $\boldsymbol{\pi}_2 = \mathbf{0}$, meaning there is no first stage). Therefore, $v_2 \perp \mathbf{z}$ fails mathematically for any discrete endogenous variable.</span>
+<span id="cb6-147"><a href="#cb6-147" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-148"><a href="#cb6-148" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Where the Independence Assumption Belongs</span></span>
+<span id="cb6-149"><a href="#cb6-149" aria-hidden="true" tabindex="-1"></a>The issue is not that the observed residual is discrete. The generalized residual of Section 3.4 is also two-valued given $\mathbf{z}$. </span>
+<span id="cb6-150"><a href="#cb6-150" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-151"><a href="#cb6-151" aria-hidden="true" tabindex="-1"></a>The critical distinction is **which object independence is asserted about**:</span>
+<span id="cb6-152"><a href="#cb6-152" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The linear CF asserts independence of the **observed discrete residual** $v_2$, which is impossible.</span>
+<span id="cb6-153"><a href="#cb6-153" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Terza's threshold model asserts independence of the **continuous latent probit error** $v_2 \mid \mathbf{z} \sim N(0, 1)$, which is the standard assumption of probit models.</span>
+<span id="cb6-154"><a href="#cb6-154" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-155"><a href="#cb6-155" aria-hidden="true" tabindex="-1"></a><span class="fu">#### What Survives: The Exogeneity Test</span></span>
+<span id="cb6-156"><a href="#cb6-156" aria-hidden="true" tabindex="-1"></a>The linear-residual construction remains **fully valid as a Hausman-type exogeneity test** (Wooldridge, 2010, p. 744). Under the null hypothesis of exogeneity ($H_0: \rho_1 = 0$), $c_1$ does not enter the model, so none of the joint independence assumptions are needed. A standard $t$-test on $\hat{v}_2 = 0$ in the Poisson second stage provides an asymptotically valid test for endogeneity.</span>
+<span id="cb6-157"><a href="#cb6-157" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-158"><a href="#cb6-158" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb6-159"><a href="#cb6-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-160"><a href="#cb6-160" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.3 Terza's (1998) Exact Correction</span></span>
+<span id="cb6-161"><a href="#cb6-161" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-162"><a href="#cb6-162" aria-hidden="true" tabindex="-1"></a>To resolve the discreteness problem, Terza (1998) and Wooldridge (2010, Section 18.5) replace the linear probability model with a **latent threshold model**:</span>
+<span id="cb6-163"><a href="#cb6-163" aria-hidden="true" tabindex="-1"></a>$$y_2 = \mathbf{1}<span class="co">[</span><span class="ot">\mathbf{z}\boldsymbol{\pi}_2 + v_2 \ge 0</span><span class="co">]</span>, \qquad v_2 \mid \mathbf{z} \sim N(0, 1)$$ {#eq-poisson-iv-6}</span>
+<span id="cb6-164"><a href="#cb6-164" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-165"><a href="#cb6-165" aria-hidden="true" tabindex="-1"></a>Let $(c_1, v_2)$ be jointly normal, mean zero, and independent of $\mathbf{z}$, with $c_1 = \rho_1 v_2 + e_1$, where $e_1 \mid \mathbf{z}, v_2 \sim N(0, \tau_1^2 - \rho_1^2)$.</span>
+<span id="cb6-166"><a href="#cb6-166" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-167"><a href="#cb6-167" aria-hidden="true" tabindex="-1"></a>Conditioning on the latent error $v_2$ yields:</span>
+<span id="cb6-168"><a href="#cb6-168" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}, v_2) = \exp\bigl((\tau_1^2 - \rho_1^2)/2 + \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2\bigr)\exp(\rho_1 v_2)$$</span>
+<span id="cb6-169"><a href="#cb6-169" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-170"><a href="#cb6-170" aria-hidden="true" tabindex="-1"></a>Averaging over the truncated normal distribution of $v_2$ conditional on the observed binary outcome $y_2 \in <span class="sc">\{</span>0, 1<span class="sc">\}</span>$ gives the exact conditional mean:</span>
+<span id="cb6-171"><a href="#cb6-171" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}, y_2) = \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2) \cdot h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1)$$ {#eq-poisson-iv-7}</span>
+<span id="cb6-172"><a href="#cb6-172" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-173"><a href="#cb6-173" aria-hidden="true" tabindex="-1"></a>where:</span>
+<span id="cb6-174"><a href="#cb6-174" aria-hidden="true" tabindex="-1"></a>$$h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1) = \exp(\rho_1^2 / 2) \left<span class="co">[</span><span class="ot"> y_2 \frac{\Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} + (1 - y_2) \frac{1 - \Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2)} \right</span><span class="co">]</span>$$ {#eq-poisson-iv-8}</span>
+<span id="cb6-175"><a href="#cb6-175" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-176"><a href="#cb6-176" aria-hidden="true" tabindex="-1"></a>Here $\Phi(\cdot)$ denotes the standard normal CDF, $\rho_1 = \mathrm{Cov}(c_1, v_2)$ is a projection coefficient on the scale of the probit index, and $\exp(\rho_1^2 / 2)$ is the lognormal correction factor.</span>
+<span id="cb6-177"><a href="#cb6-177" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-178"><a href="#cb6-178" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Estimation via 1D Profile Likelihood with Offset</span></span>
+<span id="cb6-179"><a href="#cb6-179" aria-hidden="true" tabindex="-1"></a>Notice that for any fixed value of $\rho_1$, $\log h(y_2, \mathbf{z}\hat{\boldsymbol{\pi}}_2, \rho_1)$ is a known data column. The conditional mean can be written as:</span>
+<span id="cb6-180"><a href="#cb6-180" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}, y_2, \alpha_i) = \exp\bigl(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \alpha_i + \log h(\rho_1)\bigr)$$ {#eq-poisson-iv-9}</span>
+<span id="cb6-181"><a href="#cb6-181" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-182"><a href="#cb6-182" aria-hidden="true" tabindex="-1"></a>This is a standard Poisson regression with an **offset**.</span>
+<span id="cb6-183"><a href="#cb6-183" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-184"><a href="#cb6-184" aria-hidden="true" tabindex="-1"></a>Because $h(\cdot)$ enters multiplicatively, individual fixed effects factor out in closed form:</span>
+<span id="cb6-185"><a href="#cb6-185" aria-hidden="true" tabindex="-1"></a>$$\exp(\hat{\alpha}_i) = \frac{\sum_t y_{1,it}}{\sum_t \exp(\mathbf{z}_{1,it}\boldsymbol{\delta}_1 + \alpha_1 y_{2,it}) h_{it}(\rho_1)}$$</span>
+<span id="cb6-186"><a href="#cb6-186" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-187"><a href="#cb6-187" aria-hidden="true" tabindex="-1"></a>Fixed effects are absorbed without an incidental parameters problem. The full model is estimated by profiling out $(\boldsymbol{\delta}_1, \alpha_1)$ and optimizing over the single scalar $\rho_1 \in <span class="co">[</span><span class="ot">-2, 2</span><span class="co">]</span>$ using 1D optimization.</span>
+<span id="cb6-188"><a href="#cb6-188" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-189"><a href="#cb6-189" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Terza's Estimators and FIML</span></span>
+<span id="cb6-190"><a href="#cb6-190" aria-hidden="true" tabindex="-1"></a>Terza (1998) proposes three estimators:</span>
+<span id="cb6-191"><a href="#cb6-191" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Full-Information Maximum Likelihood (FIML):** Evaluates the joint likelihood of $y_1$ and $y_2$ by integrating out $v_2$ via Gauss–Hermite quadrature.</span>
+<span id="cb6-192"><a href="#cb6-192" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Two-Stage Method of Moments / QMLE:** The two-step estimator above (probit followed by QMLE on @eq-poisson-iv-7).</span>
+<span id="cb6-193"><a href="#cb6-193" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Nonlinear Weighted Least Squares:** For the fully parametric specification.</span>
+<span id="cb6-194"><a href="#cb6-194" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-195"><a href="#cb6-195" aria-hidden="true" tabindex="-1"></a>In panel data, FIML has two major drawbacks:</span>
+<span id="cb6-196"><a href="#cb6-196" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>It requires the full Poisson density inside the quadrature integral, losing QMLE robustness to overdispersion.</span>
+<span id="cb6-197"><a href="#cb6-197" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>It cannot absorb fixed effects; entering unit dummies destroys likelihood separability, leading to severe incidental parameters bias and convergence failures.</span>
+<span id="cb6-198"><a href="#cb6-198" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-199"><a href="#cb6-199" aria-hidden="true" tabindex="-1"></a>By contrast, the two-step profile QMLE concentrates out fixed effects cleanly.</span>
+<span id="cb6-200"><a href="#cb6-200" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-201"><a href="#cb6-201" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb6-202"><a href="#cb6-202" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-203"><a href="#cb6-203" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.4 Generalized-Residual CF and the Mundlak Device</span></span>
+<span id="cb6-204"><a href="#cb6-204" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-205"><a href="#cb6-205" aria-hidden="true" tabindex="-1"></a>A first-order Taylor expansion of $h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1)$ around $\rho_1 = 0$ yields:</span>
+<span id="cb6-206"><a href="#cb6-206" aria-hidden="true" tabindex="-1"></a>$$\left. \frac{\partial}{\partial \rho_1} \frac{\Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} \right|_{\rho_1 = 0} = \frac{\phi(\mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} \equiv \lambda(\mathbf{z}\boldsymbol{\pi}_2)$$ {#eq-poisson-iv-10}</span>
+<span id="cb6-207"><a href="#cb6-207" aria-hidden="true" tabindex="-1"></a>$$\left. \frac{\partial}{\partial \rho_1} \frac{1 - \Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2)} \right|_{\rho_1 = 0} = -\frac{\phi(\mathbf{z}\boldsymbol{\pi}_2)}{1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2)} = -\lambda(-\mathbf{z}\boldsymbol{\pi}_2)$$</span>
+<span id="cb6-208"><a href="#cb6-208" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-209"><a href="#cb6-209" aria-hidden="true" tabindex="-1"></a>Since $h(y_2, \mathbf{z}\boldsymbol{\pi}_2, 0) = 1$ and $\left.\frac{d}{d\rho_1}\exp(\rho_1^2/2)\right|_{\rho_1=0} = 0$, we have:</span>
+<span id="cb6-210"><a href="#cb6-210" aria-hidden="true" tabindex="-1"></a>$$h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1) \approx 1 + \rho_1 \hat{r}_2$$ {#eq-poisson-iv-11}</span>
+<span id="cb6-211"><a href="#cb6-211" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-212"><a href="#cb6-212" aria-hidden="true" tabindex="-1"></a>where $\hat{r}_2$ is the **generalized residual** (Gourieroux, Monfort, Renault, and Trognon, 1987):</span>
+<span id="cb6-213"><a href="#cb6-213" aria-hidden="true" tabindex="-1"></a>$$\hat{r}_2 = y_2 \frac{\phi(\mathbf{z}\hat{\boldsymbol{\pi}}_2)}{\Phi(\mathbf{z}\hat{\boldsymbol{\pi}}_2)} - (1 - y_2)\frac{\phi(\mathbf{z}\hat{\boldsymbol{\pi}}_2)}{1 - \Phi(\mathbf{z}\hat{\boldsymbol{\pi}}_2)}$$</span>
+<span id="cb6-214"><a href="#cb6-214" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-215"><a href="#cb6-215" aria-hidden="true" tabindex="-1"></a>Using $1 + u \approx \exp(u)$ for small $u = \rho_1 \hat{r}_2$, the conditional mean becomes:</span>
+<span id="cb6-216"><a href="#cb6-216" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}, y_2) \approx \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{r}_2)$$</span>
+<span id="cb6-217"><a href="#cb6-217" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-218"><a href="#cb6-218" aria-hidden="true" tabindex="-1"></a>The generalized-residual CF is a **first-order local approximation to Terza's exact correction with error $O(\rho_1^2)$**.</span>
+<span id="cb6-219"><a href="#cb6-219" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-220"><a href="#cb6-220" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Probit vs. Logit Generalized Residuals</span></span>
+<span id="cb6-221"><a href="#cb6-221" aria-hidden="true" tabindex="-1"></a>For a **logit** first stage ($\Lambda(\eta) = \frac{1}{1 + e^{-\eta}}$), the generalized residual collapses algebraically:</span>
+<span id="cb6-222"><a href="#cb6-222" aria-hidden="true" tabindex="-1"></a>$$\hat{r}_2 = y_2 \frac{\Lambda'(\eta)}{\Lambda(\eta)} - (1 - y_2)\frac{\Lambda'(\eta)}{1 - \Lambda(\eta)} = y_2 (1 - \hat{p}_2) - (1 - y_2)\hat{p}_2 = y_2 - \hat{p}_2$$ {#eq-poisson-iv-12}</span>
+<span id="cb6-223"><a href="#cb6-223" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-224"><a href="#cb6-224" aria-hidden="true" tabindex="-1"></a>The logit generalized residual is simply the **raw response residual** ($y_2 - \hat{p}_2$).</span>
+<span id="cb6-225"><a href="#cb6-225" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-226"><a href="#cb6-226" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Dealing with Panel Fixed Effects: The Mundlak Device</span></span>
+<span id="cb6-227"><a href="#cb6-227" aria-hidden="true" tabindex="-1"></a>In short panels ($T$ small, $N \to \infty$), estimating individual unit dummies in a nonlinear first stage (probit or logit) suffers from the **incidental parameters problem**, producing heavily biased first-stage estimates and distorted generalized residuals.</span>
+<span id="cb6-228"><a href="#cb6-228" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-229"><a href="#cb6-229" aria-hidden="true" tabindex="-1"></a>As Lin and Wooldridge (2019) show, the standard solution is the **Mundlak device** (Correlated Random Effects):</span>
+<span id="cb6-230"><a href="#cb6-230" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Add the unit-specific time averages of all time-varying exogenous covariates and instruments:</span>
+<span id="cb6-231"><a href="#cb6-231" aria-hidden="true" tabindex="-1"></a>   $$\mathbf{w}_{it} = (1, \mathbf{z}_{it}, \bar{\mathbf{z}}_i)$$</span>
+<span id="cb6-232"><a href="#cb6-232" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Estimate a pooled probit or logit model on $\mathbf{w}_{it}$ and compute the generalized residuals $\hat{r}_{2,it}$.</span>
+<span id="cb6-233"><a href="#cb6-233" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Include $\hat{r}_{2,it}$ in standard fixed-effects Poisson regression, where fixed effects are absorbed in the second stage where Poisson QMLE is fully consistent.</span>
+<span id="cb6-234"><a href="#cb6-234" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-235"><a href="#cb6-235" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb6-236"><a href="#cb6-236" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-237"><a href="#cb6-237" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.5 Multiplicative-Moment GMM</span></span>
+<span id="cb6-238"><a href="#cb6-238" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-239"><a href="#cb6-239" aria-hidden="true" tabindex="-1"></a>Instead of a control function, Mullahy (1997) proposes multiplicative moment conditions:</span>
+<span id="cb6-240"><a href="#cb6-240" aria-hidden="true" tabindex="-1"></a>$$E\left<span class="co">[</span><span class="ot"> \mathbf{z}' \left( y_1 \exp(-\mathbf{z}_1\boldsymbol{\delta}_1 - \alpha_1 y_2) - 1 \right) \right</span><span class="co">]</span> = \mathbf{0}$$ {#eq-poisson-iv-13}</span>
+<span id="cb6-241"><a href="#cb6-241" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-242"><a href="#cb6-242" aria-hidden="true" tabindex="-1"></a>Under $E<span class="co">[</span><span class="ot">\exp(c_1) \mid \mathbf{z}</span><span class="co">]</span> = 1$, this condition holds without requiring the first-stage model for $y_2$ to be correctly specified.</span>
+<span id="cb6-243"><a href="#cb6-243" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-244"><a href="#cb6-244" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Panel Fixed Effects via Quasi-Differencing</span></span>
+<span id="cb6-245"><a href="#cb6-245" aria-hidden="true" tabindex="-1"></a>In panel data with unobserved individual heterogeneity $\eta_i$, $E<span class="co">[</span><span class="ot">y_{it} \mid \mathbf{z}_i, \eta_i</span><span class="co">]</span> = \eta_i \exp(\mathbf{x}_{it}\boldsymbol{\beta})$. Individual effects cannot be removed by additive demeaning; they must be eliminated via **multiplicative quasi-differencing** (Wooldridge, 2010):</span>
+<span id="cb6-246"><a href="#cb6-246" aria-hidden="true" tabindex="-1"></a>$$E\left<span class="co">[</span><span class="ot"> \mathbf{z}_{it}' \left( y_{it} \frac{\exp(\mathbf{x}_{is}\boldsymbol{\beta})}{\exp(\mathbf{x}_{it}\boldsymbol{\beta})} - y_{is} \right) \right</span><span class="co">]</span> = \mathbf{0}$$ {#eq-poisson-iv-14}</span>
+<span id="cb6-247"><a href="#cb6-247" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-248"><a href="#cb6-248" aria-hidden="true" tabindex="-1"></a>This requires repeated time periods and strict exogeneity of instruments across periods.</span>
+<span id="cb6-249"><a href="#cb6-249" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-250"><a href="#cb6-250" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb6-251"><a href="#cb6-251" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-252"><a href="#cb6-252" aria-hidden="true" tabindex="-1"></a><span class="fu">## 4. Why Recommend Generalized Residuals Instead of Exact Terza?</span></span>
+<span id="cb6-253"><a href="#cb6-253" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-254"><a href="#cb6-254" aria-hidden="true" tabindex="-1"></a>Given that Terza's (1998) correction is theoretically exact under bivariate normality, why do applied econometricians and textbooks (Wooldridge, 2010, 2014; Lin and Wooldridge, 2019) frequently recommend the **Generalized-Residual Control Function**?</span>
+<span id="cb6-255"><a href="#cb6-255" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-256"><a href="#cb6-256" aria-hidden="true" tabindex="-1"></a>There are five key reasons:</span>
+<span id="cb6-257"><a href="#cb6-257" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-258"><a href="#cb6-258" aria-hidden="true" tabindex="-1"></a><span class="fu">### 1. Built-in Hausman Exogeneity Test in a Single Step</span></span>
+<span id="cb6-259"><a href="#cb6-259" aria-hidden="true" tabindex="-1"></a>In the generalized residual model:</span>
+<span id="cb6-260"><a href="#cb6-260" aria-hidden="true" tabindex="-1"></a>$$\log E(y_1 \mid \mathbf{z}, y_2) = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{r}_2$$</span>
+<span id="cb6-261"><a href="#cb6-261" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-262"><a href="#cb6-262" aria-hidden="true" tabindex="-1"></a>The coefficient on $\hat{r}_2$ estimates $\rho_1$, and its $t$-statistic is a **direct, asymptotically valid variable-addition test for exogeneity** ($H_0: \rho_1 = 0$). </span>
+<span id="cb6-263"><a href="#cb6-263" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Under $H_0$, none of the joint normality or reduced-form assumptions are required (Wooldridge, 2010, p. 744).</span>
+<span id="cb6-264"><a href="#cb6-264" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Terza's exact method does not yield a simple linear $t$-statistic directly beside $\hat{\alpha}_1$.</span>
+<span id="cb6-265"><a href="#cb6-265" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-266"><a href="#cb6-266" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2. Standard Software Drop-in</span></span>
+<span id="cb6-267"><a href="#cb6-267" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Generalized Residual:** Fits directly in standard software without custom numerical optimization.</span>
+<span id="cb6-268"><a href="#cb6-268" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Terza’s Exact 2-Step:** Requires writing a custom 1D profile likelihood wrapper to search over $\rho_1$ with an offset.</span>
+<span id="cb6-269"><a href="#cb6-269" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-270"><a href="#cb6-270" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3. Distributional Flexibility: Beyond the Probit Link</span></span>
+<span id="cb6-271"><a href="#cb6-271" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Terza’s $h(\cdot)$ is strictly probit-specific:** The formula in @eq-poisson-iv-8 is derived exclusively from truncated moments of a bivariate normal distribution. There is no known closed-form analogue for logit or other distributions.</span>
+<span id="cb6-272"><a href="#cb6-272" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Generalized residuals apply to any GLM link:** For logit, the generalized residual collapses to the simple **raw response residual** $\hat{r}_2 = y_2 - \hat{p}_2$, requiring zero Mills-ratio machinery.</span>
+<span id="cb6-273"><a href="#cb6-273" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-274"><a href="#cb6-274" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4. Robustness Against Non-Normality (Curvature Misspecification)</span></span>
+<span id="cb6-275"><a href="#cb6-275" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Terza’s correction is **exact only under strict joint bivariate normality**.</span>
+<span id="cb6-276"><a href="#cb6-276" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>If the true unobservables $(c_1, v_2)$ are non-normal (e.g., skewed or heavy-tailed), imposing the full nonlinear curvature of $\exp(\rho_1^2/2)$ and the $\Phi$-ratios can overfit and perform *worse* than the first-order linear approximation $\rho_1 \hat{r}_2$.</span>
+<span id="cb6-277"><a href="#cb6-277" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The generalized residual avoids imposing higher-order moments of the normal distribution on the structural mean.</span>
+<span id="cb6-278"><a href="#cb6-278" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-279"><a href="#cb6-279" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5. Negligible Approximation Error for Moderate Confounding</span></span>
+<span id="cb6-280"><a href="#cb6-280" aria-hidden="true" tabindex="-1"></a>The approximation error of the generalized residual is $O(\rho_1^2)$:</span>
+<span id="cb6-281"><a href="#cb6-281" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>For moderate endogeneity ($|\rho_1| \le 0.3$), the approximation is practically indistinguishable from the exact method (bias $&lt; 2\%$).</span>
+<span id="cb6-282"><a href="#cb6-282" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The error is asymmetric and negligible for negative confounding ($\rho_1 &lt; 0$).</span>
+<span id="cb6-283"><a href="#cb6-283" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-284"><a href="#cb6-284" aria-hidden="true" tabindex="-1"></a><span class="fu">### Practical Strategy</span></span>
+<span id="cb6-285"><a href="#cb6-285" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-286"><a href="#cb6-286" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Situation <span class="pp">|</span> Recommended Estimator <span class="pp">|</span> Rationale <span class="pp">|</span></span>
+<span id="cb6-287"><a href="#cb6-287" aria-hidden="true" tabindex="-1"></a><span class="pp">|:---|:---|:---|</span></span>
+<span id="cb6-288"><a href="#cb6-288" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Routine empirical analysis &amp; testing** | **Generalized-Residual CF** <span class="pp">|</span> Fast, standard 1-line command, built-in $t$-test for $\rho_1 = 0$, works with Logit ($y_2 - \hat{p}_2$), handles panel FE via Mundlak. <span class="pp">|</span></span>
+<span id="cb6-289"><a href="#cb6-289" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Large, positive confounding ($\hat{\rho}_1 &gt; 0.4$)** | **Terza Exact Profiled 2-Step** <span class="pp">|</span> When $\hat{\rho}_1$ from the generalized residual comes back large and positive, fit Terza's exact profile model alongside it to purge the $O(\rho_1^2)$ Taylor error. <span class="pp">|</span></span>
+<span id="cb6-290"><a href="#cb6-290" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-291"><a href="#cb6-291" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb6-292"><a href="#cb6-292" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-293"><a href="#cb6-293" aria-hidden="true" tabindex="-1"></a><span class="fu">## 5. Overview and Comparison of the Four Estimators</span></span>
+<span id="cb6-294"><a href="#cb6-294" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-295"><a href="#cb6-295" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Estimator <span class="pp">|</span> First Stage <span class="pp">|</span> Second Stage Adjustment <span class="pp">|</span> Consistency (Binary $y_2$) <span class="pp">|</span> Panel Fixed Effects <span class="pp">|</span> Standard Errors <span class="pp">|</span></span>
+<span id="cb6-296"><a href="#cb6-296" aria-hidden="true" tabindex="-1"></a><span class="pp">|:---|:---:|:---:|:---:|:---:|:---:|</span></span>
+<span id="cb6-297"><a href="#cb6-297" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Linear CF** <span class="pp">|</span> Linear OLS <span class="pp">|</span> Add $\hat{v}_2$ inside $\exp(\cdot)$ <span class="pp">|</span> Inconsistent <span class="pp">|</span> Yes (Poisson with FE) <span class="pp">|</span> Cluster Bootstrap <span class="pp">|</span></span>
+<span id="cb6-298"><a href="#cb6-298" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Generalized CF** <span class="pp">|</span> Probit / Logit (with Mundlak) <span class="pp">|</span> Add $\hat{r}_2$ inside $\exp(\cdot)$ <span class="pp">|</span> Approx. ($O(\rho_1^2)$ error) <span class="pp">|</span> Yes (Mundlak in 1st stage) <span class="pp">|</span> Cluster Bootstrap <span class="pp">|</span></span>
+<span id="cb6-299"><a href="#cb6-299" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Terza Exact 2-Step** | Probit | Profile $\rho_1$ with offset $\log h(\rho_1)$ | **Yes** (under normality) <span class="pp">|</span> Yes (Poisson with offset) <span class="pp">|</span> Cluster Bootstrap <span class="pp">|</span></span>
+<span id="cb6-300"><a href="#cb6-300" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Multiplicative GMM** | Any ($\hat{p}_2$) | Instrument $y_2$ in moments | **Yes** (distribution-free) <span class="pp">|</span> Needs quasi-differencing <span class="pp">|</span> Sandwich vcov <span class="pp">|</span></span>
+<span id="cb6-301"><a href="#cb6-301" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-302"><a href="#cb6-302" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb6-303"><a href="#cb6-303" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-304"><a href="#cb6-304" aria-hidden="true" tabindex="-1"></a><span class="fu">## 6. Practical Guidance: An Observable Diagnostic Workflow</span></span>
+<span id="cb6-305"><a href="#cb6-305" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-306"><a href="#cb6-306" aria-hidden="true" tabindex="-1"></a>In empirical practice, we do not need to guess the confounding parameter $\rho_1$—**it is estimated directly as the coefficient on the generalized residual $\hat{r}_2$ in your second-stage Poisson regression table.**</span>
+<span id="cb6-307"><a href="#cb6-307" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-308"><a href="#cb6-308" aria-hidden="true" tabindex="-1"></a>A standard applied workflow proceeds in three actionable steps:</span>
+<span id="cb6-309"><a href="#cb6-309" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-310"><a href="#cb6-310" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Estimate the Generalized-Residual CF as the baseline model:**  </span>
+<span id="cb6-311"><a href="#cb6-311" aria-hidden="true" tabindex="-1"></a><span class="ss">   - </span>For continuous $y_2$: Add the OLS residual $\hat{v}_2$.</span>
+<span id="cb6-312"><a href="#cb6-312" aria-hidden="true" tabindex="-1"></a><span class="ss">   - </span>For binary $y_2$: Add the generalized residual $\hat{r}_2$ (or raw response residual $y_2 - \hat{p}_2$ if using logit).</span>
+<span id="cb6-313"><a href="#cb6-313" aria-hidden="true" tabindex="-1"></a><span class="ss">   - </span>In short panels ($T$ small): Use the Mundlak device ($\mathbf{w}_{it} = (1, \mathbf{z}_{it}, \bar{\mathbf{z}}_i)$) in the first stage to avoid incidental parameters bias.</span>
+<span id="cb6-314"><a href="#cb6-314" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-315"><a href="#cb6-315" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Check the $t$-statistic on the residual (Exogeneity Test):**  </span>
+<span id="cb6-316"><a href="#cb6-316" aria-hidden="true" tabindex="-1"></a>   The $t$-statistic on $\hat{r}_2$ (testing $\hat{\rho}_1 = 0$) is an asymptotically valid Hausman-type exogeneity test. If the coefficient is statistically indistinguishable from zero ($p &gt; 0.05$), exogeneity is not rejected, and standard fixed-effects Poisson is supported.</span>
+<span id="cb6-317"><a href="#cb6-317" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-318"><a href="#cb6-318" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Check the estimated coefficient $\hat{\rho}_1$ on $\hat{r}_2$ (Approximation Diagnostic):**  </span>
+<span id="cb6-319"><a href="#cb6-319" aria-hidden="true" tabindex="-1"></a><span class="ss">   - </span>**If $\hat{\rho}_1$ is small ($|\hat{\rho}_1| \le 0.3$) or negative ($\hat{\rho}_1 &lt; 0$):** The first-order $O(\rho_1^2)$ approximation error is practically negligible ($&lt; 2\%$). The Generalized-Residual CF is fully adequate.</span>
+<span id="cb6-320"><a href="#cb6-320" aria-hidden="true" tabindex="-1"></a><span class="ss">   - </span>**If $\hat{\rho}_1$ is large and positive ($\hat{\rho}_1 &gt; 0.4$):** The linear Taylor approximation may overstate the treatment effect $\alpha_1$. Fit Terza's exact 2-step profile model alongside it as a robustness check.</span>
+<span id="cb6-321"><a href="#cb6-321" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-322"><a href="#cb6-322" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Inference:**  </span>
+<span id="cb6-323"><a href="#cb6-323" aria-hidden="true" tabindex="-1"></a>   Always compute standard errors using a cluster bootstrap over panel units to account for first-stage estimation uncertainty.</span>
+<span id="cb6-324"><a href="#cb6-324" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-325"><a href="#cb6-325" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb6-326"><a href="#cb6-326" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-327"><a href="#cb6-327" aria-hidden="true" tabindex="-1"></a><span class="fu">## 7. Implementation Demos in R and Stata</span></span>
+<span id="cb6-328"><a href="#cb6-328" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-329"><a href="#cb6-329" aria-hidden="true" tabindex="-1"></a>Below are concise, copy-pasteable implementation templates in R (<span class="in">`fixest`</span>) and Stata (<span class="in">`ppmlhdfe`</span>).</span>
+<span id="cb6-330"><a href="#cb6-330" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-331"><a href="#cb6-331" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.1 R Implementation Demo (`fixest`)</span></span>
+<span id="cb6-332"><a href="#cb6-332" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-333"><a href="#cb6-333" aria-hidden="true" tabindex="-1"></a><span class="in">```{r demo-r}</span></span>
+<span id="cb6-334"><a href="#cb6-334" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: true</span></span>
+<span id="cb6-335"><a href="#cb6-335" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fixest)</span>
+<span id="cb6-336"><a href="#cb6-336" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-337"><a href="#cb6-337" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Simulate a short panel dataset (50 units, 5 periods)</span></span>
+<span id="cb6-338"><a href="#cb6-338" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb6-339"><a href="#cb6-339" aria-hidden="true" tabindex="-1"></a>n_i <span class="ot">&lt;-</span> <span class="dv">50</span>; n_t <span class="ot">&lt;-</span> <span class="dv">5</span>; n <span class="ot">&lt;-</span> n_i <span class="sc">*</span> n_t</span>
+<span id="cb6-340"><a href="#cb6-340" aria-hidden="true" tabindex="-1"></a>id   <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>n_i, <span class="at">each =</span> n_t)</span>
+<span id="cb6-341"><a href="#cb6-341" aria-hidden="true" tabindex="-1"></a>time <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>n_t, <span class="at">times =</span> n_i)</span>
+<span id="cb6-342"><a href="#cb6-342" aria-hidden="true" tabindex="-1"></a>z    <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n) <span class="co"># Excluded instrument</span></span>
+<span id="cb6-343"><a href="#cb6-343" aria-hidden="true" tabindex="-1"></a>x    <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n) <span class="co"># Exogenous covariate</span></span>
+<span id="cb6-344"><a href="#cb6-344" aria-hidden="true" tabindex="-1"></a>c_i  <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n_i)[id]</span>
+<span id="cb6-345"><a href="#cb6-345" aria-hidden="true" tabindex="-1"></a>e2   <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n)</span>
+<span id="cb6-346"><a href="#cb6-346" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-347"><a href="#cb6-347" aria-hidden="true" tabindex="-1"></a><span class="co"># Endogenous binary treatment and Poisson outcome</span></span>
+<span id="cb6-348"><a href="#cb6-348" aria-hidden="true" tabindex="-1"></a>y2     <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(<span class="fl">0.8</span> <span class="sc">*</span> z <span class="sc">+</span> <span class="fl">0.5</span> <span class="sc">*</span> x <span class="sc">+</span> c_i <span class="sc">+</span> e2 <span class="sc">&gt;=</span> <span class="dv">0</span>)</span>
+<span id="cb6-349"><a href="#cb6-349" aria-hidden="true" tabindex="-1"></a>lambda <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="fl">0.5</span> <span class="sc">+</span> <span class="fl">0.8</span> <span class="sc">*</span> y2 <span class="sc">+</span> <span class="fl">0.4</span> <span class="sc">*</span> x <span class="sc">+</span> c_i <span class="sc">+</span> <span class="fl">0.2</span> <span class="sc">*</span> e2)</span>
+<span id="cb6-350"><a href="#cb6-350" aria-hidden="true" tabindex="-1"></a>y1     <span class="ot">&lt;-</span> <span class="fu">rpois</span>(n, lambda)</span>
+<span id="cb6-351"><a href="#cb6-351" aria-hidden="true" tabindex="-1"></a>df     <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">y1 =</span> y1, <span class="at">y2 =</span> y2, <span class="at">z =</span> z, <span class="at">x =</span> x, <span class="at">id =</span> id, <span class="at">time =</span> time)</span>
+<span id="cb6-352"><a href="#cb6-352" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-353"><a href="#cb6-353" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Mundlak Device: calculate unit means</span></span>
+<span id="cb6-354"><a href="#cb6-354" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>mean_z <span class="ot">&lt;-</span> <span class="fu">ave</span>(df<span class="sc">$</span>z, df<span class="sc">$</span>id)</span>
+<span id="cb6-355"><a href="#cb6-355" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>mean_x <span class="ot">&lt;-</span> <span class="fu">ave</span>(df<span class="sc">$</span>x, df<span class="sc">$</span>id)</span>
+<span id="cb6-356"><a href="#cb6-356" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-357"><a href="#cb6-357" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Step 1: Probit First Stage &amp; Generalized Residual</span></span>
+<span id="cb6-358"><a href="#cb6-358" aria-hidden="true" tabindex="-1"></a>fs <span class="ot">&lt;-</span> <span class="fu">feglm</span>(y2 <span class="sc">~</span> z <span class="sc">+</span> x <span class="sc">+</span> mean_z <span class="sc">+</span> mean_x, <span class="at">data =</span> df, <span class="at">family =</span> <span class="fu">binomial</span>(probit))</span>
+<span id="cb6-359"><a href="#cb6-359" aria-hidden="true" tabindex="-1"></a>eta <span class="ot">&lt;-</span> <span class="fu">predict</span>(fs, <span class="at">type =</span> <span class="st">"link"</span>)</span>
+<span id="cb6-360"><a href="#cb6-360" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>r2 <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(df<span class="sc">$</span>y2 <span class="sc">==</span> <span class="dv">1</span>, <span class="fu">dnorm</span>(eta) <span class="sc">/</span> <span class="fu">pnorm</span>(eta), <span class="sc">-</span><span class="fu">dnorm</span>(eta) <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">-</span> <span class="fu">pnorm</span>(eta)))</span>
+<span id="cb6-361"><a href="#cb6-361" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-362"><a href="#cb6-362" aria-hidden="true" tabindex="-1"></a><span class="co"># (Note: If using Logit first stage, r2 is simply y2 - predict(fs, type = "response"))</span></span>
+<span id="cb6-363"><a href="#cb6-363" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-364"><a href="#cb6-364" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Step 2: Second Stage Poisson with High-Dimensional Fixed Effects</span></span>
+<span id="cb6-365"><a href="#cb6-365" aria-hidden="true" tabindex="-1"></a>m_cf <span class="ot">&lt;-</span> <span class="fu">fepois</span>(y1 <span class="sc">~</span> y2 <span class="sc">+</span> r2 <span class="sc">+</span> x <span class="sc">|</span> id <span class="sc">+</span> time, <span class="at">data =</span> df)</span>
+<span id="cb6-366"><a href="#cb6-366" aria-hidden="true" tabindex="-1"></a><span class="fu">etable</span>(m_cf, <span class="at">headers =</span> <span class="st">"Generalized Residual CF"</span>)</span>
+<span id="cb6-367"><a href="#cb6-367" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb6-368"><a href="#cb6-368" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-369"><a href="#cb6-369" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.2 Stata Implementation Demo (`ppmlhdfe`)</span></span>
+<span id="cb6-370"><a href="#cb6-370" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-371"><a href="#cb6-371" aria-hidden="true" tabindex="-1"></a><span class="in">```stata</span></span>
+<span id="cb6-372"><a href="#cb6-372" aria-hidden="true" tabindex="-1"></a><span class="in">* ==============================================================================</span></span>
+<span id="cb6-373"><a href="#cb6-373" aria-hidden="true" tabindex="-1"></a><span class="in">* Generalized-Residual Control Function in Stata using ppmlhdfe</span></span>
+<span id="cb6-374"><a href="#cb6-374" aria-hidden="true" tabindex="-1"></a><span class="in">* ==============================================================================</span></span>
+<span id="cb6-375"><a href="#cb6-375" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-376"><a href="#cb6-376" aria-hidden="true" tabindex="-1"></a><span class="in">* 1. Mundlak Device: Calculate unit-level means of time-varying variables</span></span>
+<span id="cb6-377"><a href="#cb6-377" aria-hidden="true" tabindex="-1"></a><span class="in">bysort id: egen mean_z = mean(z)</span></span>
+<span id="cb6-378"><a href="#cb6-378" aria-hidden="true" tabindex="-1"></a><span class="in">bysort id: egen mean_x = mean(x)</span></span>
+<span id="cb6-379"><a href="#cb6-379" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-380"><a href="#cb6-380" aria-hidden="true" tabindex="-1"></a><span class="in">* 2. Step 1: Probit First Stage on pooled data with Mundlak means</span></span>
+<span id="cb6-381"><a href="#cb6-381" aria-hidden="true" tabindex="-1"></a><span class="in">probit y2 z x mean_z mean_x</span></span>
+<span id="cb6-382"><a href="#cb6-382" aria-hidden="true" tabindex="-1"></a><span class="in">predict double eta, xb</span></span>
+<span id="cb6-383"><a href="#cb6-383" aria-hidden="true" tabindex="-1"></a><span class="in">gen double r2 = cond(y2 == 1, normalden(eta)/normal(eta), -normalden(eta)/(1 - normal(eta)))</span></span>
+<span id="cb6-384"><a href="#cb6-384" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-385"><a href="#cb6-385" aria-hidden="true" tabindex="-1"></a><span class="in">* (Alternatively, for a Logit first stage: raw response residual)</span></span>
+<span id="cb6-386"><a href="#cb6-386" aria-hidden="true" tabindex="-1"></a><span class="in">* logit y2 z x mean_z mean_x</span></span>
+<span id="cb6-387"><a href="#cb6-387" aria-hidden="true" tabindex="-1"></a><span class="in">* predict double phat, pr</span></span>
+<span id="cb6-388"><a href="#cb6-388" aria-hidden="true" tabindex="-1"></a><span class="in">* gen double r2 = y2 - phat</span></span>
+<span id="cb6-389"><a href="#cb6-389" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-390"><a href="#cb6-390" aria-hidden="true" tabindex="-1"></a><span class="in">* 3. Step 2: Fixed-Effects Poisson Second Stage</span></span>
+<span id="cb6-391"><a href="#cb6-391" aria-hidden="true" tabindex="-1"></a><span class="in">ppmlhdfe y1 y2 r2 x, absorb(id time)</span></span>
+<span id="cb6-392"><a href="#cb6-392" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-393"><a href="#cb6-393" aria-hidden="true" tabindex="-1"></a><span class="in">* 4. Inference: Panel Cluster Bootstrap Program</span></span>
+<span id="cb6-394"><a href="#cb6-394" aria-hidden="true" tabindex="-1"></a><span class="in">capture program drop boot_poisson_cf</span></span>
+<span id="cb6-395"><a href="#cb6-395" aria-hidden="true" tabindex="-1"></a><span class="in">program define boot_poisson_cf, rclass</span></span>
+<span id="cb6-396"><a href="#cb6-396" aria-hidden="true" tabindex="-1"></a><span class="in">    * First stage</span></span>
+<span id="cb6-397"><a href="#cb6-397" aria-hidden="true" tabindex="-1"></a><span class="in">    quietly probit y2 z x mean_z mean_x</span></span>
+<span id="cb6-398"><a href="#cb6-398" aria-hidden="true" tabindex="-1"></a><span class="in">    quietly predict double eta_b, xb</span></span>
+<span id="cb6-399"><a href="#cb6-399" aria-hidden="true" tabindex="-1"></a><span class="in">    quietly gen double r2_b = cond(y2 == 1, normalden(eta_b)/normal(eta_b), -normalden(eta_b)/(1 - normal(eta_b)))</span></span>
+<span id="cb6-400"><a href="#cb6-400" aria-hidden="true" tabindex="-1"></a><span class="in">    </span></span>
+<span id="cb6-401"><a href="#cb6-401" aria-hidden="true" tabindex="-1"></a><span class="in">    * Second stage</span></span>
+<span id="cb6-402"><a href="#cb6-402" aria-hidden="true" tabindex="-1"></a><span class="in">    quietly ppmlhdfe y1 y2 r2_b x, absorb(id time)</span></span>
+<span id="cb6-403"><a href="#cb6-403" aria-hidden="true" tabindex="-1"></a><span class="in">    return scalar alpha1 = _b[y2]</span></span>
+<span id="cb6-404"><a href="#cb6-404" aria-hidden="true" tabindex="-1"></a><span class="in">    return scalar rho1   = _b[r2_b]</span></span>
+<span id="cb6-405"><a href="#cb6-405" aria-hidden="true" tabindex="-1"></a><span class="in">    </span></span>
+<span id="cb6-406"><a href="#cb6-406" aria-hidden="true" tabindex="-1"></a><span class="in">    drop eta_b r2_b</span></span>
+<span id="cb6-407"><a href="#cb6-407" aria-hidden="true" tabindex="-1"></a><span class="in">end</span></span>
+<span id="cb6-408"><a href="#cb6-408" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-409"><a href="#cb6-409" aria-hidden="true" tabindex="-1"></a><span class="in">bootstrap r(alpha1) r(rho1), reps(500) cluster(id) idcluster(new_id): boot_poisson_cf</span></span>
+<span id="cb6-410"><a href="#cb6-410" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+</code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

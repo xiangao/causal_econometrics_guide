@@ -20,7 +20,8 @@ This chapter covers:
 4. Generalized residuals as a first-order local approximation, logit response residuals, and the Mundlak device for panel fixed effects [@lin-wooldridge-2019].
 5. Why applied econometrics generally recommends the generalized residual approach over the exact Terza correction.
 6. Multiplicative-moment GMM [@mullahy-1997] and quasi-differencing for panel fixed effects.
-7. Step-by-step implementation demos in R (`fixest`) and Stata (`ppmlhdfe`).
+7. Why the exogeneity test should not be used to choose between the naive and control-function models [@guggenberger-2010].
+8. Step-by-step implementation demos in R (`fixest`) and Stata (`ppmlhdfe`).
 
 ---
 
@@ -52,6 +53,14 @@ Following the simultaneous-equations convention of @wooldridge-2010-crosssection
 Two standard deviations from Wooldridge's notation are maintained for clarity:
 1. Wooldridge writes the coefficient on $y_2$ as $\gamma_1$; we write $\alpha_1$ to align with standard treatment effect notation.
 2. Where Wooldridge writes $\mathbf{x}_1\boldsymbol{\beta}_1$, we write $\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2$.
+
+### Fixed Effects in the Exponential Model
+
+Everything below absorbs fixed effects without comment, and it is worth saying once why that is allowed. Fixed-effects Poisson has no incidental parameters problem [@wooldridge-1999-multiplicative; @lin-wooldridge-2019]. With $N \to \infty$ and $T$ fixed, the unit effects enter multiplicatively, factor out of the score, and are conditioned out cleanly. The estimator of $\boldsymbol{\beta}$ is consistent even though the number of unit parameters grows with the sample. Probit and logit have no such property, which is why the first stage of @sec-poisson-iv-gr needs the Mundlak device while the second stage does not.
+
+The software follows from this. In Stata, `xtpoisson, fe` fits the conditional model, but the community standard is `ppmlhdfe` [@correia-guimaraes-zylkin-2020]: it absorbs several dimensions of fixed effects at once, it is fast, it detects separated and singleton observations, and it recovers predicted values with the absorbed effects put back. In R, `fixest::fepois()` does the same, with `fixest::feols()` for the linear first stage.
+
+Stata's `ivpoisson` handles endogenous regressors, but it cannot absorb high-dimensional fixed effects. That is the practical reason the panel literature routes endogeneity through a control function rather than through a packaged IV command: the control function leaves the second stage as an ordinary FE Poisson regression, which `ppmlhdfe` and `fepois` already do well.
 
 ---
 
@@ -117,6 +126,21 @@ $$E(y_1 \mid \mathbf{z}_1, y_2, v_2) = \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + 
 2. **Step 2 (Second Stage):** Estimate Poisson QMLE with $y_2$ and $\hat{v}_2$ entering simultaneously:
    $$y_1 \sim \text{Poisson}(\exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2))$$
 3. **Inference:** Standard errors must be bootstrapped (e.g., clustered by panel unit) to account for the first-stage estimation uncertainty of $\hat{v}_2$.
+
+This is @lin-wooldridge-2019's Procedure 3. In a panel, step 1 absorbs the unit effects (`reghdfe` in Stata, `feols` in R) and step 2 absorbs them again (`ppmlhdfe`, `fepois`).
+
+#### The First Stage May Absorb or Average: Both Give the Same Answer
+
+There are two ways to handle unit effects in a linear first stage, and it does not matter which we pick. Regressing $y_{it2}$ on $\mathbf{z}_{it}$ and unit dummies gives the fixed-effects residual $\hat{v}_{it2}^{FE}$. Regressing $y_{it2}$ on $\mathbf{z}_{it}$ and the unit means $\bar{\mathbf{z}}_i$ — the Mundlak device — gives the Mundlak residual $\hat{v}_{it2}^{M}$. Substituting either one into the second-stage FE Poisson gives **numerically identical** $\hat{\alpha}_1$ and $\hat{\rho}_1$ [@lin-wooldridge-2019, app. A.1–A.2].
+
+The reason is short. Mundlak's result is that the coefficient on $\mathbf{z}_{it}$ in the second regression equals the within estimator $\hat{\boldsymbol{\pi}}_2^{FE}$, so the two residuals share a slope and differ only in what is subtracted off unit by unit:
+$$\hat{v}_{it2}^{FE} = \hat{v}_{it2}^{M} + g_i$$
+for some unit-specific constant $g_i$. Put that into the second-stage index:
+$$\mathbf{z}_{1,it}\boldsymbol{\delta}_1 + \alpha_1 y_{it2} + \rho_1 \hat{v}_{it2}^{FE} + c_i = \mathbf{z}_{1,it}\boldsymbol{\delta}_1 + \alpha_1 y_{it2} + \rho_1 \hat{v}_{it2}^{M} + (c_i + \rho_1 g_i)$$
+
+The swap moves $\rho_1 g_i$ into the unit effect, and the unit effect is a free parameter that FE Poisson absorbs without restriction. The model is reparameterized, not changed. Nothing reaches $\hat{\alpha}_1$ or $\hat{\rho}_1$.
+
+This holds only when the first stage averages or absorbs on the same dimension the second stage absorbs. It is also specific to the linear first stage: for a binary $y_2$ the first stage is nonlinear, the residual is not shifted by a constant, and the choice between dummies and Mundlak means becomes a real one (@sec-poisson-iv-gr).
 
 ---
 
@@ -187,7 +211,7 @@ By contrast, the two-step profile QMLE concentrates out fixed effects cleanly.
 
 ---
 
-### 3.4 Generalized-Residual CF and the Mundlak Device
+### 3.4 Generalized-Residual CF and the Mundlak Device {#sec-poisson-iv-gr}
 
 A first-order Taylor expansion of $h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1)$ around $\rho_1 = 0$ yields:
 $$\left. \frac{\partial}{\partial \rho_1} \frac{\Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} \right|_{\rho_1 = 0} = \frac{\phi(\mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} \equiv \lambda(\mathbf{z}\boldsymbol{\pi}_2)$$ {#eq-poisson-iv-10}
@@ -291,7 +315,7 @@ The error is $O(\rho_1^2)$, so it vanishes quadratically as $\rho_1 \to 0$ — a
 
 In empirical practice, we do not need to guess the confounding parameter $\rho_1$—**it is estimated directly as the coefficient on the generalized residual $\hat{r}_2$ in your second-stage Poisson regression table.**
 
-A standard applied workflow proceeds in three actionable steps:
+A standard applied workflow proceeds in four steps:
 
 1. **Estimate the Generalized-Residual CF as the baseline model:**  
    - For continuous $y_2$: Add the OLS residual $\hat{v}_2$.
@@ -299,7 +323,7 @@ A standard applied workflow proceeds in three actionable steps:
    - In short panels ($T$ small): Use the Mundlak device ($\mathbf{w}_{it} = (1, \mathbf{z}_{it}, \bar{\mathbf{z}}_i)$) in the first stage to avoid incidental parameters bias.
 
 2. **Check the $t$-statistic on the residual (Exogeneity Test):**  
-   The $t$-statistic on $\hat{r}_2$ (testing $\hat{\rho}_1 = 0$) is an asymptotically valid Hausman-type exogeneity test. If the coefficient is statistically indistinguishable from zero ($p > 0.05$), exogeneity is not rejected, and standard fixed-effects Poisson is supported.
+   The $t$-statistic on $\hat{r}_2$ (testing $\hat{\rho}_1 = 0$) is an asymptotically valid Hausman-type exogeneity test. Read it as a description of how much endogeneity the data can detect. Do not read it as a licence to drop the residual — see the pretest warning below.
 
 3. **Read the size and sign of $\hat{\rho}_1$ (Approximation Diagnostic):**  
    - **If $\hat{\rho}_1$ is small or negative:** the $O(\rho_1^2)$ error is at its smallest, and on the benign side of the asymmetry. The Generalized-Residual CF stands on its own.
@@ -307,6 +331,16 @@ A standard applied workflow proceeds in three actionable steps:
 
 4. **Inference:**  
    Always compute standard errors using a cluster bootstrap over panel units to account for first-stage estimation uncertainty.
+
+### Do Not Use the Exogeneity Test to Choose the Model
+
+The tempting next move is to let step 2 pick the specification: if the $t$-statistic on $\hat{r}_2$ is insignificant, drop the residual and report the plain FE Poisson; if it is significant, keep the control function. This is a pretest estimator, and it is worse than either of the two models it chooses between.
+
+@guggenberger-2010 works this out for the linear case. A Hausman pretest followed by OLS-or-2SLS, with the second-stage $t$-test reported at its nominal level, has **asymptotic size equal to one**: there are points in the parameter space where the procedure rejects a true null with probability approaching 1. The mechanism is a sequence of local alternatives. Let the endogeneity drift toward zero at rate $n^{-1/2}$. The pretest then has low power and often fails to reject, so the procedure falls back on the estimator that ignores endogeneity — but at that drift rate the bias of that estimator is the same order as its standard error, so the reported confidence interval is centred in the wrong place by about its own width. Taking the supremum of rejection probability over the parameter space picks out exactly these points. @guggenberger-2010-panel obtains the same conclusion for the panel Hausman test between fixed and random effects.
+
+These results are proved for linear models, and we are not aware of an analogous theorem for the Poisson control function. The mechanism does not depend on linearity: it needs only a pretest with low power against local endogeneity and a fallback estimator whose bias does not vanish faster than its standard error, and both are present here. We treat it as a warning that carries over rather than a result that has been established in this setting.
+
+The practical rule is to **report the naive FE Poisson and the control-function FE Poisson side by side** and let the reader see both. The $t$-statistic on $\hat{r}_2$ still belongs in the table; it is evidence about the size of $\rho_1$, which is what step 3 needs. What it must not do is silently delete one of the two columns.
 
 ---
 

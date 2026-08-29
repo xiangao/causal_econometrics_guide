@@ -336,3 +336,44 @@ Rendered clean to both HTML and PDF (302 pages, was 300). Not committed.
 **Render note:** `quarto render --to html` cleans `_book/` and deletes a PDF built
 earlier (and vice versa). Render both formats in a single `quarto render` with no
 `--to`, or the book directory ends up holding only one format.
+
+## 2026-08-29 — Absorbed the theory from the blog book's FE-Poisson chapter
+
+`blog_book/poisson-iv-fe.qmd` had grown into a near-duplicate of this chapter
+(agy had produced a `poisson-iv-fe-revised.qmd` that restated §2 and §3.2/3.4
+almost verbatim). The duplicated theory now lives here only; the blog chapter was
+cut back to its empirical material and links here for the derivations.
+
+Three things moved in that were **not** already here:
+
+- **`### Fixed Effects in the Exponential Model`** (end of §1). Why FE Poisson has
+  no incidental-parameters problem, and the software that follows from it:
+  `ppmlhdfe` over `xtpoisson, fe`, `fixest::fepois()` in R, and why `ivpoisson`
+  is not an option in a panel (no HDFE absorption) — which is the practical
+  reason this chapter routes endogeneity through a control function at all.
+
+- **`#### The First Stage May Absorb or Average`** (end of §3.1). Lin & Wooldridge
+  (2019, app. A.1–A.2): the FE residual and the Mundlak residual give numerically
+  identical α̂₁ and ρ̂₁. Presented as a reparameterization — the two residuals
+  differ by a unit constant gᵢ, and the second stage already carries a free unit
+  effect, so the swap relabels cᵢ → cᵢ + ρ₁gᵢ. That framing also says when it
+  fails (nonlinear first stage). **Verified numerically**: α̂ and ρ̂ agree to
+  3e-15, and the residual difference is unit-constant to 1.3e-14.
+
+- **`### Do Not Use the Exogeneity Test to Choose the Model`** (end of §6). This
+  one is a **correction**, not an addition. §6 step 2 previously read "If the
+  coefficient is statistically indistinguishable from zero (p > 0.05), exogeneity
+  is not rejected, and standard fixed-effects Poisson is supported" — which is
+  exactly the pretest Guggenberger (2010) shows has asymptotic size one. Step 2
+  now describes the test without licensing the model switch, and the new
+  subsection gives the local-endogeneity mechanism. Stated honestly as an
+  analogy: Guggenberger's results are for linear models, no theorem exists for
+  the Poisson CF, but the mechanism needs only a low-powered pretest and a
+  fallback whose bias does not vanish faster than its standard error.
+
+New bib entries: `guggenberger-2010` (Econometric Theory), `guggenberger-2010-panel`
+(J. Econometrics), `correia-guimaraes-zylkin-2020`. §3.4 gained the id
+`{#sec-poisson-iv-gr}` so §1 and §3.1 can point at it. Chapter overview list went
+from 7 items to 8.
+
+Rendered clean to HTML and PDF (304 pages, was 302).

@@ -456,6 +456,7 @@ window.Quarto = {
 <li>Generalized residuals as a first-order local approximation, logit response residuals, and the Mundlak device for panel fixed effects <span class="citation" data-cites="lin-wooldridge-2019">(<a href="references.html#ref-lin-wooldridge-2019" role="doc-biblioref">Lin and Wooldridge 2019</a>)</span>.</li>
 <li>Why applied econometrics generally recommends the generalized residual approach over the exact Terza correction.</li>
 <li>Multiplicative-moment GMM <span class="citation" data-cites="mullahy-1997">(<a href="references.html#ref-mullahy-1997" role="doc-biblioref">Mullahy 1997</a>)</span> and quasi-differencing for panel fixed effects.</li>
+<li>Why the exogeneity test should not be used to choose between the naive and control-function models <span class="citation" data-cites="guggenberger-2010">(<a href="references.html#ref-guggenberger-2010" role="doc-biblioref">Guggenberger 2010a</a>)</span>.</li>
 <li>Step-by-step implementation demos in R (<code>fixest</code>) and Stata (<code>ppmlhdfe</code>).</li>
 </ol>
 <hr>
@@ -532,6 +533,11 @@ window.Quarto = {
 </tbody>
 </table>
 <p>Two standard deviations from Wooldridge’s notation are maintained for clarity: 1. Wooldridge writes the coefficient on <span class="math inline">\(y_2\)</span> as <span class="math inline">\(\gamma_1\)</span>; we write <span class="math inline">\(\alpha_1\)</span> to align with standard treatment effect notation. 2. Where Wooldridge writes <span class="math inline">\(\mathbf{x}_1\boldsymbol{\beta}_1\)</span>, we write <span class="math inline">\(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2\)</span>.</p>
+</section><section id="fixed-effects-in-the-exponential-model" class="level3" data-number="15.1.2"><h3 data-number="15.1.2" class="anchored" data-anchor-id="fixed-effects-in-the-exponential-model">
+<span class="header-section-number">15.1.2</span> Fixed Effects in the Exponential Model</h3>
+<p>Everything below absorbs fixed effects without comment, and it is worth saying once why that is allowed. Fixed-effects Poisson has no incidental parameters problem <span class="citation" data-cites="wooldridge-1999-multiplicative lin-wooldridge-2019">(<a href="references.html#ref-wooldridge-1999-multiplicative" role="doc-biblioref">Wooldridge 1999</a>; <a href="references.html#ref-lin-wooldridge-2019" role="doc-biblioref">Lin and Wooldridge 2019</a>)</span>. With <span class="math inline">\(N \to \infty\)</span> and <span class="math inline">\(T\)</span> fixed, the unit effects enter multiplicatively, factor out of the score, and are conditioned out cleanly. The estimator of <span class="math inline">\(\boldsymbol{\beta}\)</span> is consistent even though the number of unit parameters grows with the sample. Probit and logit have no such property, which is why the first stage of <a href="#sec-poisson-iv-gr" class="quarto-xref"><span>Section 15.3.4</span></a> needs the Mundlak device while the second stage does not.</p>
+<p>The software follows from this. In Stata, <code>xtpoisson, fe</code> fits the conditional model, but the community standard is <code>ppmlhdfe</code> <span class="citation" data-cites="correia-guimaraes-zylkin-2020">(<a href="references.html#ref-correia-guimaraes-zylkin-2020" role="doc-biblioref">Correia, Guimarães, and Zylkin 2020</a>)</span>: it absorbs several dimensions of fixed effects at once, it is fast, it detects separated and singleton observations, and it recovers predicted values with the absorbed effects put back. In R, <code><a href="https://lrberge.github.io/fixest/reference/feglm.html">fixest::fepois()</a></code> does the same, with <code><a href="https://lrberge.github.io/fixest/reference/feols.html">fixest::feols()</a></code> for the linear first stage.</p>
+<p>Stata’s <code>ivpoisson</code> handles endogenous regressors, but it cannot absorb high-dimensional fixed effects. That is the practical reason the panel literature routes endogeneity through a control function rather than through a packaged IV command: the control function leaves the second stage as an ordinary FE Poisson regression, which <code>ppmlhdfe</code> and <code>fepois</code> already do well.</p>
 <hr></section></section><section id="theoretical-foundations-control-functions-vs.-gmm" class="level2" data-number="15.2"><h2 data-number="15.2" class="anchored" data-anchor-id="theoretical-foundations-control-functions-vs.-gmm">
 <span class="header-section-number">15.2</span> 2. Theoretical Foundations: Control Functions vs.&nbsp;GMM</h2>
 <section id="the-linear-second-stage-control-function-is-2sls" class="level3" data-number="15.2.1"><h3 data-number="15.2.1" class="anchored" data-anchor-id="the-linear-second-stage-control-function-is-2sls">
@@ -606,7 +612,14 @@ E(y_1 \mid \mathbf{z}, y_2, v_2) &amp;= E\left[ \exp(\mathbf{z}_1\boldsymbol{\de
 <p>When <span class="math inline">\(y_2\)</span> is continuous (e.g., hours worked, prices, expenditures), a linear reduced form with additive errors is natural: <span id="eq-poisson-iv-3"><span class="math display">\[y_2 = \mathbf{z}\boldsymbol{\pi}_2 + v_2, \qquad c_1 = \rho_1 v_2 + e_1 \tag{15.3}\]</span></span></p>
 <p>with <span class="math inline">\(v_2 \perp \mathbf{z}\)</span> and <span class="math inline">\(e_1 \perp (\mathbf{z}, v_2)\)</span>. These are two separate restrictions and it is worth keeping them apart. Joint normality of <span class="math inline">\((c_1, v_2)\)</span> delivers the second: <span class="math inline">\(e_1\)</span> is the projection residual, and for jointly normal variables uncorrelated implies independent. It says nothing about the first. <span class="math inline">\(v_2 \perp \mathbf{z}\)</span> is a restriction on the reduced form — the conditional distribution of <span class="math inline">\(v_2\)</span> must not vary with <span class="math inline">\(\mathbf{z}\)</span> — and a linear equation with a homoskedastic normal additive error satisfies it. Both hold here; neither is implied by the other. The structural conditional mean becomes: <span id="eq-poisson-iv-4"><span class="math display">\[E(y_1 \mid \mathbf{z}_1, y_2, v_2) = \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 v_2) \tag{15.4}\]</span></span></p>
 <p><strong>Estimation Procedure:</strong> 1. <strong>Step 1 (First Stage):</strong> Estimate the linear regression <span class="math inline">\(y_2 = \mathbf{z}\boldsymbol{\pi}_2 + v_2\)</span> by OLS (or with fixed effects absorbed) and compute residuals <span class="math inline">\(\hat{v}_2 = y_2 - \mathbf{z}\hat{\boldsymbol{\pi}}_2\)</span>. 2. <strong>Step 2 (Second Stage):</strong> Estimate Poisson QMLE with <span class="math inline">\(y_2\)</span> and <span class="math inline">\(\hat{v}_2\)</span> entering simultaneously: <span class="math display">\[y_1 \sim \text{Poisson}(\exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2))\]</span> 3. <strong>Inference:</strong> Standard errors must be bootstrapped (e.g., clustered by panel unit) to account for the first-stage estimation uncertainty of <span class="math inline">\(\hat{v}_2\)</span>.</p>
-<hr></section><section id="binary-y_2-why-the-linear-reduced-form-fails" class="level3" data-number="15.3.2"><h3 data-number="15.3.2" class="anchored" data-anchor-id="binary-y_2-why-the-linear-reduced-form-fails">
+<p>This is <span class="citation" data-cites="lin-wooldridge-2019">Lin and Wooldridge (<a href="references.html#ref-lin-wooldridge-2019" role="doc-biblioref">2019</a>)</span>’s Procedure 3. In a panel, step 1 absorbs the unit effects (<code>reghdfe</code> in Stata, <code>feols</code> in R) and step 2 absorbs them again (<code>ppmlhdfe</code>, <code>fepois</code>).</p>
+<section id="the-first-stage-may-absorb-or-average-both-give-the-same-answer" class="level4" data-number="15.3.1.1"><h4 data-number="15.3.1.1" class="anchored" data-anchor-id="the-first-stage-may-absorb-or-average-both-give-the-same-answer">
+<span class="header-section-number">15.3.1.1</span> The First Stage May Absorb or Average: Both Give the Same Answer</h4>
+<p>There are two ways to handle unit effects in a linear first stage, and it does not matter which we pick. Regressing <span class="math inline">\(y_{it2}\)</span> on <span class="math inline">\(\mathbf{z}_{it}\)</span> and unit dummies gives the fixed-effects residual <span class="math inline">\(\hat{v}_{it2}^{FE}\)</span>. Regressing <span class="math inline">\(y_{it2}\)</span> on <span class="math inline">\(\mathbf{z}_{it}\)</span> and the unit means <span class="math inline">\(\bar{\mathbf{z}}_i\)</span> — the Mundlak device — gives the Mundlak residual <span class="math inline">\(\hat{v}_{it2}^{M}\)</span>. Substituting either one into the second-stage FE Poisson gives <strong>numerically identical</strong> <span class="math inline">\(\hat{\alpha}_1\)</span> and <span class="math inline">\(\hat{\rho}_1\)</span> <span class="citation" data-cites="lin-wooldridge-2019">(<a href="references.html#ref-lin-wooldridge-2019" role="doc-biblioref">Lin and Wooldridge 2019</a>, app. A.1–A.2)</span>.</p>
+<p>The reason is short. Mundlak’s result is that the coefficient on <span class="math inline">\(\mathbf{z}_{it}\)</span> in the second regression equals the within estimator <span class="math inline">\(\hat{\boldsymbol{\pi}}_2^{FE}\)</span>, so the two residuals share a slope and differ only in what is subtracted off unit by unit: <span class="math display">\[\hat{v}_{it2}^{FE} = \hat{v}_{it2}^{M} + g_i\]</span> for some unit-specific constant <span class="math inline">\(g_i\)</span>. Put that into the second-stage index: <span class="math display">\[\mathbf{z}_{1,it}\boldsymbol{\delta}_1 + \alpha_1 y_{it2} + \rho_1 \hat{v}_{it2}^{FE} + c_i = \mathbf{z}_{1,it}\boldsymbol{\delta}_1 + \alpha_1 y_{it2} + \rho_1 \hat{v}_{it2}^{M} + (c_i + \rho_1 g_i)\]</span></p>
+<p>The swap moves <span class="math inline">\(\rho_1 g_i\)</span> into the unit effect, and the unit effect is a free parameter that FE Poisson absorbs without restriction. The model is reparameterized, not changed. Nothing reaches <span class="math inline">\(\hat{\alpha}_1\)</span> or <span class="math inline">\(\hat{\rho}_1\)</span>.</p>
+<p>This holds only when the first stage averages or absorbs on the same dimension the second stage absorbs. It is also specific to the linear first stage: for a binary <span class="math inline">\(y_2\)</span> the first stage is nonlinear, the residual is not shifted by a constant, and the choice between dummies and Mundlak means becomes a real one (<a href="#sec-poisson-iv-gr" class="quarto-xref"><span>Section 15.3.4</span></a>).</p>
+<hr></section></section><section id="binary-y_2-why-the-linear-reduced-form-fails" class="level3" data-number="15.3.2"><h3 data-number="15.3.2" class="anchored" data-anchor-id="binary-y_2-why-the-linear-reduced-form-fails">
 <span class="header-section-number">15.3.2</span> 3.2 Binary <span class="math inline">\(y_2\)</span>: Why the Linear Reduced Form Fails</h3>
 <p>When <span class="math inline">\(y_2 \in \{0, 1\}\)</span> is binary, the linear reduced-form residual <span class="math inline">\(v_2 = y_2 - \mathbf{z}\boldsymbol{\pi}_2\)</span> takes exactly two values conditional on <span class="math inline">\(\mathbf{z}\)</span>: <span id="eq-poisson-iv-5"><span class="math display">\[v_2 \mid \mathbf{z} = \begin{cases} 1 - \mathbf{z}\boldsymbol{\pi}_2 &amp; \text{with probability } p(\mathbf{z}) \\ -\mathbf{z}\boldsymbol{\pi}_2 &amp; \text{with probability } 1 - p(\mathbf{z}) \end{cases} \tag{15.5}\]</span></span></p>
 <p>The support <span class="math inline">\(\{-\mathbf{z}\boldsymbol{\pi}_2, 1 - \mathbf{z}\boldsymbol{\pi}_2\}\)</span>, the probabilities, and the conditional variance <span class="math inline">\(\mathrm{Var}(v_2 \mid \mathbf{z}) = p(\mathbf{z})[1 - p(\mathbf{z})]\)</span> are all <strong>direct functions of <span class="math inline">\(\mathbf{z}\)</span></strong>.</p>
@@ -638,7 +651,7 @@ E(y_1 \mid \mathbf{z}, y_2, v_2) &amp;= E\left[ \exp(\mathbf{z}_1\boldsymbol{\de
 <p><span class="citation" data-cites="terza-1998">Terza (<a href="references.html#ref-terza-1998" role="doc-biblioref">1998</a>)</span> proposes three estimators: 1. <strong>Full-Information Maximum Likelihood (FIML):</strong> Evaluates the joint likelihood of <span class="math inline">\(y_1\)</span> and <span class="math inline">\(y_2\)</span> by integrating out <span class="math inline">\(v_2\)</span> via Gauss–Hermite quadrature. 2. <strong>Two-Stage Method of Moments / QMLE:</strong> The two-step estimator above (probit followed by QMLE on <a href="#eq-poisson-iv-7" class="quarto-xref">Equation&nbsp;<span>15.7</span></a>). 3. <strong>Nonlinear Weighted Least Squares:</strong> For the fully parametric specification.</p>
 <p>In panel data, FIML has two major drawbacks: - It requires the full Poisson density inside the quadrature integral, losing QMLE robustness to overdispersion. - It cannot absorb fixed effects; entering unit dummies destroys likelihood separability, leading to severe incidental parameters bias and convergence failures.</p>
 <p>By contrast, the two-step profile QMLE concentrates out fixed effects cleanly.</p>
-<hr></section></section><section id="generalized-residual-cf-and-the-mundlak-device" class="level3" data-number="15.3.4"><h3 data-number="15.3.4" class="anchored" data-anchor-id="generalized-residual-cf-and-the-mundlak-device">
+<hr></section></section><section id="sec-poisson-iv-gr" class="level3" data-number="15.3.4"><h3 data-number="15.3.4" class="anchored" data-anchor-id="sec-poisson-iv-gr">
 <span class="header-section-number">15.3.4</span> 3.4 Generalized-Residual CF and the Mundlak Device</h3>
 <p>A first-order Taylor expansion of <span class="math inline">\(h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1)\)</span> around <span class="math inline">\(\rho_1 = 0\)</span> yields: <span id="eq-poisson-iv-10"><span class="math display">\[\left. \frac{\partial}{\partial \rho_1} \frac{\Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} \right|_{\rho_1 = 0} = \frac{\phi(\mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} \equiv \lambda(\mathbf{z}\boldsymbol{\pi}_2) \tag{15.10}\]</span></span> <span class="math display">\[\left. \frac{\partial}{\partial \rho_1} \frac{1 - \Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2)} \right|_{\rho_1 = 0} = -\frac{\phi(\mathbf{z}\boldsymbol{\pi}_2)}{1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2)} = -\lambda(-\mathbf{z}\boldsymbol{\pi}_2)\]</span></p>
 <p>Since <span class="math inline">\(h(y_2, \mathbf{z}\boldsymbol{\pi}_2, 0) = 1\)</span> and <span class="math inline">\(\left.\frac{d}{d\rho_1}\exp(\rho_1^2/2)\right|_{\rho_1=0} = 0\)</span>, we have: <span id="eq-poisson-iv-11"><span class="math display">\[h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1) \approx 1 + \rho_1 \hat{r}_2 \tag{15.11}\]</span></span></p>
@@ -785,7 +798,7 @@ E(y_1 \mid \mathbf{z}, y_2, v_2) &amp;= E\left[ \exp(\mathbf{z}_1\boldsymbol{\de
 <hr></section><section id="practical-guidance-an-observable-diagnostic-workflow" class="level2" data-number="15.6"><h2 data-number="15.6" class="anchored" data-anchor-id="practical-guidance-an-observable-diagnostic-workflow">
 <span class="header-section-number">15.6</span> 6. Practical Guidance: An Observable Diagnostic Workflow</h2>
 <p>In empirical practice, we do not need to guess the confounding parameter <span class="math inline">\(\rho_1\)</span>—<strong>it is estimated directly as the coefficient on the generalized residual <span class="math inline">\(\hat{r}_2\)</span> in your second-stage Poisson regression table.</strong></p>
-<p>A standard applied workflow proceeds in three actionable steps:</p>
+<p>A standard applied workflow proceeds in four steps:</p>
 <ol type="1">
 <li>
 <p><strong>Estimate the Generalized-Residual CF as the baseline model:</strong></p>
@@ -796,7 +809,7 @@ E(y_1 \mid \mathbf{z}, y_2, v_2) &amp;= E\left[ \exp(\mathbf{z}_1\boldsymbol{\de
 </ul>
 </li>
 <li><p><strong>Check the <span class="math inline">\(t\)</span>-statistic on the residual (Exogeneity Test):</strong><br>
-The <span class="math inline">\(t\)</span>-statistic on <span class="math inline">\(\hat{r}_2\)</span> (testing <span class="math inline">\(\hat{\rho}_1 = 0\)</span>) is an asymptotically valid Hausman-type exogeneity test. If the coefficient is statistically indistinguishable from zero (<span class="math inline">\(p &gt; 0.05\)</span>), exogeneity is not rejected, and standard fixed-effects Poisson is supported.</p></li>
+The <span class="math inline">\(t\)</span>-statistic on <span class="math inline">\(\hat{r}_2\)</span> (testing <span class="math inline">\(\hat{\rho}_1 = 0\)</span>) is an asymptotically valid Hausman-type exogeneity test. Read it as a description of how much endogeneity the data can detect. Do not read it as a licence to drop the residual — see the pretest warning below.</p></li>
 <li>
 <p><strong>Read the size and sign of <span class="math inline">\(\hat{\rho}_1\)</span> (Approximation Diagnostic):</strong></p>
 <ul>
@@ -809,7 +822,13 @@ The <span class="math inline">\(t\)</span>-statistic on <span class="math inline
 <li><p><strong>Inference:</strong><br>
 Always compute standard errors using a cluster bootstrap over panel units to account for first-stage estimation uncertainty.</p></li>
 </ol>
-<hr></section><section id="implementation-demos-in-r-and-stata" class="level2" data-number="15.7"><h2 data-number="15.7" class="anchored" data-anchor-id="implementation-demos-in-r-and-stata">
+<section id="do-not-use-the-exogeneity-test-to-choose-the-model" class="level3" data-number="15.6.1"><h3 data-number="15.6.1" class="anchored" data-anchor-id="do-not-use-the-exogeneity-test-to-choose-the-model">
+<span class="header-section-number">15.6.1</span> Do Not Use the Exogeneity Test to Choose the Model</h3>
+<p>The tempting next move is to let step 2 pick the specification: if the <span class="math inline">\(t\)</span>-statistic on <span class="math inline">\(\hat{r}_2\)</span> is insignificant, drop the residual and report the plain FE Poisson; if it is significant, keep the control function. This is a pretest estimator, and it is worse than either of the two models it chooses between.</p>
+<p><span class="citation" data-cites="guggenberger-2010">Guggenberger (<a href="references.html#ref-guggenberger-2010" role="doc-biblioref">2010a</a>)</span> works this out for the linear case. A Hausman pretest followed by OLS-or-2SLS, with the second-stage <span class="math inline">\(t\)</span>-test reported at its nominal level, has <strong>asymptotic size equal to one</strong>: there are points in the parameter space where the procedure rejects a true null with probability approaching 1. The mechanism is a sequence of local alternatives. Let the endogeneity drift toward zero at rate <span class="math inline">\(n^{-1/2}\)</span>. The pretest then has low power and often fails to reject, so the procedure falls back on the estimator that ignores endogeneity — but at that drift rate the bias of that estimator is the same order as its standard error, so the reported confidence interval is centred in the wrong place by about its own width. Taking the supremum of rejection probability over the parameter space picks out exactly these points. <span class="citation" data-cites="guggenberger-2010-panel">Guggenberger (<a href="references.html#ref-guggenberger-2010-panel" role="doc-biblioref">2010b</a>)</span> obtains the same conclusion for the panel Hausman test between fixed and random effects.</p>
+<p>These results are proved for linear models, and we are not aware of an analogous theorem for the Poisson control function. The mechanism does not depend on linearity: it needs only a pretest with low power against local endogeneity and a fallback estimator whose bias does not vanish faster than its standard error, and both are present here. We treat it as a warning that carries over rather than a result that has been established in this setting.</p>
+<p>The practical rule is to <strong>report the naive FE Poisson and the control-function FE Poisson side by side</strong> and let the reader see both. The <span class="math inline">\(t\)</span>-statistic on <span class="math inline">\(\hat{r}_2\)</span> still belongs in the table; it is evidence about the size of <span class="math inline">\(\rho_1\)</span>, which is what step 3 needs. What it must not do is silently delete one of the two columns.</p>
+<hr></section></section><section id="implementation-demos-in-r-and-stata" class="level2" data-number="15.7"><h2 data-number="15.7" class="anchored" data-anchor-id="implementation-demos-in-r-and-stata">
 <span class="header-section-number">15.7</span> 7. Implementation Demos in R and Stata</h2>
 <p>Below are concise, copy-pasteable implementation templates in R (<code>fixest</code>) and Stata (<code>ppmlhdfe</code>).</p>
 <section id="r-implementation-demo-fixest" class="level3" data-number="15.7.1"><h3 data-number="15.7.1" class="anchored" data-anchor-id="r-implementation-demo-fixest">
@@ -939,8 +958,17 @@ true alpha1 = 0.80, true rho1 = 0.20</code></pre>
 <div id="ref-chamberlain-1992" class="csl-entry" role="listitem">
 Chamberlain, Gary. 1992. <span>“Comment: Sequential Moment Restrictions in Panel Data.”</span> In <em>Journal of Business &amp; Economic Statistics</em>, 10:20–26. 1. <a href="https://doi.org/10.1080/07350015.1992.10509984">https://doi.org/10.1080/07350015.1992.10509984</a>.
 </div>
+<div id="ref-correia-guimaraes-zylkin-2020" class="csl-entry" role="listitem">
+Correia, Sergio, Paulo Guimarães, and Tom Zylkin. 2020. <span>“Fast <span>P</span>oisson Estimation with High-Dimensional Fixed Effects.”</span> <em>The Stata Journal</em> 20 (1): 95–115. <a href="https://doi.org/10.1177/1536867X20909691">https://doi.org/10.1177/1536867X20909691</a>.
+</div>
 <div id="ref-gourieroux-monfort-renault-trognon-1987" class="csl-entry" role="listitem">
 Gourieroux, Christian, Alain Monfort, Eric Renault, and Alain Trognon. 1987. <span>“Generalized Residuals.”</span> <em>Journal of Econometrics</em> 34 (1–2): 5–32.
+</div>
+<div id="ref-guggenberger-2010" class="csl-entry" role="listitem">
+Guggenberger, Patrik. 2010a. <span>“The Impact of a <span>H</span>ausman Pretest on the Asymptotic Size of a Hypothesis Test.”</span> <em>Econometric Theory</em> 26 (2): 369–82. <a href="https://doi.org/10.1017/S0266466609100014">https://doi.org/10.1017/S0266466609100014</a>.
+</div>
+<div id="ref-guggenberger-2010-panel" class="csl-entry" role="listitem">
+———. 2010b. <span>“The Impact of a Hausman Pretest on the Size of a Hypothesis Test: The Panel Data Case.”</span> <em>Journal of Econometrics</em> 156 (2): 337–43. <a href="https://doi.org/10.1016/j.jeconom.2009.11.003">https://doi.org/10.1016/j.jeconom.2009.11.003</a>.
 </div>
 <div id="ref-imbens-wooldridge-2007-cf" class="csl-entry" role="listitem">
 Imbens, Guido W., and Jeffrey M. Wooldridge. 2007. <span>“What’s New in Econometrics? Lecture 6: Control Functions and Related Methods.”</span> National Bureau of Economic Research Summer Institute. <a href="https://users.nber.org/~confer/2007/si2007/WNE/lect_6_controlfuncs.pdf">https://users.nber.org/~confer/2007/si2007/WNE/lect_6_controlfuncs.pdf</a>.
@@ -1450,398 +1478,432 @@ Wooldridge, Jeffrey M. 1999. <span>“Distribution-Free Estimation of Some Nonli
 <span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>Generalized residuals as a first-order local approximation, logit response residuals, and the Mundlak device for panel fixed effects <span class="co">[</span><span class="ot">@lin-wooldridge-2019</span><span class="co">]</span>.</span>
 <span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>Why applied econometrics generally recommends the generalized residual approach over the exact Terza correction.</span>
 <span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a><span class="ss">6. </span>Multiplicative-moment GMM <span class="co">[</span><span class="ot">@mullahy-1997</span><span class="co">]</span> and quasi-differencing for panel fixed effects.</span>
-<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a><span class="ss">7. </span>Step-by-step implementation demos in R (<span class="in">`fixest`</span>) and Stata (<span class="in">`ppmlhdfe`</span>).</span>
-<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. The Model and Setup</span></span>
-<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>Let $y_1$ denote the count outcome, $y_2$ the endogenous explanatory variable, and $\mathbf{z} = (\mathbf{z}_1, \mathbf{z}_2)$ the vector of exogenous variables ($\mathbf{z}_1$ included in the structural equation, $\mathbf{z}_2$ excluded instruments).</span>
-<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>The structural conditional mean is:</span>
-<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}_1, y_2, c_1) = \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + c_1)$$ {#eq-poisson-iv-1}</span>
-<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>where $c_1$ is an unobserved omitted variable correlated with $y_2$. Our primary estimand of interest is $\alpha_1$, the structural semi-elasticity of $y_1$ with respect to $y_2$.</span>
-<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a><span class="fu">### Subscripts Index Equations</span></span>
-<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>Following the simultaneous-equations convention of @wooldridge-2010-crosssection (ch. 18), **subscripts index equations rather than individual variables**:</span>
-<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Equation 1 (Structural equation):** outcome $y_1$, parameters $(\boldsymbol{\delta}_1, \alpha_1)$, unobserved error $c_1$.</span>
-<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Equation 2 (Reduced-form equation):** outcome $y_2$, coefficients $\boldsymbol{\pi}_2$, reduced-form error $v_2$.</span>
-<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Role <span class="pp">|</span> Linear IV Notation <span class="pp">|</span> Nonlinear Notation Here <span class="pp">|</span> Description <span class="pp">|</span></span>
-<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a><span class="pp">|:---|:---:|:---:|:---|</span></span>
-<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Outcome (the count) <span class="pp">|</span> $Y$ <span class="pp">|</span> $y_1$ <span class="pp">|</span> Dependent variable in structural equation <span class="pp">|</span></span>
-<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Endogenous regressor <span class="pp">|</span> $W$ or $D$ <span class="pp">|</span> $y_2$ <span class="pp">|</span> Explanatory variable correlated with $c_1$ <span class="pp">|</span></span>
-<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Excluded instrument <span class="pp">|</span> $Z$ <span class="pp">|</span> $\mathbf{z}_2$ <span class="pp">|</span> Exogenous instrument excluded from Eq. 1 <span class="pp">|</span></span>
-<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Included exogenous <span class="pp">|</span> $X$ <span class="pp">|</span> $\mathbf{z}_1$ <span class="pp">|</span> Exogenous covariates included in Eq. 1 <span class="pp">|</span></span>
-<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Reduced-form error <span class="pp">|</span> $V$ <span class="pp">|</span> $v_2$ <span class="pp">|</span> Error from projecting $y_2$ on $\mathbf{z}$ <span class="pp">|</span></span>
-<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Structural unobservable <span class="pp">|</span> $U$ <span class="pp">|</span> $c_1$ <span class="pp">|</span> Confounder correlated with $y_2$ <span class="pp">|</span></span>
-<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Endogeneity parameter <span class="pp">|</span> $\rho$ <span class="pp">|</span> $\rho_1$ <span class="pp">|</span> Projection coefficient: $c_1 = \rho_1 v_2 + e_1$ <span class="pp">|</span></span>
-<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a>Two standard deviations from Wooldridge's notation are maintained for clarity:</span>
-<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Wooldridge writes the coefficient on $y_2$ as $\gamma_1$; we write $\alpha_1$ to align with standard treatment effect notation.</span>
-<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Where Wooldridge writes $\mathbf{x}_1\boldsymbol{\beta}_1$, we write $\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2$.</span>
-<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb10-59"><a href="#cb10-59" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-60"><a href="#cb10-60" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2. Theoretical Foundations: Control Functions vs. GMM</span></span>
-<span id="cb10-61"><a href="#cb10-61" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-62"><a href="#cb10-62" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.1 The Linear Second Stage: Control Function *is* 2SLS</span></span>
-<span id="cb10-63"><a href="#cb10-63" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-64"><a href="#cb10-64" aria-hidden="true" tabindex="-1"></a>To see where the nonlinear complication begins, consider first the linear model:</span>
-<span id="cb10-65"><a href="#cb10-65" aria-hidden="true" tabindex="-1"></a>$$y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \varepsilon_1, \qquad E(\mathbf{z}'\varepsilon_1) = \mathbf{0}$$</span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a><span class="ss">7. </span>Why the exogeneity test should not be used to choose between the naive and control-function models <span class="co">[</span><span class="ot">@guggenberger-2010</span><span class="co">]</span>.</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a><span class="ss">8. </span>Step-by-step implementation demos in R (<span class="in">`fixest`</span>) and Stata (<span class="in">`ppmlhdfe`</span>).</span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. The Model and Setup</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>Let $y_1$ denote the count outcome, $y_2$ the endogenous explanatory variable, and $\mathbf{z} = (\mathbf{z}_1, \mathbf{z}_2)$ the vector of exogenous variables ($\mathbf{z}_1$ included in the structural equation, $\mathbf{z}_2$ excluded instruments).</span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>The structural conditional mean is:</span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}_1, y_2, c_1) = \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + c_1)$$ {#eq-poisson-iv-1}</span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a>where $c_1$ is an unobserved omitted variable correlated with $y_2$. Our primary estimand of interest is $\alpha_1$, the structural semi-elasticity of $y_1$ with respect to $y_2$.</span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a><span class="fu">### Subscripts Index Equations</span></span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a>Following the simultaneous-equations convention of @wooldridge-2010-crosssection (ch. 18), **subscripts index equations rather than individual variables**:</span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Equation 1 (Structural equation):** outcome $y_1$, parameters $(\boldsymbol{\delta}_1, \alpha_1)$, unobserved error $c_1$.</span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Equation 2 (Reduced-form equation):** outcome $y_2$, coefficients $\boldsymbol{\pi}_2$, reduced-form error $v_2$.</span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Role <span class="pp">|</span> Linear IV Notation <span class="pp">|</span> Nonlinear Notation Here <span class="pp">|</span> Description <span class="pp">|</span></span>
+<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a><span class="pp">|:---|:---:|:---:|:---|</span></span>
+<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Outcome (the count) <span class="pp">|</span> $Y$ <span class="pp">|</span> $y_1$ <span class="pp">|</span> Dependent variable in structural equation <span class="pp">|</span></span>
+<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Endogenous regressor <span class="pp">|</span> $W$ or $D$ <span class="pp">|</span> $y_2$ <span class="pp">|</span> Explanatory variable correlated with $c_1$ <span class="pp">|</span></span>
+<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Excluded instrument <span class="pp">|</span> $Z$ <span class="pp">|</span> $\mathbf{z}_2$ <span class="pp">|</span> Exogenous instrument excluded from Eq. 1 <span class="pp">|</span></span>
+<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Included exogenous <span class="pp">|</span> $X$ <span class="pp">|</span> $\mathbf{z}_1$ <span class="pp">|</span> Exogenous covariates included in Eq. 1 <span class="pp">|</span></span>
+<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Reduced-form error <span class="pp">|</span> $V$ <span class="pp">|</span> $v_2$ <span class="pp">|</span> Error from projecting $y_2$ on $\mathbf{z}$ <span class="pp">|</span></span>
+<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Structural unobservable <span class="pp">|</span> $U$ <span class="pp">|</span> $c_1$ <span class="pp">|</span> Confounder correlated with $y_2$ <span class="pp">|</span></span>
+<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Endogeneity parameter <span class="pp">|</span> $\rho$ <span class="pp">|</span> $\rho_1$ <span class="pp">|</span> Projection coefficient: $c_1 = \rho_1 v_2 + e_1$ <span class="pp">|</span></span>
+<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a>Two standard deviations from Wooldridge's notation are maintained for clarity:</span>
+<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Wooldridge writes the coefficient on $y_2$ as $\gamma_1$; we write $\alpha_1$ to align with standard treatment effect notation.</span>
+<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Where Wooldridge writes $\mathbf{x}_1\boldsymbol{\beta}_1$, we write $\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2$.</span>
+<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-59"><a href="#cb10-59" aria-hidden="true" tabindex="-1"></a><span class="fu">### Fixed Effects in the Exponential Model</span></span>
+<span id="cb10-60"><a href="#cb10-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-61"><a href="#cb10-61" aria-hidden="true" tabindex="-1"></a>Everything below absorbs fixed effects without comment, and it is worth saying once why that is allowed. Fixed-effects Poisson has no incidental parameters problem <span class="co">[</span><span class="ot">@wooldridge-1999-multiplicative; @lin-wooldridge-2019</span><span class="co">]</span>. With $N \to \infty$ and $T$ fixed, the unit effects enter multiplicatively, factor out of the score, and are conditioned out cleanly. The estimator of $\boldsymbol{\beta}$ is consistent even though the number of unit parameters grows with the sample. Probit and logit have no such property, which is why the first stage of @sec-poisson-iv-gr needs the Mundlak device while the second stage does not.</span>
+<span id="cb10-62"><a href="#cb10-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-63"><a href="#cb10-63" aria-hidden="true" tabindex="-1"></a>The software follows from this. In Stata, <span class="in">`xtpoisson, fe`</span> fits the conditional model, but the community standard is <span class="in">`ppmlhdfe`</span> <span class="co">[</span><span class="ot">@correia-guimaraes-zylkin-2020</span><span class="co">]</span>: it absorbs several dimensions of fixed effects at once, it is fast, it detects separated and singleton observations, and it recovers predicted values with the absorbed effects put back. In R, <span class="in">`fixest::fepois()`</span> does the same, with <span class="in">`fixest::feols()`</span> for the linear first stage.</span>
+<span id="cb10-64"><a href="#cb10-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-65"><a href="#cb10-65" aria-hidden="true" tabindex="-1"></a>Stata's <span class="in">`ivpoisson`</span> handles endogenous regressors, but it cannot absorb high-dimensional fixed effects. That is the practical reason the panel literature routes endogeneity through a control function rather than through a packaged IV command: the control function leaves the second stage as an ordinary FE Poisson regression, which <span class="in">`ppmlhdfe`</span> and <span class="in">`fepois`</span> already do well.</span>
 <span id="cb10-66"><a href="#cb10-66" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-67"><a href="#cb10-67" aria-hidden="true" tabindex="-1"></a>Two-stage least squares (2SLS) replaces $y_2$ with its linear projection $\hat{y}_2 = \mathbf{z}\hat{\boldsymbol{\pi}}_2$:</span>
-<span id="cb10-68"><a href="#cb10-68" aria-hidden="true" tabindex="-1"></a>$$y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 \hat{y}_2 + (\varepsilon_1 + \alpha_1 \hat{v}_2)$$</span>
-<span id="cb10-69"><a href="#cb10-69" aria-hidden="true" tabindex="-1"></a>where $\hat{v}_2 = y_2 - \hat{y}_2$ is the OLS residual.</span>
+<span id="cb10-67"><a href="#cb10-67" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb10-68"><a href="#cb10-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-69"><a href="#cb10-69" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2. Theoretical Foundations: Control Functions vs. GMM</span></span>
 <span id="cb10-70"><a href="#cb10-70" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-71"><a href="#cb10-71" aria-hidden="true" tabindex="-1"></a>Alternatively, the **control function (CF)** approach decomposes the structural error $\varepsilon_1$ via a linear projection on the first-stage residual $v_2$:</span>
-<span id="cb10-72"><a href="#cb10-72" aria-hidden="true" tabindex="-1"></a>$$\varepsilon_1 = \rho_1 v_2 + \eta_1$$</span>
-<span id="cb10-73"><a href="#cb10-73" aria-hidden="true" tabindex="-1"></a>where $\rho_1 = \frac{\mathrm{Cov}(\varepsilon_1, v_2)}{\mathrm{Var}(v_2)}$. By the properties of linear projection, $E(v_2 \eta_1) = 0$ and $E(\mathbf{z}'\eta_1) = E(\mathbf{z}'\varepsilon_1) - \rho_1 E(\mathbf{z}'v_2) = \mathbf{0}$.</span>
-<span id="cb10-74"><a href="#cb10-74" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-75"><a href="#cb10-75" aria-hidden="true" tabindex="-1"></a>Plugging this into the structural equation yields the augmented regression:</span>
-<span id="cb10-76"><a href="#cb10-76" aria-hidden="true" tabindex="-1"></a>$$y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2 + \eta_1$$</span>
-<span id="cb10-77"><a href="#cb10-77" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-78"><a href="#cb10-78" aria-hidden="true" tabindex="-1"></a>By the **Frisch–Waugh–Lovell (FWL) theorem**, OLS estimation of this augmented regression produces an estimate $\hat{\alpha}_1$ that is **numerically identical to 2SLS**. No additional distributional assumptions are required beyond the standard orthogonality condition $E(\mathbf{z}'\varepsilon_1) = \mathbf{0}$.</span>
+<span id="cb10-71"><a href="#cb10-71" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.1 The Linear Second Stage: Control Function *is* 2SLS</span></span>
+<span id="cb10-72"><a href="#cb10-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-73"><a href="#cb10-73" aria-hidden="true" tabindex="-1"></a>To see where the nonlinear complication begins, consider first the linear model:</span>
+<span id="cb10-74"><a href="#cb10-74" aria-hidden="true" tabindex="-1"></a>$$y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \varepsilon_1, \qquad E(\mathbf{z}'\varepsilon_1) = \mathbf{0}$$</span>
+<span id="cb10-75"><a href="#cb10-75" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-76"><a href="#cb10-76" aria-hidden="true" tabindex="-1"></a>Two-stage least squares (2SLS) replaces $y_2$ with its linear projection $\hat{y}_2 = \mathbf{z}\hat{\boldsymbol{\pi}}_2$:</span>
+<span id="cb10-77"><a href="#cb10-77" aria-hidden="true" tabindex="-1"></a>$$y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 \hat{y}_2 + (\varepsilon_1 + \alpha_1 \hat{v}_2)$$</span>
+<span id="cb10-78"><a href="#cb10-78" aria-hidden="true" tabindex="-1"></a>where $\hat{v}_2 = y_2 - \hat{y}_2$ is the OLS residual.</span>
 <span id="cb10-79"><a href="#cb10-79" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-80"><a href="#cb10-80" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.2 The Nonlinear Second Stage: Control Function Requires Independence</span></span>
-<span id="cb10-81"><a href="#cb10-81" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-82"><a href="#cb10-82" aria-hidden="true" tabindex="-1"></a>When the conditional mean is exponential, this automatic numerical equivalence breaks down. </span>
+<span id="cb10-80"><a href="#cb10-80" aria-hidden="true" tabindex="-1"></a>Alternatively, the **control function (CF)** approach decomposes the structural error $\varepsilon_1$ via a linear projection on the first-stage residual $v_2$:</span>
+<span id="cb10-81"><a href="#cb10-81" aria-hidden="true" tabindex="-1"></a>$$\varepsilon_1 = \rho_1 v_2 + \eta_1$$</span>
+<span id="cb10-82"><a href="#cb10-82" aria-hidden="true" tabindex="-1"></a>where $\rho_1 = \frac{\mathrm{Cov}(\varepsilon_1, v_2)}{\mathrm{Var}(v_2)}$. By the properties of linear projection, $E(v_2 \eta_1) = 0$ and $E(\mathbf{z}'\eta_1) = E(\mathbf{z}'\varepsilon_1) - \rho_1 E(\mathbf{z}'v_2) = \mathbf{0}$.</span>
 <span id="cb10-83"><a href="#cb10-83" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-84"><a href="#cb10-84" aria-hidden="true" tabindex="-1"></a>Substituting the error decomposition $c_1 = \rho_1 v_2 + e_1$ into @eq-poisson-iv-1 yields:</span>
-<span id="cb10-85"><a href="#cb10-85" aria-hidden="true" tabindex="-1"></a>$$\begin{aligned}</span>
-<span id="cb10-86"><a href="#cb10-86" aria-hidden="true" tabindex="-1"></a>E(y_1 \mid \mathbf{z}, y_2, v_2) &amp;= E\left<span class="co">[</span><span class="ot"> \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 v_2 + e_1) \mid \mathbf{z}, y_2, v_2 \right</span><span class="co">]</span> <span class="sc">\\</span></span>
-<span id="cb10-87"><a href="#cb10-87" aria-hidden="true" tabindex="-1"></a>&amp;= \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 v_2) \cdot E\left<span class="co">[</span><span class="ot"> \exp(e_1) \mid \mathbf{z}, y_2, v_2 \right</span><span class="co">]</span></span>
-<span id="cb10-88"><a href="#cb10-88" aria-hidden="true" tabindex="-1"></a>\end{aligned}$$ {#eq-poisson-iv-2}</span>
-<span id="cb10-89"><a href="#cb10-89" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-90"><a href="#cb10-90" aria-hidden="true" tabindex="-1"></a>For the augmented index $\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 v_2$ to correctly specify the conditional mean in a Poisson second stage, the remaining expectation factor must be **strictly constant**:</span>
-<span id="cb10-91"><a href="#cb10-91" aria-hidden="true" tabindex="-1"></a>$$E\left<span class="co">[</span><span class="ot"> \exp(e_1) \mid \mathbf{z}, y_2, v_2 \right</span><span class="co">]</span> = \text{constant}$$</span>
+<span id="cb10-84"><a href="#cb10-84" aria-hidden="true" tabindex="-1"></a>Plugging this into the structural equation yields the augmented regression:</span>
+<span id="cb10-85"><a href="#cb10-85" aria-hidden="true" tabindex="-1"></a>$$y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2 + \eta_1$$</span>
+<span id="cb10-86"><a href="#cb10-86" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-87"><a href="#cb10-87" aria-hidden="true" tabindex="-1"></a>By the **Frisch–Waugh–Lovell (FWL) theorem**, OLS estimation of this augmented regression produces an estimate $\hat{\alpha}_1$ that is **numerically identical to 2SLS**. No additional distributional assumptions are required beyond the standard orthogonality condition $E(\mathbf{z}'\varepsilon_1) = \mathbf{0}$.</span>
+<span id="cb10-88"><a href="#cb10-88" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-89"><a href="#cb10-89" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.2 The Nonlinear Second Stage: Control Function Requires Independence</span></span>
+<span id="cb10-90"><a href="#cb10-90" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-91"><a href="#cb10-91" aria-hidden="true" tabindex="-1"></a>When the conditional mean is exponential, this automatic numerical equivalence breaks down. </span>
 <span id="cb10-92"><a href="#cb10-92" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-93"><a href="#cb10-93" aria-hidden="true" tabindex="-1"></a>This is why @wooldridge-2010-crosssection (sec. 18.5) normalizes $E<span class="co">[</span><span class="ot">\exp(e_1)</span><span class="co">]</span> = 1$ rather than $E(e_1) = 0$.</span>
-<span id="cb10-94"><a href="#cb10-94" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-95"><a href="#cb10-95" aria-hidden="true" tabindex="-1"></a>This condition is a requirement on the **moment-generating function** of $e_1$—a condition across all moments simultaneously, which requires that $e_1$ is **fully independent** of $(\mathbf{z}, v_2)$, and in turn that the reduced-form error $v_2$ is **independent** of $\mathbf{z}$ ($v_2 \perp \mathbf{z}$).</span>
-<span id="cb10-96"><a href="#cb10-96" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-97"><a href="#cb10-97" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Property <span class="pp">|</span> Linear Model (OLS / 2SLS) <span class="pp">|</span> Nonlinear Model (Poisson CF) <span class="pp">|</span></span>
-<span id="cb10-98"><a href="#cb10-98" aria-hidden="true" tabindex="-1"></a><span class="pp">|:---|:---|:---|</span></span>
-<span id="cb10-99"><a href="#cb10-99" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Second stage** <span class="pp">|</span> $y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2$ <span class="pp">|</span> $y_1 \sim \text{Poisson}(\exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2))$ <span class="pp">|</span></span>
-<span id="cb10-100"><a href="#cb10-100" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **CF vs. 2SLS/GMM** | **Identical** (by FWL theorem) | **Different** (FWL does not hold) <span class="pp">|</span></span>
-<span id="cb10-101"><a href="#cb10-101" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Required assumption** | Uncorrelatedness: $E(\mathbf{z}'\varepsilon_1) = \mathbf{0}$ | **Full Independence:** $v_2 \perp \mathbf{z}$ and $e_1 \perp (\mathbf{z}, v_2)$ <span class="pp">|</span></span>
-<span id="cb10-102"><a href="#cb10-102" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Second-stage standard errors** | Valid under $H_0: \rho_1 = 0$ | **Invalid** (must bootstrap generated regressor) <span class="pp">|</span></span>
-<span id="cb10-103"><a href="#cb10-103" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Endogeneity test** <span class="pp">|</span> $t$-statistic on $\hat{v}_2 = 0$ (DWH test) <span class="pp">|</span> $t$-statistic on $\hat{v}_2 = 0$ (Variable addition test) <span class="pp">|</span></span>
-<span id="cb10-104"><a href="#cb10-104" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-105"><a href="#cb10-105" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb10-106"><a href="#cb10-106" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-107"><a href="#cb10-107" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. Estimators for Endogenous Regressors</span></span>
-<span id="cb10-108"><a href="#cb10-108" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-109"><a href="#cb10-109" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.1 Continuous $y_2$: The Linear Reduced Form Holds</span></span>
-<span id="cb10-110"><a href="#cb10-110" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-111"><a href="#cb10-111" aria-hidden="true" tabindex="-1"></a>When $y_2$ is continuous (e.g., hours worked, prices, expenditures), a linear reduced form with additive errors is natural:</span>
-<span id="cb10-112"><a href="#cb10-112" aria-hidden="true" tabindex="-1"></a>$$y_2 = \mathbf{z}\boldsymbol{\pi}_2 + v_2, \qquad c_1 = \rho_1 v_2 + e_1$$ {#eq-poisson-iv-3}</span>
+<span id="cb10-93"><a href="#cb10-93" aria-hidden="true" tabindex="-1"></a>Substituting the error decomposition $c_1 = \rho_1 v_2 + e_1$ into @eq-poisson-iv-1 yields:</span>
+<span id="cb10-94"><a href="#cb10-94" aria-hidden="true" tabindex="-1"></a>$$\begin{aligned}</span>
+<span id="cb10-95"><a href="#cb10-95" aria-hidden="true" tabindex="-1"></a>E(y_1 \mid \mathbf{z}, y_2, v_2) &amp;= E\left<span class="co">[</span><span class="ot"> \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 v_2 + e_1) \mid \mathbf{z}, y_2, v_2 \right</span><span class="co">]</span> <span class="sc">\\</span></span>
+<span id="cb10-96"><a href="#cb10-96" aria-hidden="true" tabindex="-1"></a>&amp;= \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 v_2) \cdot E\left<span class="co">[</span><span class="ot"> \exp(e_1) \mid \mathbf{z}, y_2, v_2 \right</span><span class="co">]</span></span>
+<span id="cb10-97"><a href="#cb10-97" aria-hidden="true" tabindex="-1"></a>\end{aligned}$$ {#eq-poisson-iv-2}</span>
+<span id="cb10-98"><a href="#cb10-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-99"><a href="#cb10-99" aria-hidden="true" tabindex="-1"></a>For the augmented index $\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 v_2$ to correctly specify the conditional mean in a Poisson second stage, the remaining expectation factor must be **strictly constant**:</span>
+<span id="cb10-100"><a href="#cb10-100" aria-hidden="true" tabindex="-1"></a>$$E\left<span class="co">[</span><span class="ot"> \exp(e_1) \mid \mathbf{z}, y_2, v_2 \right</span><span class="co">]</span> = \text{constant}$$</span>
+<span id="cb10-101"><a href="#cb10-101" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-102"><a href="#cb10-102" aria-hidden="true" tabindex="-1"></a>This is why @wooldridge-2010-crosssection (sec. 18.5) normalizes $E<span class="co">[</span><span class="ot">\exp(e_1)</span><span class="co">]</span> = 1$ rather than $E(e_1) = 0$.</span>
+<span id="cb10-103"><a href="#cb10-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-104"><a href="#cb10-104" aria-hidden="true" tabindex="-1"></a>This condition is a requirement on the **moment-generating function** of $e_1$—a condition across all moments simultaneously, which requires that $e_1$ is **fully independent** of $(\mathbf{z}, v_2)$, and in turn that the reduced-form error $v_2$ is **independent** of $\mathbf{z}$ ($v_2 \perp \mathbf{z}$).</span>
+<span id="cb10-105"><a href="#cb10-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-106"><a href="#cb10-106" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Property <span class="pp">|</span> Linear Model (OLS / 2SLS) <span class="pp">|</span> Nonlinear Model (Poisson CF) <span class="pp">|</span></span>
+<span id="cb10-107"><a href="#cb10-107" aria-hidden="true" tabindex="-1"></a><span class="pp">|:---|:---|:---|</span></span>
+<span id="cb10-108"><a href="#cb10-108" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Second stage** <span class="pp">|</span> $y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2$ <span class="pp">|</span> $y_1 \sim \text{Poisson}(\exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2))$ <span class="pp">|</span></span>
+<span id="cb10-109"><a href="#cb10-109" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **CF vs. 2SLS/GMM** | **Identical** (by FWL theorem) | **Different** (FWL does not hold) <span class="pp">|</span></span>
+<span id="cb10-110"><a href="#cb10-110" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Required assumption** | Uncorrelatedness: $E(\mathbf{z}'\varepsilon_1) = \mathbf{0}$ | **Full Independence:** $v_2 \perp \mathbf{z}$ and $e_1 \perp (\mathbf{z}, v_2)$ <span class="pp">|</span></span>
+<span id="cb10-111"><a href="#cb10-111" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Second-stage standard errors** | Valid under $H_0: \rho_1 = 0$ | **Invalid** (must bootstrap generated regressor) <span class="pp">|</span></span>
+<span id="cb10-112"><a href="#cb10-112" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Endogeneity test** <span class="pp">|</span> $t$-statistic on $\hat{v}_2 = 0$ (DWH test) <span class="pp">|</span> $t$-statistic on $\hat{v}_2 = 0$ (Variable addition test) <span class="pp">|</span></span>
 <span id="cb10-113"><a href="#cb10-113" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-114"><a href="#cb10-114" aria-hidden="true" tabindex="-1"></a>with $v_2 \perp \mathbf{z}$ and $e_1 \perp (\mathbf{z}, v_2)$. These are two separate restrictions and it is worth keeping them apart. Joint normality of $(c_1, v_2)$ delivers the second: $e_1$ is the projection residual, and for jointly normal variables uncorrelated implies independent. It says nothing about the first. $v_2 \perp \mathbf{z}$ is a restriction on the reduced form — the conditional distribution of $v_2$ must not vary with $\mathbf{z}$ — and a linear equation with a homoskedastic normal additive error satisfies it. Both hold here; neither is implied by the other. The structural conditional mean becomes:</span>
-<span id="cb10-115"><a href="#cb10-115" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}_1, y_2, v_2) = \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 v_2)$$ {#eq-poisson-iv-4}</span>
-<span id="cb10-116"><a href="#cb10-116" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-117"><a href="#cb10-117" aria-hidden="true" tabindex="-1"></a>**Estimation Procedure:**</span>
-<span id="cb10-118"><a href="#cb10-118" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Step 1 (First Stage):** Estimate the linear regression $y_2 = \mathbf{z}\boldsymbol{\pi}_2 + v_2$ by OLS (or with fixed effects absorbed) and compute residuals $\hat{v}_2 = y_2 - \mathbf{z}\hat{\boldsymbol{\pi}}_2$.</span>
-<span id="cb10-119"><a href="#cb10-119" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Step 2 (Second Stage):** Estimate Poisson QMLE with $y_2$ and $\hat{v}_2$ entering simultaneously:</span>
-<span id="cb10-120"><a href="#cb10-120" aria-hidden="true" tabindex="-1"></a>   $$y_1 \sim \text{Poisson}(\exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2))$$</span>
-<span id="cb10-121"><a href="#cb10-121" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Inference:** Standard errors must be bootstrapped (e.g., clustered by panel unit) to account for the first-stage estimation uncertainty of $\hat{v}_2$.</span>
+<span id="cb10-114"><a href="#cb10-114" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb10-115"><a href="#cb10-115" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-116"><a href="#cb10-116" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. Estimators for Endogenous Regressors</span></span>
+<span id="cb10-117"><a href="#cb10-117" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-118"><a href="#cb10-118" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.1 Continuous $y_2$: The Linear Reduced Form Holds</span></span>
+<span id="cb10-119"><a href="#cb10-119" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-120"><a href="#cb10-120" aria-hidden="true" tabindex="-1"></a>When $y_2$ is continuous (e.g., hours worked, prices, expenditures), a linear reduced form with additive errors is natural:</span>
+<span id="cb10-121"><a href="#cb10-121" aria-hidden="true" tabindex="-1"></a>$$y_2 = \mathbf{z}\boldsymbol{\pi}_2 + v_2, \qquad c_1 = \rho_1 v_2 + e_1$$ {#eq-poisson-iv-3}</span>
 <span id="cb10-122"><a href="#cb10-122" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-123"><a href="#cb10-123" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb10-124"><a href="#cb10-124" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-125"><a href="#cb10-125" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.2 Binary $y_2$: Why the Linear Reduced Form Fails</span></span>
-<span id="cb10-126"><a href="#cb10-126" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-127"><a href="#cb10-127" aria-hidden="true" tabindex="-1"></a>When $y_2 \in <span class="sc">\{</span>0, 1<span class="sc">\}</span>$ is binary, the linear reduced-form residual $v_2 = y_2 - \mathbf{z}\boldsymbol{\pi}_2$ takes exactly two values conditional on $\mathbf{z}$:</span>
-<span id="cb10-128"><a href="#cb10-128" aria-hidden="true" tabindex="-1"></a>$$v_2 \mid \mathbf{z} = \begin{cases} 1 - \mathbf{z}\boldsymbol{\pi}_2 &amp; \text{with probability } p(\mathbf{z}) <span class="sc">\\</span> -\mathbf{z}\boldsymbol{\pi}_2 &amp; \text{with probability } 1 - p(\mathbf{z}) \end{cases}$$ {#eq-poisson-iv-5}</span>
-<span id="cb10-129"><a href="#cb10-129" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-130"><a href="#cb10-130" aria-hidden="true" tabindex="-1"></a>The support $<span class="sc">\{</span>-\mathbf{z}\boldsymbol{\pi}_2, 1 - \mathbf{z}\boldsymbol{\pi}_2<span class="sc">\}</span>$, the probabilities, and the conditional variance $\mathrm{Var}(v_2 \mid \mathbf{z}) = p(\mathbf{z})<span class="co">[</span><span class="ot">1 - p(\mathbf{z})</span><span class="co">]</span>$ are all **direct functions of $\mathbf{z}$**.</span>
+<span id="cb10-123"><a href="#cb10-123" aria-hidden="true" tabindex="-1"></a>with $v_2 \perp \mathbf{z}$ and $e_1 \perp (\mathbf{z}, v_2)$. These are two separate restrictions and it is worth keeping them apart. Joint normality of $(c_1, v_2)$ delivers the second: $e_1$ is the projection residual, and for jointly normal variables uncorrelated implies independent. It says nothing about the first. $v_2 \perp \mathbf{z}$ is a restriction on the reduced form — the conditional distribution of $v_2$ must not vary with $\mathbf{z}$ — and a linear equation with a homoskedastic normal additive error satisfies it. Both hold here; neither is implied by the other. The structural conditional mean becomes:</span>
+<span id="cb10-124"><a href="#cb10-124" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}_1, y_2, v_2) = \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 v_2)$$ {#eq-poisson-iv-4}</span>
+<span id="cb10-125"><a href="#cb10-125" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-126"><a href="#cb10-126" aria-hidden="true" tabindex="-1"></a>**Estimation Procedure:**</span>
+<span id="cb10-127"><a href="#cb10-127" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Step 1 (First Stage):** Estimate the linear regression $y_2 = \mathbf{z}\boldsymbol{\pi}_2 + v_2$ by OLS (or with fixed effects absorbed) and compute residuals $\hat{v}_2 = y_2 - \mathbf{z}\hat{\boldsymbol{\pi}}_2$.</span>
+<span id="cb10-128"><a href="#cb10-128" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Step 2 (Second Stage):** Estimate Poisson QMLE with $y_2$ and $\hat{v}_2$ entering simultaneously:</span>
+<span id="cb10-129"><a href="#cb10-129" aria-hidden="true" tabindex="-1"></a>   $$y_1 \sim \text{Poisson}(\exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2))$$</span>
+<span id="cb10-130"><a href="#cb10-130" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Inference:** Standard errors must be bootstrapped (e.g., clustered by panel unit) to account for the first-stage estimation uncertainty of $\hat{v}_2$.</span>
 <span id="cb10-131"><a href="#cb10-131" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-132"><a href="#cb10-132" aria-hidden="true" tabindex="-1"></a>As @wooldridge-2010-crosssection <span class="co">[</span><span class="ot">p. 746</span><span class="co">]</span> emphasizes:</span>
-<span id="cb10-133"><a href="#cb10-133" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; "The assumption that $e_1$ in (18.39) is independent of $v_2$ and $\mathbf{z}$ **rules out most cases where $y_2$ has some discreteness, such as with binary, count, or corner responses.** (In particular, the independence assumption likewise fails unless $v_2$ is independent of $\mathbf{z}$, and it would be very unusual for a discrete variable to be expressible as a linear equation with additive error independent of $\mathbf{z}$.)"</span></span>
-<span id="cb10-134"><a href="#cb10-134" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-135"><a href="#cb10-135" aria-hidden="true" tabindex="-1"></a>A distribution whose support moves with $\mathbf{z}$ cannot be independent of $\mathbf{z}$ (unless $\boldsymbol{\pi}_2 = \mathbf{0}$, meaning there is no first stage). Therefore, $v_2 \perp \mathbf{z}$ fails mathematically for any discrete endogenous variable.</span>
-<span id="cb10-136"><a href="#cb10-136" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-137"><a href="#cb10-137" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Where the Independence Assumption Belongs</span></span>
-<span id="cb10-138"><a href="#cb10-138" aria-hidden="true" tabindex="-1"></a>The issue is not that the observed residual is discrete. The generalized residual of Section 3.4 is also two-valued given $\mathbf{z}$. </span>
-<span id="cb10-139"><a href="#cb10-139" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-140"><a href="#cb10-140" aria-hidden="true" tabindex="-1"></a>The critical distinction is **which object independence is asserted about**:</span>
-<span id="cb10-141"><a href="#cb10-141" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The linear CF asserts independence of the **observed discrete residual** $v_2$, which is impossible.</span>
-<span id="cb10-142"><a href="#cb10-142" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Terza's threshold model asserts independence of the **continuous latent probit error** $v_2 \mid \mathbf{z} \sim N(0, 1)$, which is the standard assumption of probit models.</span>
-<span id="cb10-143"><a href="#cb10-143" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-144"><a href="#cb10-144" aria-hidden="true" tabindex="-1"></a><span class="fu">#### What Survives: The Exogeneity Test</span></span>
-<span id="cb10-145"><a href="#cb10-145" aria-hidden="true" tabindex="-1"></a>The linear-residual construction remains **fully valid as a Hausman-type exogeneity test** <span class="co">[</span><span class="ot">@wooldridge-2010-crosssection, p. 744</span><span class="co">]</span>. Under the null hypothesis of exogeneity ($H_0: \rho_1 = 0$), $c_1$ does not enter the model, so none of the joint independence assumptions are needed. A standard $t$-test on $\hat{v}_2 = 0$ in the Poisson second stage provides an asymptotically valid test for endogeneity.</span>
+<span id="cb10-132"><a href="#cb10-132" aria-hidden="true" tabindex="-1"></a>This is @lin-wooldridge-2019's Procedure 3. In a panel, step 1 absorbs the unit effects (<span class="in">`reghdfe`</span> in Stata, <span class="in">`feols`</span> in R) and step 2 absorbs them again (<span class="in">`ppmlhdfe`</span>, <span class="in">`fepois`</span>).</span>
+<span id="cb10-133"><a href="#cb10-133" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-134"><a href="#cb10-134" aria-hidden="true" tabindex="-1"></a><span class="fu">#### The First Stage May Absorb or Average: Both Give the Same Answer</span></span>
+<span id="cb10-135"><a href="#cb10-135" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-136"><a href="#cb10-136" aria-hidden="true" tabindex="-1"></a>There are two ways to handle unit effects in a linear first stage, and it does not matter which we pick. Regressing $y_{it2}$ on $\mathbf{z}_{it}$ and unit dummies gives the fixed-effects residual $\hat{v}_{it2}^{FE}$. Regressing $y_{it2}$ on $\mathbf{z}_{it}$ and the unit means $\bar{\mathbf{z}}_i$ — the Mundlak device — gives the Mundlak residual $\hat{v}_{it2}^{M}$. Substituting either one into the second-stage FE Poisson gives **numerically identical** $\hat{\alpha}_1$ and $\hat{\rho}_1$ <span class="co">[</span><span class="ot">@lin-wooldridge-2019, app. A.1–A.2</span><span class="co">]</span>.</span>
+<span id="cb10-137"><a href="#cb10-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-138"><a href="#cb10-138" aria-hidden="true" tabindex="-1"></a>The reason is short. Mundlak's result is that the coefficient on $\mathbf{z}_{it}$ in the second regression equals the within estimator $\hat{\boldsymbol{\pi}}_2^{FE}$, so the two residuals share a slope and differ only in what is subtracted off unit by unit:</span>
+<span id="cb10-139"><a href="#cb10-139" aria-hidden="true" tabindex="-1"></a>$$\hat{v}_{it2}^{FE} = \hat{v}_{it2}^{M} + g_i$$</span>
+<span id="cb10-140"><a href="#cb10-140" aria-hidden="true" tabindex="-1"></a>for some unit-specific constant $g_i$. Put that into the second-stage index:</span>
+<span id="cb10-141"><a href="#cb10-141" aria-hidden="true" tabindex="-1"></a>$$\mathbf{z}_{1,it}\boldsymbol{\delta}_1 + \alpha_1 y_{it2} + \rho_1 \hat{v}_{it2}^{FE} + c_i = \mathbf{z}_{1,it}\boldsymbol{\delta}_1 + \alpha_1 y_{it2} + \rho_1 \hat{v}_{it2}^{M} + (c_i + \rho_1 g_i)$$</span>
+<span id="cb10-142"><a href="#cb10-142" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-143"><a href="#cb10-143" aria-hidden="true" tabindex="-1"></a>The swap moves $\rho_1 g_i$ into the unit effect, and the unit effect is a free parameter that FE Poisson absorbs without restriction. The model is reparameterized, not changed. Nothing reaches $\hat{\alpha}_1$ or $\hat{\rho}_1$.</span>
+<span id="cb10-144"><a href="#cb10-144" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-145"><a href="#cb10-145" aria-hidden="true" tabindex="-1"></a>This holds only when the first stage averages or absorbs on the same dimension the second stage absorbs. It is also specific to the linear first stage: for a binary $y_2$ the first stage is nonlinear, the residual is not shifted by a constant, and the choice between dummies and Mundlak means becomes a real one (@sec-poisson-iv-gr).</span>
 <span id="cb10-146"><a href="#cb10-146" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-147"><a href="#cb10-147" aria-hidden="true" tabindex="-1"></a>---</span>
 <span id="cb10-148"><a href="#cb10-148" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-149"><a href="#cb10-149" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.3 Terza's (1998) Exact Correction</span></span>
+<span id="cb10-149"><a href="#cb10-149" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.2 Binary $y_2$: Why the Linear Reduced Form Fails</span></span>
 <span id="cb10-150"><a href="#cb10-150" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-151"><a href="#cb10-151" aria-hidden="true" tabindex="-1"></a>To resolve the discreteness problem, @terza-1998 and @wooldridge-2010-crosssection (sec. 18.5) replace the linear probability model with a **latent threshold model**:</span>
-<span id="cb10-152"><a href="#cb10-152" aria-hidden="true" tabindex="-1"></a>$$y_2 = \mathbf{1}<span class="co">[</span><span class="ot">\mathbf{z}\boldsymbol{\pi}_2 + v_2 \ge 0</span><span class="co">]</span>, \qquad v_2 \mid \mathbf{z} \sim N(0, 1)$$ {#eq-poisson-iv-6}</span>
+<span id="cb10-151"><a href="#cb10-151" aria-hidden="true" tabindex="-1"></a>When $y_2 \in <span class="sc">\{</span>0, 1<span class="sc">\}</span>$ is binary, the linear reduced-form residual $v_2 = y_2 - \mathbf{z}\boldsymbol{\pi}_2$ takes exactly two values conditional on $\mathbf{z}$:</span>
+<span id="cb10-152"><a href="#cb10-152" aria-hidden="true" tabindex="-1"></a>$$v_2 \mid \mathbf{z} = \begin{cases} 1 - \mathbf{z}\boldsymbol{\pi}_2 &amp; \text{with probability } p(\mathbf{z}) <span class="sc">\\</span> -\mathbf{z}\boldsymbol{\pi}_2 &amp; \text{with probability } 1 - p(\mathbf{z}) \end{cases}$$ {#eq-poisson-iv-5}</span>
 <span id="cb10-153"><a href="#cb10-153" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-154"><a href="#cb10-154" aria-hidden="true" tabindex="-1"></a>Let $(c_1, v_2)$ be jointly normal, mean zero, and independent of $\mathbf{z}$, with $c_1 = \rho_1 v_2 + e_1$, where $e_1 \mid \mathbf{z}, v_2 \sim N(0, \tau_1^2 - \rho_1^2)$.</span>
+<span id="cb10-154"><a href="#cb10-154" aria-hidden="true" tabindex="-1"></a>The support $<span class="sc">\{</span>-\mathbf{z}\boldsymbol{\pi}_2, 1 - \mathbf{z}\boldsymbol{\pi}_2<span class="sc">\}</span>$, the probabilities, and the conditional variance $\mathrm{Var}(v_2 \mid \mathbf{z}) = p(\mathbf{z})<span class="co">[</span><span class="ot">1 - p(\mathbf{z})</span><span class="co">]</span>$ are all **direct functions of $\mathbf{z}$**.</span>
 <span id="cb10-155"><a href="#cb10-155" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-156"><a href="#cb10-156" aria-hidden="true" tabindex="-1"></a>Conditioning on the latent error $v_2$ yields:</span>
-<span id="cb10-157"><a href="#cb10-157" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}, v_2) = \exp\bigl((\tau_1^2 - \rho_1^2)/2 + \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2\bigr)\exp(\rho_1 v_2)$$</span>
+<span id="cb10-156"><a href="#cb10-156" aria-hidden="true" tabindex="-1"></a>As @wooldridge-2010-crosssection <span class="co">[</span><span class="ot">p. 746</span><span class="co">]</span> emphasizes:</span>
+<span id="cb10-157"><a href="#cb10-157" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; "The assumption that $e_1$ in (18.39) is independent of $v_2$ and $\mathbf{z}$ **rules out most cases where $y_2$ has some discreteness, such as with binary, count, or corner responses.** (In particular, the independence assumption likewise fails unless $v_2$ is independent of $\mathbf{z}$, and it would be very unusual for a discrete variable to be expressible as a linear equation with additive error independent of $\mathbf{z}$.)"</span></span>
 <span id="cb10-158"><a href="#cb10-158" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-159"><a href="#cb10-159" aria-hidden="true" tabindex="-1"></a>Averaging over the truncated normal distribution of $v_2$ conditional on the observed binary outcome $y_2 \in <span class="sc">\{</span>0, 1<span class="sc">\}</span>$ gives the exact conditional mean:</span>
-<span id="cb10-160"><a href="#cb10-160" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}, y_2) = \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2) \cdot h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1)$$ {#eq-poisson-iv-7}</span>
-<span id="cb10-161"><a href="#cb10-161" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-162"><a href="#cb10-162" aria-hidden="true" tabindex="-1"></a>where:</span>
-<span id="cb10-163"><a href="#cb10-163" aria-hidden="true" tabindex="-1"></a>$$h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1) = \exp(\rho_1^2 / 2) \left<span class="co">[</span><span class="ot"> y_2 \frac{\Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} + (1 - y_2) \frac{1 - \Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2)} \right</span><span class="co">]</span>$$ {#eq-poisson-iv-8}</span>
-<span id="cb10-164"><a href="#cb10-164" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-165"><a href="#cb10-165" aria-hidden="true" tabindex="-1"></a>Here $\Phi(\cdot)$ denotes the standard normal CDF, $\rho_1 = \mathrm{Cov}(c_1, v_2)$ is a projection coefficient on the scale of the probit index, and $\exp(\rho_1^2 / 2)$ is the lognormal correction factor.</span>
-<span id="cb10-166"><a href="#cb10-166" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-167"><a href="#cb10-167" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Estimation via 1D Profile Likelihood with Offset</span></span>
-<span id="cb10-168"><a href="#cb10-168" aria-hidden="true" tabindex="-1"></a>Notice that for any fixed value of $\rho_1$, $\log h(y_2, \mathbf{z}\hat{\boldsymbol{\pi}}_2, \rho_1)$ is a known data column. The conditional mean can be written as:</span>
-<span id="cb10-169"><a href="#cb10-169" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}, y_2, \alpha_i) = \exp\bigl(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \alpha_i + \log h(\rho_1)\bigr)$$ {#eq-poisson-iv-9}</span>
+<span id="cb10-159"><a href="#cb10-159" aria-hidden="true" tabindex="-1"></a>A distribution whose support moves with $\mathbf{z}$ cannot be independent of $\mathbf{z}$ (unless $\boldsymbol{\pi}_2 = \mathbf{0}$, meaning there is no first stage). Therefore, $v_2 \perp \mathbf{z}$ fails mathematically for any discrete endogenous variable.</span>
+<span id="cb10-160"><a href="#cb10-160" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-161"><a href="#cb10-161" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Where the Independence Assumption Belongs</span></span>
+<span id="cb10-162"><a href="#cb10-162" aria-hidden="true" tabindex="-1"></a>The issue is not that the observed residual is discrete. The generalized residual of Section 3.4 is also two-valued given $\mathbf{z}$. </span>
+<span id="cb10-163"><a href="#cb10-163" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-164"><a href="#cb10-164" aria-hidden="true" tabindex="-1"></a>The critical distinction is **which object independence is asserted about**:</span>
+<span id="cb10-165"><a href="#cb10-165" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The linear CF asserts independence of the **observed discrete residual** $v_2$, which is impossible.</span>
+<span id="cb10-166"><a href="#cb10-166" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Terza's threshold model asserts independence of the **continuous latent probit error** $v_2 \mid \mathbf{z} \sim N(0, 1)$, which is the standard assumption of probit models.</span>
+<span id="cb10-167"><a href="#cb10-167" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-168"><a href="#cb10-168" aria-hidden="true" tabindex="-1"></a><span class="fu">#### What Survives: The Exogeneity Test</span></span>
+<span id="cb10-169"><a href="#cb10-169" aria-hidden="true" tabindex="-1"></a>The linear-residual construction remains **fully valid as a Hausman-type exogeneity test** <span class="co">[</span><span class="ot">@wooldridge-2010-crosssection, p. 744</span><span class="co">]</span>. Under the null hypothesis of exogeneity ($H_0: \rho_1 = 0$), $c_1$ does not enter the model, so none of the joint independence assumptions are needed. A standard $t$-test on $\hat{v}_2 = 0$ in the Poisson second stage provides an asymptotically valid test for endogeneity.</span>
 <span id="cb10-170"><a href="#cb10-170" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-171"><a href="#cb10-171" aria-hidden="true" tabindex="-1"></a>This is a standard Poisson regression with an **offset**.</span>
+<span id="cb10-171"><a href="#cb10-171" aria-hidden="true" tabindex="-1"></a>---</span>
 <span id="cb10-172"><a href="#cb10-172" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-173"><a href="#cb10-173" aria-hidden="true" tabindex="-1"></a>Because $h(\cdot)$ enters multiplicatively, individual fixed effects factor out in closed form:</span>
-<span id="cb10-174"><a href="#cb10-174" aria-hidden="true" tabindex="-1"></a>$$\exp(\hat{\alpha}_i) = \frac{\sum_t y_{1,it}}{\sum_t \exp(\mathbf{z}_{1,it}\boldsymbol{\delta}_1 + \alpha_1 y_{2,it}) h_{it}(\rho_1)}$$</span>
-<span id="cb10-175"><a href="#cb10-175" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-176"><a href="#cb10-176" aria-hidden="true" tabindex="-1"></a>Fixed effects are absorbed without an incidental parameters problem. The full model is estimated by profiling out $(\boldsymbol{\delta}_1, \alpha_1)$ and optimizing over the single scalar $\rho_1 \in <span class="co">[</span><span class="ot">-2, 2</span><span class="co">]</span>$ using 1D optimization.</span>
+<span id="cb10-173"><a href="#cb10-173" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.3 Terza's (1998) Exact Correction</span></span>
+<span id="cb10-174"><a href="#cb10-174" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-175"><a href="#cb10-175" aria-hidden="true" tabindex="-1"></a>To resolve the discreteness problem, @terza-1998 and @wooldridge-2010-crosssection (sec. 18.5) replace the linear probability model with a **latent threshold model**:</span>
+<span id="cb10-176"><a href="#cb10-176" aria-hidden="true" tabindex="-1"></a>$$y_2 = \mathbf{1}<span class="co">[</span><span class="ot">\mathbf{z}\boldsymbol{\pi}_2 + v_2 \ge 0</span><span class="co">]</span>, \qquad v_2 \mid \mathbf{z} \sim N(0, 1)$$ {#eq-poisson-iv-6}</span>
 <span id="cb10-177"><a href="#cb10-177" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-178"><a href="#cb10-178" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Terza's Estimators and FIML</span></span>
-<span id="cb10-179"><a href="#cb10-179" aria-hidden="true" tabindex="-1"></a>@terza-1998 proposes three estimators:</span>
-<span id="cb10-180"><a href="#cb10-180" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Full-Information Maximum Likelihood (FIML):** Evaluates the joint likelihood of $y_1$ and $y_2$ by integrating out $v_2$ via Gauss–Hermite quadrature.</span>
-<span id="cb10-181"><a href="#cb10-181" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Two-Stage Method of Moments / QMLE:** The two-step estimator above (probit followed by QMLE on @eq-poisson-iv-7).</span>
-<span id="cb10-182"><a href="#cb10-182" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Nonlinear Weighted Least Squares:** For the fully parametric specification.</span>
-<span id="cb10-183"><a href="#cb10-183" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-184"><a href="#cb10-184" aria-hidden="true" tabindex="-1"></a>In panel data, FIML has two major drawbacks:</span>
-<span id="cb10-185"><a href="#cb10-185" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>It requires the full Poisson density inside the quadrature integral, losing QMLE robustness to overdispersion.</span>
-<span id="cb10-186"><a href="#cb10-186" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>It cannot absorb fixed effects; entering unit dummies destroys likelihood separability, leading to severe incidental parameters bias and convergence failures.</span>
-<span id="cb10-187"><a href="#cb10-187" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-188"><a href="#cb10-188" aria-hidden="true" tabindex="-1"></a>By contrast, the two-step profile QMLE concentrates out fixed effects cleanly.</span>
-<span id="cb10-189"><a href="#cb10-189" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-190"><a href="#cb10-190" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb10-191"><a href="#cb10-191" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-192"><a href="#cb10-192" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.4 Generalized-Residual CF and the Mundlak Device</span></span>
-<span id="cb10-193"><a href="#cb10-193" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-194"><a href="#cb10-194" aria-hidden="true" tabindex="-1"></a>A first-order Taylor expansion of $h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1)$ around $\rho_1 = 0$ yields:</span>
-<span id="cb10-195"><a href="#cb10-195" aria-hidden="true" tabindex="-1"></a>$$\left. \frac{\partial}{\partial \rho_1} \frac{\Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} \right|_{\rho_1 = 0} = \frac{\phi(\mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} \equiv \lambda(\mathbf{z}\boldsymbol{\pi}_2)$$ {#eq-poisson-iv-10}</span>
-<span id="cb10-196"><a href="#cb10-196" aria-hidden="true" tabindex="-1"></a>$$\left. \frac{\partial}{\partial \rho_1} \frac{1 - \Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2)} \right|_{\rho_1 = 0} = -\frac{\phi(\mathbf{z}\boldsymbol{\pi}_2)}{1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2)} = -\lambda(-\mathbf{z}\boldsymbol{\pi}_2)$$</span>
-<span id="cb10-197"><a href="#cb10-197" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-198"><a href="#cb10-198" aria-hidden="true" tabindex="-1"></a>Since $h(y_2, \mathbf{z}\boldsymbol{\pi}_2, 0) = 1$ and $\left.\frac{d}{d\rho_1}\exp(\rho_1^2/2)\right|_{\rho_1=0} = 0$, we have:</span>
-<span id="cb10-199"><a href="#cb10-199" aria-hidden="true" tabindex="-1"></a>$$h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1) \approx 1 + \rho_1 \hat{r}_2$$ {#eq-poisson-iv-11}</span>
-<span id="cb10-200"><a href="#cb10-200" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-201"><a href="#cb10-201" aria-hidden="true" tabindex="-1"></a>where $\hat{r}_2$ is the **generalized residual** <span class="co">[</span><span class="ot">@gourieroux-monfort-renault-trognon-1987</span><span class="co">]</span>:</span>
-<span id="cb10-202"><a href="#cb10-202" aria-hidden="true" tabindex="-1"></a>$$\hat{r}_2 = y_2 \frac{\phi(\mathbf{z}\hat{\boldsymbol{\pi}}_2)}{\Phi(\mathbf{z}\hat{\boldsymbol{\pi}}_2)} - (1 - y_2)\frac{\phi(\mathbf{z}\hat{\boldsymbol{\pi}}_2)}{1 - \Phi(\mathbf{z}\hat{\boldsymbol{\pi}}_2)}$$</span>
-<span id="cb10-203"><a href="#cb10-203" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-204"><a href="#cb10-204" aria-hidden="true" tabindex="-1"></a>Using $1 + u \approx \exp(u)$ for small $u = \rho_1 \hat{r}_2$, the conditional mean becomes:</span>
-<span id="cb10-205"><a href="#cb10-205" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}, y_2) \approx \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{r}_2)$$</span>
-<span id="cb10-206"><a href="#cb10-206" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-207"><a href="#cb10-207" aria-hidden="true" tabindex="-1"></a>The generalized-residual CF is a **first-order local approximation to Terza's exact correction with error $O(\rho_1^2)$**.</span>
-<span id="cb10-208"><a href="#cb10-208" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-209"><a href="#cb10-209" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Probit vs. Logit Generalized Residuals</span></span>
-<span id="cb10-210"><a href="#cb10-210" aria-hidden="true" tabindex="-1"></a>For a **logit** first stage ($\Lambda(\eta) = \frac{1}{1 + e^{-\eta}}$), the generalized residual collapses algebraically:</span>
-<span id="cb10-211"><a href="#cb10-211" aria-hidden="true" tabindex="-1"></a>$$\hat{r}_2 = y_2 \frac{\Lambda'(\eta)}{\Lambda(\eta)} - (1 - y_2)\frac{\Lambda'(\eta)}{1 - \Lambda(\eta)} = y_2 (1 - \hat{p}_2) - (1 - y_2)\hat{p}_2 = y_2 - \hat{p}_2$$ {#eq-poisson-iv-12}</span>
-<span id="cb10-212"><a href="#cb10-212" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-213"><a href="#cb10-213" aria-hidden="true" tabindex="-1"></a>The logit generalized residual is simply the **raw response residual** ($y_2 - \hat{p}_2$).</span>
-<span id="cb10-214"><a href="#cb10-214" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-215"><a href="#cb10-215" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Dealing with Panel Fixed Effects: The Mundlak Device</span></span>
-<span id="cb10-216"><a href="#cb10-216" aria-hidden="true" tabindex="-1"></a>In short panels ($T$ small, $N \to \infty$), estimating individual unit dummies in a nonlinear first stage (probit or logit) suffers from the **incidental parameters problem**, producing heavily biased first-stage estimates and distorted generalized residuals.</span>
+<span id="cb10-178"><a href="#cb10-178" aria-hidden="true" tabindex="-1"></a>Let $(c_1, v_2)$ be jointly normal, mean zero, and independent of $\mathbf{z}$, with $c_1 = \rho_1 v_2 + e_1$, where $e_1 \mid \mathbf{z}, v_2 \sim N(0, \tau_1^2 - \rho_1^2)$.</span>
+<span id="cb10-179"><a href="#cb10-179" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-180"><a href="#cb10-180" aria-hidden="true" tabindex="-1"></a>Conditioning on the latent error $v_2$ yields:</span>
+<span id="cb10-181"><a href="#cb10-181" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}, v_2) = \exp\bigl((\tau_1^2 - \rho_1^2)/2 + \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2\bigr)\exp(\rho_1 v_2)$$</span>
+<span id="cb10-182"><a href="#cb10-182" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-183"><a href="#cb10-183" aria-hidden="true" tabindex="-1"></a>Averaging over the truncated normal distribution of $v_2$ conditional on the observed binary outcome $y_2 \in <span class="sc">\{</span>0, 1<span class="sc">\}</span>$ gives the exact conditional mean:</span>
+<span id="cb10-184"><a href="#cb10-184" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}, y_2) = \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2) \cdot h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1)$$ {#eq-poisson-iv-7}</span>
+<span id="cb10-185"><a href="#cb10-185" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-186"><a href="#cb10-186" aria-hidden="true" tabindex="-1"></a>where:</span>
+<span id="cb10-187"><a href="#cb10-187" aria-hidden="true" tabindex="-1"></a>$$h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1) = \exp(\rho_1^2 / 2) \left<span class="co">[</span><span class="ot"> y_2 \frac{\Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} + (1 - y_2) \frac{1 - \Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2)} \right</span><span class="co">]</span>$$ {#eq-poisson-iv-8}</span>
+<span id="cb10-188"><a href="#cb10-188" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-189"><a href="#cb10-189" aria-hidden="true" tabindex="-1"></a>Here $\Phi(\cdot)$ denotes the standard normal CDF, $\rho_1 = \mathrm{Cov}(c_1, v_2)$ is a projection coefficient on the scale of the probit index, and $\exp(\rho_1^2 / 2)$ is the lognormal correction factor.</span>
+<span id="cb10-190"><a href="#cb10-190" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-191"><a href="#cb10-191" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Estimation via 1D Profile Likelihood with Offset</span></span>
+<span id="cb10-192"><a href="#cb10-192" aria-hidden="true" tabindex="-1"></a>Notice that for any fixed value of $\rho_1$, $\log h(y_2, \mathbf{z}\hat{\boldsymbol{\pi}}_2, \rho_1)$ is a known data column. The conditional mean can be written as:</span>
+<span id="cb10-193"><a href="#cb10-193" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}, y_2, \alpha_i) = \exp\bigl(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \alpha_i + \log h(\rho_1)\bigr)$$ {#eq-poisson-iv-9}</span>
+<span id="cb10-194"><a href="#cb10-194" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-195"><a href="#cb10-195" aria-hidden="true" tabindex="-1"></a>This is a standard Poisson regression with an **offset**.</span>
+<span id="cb10-196"><a href="#cb10-196" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-197"><a href="#cb10-197" aria-hidden="true" tabindex="-1"></a>Because $h(\cdot)$ enters multiplicatively, individual fixed effects factor out in closed form:</span>
+<span id="cb10-198"><a href="#cb10-198" aria-hidden="true" tabindex="-1"></a>$$\exp(\hat{\alpha}_i) = \frac{\sum_t y_{1,it}}{\sum_t \exp(\mathbf{z}_{1,it}\boldsymbol{\delta}_1 + \alpha_1 y_{2,it}) h_{it}(\rho_1)}$$</span>
+<span id="cb10-199"><a href="#cb10-199" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-200"><a href="#cb10-200" aria-hidden="true" tabindex="-1"></a>Fixed effects are absorbed without an incidental parameters problem. The full model is estimated by profiling out $(\boldsymbol{\delta}_1, \alpha_1)$ and optimizing over the single scalar $\rho_1 \in <span class="co">[</span><span class="ot">-2, 2</span><span class="co">]</span>$ using 1D optimization.</span>
+<span id="cb10-201"><a href="#cb10-201" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-202"><a href="#cb10-202" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Terza's Estimators and FIML</span></span>
+<span id="cb10-203"><a href="#cb10-203" aria-hidden="true" tabindex="-1"></a>@terza-1998 proposes three estimators:</span>
+<span id="cb10-204"><a href="#cb10-204" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Full-Information Maximum Likelihood (FIML):** Evaluates the joint likelihood of $y_1$ and $y_2$ by integrating out $v_2$ via Gauss–Hermite quadrature.</span>
+<span id="cb10-205"><a href="#cb10-205" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Two-Stage Method of Moments / QMLE:** The two-step estimator above (probit followed by QMLE on @eq-poisson-iv-7).</span>
+<span id="cb10-206"><a href="#cb10-206" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Nonlinear Weighted Least Squares:** For the fully parametric specification.</span>
+<span id="cb10-207"><a href="#cb10-207" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-208"><a href="#cb10-208" aria-hidden="true" tabindex="-1"></a>In panel data, FIML has two major drawbacks:</span>
+<span id="cb10-209"><a href="#cb10-209" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>It requires the full Poisson density inside the quadrature integral, losing QMLE robustness to overdispersion.</span>
+<span id="cb10-210"><a href="#cb10-210" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>It cannot absorb fixed effects; entering unit dummies destroys likelihood separability, leading to severe incidental parameters bias and convergence failures.</span>
+<span id="cb10-211"><a href="#cb10-211" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-212"><a href="#cb10-212" aria-hidden="true" tabindex="-1"></a>By contrast, the two-step profile QMLE concentrates out fixed effects cleanly.</span>
+<span id="cb10-213"><a href="#cb10-213" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-214"><a href="#cb10-214" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb10-215"><a href="#cb10-215" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-216"><a href="#cb10-216" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.4 Generalized-Residual CF and the Mundlak Device {#sec-poisson-iv-gr}</span></span>
 <span id="cb10-217"><a href="#cb10-217" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-218"><a href="#cb10-218" aria-hidden="true" tabindex="-1"></a>As @lin-wooldridge-2019 show, the standard solution is the **Mundlak device** (Correlated Random Effects):</span>
-<span id="cb10-219"><a href="#cb10-219" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Add the unit-specific time averages of all time-varying exogenous covariates and instruments:</span>
-<span id="cb10-220"><a href="#cb10-220" aria-hidden="true" tabindex="-1"></a>   $$\mathbf{w}_{it} = (1, \mathbf{z}_{it}, \bar{\mathbf{z}}_i)$$</span>
-<span id="cb10-221"><a href="#cb10-221" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Estimate a pooled probit or logit model on $\mathbf{w}_{it}$ and compute the generalized residuals $\hat{r}_{2,it}$.</span>
-<span id="cb10-222"><a href="#cb10-222" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Include $\hat{r}_{2,it}$ in a fixed-effects Poisson second stage. The unit dummies are absorbed there, and FE Poisson is consistent with $T$ fixed, so the incidental parameters problem does not reappear.</span>
-<span id="cb10-223"><a href="#cb10-223" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-224"><a href="#cb10-224" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb10-225"><a href="#cb10-225" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-226"><a href="#cb10-226" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.5 Multiplicative-Moment GMM</span></span>
+<span id="cb10-218"><a href="#cb10-218" aria-hidden="true" tabindex="-1"></a>A first-order Taylor expansion of $h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1)$ around $\rho_1 = 0$ yields:</span>
+<span id="cb10-219"><a href="#cb10-219" aria-hidden="true" tabindex="-1"></a>$$\left. \frac{\partial}{\partial \rho_1} \frac{\Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} \right|_{\rho_1 = 0} = \frac{\phi(\mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} \equiv \lambda(\mathbf{z}\boldsymbol{\pi}_2)$$ {#eq-poisson-iv-10}</span>
+<span id="cb10-220"><a href="#cb10-220" aria-hidden="true" tabindex="-1"></a>$$\left. \frac{\partial}{\partial \rho_1} \frac{1 - \Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2)} \right|_{\rho_1 = 0} = -\frac{\phi(\mathbf{z}\boldsymbol{\pi}_2)}{1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2)} = -\lambda(-\mathbf{z}\boldsymbol{\pi}_2)$$</span>
+<span id="cb10-221"><a href="#cb10-221" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-222"><a href="#cb10-222" aria-hidden="true" tabindex="-1"></a>Since $h(y_2, \mathbf{z}\boldsymbol{\pi}_2, 0) = 1$ and $\left.\frac{d}{d\rho_1}\exp(\rho_1^2/2)\right|_{\rho_1=0} = 0$, we have:</span>
+<span id="cb10-223"><a href="#cb10-223" aria-hidden="true" tabindex="-1"></a>$$h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1) \approx 1 + \rho_1 \hat{r}_2$$ {#eq-poisson-iv-11}</span>
+<span id="cb10-224"><a href="#cb10-224" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-225"><a href="#cb10-225" aria-hidden="true" tabindex="-1"></a>where $\hat{r}_2$ is the **generalized residual** <span class="co">[</span><span class="ot">@gourieroux-monfort-renault-trognon-1987</span><span class="co">]</span>:</span>
+<span id="cb10-226"><a href="#cb10-226" aria-hidden="true" tabindex="-1"></a>$$\hat{r}_2 = y_2 \frac{\phi(\mathbf{z}\hat{\boldsymbol{\pi}}_2)}{\Phi(\mathbf{z}\hat{\boldsymbol{\pi}}_2)} - (1 - y_2)\frac{\phi(\mathbf{z}\hat{\boldsymbol{\pi}}_2)}{1 - \Phi(\mathbf{z}\hat{\boldsymbol{\pi}}_2)}$$</span>
 <span id="cb10-227"><a href="#cb10-227" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-228"><a href="#cb10-228" aria-hidden="true" tabindex="-1"></a>Instead of a control function, @mullahy-1997 proposes multiplicative moment conditions:</span>
-<span id="cb10-229"><a href="#cb10-229" aria-hidden="true" tabindex="-1"></a>$$E\left<span class="co">[</span><span class="ot"> \mathbf{z}' \left( y_1 \exp(-\mathbf{z}_1\boldsymbol{\delta}_1 - \alpha_1 y_2) - 1 \right) \right</span><span class="co">]</span> = \mathbf{0}$$ {#eq-poisson-iv-13}</span>
+<span id="cb10-228"><a href="#cb10-228" aria-hidden="true" tabindex="-1"></a>Using $1 + u \approx \exp(u)$ for small $u = \rho_1 \hat{r}_2$, the conditional mean becomes:</span>
+<span id="cb10-229"><a href="#cb10-229" aria-hidden="true" tabindex="-1"></a>$$E(y_1 \mid \mathbf{z}, y_2) \approx \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{r}_2)$$</span>
 <span id="cb10-230"><a href="#cb10-230" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-231"><a href="#cb10-231" aria-hidden="true" tabindex="-1"></a>Under $E<span class="co">[</span><span class="ot">\exp(c_1) \mid \mathbf{z}</span><span class="co">]</span> = 1$, this condition holds without requiring the first-stage model for $y_2$ to be correctly specified.</span>
+<span id="cb10-231"><a href="#cb10-231" aria-hidden="true" tabindex="-1"></a>The generalized-residual CF is a **first-order local approximation to Terza's exact correction with error $O(\rho_1^2)$**.</span>
 <span id="cb10-232"><a href="#cb10-232" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-233"><a href="#cb10-233" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Panel Fixed Effects via Quasi-Differencing</span></span>
-<span id="cb10-234"><a href="#cb10-234" aria-hidden="true" tabindex="-1"></a>In panel data with unobserved individual heterogeneity $\eta_i$, $E<span class="co">[</span><span class="ot">y_{it} \mid \mathbf{z}_i, \eta_i</span><span class="co">]</span> = \eta_i \exp(\mathbf{x}_{it}\boldsymbol{\beta})$. Individual effects cannot be removed by additive demeaning; they must be eliminated via **multiplicative quasi-differencing** <span class="co">[</span><span class="ot">@chamberlain-1992; @wooldridge-1999-multiplicative; @windmeijer-2000</span><span class="co">]</span>:</span>
-<span id="cb10-235"><a href="#cb10-235" aria-hidden="true" tabindex="-1"></a>$$E\left<span class="co">[</span><span class="ot"> \mathbf{z}_{it}' \left( y_{it} \frac{\exp(\mathbf{x}_{is}\boldsymbol{\beta})}{\exp(\mathbf{x}_{it}\boldsymbol{\beta})} - y_{is} \right) \right</span><span class="co">]</span> = \mathbf{0}$$ {#eq-poisson-iv-14}</span>
+<span id="cb10-233"><a href="#cb10-233" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Probit vs. Logit Generalized Residuals</span></span>
+<span id="cb10-234"><a href="#cb10-234" aria-hidden="true" tabindex="-1"></a>For a **logit** first stage ($\Lambda(\eta) = \frac{1}{1 + e^{-\eta}}$), the generalized residual collapses algebraically:</span>
+<span id="cb10-235"><a href="#cb10-235" aria-hidden="true" tabindex="-1"></a>$$\hat{r}_2 = y_2 \frac{\Lambda'(\eta)}{\Lambda(\eta)} - (1 - y_2)\frac{\Lambda'(\eta)}{1 - \Lambda(\eta)} = y_2 (1 - \hat{p}_2) - (1 - y_2)\hat{p}_2 = y_2 - \hat{p}_2$$ {#eq-poisson-iv-12}</span>
 <span id="cb10-236"><a href="#cb10-236" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-237"><a href="#cb10-237" aria-hidden="true" tabindex="-1"></a>This requires repeated time periods and strict exogeneity of instruments across periods.</span>
+<span id="cb10-237"><a href="#cb10-237" aria-hidden="true" tabindex="-1"></a>The logit generalized residual is simply the **raw response residual** ($y_2 - \hat{p}_2$).</span>
 <span id="cb10-238"><a href="#cb10-238" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-239"><a href="#cb10-239" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb10-240"><a href="#cb10-240" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-241"><a href="#cb10-241" aria-hidden="true" tabindex="-1"></a><span class="fu">## 4. Why Recommend Generalized Residuals Instead of Exact Terza?</span></span>
-<span id="cb10-242"><a href="#cb10-242" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-243"><a href="#cb10-243" aria-hidden="true" tabindex="-1"></a>Given that Terza's correction <span class="co">[</span><span class="ot">@terza-1998</span><span class="co">]</span> is theoretically exact under bivariate normality, why do applied econometricians and textbooks <span class="co">[</span><span class="ot">@wooldridge-2010-crosssection; @wooldridge-2014-qmle; @lin-wooldridge-2019</span><span class="co">]</span> frequently recommend the **Generalized-Residual Control Function**?</span>
-<span id="cb10-244"><a href="#cb10-244" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-245"><a href="#cb10-245" aria-hidden="true" tabindex="-1"></a>There are five key reasons:</span>
-<span id="cb10-246"><a href="#cb10-246" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-247"><a href="#cb10-247" aria-hidden="true" tabindex="-1"></a><span class="fu">### 1. Built-in Hausman Exogeneity Test in a Single Step</span></span>
-<span id="cb10-248"><a href="#cb10-248" aria-hidden="true" tabindex="-1"></a>In the generalized residual model:</span>
-<span id="cb10-249"><a href="#cb10-249" aria-hidden="true" tabindex="-1"></a>$$\log E(y_1 \mid \mathbf{z}, y_2) = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{r}_2$$</span>
-<span id="cb10-250"><a href="#cb10-250" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-251"><a href="#cb10-251" aria-hidden="true" tabindex="-1"></a>The coefficient on $\hat{r}_2$ estimates $\rho_1$, and its $t$-statistic is a **direct, asymptotically valid variable-addition test for exogeneity** ($H_0: \rho_1 = 0$). </span>
-<span id="cb10-252"><a href="#cb10-252" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Under $H_0$, none of the joint normality or reduced-form assumptions are required <span class="co">[</span><span class="ot">@wooldridge-2010-crosssection, p. 744</span><span class="co">]</span>.</span>
-<span id="cb10-253"><a href="#cb10-253" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Terza's exact method does not yield a simple linear $t$-statistic directly beside $\hat{\alpha}_1$.</span>
+<span id="cb10-239"><a href="#cb10-239" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Dealing with Panel Fixed Effects: The Mundlak Device</span></span>
+<span id="cb10-240"><a href="#cb10-240" aria-hidden="true" tabindex="-1"></a>In short panels ($T$ small, $N \to \infty$), estimating individual unit dummies in a nonlinear first stage (probit or logit) suffers from the **incidental parameters problem**, producing heavily biased first-stage estimates and distorted generalized residuals.</span>
+<span id="cb10-241"><a href="#cb10-241" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-242"><a href="#cb10-242" aria-hidden="true" tabindex="-1"></a>As @lin-wooldridge-2019 show, the standard solution is the **Mundlak device** (Correlated Random Effects):</span>
+<span id="cb10-243"><a href="#cb10-243" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Add the unit-specific time averages of all time-varying exogenous covariates and instruments:</span>
+<span id="cb10-244"><a href="#cb10-244" aria-hidden="true" tabindex="-1"></a>   $$\mathbf{w}_{it} = (1, \mathbf{z}_{it}, \bar{\mathbf{z}}_i)$$</span>
+<span id="cb10-245"><a href="#cb10-245" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Estimate a pooled probit or logit model on $\mathbf{w}_{it}$ and compute the generalized residuals $\hat{r}_{2,it}$.</span>
+<span id="cb10-246"><a href="#cb10-246" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Include $\hat{r}_{2,it}$ in a fixed-effects Poisson second stage. The unit dummies are absorbed there, and FE Poisson is consistent with $T$ fixed, so the incidental parameters problem does not reappear.</span>
+<span id="cb10-247"><a href="#cb10-247" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-248"><a href="#cb10-248" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb10-249"><a href="#cb10-249" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-250"><a href="#cb10-250" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.5 Multiplicative-Moment GMM</span></span>
+<span id="cb10-251"><a href="#cb10-251" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-252"><a href="#cb10-252" aria-hidden="true" tabindex="-1"></a>Instead of a control function, @mullahy-1997 proposes multiplicative moment conditions:</span>
+<span id="cb10-253"><a href="#cb10-253" aria-hidden="true" tabindex="-1"></a>$$E\left<span class="co">[</span><span class="ot"> \mathbf{z}' \left( y_1 \exp(-\mathbf{z}_1\boldsymbol{\delta}_1 - \alpha_1 y_2) - 1 \right) \right</span><span class="co">]</span> = \mathbf{0}$$ {#eq-poisson-iv-13}</span>
 <span id="cb10-254"><a href="#cb10-254" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-255"><a href="#cb10-255" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2. Standard Software Drop-in</span></span>
-<span id="cb10-256"><a href="#cb10-256" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Generalized Residual:** Fits directly in standard software without custom numerical optimization.</span>
-<span id="cb10-257"><a href="#cb10-257" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Terza’s Exact 2-Step:** Requires writing a custom 1D profile likelihood wrapper to search over $\rho_1$ with an offset.</span>
-<span id="cb10-258"><a href="#cb10-258" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-259"><a href="#cb10-259" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3. Distributional Flexibility: Beyond the Probit Link</span></span>
-<span id="cb10-260"><a href="#cb10-260" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Terza’s $h(\cdot)$ is strictly probit-specific:** The formula in @eq-poisson-iv-8 is derived exclusively from truncated moments of a bivariate normal distribution, and no closed-form analogue for logit appears in @terza-1998, @wooldridge-2010-crosssection or @imbens-wooldridge-2007-cf.</span>
-<span id="cb10-261"><a href="#cb10-261" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Generalized residuals apply to any GLM link:** For logit, the generalized residual collapses to the simple **raw response residual** $\hat{r}_2 = y_2 - \hat{p}_2$, requiring zero Mills-ratio machinery.</span>
+<span id="cb10-255"><a href="#cb10-255" aria-hidden="true" tabindex="-1"></a>Under $E<span class="co">[</span><span class="ot">\exp(c_1) \mid \mathbf{z}</span><span class="co">]</span> = 1$, this condition holds without requiring the first-stage model for $y_2$ to be correctly specified.</span>
+<span id="cb10-256"><a href="#cb10-256" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-257"><a href="#cb10-257" aria-hidden="true" tabindex="-1"></a><span class="fu">#### Panel Fixed Effects via Quasi-Differencing</span></span>
+<span id="cb10-258"><a href="#cb10-258" aria-hidden="true" tabindex="-1"></a>In panel data with unobserved individual heterogeneity $\eta_i$, $E<span class="co">[</span><span class="ot">y_{it} \mid \mathbf{z}_i, \eta_i</span><span class="co">]</span> = \eta_i \exp(\mathbf{x}_{it}\boldsymbol{\beta})$. Individual effects cannot be removed by additive demeaning; they must be eliminated via **multiplicative quasi-differencing** <span class="co">[</span><span class="ot">@chamberlain-1992; @wooldridge-1999-multiplicative; @windmeijer-2000</span><span class="co">]</span>:</span>
+<span id="cb10-259"><a href="#cb10-259" aria-hidden="true" tabindex="-1"></a>$$E\left<span class="co">[</span><span class="ot"> \mathbf{z}_{it}' \left( y_{it} \frac{\exp(\mathbf{x}_{is}\boldsymbol{\beta})}{\exp(\mathbf{x}_{it}\boldsymbol{\beta})} - y_{is} \right) \right</span><span class="co">]</span> = \mathbf{0}$$ {#eq-poisson-iv-14}</span>
+<span id="cb10-260"><a href="#cb10-260" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-261"><a href="#cb10-261" aria-hidden="true" tabindex="-1"></a>This requires repeated time periods and strict exogeneity of instruments across periods.</span>
 <span id="cb10-262"><a href="#cb10-262" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-263"><a href="#cb10-263" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4. Robustness Against Non-Normality (Curvature Misspecification)</span></span>
-<span id="cb10-264"><a href="#cb10-264" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Terza’s correction is **exact only under strict joint bivariate normality**.</span>
-<span id="cb10-265"><a href="#cb10-265" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>If the true unobservables $(c_1, v_2)$ are non-normal (e.g. skewed or heavy-tailed), $h(\cdot)$ has the wrong functional form. The profile then picks the $\rho_1$ that best fits a curve the data do not follow, and that misspecification passes straight into $\hat{\alpha}_1$. This is misspecification bias, not overfitting — there is only one extra parameter, so there is nothing to overfit with.</span>
-<span id="cb10-266"><a href="#cb10-266" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The generalized residual commits to less. It controls for $E<span class="co">[</span><span class="ot">v_2 \mid y_2, \mathbf{z}</span><span class="co">]</span>$ and stops at first order, so a wrong $h$ cannot drag it. Whether this actually wins under non-normality is an open question; @lin-wooldridge-2019 leave "investigations into the quality of CF approximations in discrete cases to future research.</span>
-<span id="cb10-267"><a href="#cb10-267" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-268"><a href="#cb10-268" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5. The Approximation Error Shrinks with the Endogeneity</span></span>
-<span id="cb10-269"><a href="#cb10-269" aria-hidden="true" tabindex="-1"></a>The error is $O(\rho_1^2)$, so it vanishes quadratically as $\rho_1 \to 0$ — and $\rho_1$ is not a quantity you have to guess at, because it is estimated as the coefficient on $\hat{r}_2$. The error is also asymmetric: $h$ scales the treated mean by a factor bounded by $1/\Phi(\mathbf{z}\boldsymbol{\pi}_2)$, which is unbounded in the tail for $\rho_1 &gt; 0$ but shrinks smoothly toward zero for $\rho_1 &lt; 0$, so positive confounding is the case to worry about. We give no numerical threshold here: the size of the error at a given $\rho_1$ depends on how far the probit index reaches into the tail, so it is design-specific rather than a property of $\rho_1$ alone.</span>
+<span id="cb10-263"><a href="#cb10-263" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb10-264"><a href="#cb10-264" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-265"><a href="#cb10-265" aria-hidden="true" tabindex="-1"></a><span class="fu">## 4. Why Recommend Generalized Residuals Instead of Exact Terza?</span></span>
+<span id="cb10-266"><a href="#cb10-266" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-267"><a href="#cb10-267" aria-hidden="true" tabindex="-1"></a>Given that Terza's correction <span class="co">[</span><span class="ot">@terza-1998</span><span class="co">]</span> is theoretically exact under bivariate normality, why do applied econometricians and textbooks <span class="co">[</span><span class="ot">@wooldridge-2010-crosssection; @wooldridge-2014-qmle; @lin-wooldridge-2019</span><span class="co">]</span> frequently recommend the **Generalized-Residual Control Function**?</span>
+<span id="cb10-268"><a href="#cb10-268" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-269"><a href="#cb10-269" aria-hidden="true" tabindex="-1"></a>There are five key reasons:</span>
 <span id="cb10-270"><a href="#cb10-270" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-271"><a href="#cb10-271" aria-hidden="true" tabindex="-1"></a><span class="fu">### Practical Strategy</span></span>
-<span id="cb10-272"><a href="#cb10-272" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-273"><a href="#cb10-273" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Situation <span class="pp">|</span> Recommended Estimator <span class="pp">|</span> Rationale <span class="pp">|</span></span>
-<span id="cb10-274"><a href="#cb10-274" aria-hidden="true" tabindex="-1"></a><span class="pp">|:---|:---|:---|</span></span>
-<span id="cb10-275"><a href="#cb10-275" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Routine empirical analysis &amp; testing** | **Generalized-Residual CF** <span class="pp">|</span> Fast, standard 1-line command, built-in $t$-test for $\rho_1 = 0$, works with Logit ($y_2 - \hat{p}_2$), handles panel FE via Mundlak. <span class="pp">|</span></span>
-<span id="cb10-276"><a href="#cb10-276" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **$\hat{\rho}_1$ small, or negative** | **Generalized-Residual CF alone** <span class="pp">|</span> The $O(\rho_1^2)$ error is smallest exactly here, and it is the negative side of the asymmetry. <span class="pp">|</span></span>
-<span id="cb10-277"><a href="#cb10-277" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **$\hat{\rho}_1$ large and positive** | **Add the Terza Exact Profiled 2-Step** <span class="pp">|</span> This is where the Taylor error bites hardest. Fit the exact model alongside and report both; if they agree the approximation was safe, and if they do not, the exact one is right provided the probit is. <span class="pp">|</span></span>
+<span id="cb10-271"><a href="#cb10-271" aria-hidden="true" tabindex="-1"></a><span class="fu">### 1. Built-in Hausman Exogeneity Test in a Single Step</span></span>
+<span id="cb10-272"><a href="#cb10-272" aria-hidden="true" tabindex="-1"></a>In the generalized residual model:</span>
+<span id="cb10-273"><a href="#cb10-273" aria-hidden="true" tabindex="-1"></a>$$\log E(y_1 \mid \mathbf{z}, y_2) = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{r}_2$$</span>
+<span id="cb10-274"><a href="#cb10-274" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-275"><a href="#cb10-275" aria-hidden="true" tabindex="-1"></a>The coefficient on $\hat{r}_2$ estimates $\rho_1$, and its $t$-statistic is a **direct, asymptotically valid variable-addition test for exogeneity** ($H_0: \rho_1 = 0$). </span>
+<span id="cb10-276"><a href="#cb10-276" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Under $H_0$, none of the joint normality or reduced-form assumptions are required <span class="co">[</span><span class="ot">@wooldridge-2010-crosssection, p. 744</span><span class="co">]</span>.</span>
+<span id="cb10-277"><a href="#cb10-277" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Terza's exact method does not yield a simple linear $t$-statistic directly beside $\hat{\alpha}_1$.</span>
 <span id="cb10-278"><a href="#cb10-278" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-279"><a href="#cb10-279" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb10-280"><a href="#cb10-280" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-281"><a href="#cb10-281" aria-hidden="true" tabindex="-1"></a><span class="fu">## 5. Overview and Comparison of the Four Estimators</span></span>
+<span id="cb10-279"><a href="#cb10-279" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2. Standard Software Drop-in</span></span>
+<span id="cb10-280"><a href="#cb10-280" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Generalized Residual:** Fits directly in standard software without custom numerical optimization.</span>
+<span id="cb10-281"><a href="#cb10-281" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Terza’s Exact 2-Step:** Requires writing a custom 1D profile likelihood wrapper to search over $\rho_1$ with an offset.</span>
 <span id="cb10-282"><a href="#cb10-282" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-283"><a href="#cb10-283" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Estimator <span class="pp">|</span> First Stage <span class="pp">|</span> Second Stage Adjustment <span class="pp">|</span> Consistency (Binary $y_2$) <span class="pp">|</span> Panel Fixed Effects <span class="pp">|</span> Standard Errors <span class="pp">|</span></span>
-<span id="cb10-284"><a href="#cb10-284" aria-hidden="true" tabindex="-1"></a><span class="pp">|:---|:---:|:---:|:---:|:---:|:---:|</span></span>
-<span id="cb10-285"><a href="#cb10-285" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Linear CF** <span class="pp">|</span> Linear OLS <span class="pp">|</span> Add $\hat{v}_2$ inside $\exp(\cdot)$ <span class="pp">|</span> Inconsistent <span class="pp">|</span> Yes (Poisson with FE) <span class="pp">|</span> Cluster Bootstrap <span class="pp">|</span></span>
-<span id="cb10-286"><a href="#cb10-286" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Generalized CF** <span class="pp">|</span> Probit / Logit (with Mundlak) <span class="pp">|</span> Add $\hat{r}_2$ inside $\exp(\cdot)$ <span class="pp">|</span> Approx. ($O(\rho_1^2)$ error) <span class="pp">|</span> Yes (Mundlak in 1st stage) <span class="pp">|</span> Cluster Bootstrap <span class="pp">|</span></span>
-<span id="cb10-287"><a href="#cb10-287" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Terza Exact 2-Step** | Probit | Profile $\rho_1$ with offset $\log h(\rho_1)$ | **Yes** (under normality) <span class="pp">|</span> Yes (Poisson with offset) <span class="pp">|</span> Cluster Bootstrap <span class="pp">|</span></span>
-<span id="cb10-288"><a href="#cb10-288" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Multiplicative GMM** | Any ($\hat{p}_2$) | Instrument $y_2$ in moments | **Yes** (distribution-free) <span class="pp">|</span> Needs quasi-differencing <span class="pp">|</span> Sandwich vcov <span class="pp">|</span></span>
-<span id="cb10-289"><a href="#cb10-289" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-290"><a href="#cb10-290" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb10-283"><a href="#cb10-283" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3. Distributional Flexibility: Beyond the Probit Link</span></span>
+<span id="cb10-284"><a href="#cb10-284" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Terza’s $h(\cdot)$ is strictly probit-specific:** The formula in @eq-poisson-iv-8 is derived exclusively from truncated moments of a bivariate normal distribution, and no closed-form analogue for logit appears in @terza-1998, @wooldridge-2010-crosssection or @imbens-wooldridge-2007-cf.</span>
+<span id="cb10-285"><a href="#cb10-285" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Generalized residuals apply to any GLM link:** For logit, the generalized residual collapses to the simple **raw response residual** $\hat{r}_2 = y_2 - \hat{p}_2$, requiring zero Mills-ratio machinery.</span>
+<span id="cb10-286"><a href="#cb10-286" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-287"><a href="#cb10-287" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4. Robustness Against Non-Normality (Curvature Misspecification)</span></span>
+<span id="cb10-288"><a href="#cb10-288" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Terza’s correction is **exact only under strict joint bivariate normality**.</span>
+<span id="cb10-289"><a href="#cb10-289" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>If the true unobservables $(c_1, v_2)$ are non-normal (e.g. skewed or heavy-tailed), $h(\cdot)$ has the wrong functional form. The profile then picks the $\rho_1$ that best fits a curve the data do not follow, and that misspecification passes straight into $\hat{\alpha}_1$. This is misspecification bias, not overfitting — there is only one extra parameter, so there is nothing to overfit with.</span>
+<span id="cb10-290"><a href="#cb10-290" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The generalized residual commits to less. It controls for $E<span class="co">[</span><span class="ot">v_2 \mid y_2, \mathbf{z}</span><span class="co">]</span>$ and stops at first order, so a wrong $h$ cannot drag it. Whether this actually wins under non-normality is an open question; @lin-wooldridge-2019 leave "investigations into the quality of CF approximations in discrete cases to future research.</span>
 <span id="cb10-291"><a href="#cb10-291" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-292"><a href="#cb10-292" aria-hidden="true" tabindex="-1"></a><span class="fu">## 6. Practical Guidance: An Observable Diagnostic Workflow</span></span>
-<span id="cb10-293"><a href="#cb10-293" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-294"><a href="#cb10-294" aria-hidden="true" tabindex="-1"></a>In empirical practice, we do not need to guess the confounding parameter $\rho_1$—**it is estimated directly as the coefficient on the generalized residual $\hat{r}_2$ in your second-stage Poisson regression table.**</span>
-<span id="cb10-295"><a href="#cb10-295" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-296"><a href="#cb10-296" aria-hidden="true" tabindex="-1"></a>A standard applied workflow proceeds in three actionable steps:</span>
-<span id="cb10-297"><a href="#cb10-297" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-298"><a href="#cb10-298" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Estimate the Generalized-Residual CF as the baseline model:**  </span>
-<span id="cb10-299"><a href="#cb10-299" aria-hidden="true" tabindex="-1"></a><span class="ss">   - </span>For continuous $y_2$: Add the OLS residual $\hat{v}_2$.</span>
-<span id="cb10-300"><a href="#cb10-300" aria-hidden="true" tabindex="-1"></a><span class="ss">   - </span>For binary $y_2$: Add the generalized residual $\hat{r}_2$ (or raw response residual $y_2 - \hat{p}_2$ if using logit).</span>
-<span id="cb10-301"><a href="#cb10-301" aria-hidden="true" tabindex="-1"></a><span class="ss">   - </span>In short panels ($T$ small): Use the Mundlak device ($\mathbf{w}_{it} = (1, \mathbf{z}_{it}, \bar{\mathbf{z}}_i)$) in the first stage to avoid incidental parameters bias.</span>
+<span id="cb10-292"><a href="#cb10-292" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5. The Approximation Error Shrinks with the Endogeneity</span></span>
+<span id="cb10-293"><a href="#cb10-293" aria-hidden="true" tabindex="-1"></a>The error is $O(\rho_1^2)$, so it vanishes quadratically as $\rho_1 \to 0$ — and $\rho_1$ is not a quantity you have to guess at, because it is estimated as the coefficient on $\hat{r}_2$. The error is also asymmetric: $h$ scales the treated mean by a factor bounded by $1/\Phi(\mathbf{z}\boldsymbol{\pi}_2)$, which is unbounded in the tail for $\rho_1 &gt; 0$ but shrinks smoothly toward zero for $\rho_1 &lt; 0$, so positive confounding is the case to worry about. We give no numerical threshold here: the size of the error at a given $\rho_1$ depends on how far the probit index reaches into the tail, so it is design-specific rather than a property of $\rho_1$ alone.</span>
+<span id="cb10-294"><a href="#cb10-294" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-295"><a href="#cb10-295" aria-hidden="true" tabindex="-1"></a><span class="fu">### Practical Strategy</span></span>
+<span id="cb10-296"><a href="#cb10-296" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-297"><a href="#cb10-297" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Situation <span class="pp">|</span> Recommended Estimator <span class="pp">|</span> Rationale <span class="pp">|</span></span>
+<span id="cb10-298"><a href="#cb10-298" aria-hidden="true" tabindex="-1"></a><span class="pp">|:---|:---|:---|</span></span>
+<span id="cb10-299"><a href="#cb10-299" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Routine empirical analysis &amp; testing** | **Generalized-Residual CF** <span class="pp">|</span> Fast, standard 1-line command, built-in $t$-test for $\rho_1 = 0$, works with Logit ($y_2 - \hat{p}_2$), handles panel FE via Mundlak. <span class="pp">|</span></span>
+<span id="cb10-300"><a href="#cb10-300" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **$\hat{\rho}_1$ small, or negative** | **Generalized-Residual CF alone** <span class="pp">|</span> The $O(\rho_1^2)$ error is smallest exactly here, and it is the negative side of the asymmetry. <span class="pp">|</span></span>
+<span id="cb10-301"><a href="#cb10-301" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **$\hat{\rho}_1$ large and positive** | **Add the Terza Exact Profiled 2-Step** <span class="pp">|</span> This is where the Taylor error bites hardest. Fit the exact model alongside and report both; if they agree the approximation was safe, and if they do not, the exact one is right provided the probit is. <span class="pp">|</span></span>
 <span id="cb10-302"><a href="#cb10-302" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-303"><a href="#cb10-303" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Check the $t$-statistic on the residual (Exogeneity Test):**  </span>
-<span id="cb10-304"><a href="#cb10-304" aria-hidden="true" tabindex="-1"></a>   The $t$-statistic on $\hat{r}_2$ (testing $\hat{\rho}_1 = 0$) is an asymptotically valid Hausman-type exogeneity test. If the coefficient is statistically indistinguishable from zero ($p &gt; 0.05$), exogeneity is not rejected, and standard fixed-effects Poisson is supported.</span>
-<span id="cb10-305"><a href="#cb10-305" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-306"><a href="#cb10-306" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Read the size and sign of $\hat{\rho}_1$ (Approximation Diagnostic):**  </span>
-<span id="cb10-307"><a href="#cb10-307" aria-hidden="true" tabindex="-1"></a><span class="ss">   - </span>**If $\hat{\rho}_1$ is small or negative:** the $O(\rho_1^2)$ error is at its smallest, and on the benign side of the asymmetry. The Generalized-Residual CF stands on its own.</span>
-<span id="cb10-308"><a href="#cb10-308" aria-hidden="true" tabindex="-1"></a><span class="ss">   - </span>**If $\hat{\rho}_1$ is large and positive:** the Taylor error is upward and grows quadratically. Fit Terza's exact 2-step alongside it and report both. Do not read a threshold off $\hat{\rho}_1$ alone — how much the error matters also depends on how far your probit index reaches into the tail, so the comparison is the diagnostic, not a rule of thumb.</span>
-<span id="cb10-309"><a href="#cb10-309" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-310"><a href="#cb10-310" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Inference:**  </span>
-<span id="cb10-311"><a href="#cb10-311" aria-hidden="true" tabindex="-1"></a>   Always compute standard errors using a cluster bootstrap over panel units to account for first-stage estimation uncertainty.</span>
-<span id="cb10-312"><a href="#cb10-312" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-313"><a href="#cb10-313" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb10-314"><a href="#cb10-314" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-315"><a href="#cb10-315" aria-hidden="true" tabindex="-1"></a><span class="fu">## 7. Implementation Demos in R and Stata</span></span>
-<span id="cb10-316"><a href="#cb10-316" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-317"><a href="#cb10-317" aria-hidden="true" tabindex="-1"></a>Below are concise, copy-pasteable implementation templates in R (<span class="in">`fixest`</span>) and Stata (<span class="in">`ppmlhdfe`</span>).</span>
-<span id="cb10-318"><a href="#cb10-318" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-319"><a href="#cb10-319" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.1 R Implementation Demo (`fixest`)</span></span>
-<span id="cb10-320"><a href="#cb10-320" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-321"><a href="#cb10-321" aria-hidden="true" tabindex="-1"></a><span class="in">```{r demo-r}</span></span>
-<span id="cb10-322"><a href="#cb10-322" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: true</span></span>
-<span id="cb10-323"><a href="#cb10-323" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fixest)</span>
-<span id="cb10-324"><a href="#cb10-324" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-325"><a href="#cb10-325" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Simulate a short panel dataset (50 units, 5 periods)</span></span>
-<span id="cb10-326"><a href="#cb10-326" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
-<span id="cb10-327"><a href="#cb10-327" aria-hidden="true" tabindex="-1"></a>n_i <span class="ot">&lt;-</span> <span class="dv">50</span>; n_t <span class="ot">&lt;-</span> <span class="dv">5</span>; n <span class="ot">&lt;-</span> n_i <span class="sc">*</span> n_t</span>
-<span id="cb10-328"><a href="#cb10-328" aria-hidden="true" tabindex="-1"></a>id   <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>n_i, <span class="at">each =</span> n_t)</span>
-<span id="cb10-329"><a href="#cb10-329" aria-hidden="true" tabindex="-1"></a>time <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>n_t, <span class="at">times =</span> n_i)</span>
-<span id="cb10-330"><a href="#cb10-330" aria-hidden="true" tabindex="-1"></a>z    <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n) <span class="co"># Excluded instrument</span></span>
-<span id="cb10-331"><a href="#cb10-331" aria-hidden="true" tabindex="-1"></a>x    <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n) <span class="co"># Exogenous covariate</span></span>
-<span id="cb10-332"><a href="#cb10-332" aria-hidden="true" tabindex="-1"></a>c_i  <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n_i)[id]</span>
-<span id="cb10-333"><a href="#cb10-333" aria-hidden="true" tabindex="-1"></a>e2   <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n)</span>
-<span id="cb10-334"><a href="#cb10-334" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-335"><a href="#cb10-335" aria-hidden="true" tabindex="-1"></a><span class="co"># Endogenous binary treatment and Poisson outcome</span></span>
-<span id="cb10-336"><a href="#cb10-336" aria-hidden="true" tabindex="-1"></a>y2     <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(<span class="fl">0.8</span> <span class="sc">*</span> z <span class="sc">+</span> <span class="fl">0.5</span> <span class="sc">*</span> x <span class="sc">+</span> c_i <span class="sc">+</span> e2 <span class="sc">&gt;=</span> <span class="dv">0</span>)</span>
-<span id="cb10-337"><a href="#cb10-337" aria-hidden="true" tabindex="-1"></a>lambda <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="fl">0.5</span> <span class="sc">+</span> <span class="fl">0.8</span> <span class="sc">*</span> y2 <span class="sc">+</span> <span class="fl">0.4</span> <span class="sc">*</span> x <span class="sc">+</span> c_i <span class="sc">+</span> <span class="fl">0.2</span> <span class="sc">*</span> e2)</span>
-<span id="cb10-338"><a href="#cb10-338" aria-hidden="true" tabindex="-1"></a>y1     <span class="ot">&lt;-</span> <span class="fu">rpois</span>(n, lambda)</span>
-<span id="cb10-339"><a href="#cb10-339" aria-hidden="true" tabindex="-1"></a>df     <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">y1 =</span> y1, <span class="at">y2 =</span> y2, <span class="at">z =</span> z, <span class="at">x =</span> x, <span class="at">id =</span> id, <span class="at">time =</span> time)</span>
+<span id="cb10-303"><a href="#cb10-303" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb10-304"><a href="#cb10-304" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-305"><a href="#cb10-305" aria-hidden="true" tabindex="-1"></a><span class="fu">## 5. Overview and Comparison of the Four Estimators</span></span>
+<span id="cb10-306"><a href="#cb10-306" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-307"><a href="#cb10-307" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Estimator <span class="pp">|</span> First Stage <span class="pp">|</span> Second Stage Adjustment <span class="pp">|</span> Consistency (Binary $y_2$) <span class="pp">|</span> Panel Fixed Effects <span class="pp">|</span> Standard Errors <span class="pp">|</span></span>
+<span id="cb10-308"><a href="#cb10-308" aria-hidden="true" tabindex="-1"></a><span class="pp">|:---|:---:|:---:|:---:|:---:|:---:|</span></span>
+<span id="cb10-309"><a href="#cb10-309" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Linear CF** <span class="pp">|</span> Linear OLS <span class="pp">|</span> Add $\hat{v}_2$ inside $\exp(\cdot)$ <span class="pp">|</span> Inconsistent <span class="pp">|</span> Yes (Poisson with FE) <span class="pp">|</span> Cluster Bootstrap <span class="pp">|</span></span>
+<span id="cb10-310"><a href="#cb10-310" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Generalized CF** <span class="pp">|</span> Probit / Logit (with Mundlak) <span class="pp">|</span> Add $\hat{r}_2$ inside $\exp(\cdot)$ <span class="pp">|</span> Approx. ($O(\rho_1^2)$ error) <span class="pp">|</span> Yes (Mundlak in 1st stage) <span class="pp">|</span> Cluster Bootstrap <span class="pp">|</span></span>
+<span id="cb10-311"><a href="#cb10-311" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Terza Exact 2-Step** | Probit | Profile $\rho_1$ with offset $\log h(\rho_1)$ | **Yes** (under normality) <span class="pp">|</span> Yes (Poisson with offset) <span class="pp">|</span> Cluster Bootstrap <span class="pp">|</span></span>
+<span id="cb10-312"><a href="#cb10-312" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Multiplicative GMM** | Any ($\hat{p}_2$) | Instrument $y_2$ in moments | **Yes** (distribution-free) <span class="pp">|</span> Needs quasi-differencing <span class="pp">|</span> Sandwich vcov <span class="pp">|</span></span>
+<span id="cb10-313"><a href="#cb10-313" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-314"><a href="#cb10-314" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb10-315"><a href="#cb10-315" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-316"><a href="#cb10-316" aria-hidden="true" tabindex="-1"></a><span class="fu">## 6. Practical Guidance: An Observable Diagnostic Workflow</span></span>
+<span id="cb10-317"><a href="#cb10-317" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-318"><a href="#cb10-318" aria-hidden="true" tabindex="-1"></a>In empirical practice, we do not need to guess the confounding parameter $\rho_1$—**it is estimated directly as the coefficient on the generalized residual $\hat{r}_2$ in your second-stage Poisson regression table.**</span>
+<span id="cb10-319"><a href="#cb10-319" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-320"><a href="#cb10-320" aria-hidden="true" tabindex="-1"></a>A standard applied workflow proceeds in four steps:</span>
+<span id="cb10-321"><a href="#cb10-321" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-322"><a href="#cb10-322" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Estimate the Generalized-Residual CF as the baseline model:**  </span>
+<span id="cb10-323"><a href="#cb10-323" aria-hidden="true" tabindex="-1"></a><span class="ss">   - </span>For continuous $y_2$: Add the OLS residual $\hat{v}_2$.</span>
+<span id="cb10-324"><a href="#cb10-324" aria-hidden="true" tabindex="-1"></a><span class="ss">   - </span>For binary $y_2$: Add the generalized residual $\hat{r}_2$ (or raw response residual $y_2 - \hat{p}_2$ if using logit).</span>
+<span id="cb10-325"><a href="#cb10-325" aria-hidden="true" tabindex="-1"></a><span class="ss">   - </span>In short panels ($T$ small): Use the Mundlak device ($\mathbf{w}_{it} = (1, \mathbf{z}_{it}, \bar{\mathbf{z}}_i)$) in the first stage to avoid incidental parameters bias.</span>
+<span id="cb10-326"><a href="#cb10-326" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-327"><a href="#cb10-327" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Check the $t$-statistic on the residual (Exogeneity Test):**  </span>
+<span id="cb10-328"><a href="#cb10-328" aria-hidden="true" tabindex="-1"></a>   The $t$-statistic on $\hat{r}_2$ (testing $\hat{\rho}_1 = 0$) is an asymptotically valid Hausman-type exogeneity test. Read it as a description of how much endogeneity the data can detect. Do not read it as a licence to drop the residual — see the pretest warning below.</span>
+<span id="cb10-329"><a href="#cb10-329" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-330"><a href="#cb10-330" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Read the size and sign of $\hat{\rho}_1$ (Approximation Diagnostic):**  </span>
+<span id="cb10-331"><a href="#cb10-331" aria-hidden="true" tabindex="-1"></a><span class="ss">   - </span>**If $\hat{\rho}_1$ is small or negative:** the $O(\rho_1^2)$ error is at its smallest, and on the benign side of the asymmetry. The Generalized-Residual CF stands on its own.</span>
+<span id="cb10-332"><a href="#cb10-332" aria-hidden="true" tabindex="-1"></a><span class="ss">   - </span>**If $\hat{\rho}_1$ is large and positive:** the Taylor error is upward and grows quadratically. Fit Terza's exact 2-step alongside it and report both. Do not read a threshold off $\hat{\rho}_1$ alone — how much the error matters also depends on how far your probit index reaches into the tail, so the comparison is the diagnostic, not a rule of thumb.</span>
+<span id="cb10-333"><a href="#cb10-333" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-334"><a href="#cb10-334" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Inference:**  </span>
+<span id="cb10-335"><a href="#cb10-335" aria-hidden="true" tabindex="-1"></a>   Always compute standard errors using a cluster bootstrap over panel units to account for first-stage estimation uncertainty.</span>
+<span id="cb10-336"><a href="#cb10-336" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-337"><a href="#cb10-337" aria-hidden="true" tabindex="-1"></a><span class="fu">### Do Not Use the Exogeneity Test to Choose the Model</span></span>
+<span id="cb10-338"><a href="#cb10-338" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-339"><a href="#cb10-339" aria-hidden="true" tabindex="-1"></a>The tempting next move is to let step 2 pick the specification: if the $t$-statistic on $\hat{r}_2$ is insignificant, drop the residual and report the plain FE Poisson; if it is significant, keep the control function. This is a pretest estimator, and it is worse than either of the two models it chooses between.</span>
 <span id="cb10-340"><a href="#cb10-340" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-341"><a href="#cb10-341" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Mundlak Device: calculate unit means</span></span>
-<span id="cb10-342"><a href="#cb10-342" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>mean_z <span class="ot">&lt;-</span> <span class="fu">ave</span>(df<span class="sc">$</span>z, df<span class="sc">$</span>id)</span>
-<span id="cb10-343"><a href="#cb10-343" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>mean_x <span class="ot">&lt;-</span> <span class="fu">ave</span>(df<span class="sc">$</span>x, df<span class="sc">$</span>id)</span>
+<span id="cb10-341"><a href="#cb10-341" aria-hidden="true" tabindex="-1"></a>@guggenberger-2010 works this out for the linear case. A Hausman pretest followed by OLS-or-2SLS, with the second-stage $t$-test reported at its nominal level, has **asymptotic size equal to one**: there are points in the parameter space where the procedure rejects a true null with probability approaching 1. The mechanism is a sequence of local alternatives. Let the endogeneity drift toward zero at rate $n^{-1/2}$. The pretest then has low power and often fails to reject, so the procedure falls back on the estimator that ignores endogeneity — but at that drift rate the bias of that estimator is the same order as its standard error, so the reported confidence interval is centred in the wrong place by about its own width. Taking the supremum of rejection probability over the parameter space picks out exactly these points. @guggenberger-2010-panel obtains the same conclusion for the panel Hausman test between fixed and random effects.</span>
+<span id="cb10-342"><a href="#cb10-342" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-343"><a href="#cb10-343" aria-hidden="true" tabindex="-1"></a>These results are proved for linear models, and we are not aware of an analogous theorem for the Poisson control function. The mechanism does not depend on linearity: it needs only a pretest with low power against local endogeneity and a fallback estimator whose bias does not vanish faster than its standard error, and both are present here. We treat it as a warning that carries over rather than a result that has been established in this setting.</span>
 <span id="cb10-344"><a href="#cb10-344" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-345"><a href="#cb10-345" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Step 1: Probit First Stage &amp; Generalized Residual</span></span>
-<span id="cb10-346"><a href="#cb10-346" aria-hidden="true" tabindex="-1"></a>fs <span class="ot">&lt;-</span> <span class="fu">feglm</span>(y2 <span class="sc">~</span> z <span class="sc">+</span> x <span class="sc">+</span> mean_z <span class="sc">+</span> mean_x, <span class="at">data =</span> df, <span class="at">family =</span> <span class="fu">binomial</span>(probit))</span>
-<span id="cb10-347"><a href="#cb10-347" aria-hidden="true" tabindex="-1"></a>eta <span class="ot">&lt;-</span> <span class="fu">predict</span>(fs, <span class="at">type =</span> <span class="st">"link"</span>)</span>
-<span id="cb10-348"><a href="#cb10-348" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>r2 <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(df<span class="sc">$</span>y2 <span class="sc">==</span> <span class="dv">1</span>, <span class="fu">dnorm</span>(eta) <span class="sc">/</span> <span class="fu">pnorm</span>(eta), <span class="sc">-</span><span class="fu">dnorm</span>(eta) <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">-</span> <span class="fu">pnorm</span>(eta)))</span>
-<span id="cb10-349"><a href="#cb10-349" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-350"><a href="#cb10-350" aria-hidden="true" tabindex="-1"></a><span class="co"># (Note: If using Logit first stage, r2 is simply y2 - predict(fs, type = "response"))</span></span>
-<span id="cb10-351"><a href="#cb10-351" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-352"><a href="#cb10-352" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Step 2: Second Stage Poisson with High-Dimensional Fixed Effects</span></span>
-<span id="cb10-353"><a href="#cb10-353" aria-hidden="true" tabindex="-1"></a>m_naive <span class="ot">&lt;-</span> <span class="fu">fepois</span>(y1 <span class="sc">~</span> y2 <span class="sc">+</span> x      <span class="sc">|</span> id <span class="sc">+</span> time, <span class="at">data =</span> df, <span class="at">notes =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb10-354"><a href="#cb10-354" aria-hidden="true" tabindex="-1"></a>m_cf    <span class="ot">&lt;-</span> <span class="fu">fepois</span>(y1 <span class="sc">~</span> y2 <span class="sc">+</span> r2 <span class="sc">+</span> x <span class="sc">|</span> id <span class="sc">+</span> time, <span class="at">data =</span> df, <span class="at">notes =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb10-355"><a href="#cb10-355" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-356"><a href="#cb10-356" aria-hidden="true" tabindex="-1"></a><span class="fu">etable</span>(m_naive, m_cf, <span class="at">headers =</span> <span class="fu">c</span>(<span class="st">"Naive FE Poisson"</span>, <span class="st">"Generalized Residual CF"</span>))</span>
-<span id="cb10-357"><a href="#cb10-357" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-358"><a href="#cb10-358" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">true alpha1 = %.2f, true rho1 = %.2f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fl">0.8</span>, <span class="fl">0.2</span>))</span>
-<span id="cb10-359"><a href="#cb10-359" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"naive          alpha1 = %.4f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">coef</span>(m_naive)[<span class="st">"y2"</span>]))</span>
-<span id="cb10-360"><a href="#cb10-360" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"generalized CF alpha1 = %.4f (SE %.4f), rho1 = %.4f</span><span class="sc">\n</span><span class="st">"</span>,</span>
-<span id="cb10-361"><a href="#cb10-361" aria-hidden="true" tabindex="-1"></a>            <span class="fu">coef</span>(m_cf)[<span class="st">"y2"</span>], <span class="fu">se</span>(m_cf)[<span class="st">"y2"</span>], <span class="fu">coef</span>(m_cf)[<span class="st">"r2"</span>]))</span>
-<span id="cb10-362"><a href="#cb10-362" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb10-363"><a href="#cb10-363" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-364"><a href="#cb10-364" aria-hidden="true" tabindex="-1"></a>With 50 units over 5 periods the standard error is large enough that this single</span>
-<span id="cb10-365"><a href="#cb10-365" aria-hidden="true" tabindex="-1"></a>draw cannot separate the two estimators; it is a template for the syntax, not</span>
-<span id="cb10-366"><a href="#cb10-366" aria-hidden="true" tabindex="-1"></a>evidence about the estimator. The naive coefficient is reported beside it so the</span>
-<span id="cb10-367"><a href="#cb10-367" aria-hidden="true" tabindex="-1"></a>direction of the correction is visible.</span>
+<span id="cb10-345"><a href="#cb10-345" aria-hidden="true" tabindex="-1"></a>The practical rule is to **report the naive FE Poisson and the control-function FE Poisson side by side** and let the reader see both. The $t$-statistic on $\hat{r}_2$ still belongs in the table; it is evidence about the size of $\rho_1$, which is what step 3 needs. What it must not do is silently delete one of the two columns.</span>
+<span id="cb10-346"><a href="#cb10-346" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-347"><a href="#cb10-347" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb10-348"><a href="#cb10-348" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-349"><a href="#cb10-349" aria-hidden="true" tabindex="-1"></a><span class="fu">## 7. Implementation Demos in R and Stata</span></span>
+<span id="cb10-350"><a href="#cb10-350" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-351"><a href="#cb10-351" aria-hidden="true" tabindex="-1"></a>Below are concise, copy-pasteable implementation templates in R (<span class="in">`fixest`</span>) and Stata (<span class="in">`ppmlhdfe`</span>).</span>
+<span id="cb10-352"><a href="#cb10-352" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-353"><a href="#cb10-353" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.1 R Implementation Demo (`fixest`)</span></span>
+<span id="cb10-354"><a href="#cb10-354" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-355"><a href="#cb10-355" aria-hidden="true" tabindex="-1"></a><span class="in">```{r demo-r}</span></span>
+<span id="cb10-356"><a href="#cb10-356" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: true</span></span>
+<span id="cb10-357"><a href="#cb10-357" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fixest)</span>
+<span id="cb10-358"><a href="#cb10-358" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-359"><a href="#cb10-359" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Simulate a short panel dataset (50 units, 5 periods)</span></span>
+<span id="cb10-360"><a href="#cb10-360" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb10-361"><a href="#cb10-361" aria-hidden="true" tabindex="-1"></a>n_i <span class="ot">&lt;-</span> <span class="dv">50</span>; n_t <span class="ot">&lt;-</span> <span class="dv">5</span>; n <span class="ot">&lt;-</span> n_i <span class="sc">*</span> n_t</span>
+<span id="cb10-362"><a href="#cb10-362" aria-hidden="true" tabindex="-1"></a>id   <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>n_i, <span class="at">each =</span> n_t)</span>
+<span id="cb10-363"><a href="#cb10-363" aria-hidden="true" tabindex="-1"></a>time <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>n_t, <span class="at">times =</span> n_i)</span>
+<span id="cb10-364"><a href="#cb10-364" aria-hidden="true" tabindex="-1"></a>z    <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n) <span class="co"># Excluded instrument</span></span>
+<span id="cb10-365"><a href="#cb10-365" aria-hidden="true" tabindex="-1"></a>x    <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n) <span class="co"># Exogenous covariate</span></span>
+<span id="cb10-366"><a href="#cb10-366" aria-hidden="true" tabindex="-1"></a>c_i  <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n_i)[id]</span>
+<span id="cb10-367"><a href="#cb10-367" aria-hidden="true" tabindex="-1"></a>e2   <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n)</span>
 <span id="cb10-368"><a href="#cb10-368" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-369"><a href="#cb10-369" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.2 Stata Implementation Demo (`ppmlhdfe`)</span></span>
-<span id="cb10-370"><a href="#cb10-370" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-371"><a href="#cb10-371" aria-hidden="true" tabindex="-1"></a><span class="in">```stata</span></span>
-<span id="cb10-372"><a href="#cb10-372" aria-hidden="true" tabindex="-1"></a><span class="in">* ==============================================================================</span></span>
-<span id="cb10-373"><a href="#cb10-373" aria-hidden="true" tabindex="-1"></a><span class="in">* Generalized-Residual Control Function in Stata using ppmlhdfe</span></span>
-<span id="cb10-374"><a href="#cb10-374" aria-hidden="true" tabindex="-1"></a><span class="in">* ==============================================================================</span></span>
-<span id="cb10-375"><a href="#cb10-375" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-376"><a href="#cb10-376" aria-hidden="true" tabindex="-1"></a><span class="in">* 1. Mundlak Device: Calculate unit-level means of time-varying variables</span></span>
-<span id="cb10-377"><a href="#cb10-377" aria-hidden="true" tabindex="-1"></a><span class="in">bysort id: egen mean_z = mean(z)</span></span>
-<span id="cb10-378"><a href="#cb10-378" aria-hidden="true" tabindex="-1"></a><span class="in">bysort id: egen mean_x = mean(x)</span></span>
-<span id="cb10-379"><a href="#cb10-379" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-380"><a href="#cb10-380" aria-hidden="true" tabindex="-1"></a><span class="in">* 2. Step 1: Probit First Stage on pooled data with Mundlak means</span></span>
-<span id="cb10-381"><a href="#cb10-381" aria-hidden="true" tabindex="-1"></a><span class="in">probit y2 z x mean_z mean_x</span></span>
-<span id="cb10-382"><a href="#cb10-382" aria-hidden="true" tabindex="-1"></a><span class="in">predict double eta, xb</span></span>
-<span id="cb10-383"><a href="#cb10-383" aria-hidden="true" tabindex="-1"></a><span class="in">gen double r2 = cond(y2 == 1, normalden(eta)/normal(eta), -normalden(eta)/(1 - normal(eta)))</span></span>
-<span id="cb10-384"><a href="#cb10-384" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-385"><a href="#cb10-385" aria-hidden="true" tabindex="-1"></a><span class="in">* (Alternatively, for a Logit first stage: raw response residual)</span></span>
-<span id="cb10-386"><a href="#cb10-386" aria-hidden="true" tabindex="-1"></a><span class="in">* logit y2 z x mean_z mean_x</span></span>
-<span id="cb10-387"><a href="#cb10-387" aria-hidden="true" tabindex="-1"></a><span class="in">* predict double phat, pr</span></span>
-<span id="cb10-388"><a href="#cb10-388" aria-hidden="true" tabindex="-1"></a><span class="in">* gen double r2 = y2 - phat</span></span>
+<span id="cb10-369"><a href="#cb10-369" aria-hidden="true" tabindex="-1"></a><span class="co"># Endogenous binary treatment and Poisson outcome</span></span>
+<span id="cb10-370"><a href="#cb10-370" aria-hidden="true" tabindex="-1"></a>y2     <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(<span class="fl">0.8</span> <span class="sc">*</span> z <span class="sc">+</span> <span class="fl">0.5</span> <span class="sc">*</span> x <span class="sc">+</span> c_i <span class="sc">+</span> e2 <span class="sc">&gt;=</span> <span class="dv">0</span>)</span>
+<span id="cb10-371"><a href="#cb10-371" aria-hidden="true" tabindex="-1"></a>lambda <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="fl">0.5</span> <span class="sc">+</span> <span class="fl">0.8</span> <span class="sc">*</span> y2 <span class="sc">+</span> <span class="fl">0.4</span> <span class="sc">*</span> x <span class="sc">+</span> c_i <span class="sc">+</span> <span class="fl">0.2</span> <span class="sc">*</span> e2)</span>
+<span id="cb10-372"><a href="#cb10-372" aria-hidden="true" tabindex="-1"></a>y1     <span class="ot">&lt;-</span> <span class="fu">rpois</span>(n, lambda)</span>
+<span id="cb10-373"><a href="#cb10-373" aria-hidden="true" tabindex="-1"></a>df     <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">y1 =</span> y1, <span class="at">y2 =</span> y2, <span class="at">z =</span> z, <span class="at">x =</span> x, <span class="at">id =</span> id, <span class="at">time =</span> time)</span>
+<span id="cb10-374"><a href="#cb10-374" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-375"><a href="#cb10-375" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Mundlak Device: calculate unit means</span></span>
+<span id="cb10-376"><a href="#cb10-376" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>mean_z <span class="ot">&lt;-</span> <span class="fu">ave</span>(df<span class="sc">$</span>z, df<span class="sc">$</span>id)</span>
+<span id="cb10-377"><a href="#cb10-377" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>mean_x <span class="ot">&lt;-</span> <span class="fu">ave</span>(df<span class="sc">$</span>x, df<span class="sc">$</span>id)</span>
+<span id="cb10-378"><a href="#cb10-378" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-379"><a href="#cb10-379" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Step 1: Probit First Stage &amp; Generalized Residual</span></span>
+<span id="cb10-380"><a href="#cb10-380" aria-hidden="true" tabindex="-1"></a>fs <span class="ot">&lt;-</span> <span class="fu">feglm</span>(y2 <span class="sc">~</span> z <span class="sc">+</span> x <span class="sc">+</span> mean_z <span class="sc">+</span> mean_x, <span class="at">data =</span> df, <span class="at">family =</span> <span class="fu">binomial</span>(probit))</span>
+<span id="cb10-381"><a href="#cb10-381" aria-hidden="true" tabindex="-1"></a>eta <span class="ot">&lt;-</span> <span class="fu">predict</span>(fs, <span class="at">type =</span> <span class="st">"link"</span>)</span>
+<span id="cb10-382"><a href="#cb10-382" aria-hidden="true" tabindex="-1"></a>df<span class="sc">$</span>r2 <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(df<span class="sc">$</span>y2 <span class="sc">==</span> <span class="dv">1</span>, <span class="fu">dnorm</span>(eta) <span class="sc">/</span> <span class="fu">pnorm</span>(eta), <span class="sc">-</span><span class="fu">dnorm</span>(eta) <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">-</span> <span class="fu">pnorm</span>(eta)))</span>
+<span id="cb10-383"><a href="#cb10-383" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-384"><a href="#cb10-384" aria-hidden="true" tabindex="-1"></a><span class="co"># (Note: If using Logit first stage, r2 is simply y2 - predict(fs, type = "response"))</span></span>
+<span id="cb10-385"><a href="#cb10-385" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-386"><a href="#cb10-386" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Step 2: Second Stage Poisson with High-Dimensional Fixed Effects</span></span>
+<span id="cb10-387"><a href="#cb10-387" aria-hidden="true" tabindex="-1"></a>m_naive <span class="ot">&lt;-</span> <span class="fu">fepois</span>(y1 <span class="sc">~</span> y2 <span class="sc">+</span> x      <span class="sc">|</span> id <span class="sc">+</span> time, <span class="at">data =</span> df, <span class="at">notes =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb10-388"><a href="#cb10-388" aria-hidden="true" tabindex="-1"></a>m_cf    <span class="ot">&lt;-</span> <span class="fu">fepois</span>(y1 <span class="sc">~</span> y2 <span class="sc">+</span> r2 <span class="sc">+</span> x <span class="sc">|</span> id <span class="sc">+</span> time, <span class="at">data =</span> df, <span class="at">notes =</span> <span class="cn">FALSE</span>)</span>
 <span id="cb10-389"><a href="#cb10-389" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-390"><a href="#cb10-390" aria-hidden="true" tabindex="-1"></a><span class="in">* 3. Step 2: Fixed-Effects Poisson Second Stage</span></span>
-<span id="cb10-391"><a href="#cb10-391" aria-hidden="true" tabindex="-1"></a><span class="in">ppmlhdfe y1 y2 r2 x, absorb(id time)</span></span>
-<span id="cb10-392"><a href="#cb10-392" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-393"><a href="#cb10-393" aria-hidden="true" tabindex="-1"></a><span class="in">* 4. Inference: Panel Cluster Bootstrap Program</span></span>
-<span id="cb10-394"><a href="#cb10-394" aria-hidden="true" tabindex="-1"></a><span class="in">capture program drop boot_poisson_cf</span></span>
-<span id="cb10-395"><a href="#cb10-395" aria-hidden="true" tabindex="-1"></a><span class="in">program define boot_poisson_cf, rclass</span></span>
-<span id="cb10-396"><a href="#cb10-396" aria-hidden="true" tabindex="-1"></a><span class="in">    * Mundlak means must be rebuilt on the RESAMPLED clusters (new_id), not</span></span>
-<span id="cb10-397"><a href="#cb10-397" aria-hidden="true" tabindex="-1"></a><span class="in">    * carried in from the original data, or every replication reuses the</span></span>
-<span id="cb10-398"><a href="#cb10-398" aria-hidden="true" tabindex="-1"></a><span class="in">    * means of the original panel and the bootstrap understates the variance.</span></span>
-<span id="cb10-399"><a href="#cb10-399" aria-hidden="true" tabindex="-1"></a><span class="in">    quietly bysort new_id: egen double mz_b = mean(z)</span></span>
-<span id="cb10-400"><a href="#cb10-400" aria-hidden="true" tabindex="-1"></a><span class="in">    quietly bysort new_id: egen double mx_b = mean(x)</span></span>
-<span id="cb10-401"><a href="#cb10-401" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-402"><a href="#cb10-402" aria-hidden="true" tabindex="-1"></a><span class="in">    * First stage</span></span>
-<span id="cb10-403"><a href="#cb10-403" aria-hidden="true" tabindex="-1"></a><span class="in">    quietly probit y2 z x mz_b mx_b</span></span>
-<span id="cb10-404"><a href="#cb10-404" aria-hidden="true" tabindex="-1"></a><span class="in">    quietly predict double eta_b, xb</span></span>
-<span id="cb10-405"><a href="#cb10-405" aria-hidden="true" tabindex="-1"></a><span class="in">    quietly gen double r2_b = cond(y2 == 1, normalden(eta_b)/normal(eta_b), -normalden(eta_b)/(1 - normal(eta_b)))</span></span>
-<span id="cb10-406"><a href="#cb10-406" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-407"><a href="#cb10-407" aria-hidden="true" tabindex="-1"></a><span class="in">    * Second stage</span></span>
-<span id="cb10-408"><a href="#cb10-408" aria-hidden="true" tabindex="-1"></a><span class="in">    quietly ppmlhdfe y1 y2 r2_b x, absorb(new_id time)</span></span>
-<span id="cb10-409"><a href="#cb10-409" aria-hidden="true" tabindex="-1"></a><span class="in">    return scalar alpha1 = _b[y2]</span></span>
-<span id="cb10-410"><a href="#cb10-410" aria-hidden="true" tabindex="-1"></a><span class="in">    return scalar rho1   = _b[r2_b]</span></span>
-<span id="cb10-411"><a href="#cb10-411" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-412"><a href="#cb10-412" aria-hidden="true" tabindex="-1"></a><span class="in">    drop eta_b r2_b mz_b mx_b</span></span>
-<span id="cb10-413"><a href="#cb10-413" aria-hidden="true" tabindex="-1"></a><span class="in">end</span></span>
-<span id="cb10-414"><a href="#cb10-414" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-415"><a href="#cb10-415" aria-hidden="true" tabindex="-1"></a><span class="in">bootstrap r(alpha1) r(rho1), reps(500) cluster(id) idcluster(new_id): boot_poisson_cf</span></span>
-<span id="cb10-416"><a href="#cb10-416" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb10-390"><a href="#cb10-390" aria-hidden="true" tabindex="-1"></a><span class="fu">etable</span>(m_naive, m_cf, <span class="at">headers =</span> <span class="fu">c</span>(<span class="st">"Naive FE Poisson"</span>, <span class="st">"Generalized Residual CF"</span>))</span>
+<span id="cb10-391"><a href="#cb10-391" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-392"><a href="#cb10-392" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">true alpha1 = %.2f, true rho1 = %.2f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fl">0.8</span>, <span class="fl">0.2</span>))</span>
+<span id="cb10-393"><a href="#cb10-393" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"naive          alpha1 = %.4f</span><span class="sc">\n</span><span class="st">"</span>, <span class="fu">coef</span>(m_naive)[<span class="st">"y2"</span>]))</span>
+<span id="cb10-394"><a href="#cb10-394" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"generalized CF alpha1 = %.4f (SE %.4f), rho1 = %.4f</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb10-395"><a href="#cb10-395" aria-hidden="true" tabindex="-1"></a>            <span class="fu">coef</span>(m_cf)[<span class="st">"y2"</span>], <span class="fu">se</span>(m_cf)[<span class="st">"y2"</span>], <span class="fu">coef</span>(m_cf)[<span class="st">"r2"</span>]))</span>
+<span id="cb10-396"><a href="#cb10-396" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb10-397"><a href="#cb10-397" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-398"><a href="#cb10-398" aria-hidden="true" tabindex="-1"></a>With 50 units over 5 periods the standard error is large enough that this single</span>
+<span id="cb10-399"><a href="#cb10-399" aria-hidden="true" tabindex="-1"></a>draw cannot separate the two estimators; it is a template for the syntax, not</span>
+<span id="cb10-400"><a href="#cb10-400" aria-hidden="true" tabindex="-1"></a>evidence about the estimator. The naive coefficient is reported beside it so the</span>
+<span id="cb10-401"><a href="#cb10-401" aria-hidden="true" tabindex="-1"></a>direction of the correction is visible.</span>
+<span id="cb10-402"><a href="#cb10-402" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-403"><a href="#cb10-403" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.2 Stata Implementation Demo (`ppmlhdfe`)</span></span>
+<span id="cb10-404"><a href="#cb10-404" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-405"><a href="#cb10-405" aria-hidden="true" tabindex="-1"></a><span class="in">```stata</span></span>
+<span id="cb10-406"><a href="#cb10-406" aria-hidden="true" tabindex="-1"></a><span class="in">* ==============================================================================</span></span>
+<span id="cb10-407"><a href="#cb10-407" aria-hidden="true" tabindex="-1"></a><span class="in">* Generalized-Residual Control Function in Stata using ppmlhdfe</span></span>
+<span id="cb10-408"><a href="#cb10-408" aria-hidden="true" tabindex="-1"></a><span class="in">* ==============================================================================</span></span>
+<span id="cb10-409"><a href="#cb10-409" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-410"><a href="#cb10-410" aria-hidden="true" tabindex="-1"></a><span class="in">* 1. Mundlak Device: Calculate unit-level means of time-varying variables</span></span>
+<span id="cb10-411"><a href="#cb10-411" aria-hidden="true" tabindex="-1"></a><span class="in">bysort id: egen mean_z = mean(z)</span></span>
+<span id="cb10-412"><a href="#cb10-412" aria-hidden="true" tabindex="-1"></a><span class="in">bysort id: egen mean_x = mean(x)</span></span>
+<span id="cb10-413"><a href="#cb10-413" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-414"><a href="#cb10-414" aria-hidden="true" tabindex="-1"></a><span class="in">* 2. Step 1: Probit First Stage on pooled data with Mundlak means</span></span>
+<span id="cb10-415"><a href="#cb10-415" aria-hidden="true" tabindex="-1"></a><span class="in">probit y2 z x mean_z mean_x</span></span>
+<span id="cb10-416"><a href="#cb10-416" aria-hidden="true" tabindex="-1"></a><span class="in">predict double eta, xb</span></span>
+<span id="cb10-417"><a href="#cb10-417" aria-hidden="true" tabindex="-1"></a><span class="in">gen double r2 = cond(y2 == 1, normalden(eta)/normal(eta), -normalden(eta)/(1 - normal(eta)))</span></span>
+<span id="cb10-418"><a href="#cb10-418" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-419"><a href="#cb10-419" aria-hidden="true" tabindex="-1"></a><span class="in">* (Alternatively, for a Logit first stage: raw response residual)</span></span>
+<span id="cb10-420"><a href="#cb10-420" aria-hidden="true" tabindex="-1"></a><span class="in">* logit y2 z x mean_z mean_x</span></span>
+<span id="cb10-421"><a href="#cb10-421" aria-hidden="true" tabindex="-1"></a><span class="in">* predict double phat, pr</span></span>
+<span id="cb10-422"><a href="#cb10-422" aria-hidden="true" tabindex="-1"></a><span class="in">* gen double r2 = y2 - phat</span></span>
+<span id="cb10-423"><a href="#cb10-423" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-424"><a href="#cb10-424" aria-hidden="true" tabindex="-1"></a><span class="in">* 3. Step 2: Fixed-Effects Poisson Second Stage</span></span>
+<span id="cb10-425"><a href="#cb10-425" aria-hidden="true" tabindex="-1"></a><span class="in">ppmlhdfe y1 y2 r2 x, absorb(id time)</span></span>
+<span id="cb10-426"><a href="#cb10-426" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-427"><a href="#cb10-427" aria-hidden="true" tabindex="-1"></a><span class="in">* 4. Inference: Panel Cluster Bootstrap Program</span></span>
+<span id="cb10-428"><a href="#cb10-428" aria-hidden="true" tabindex="-1"></a><span class="in">capture program drop boot_poisson_cf</span></span>
+<span id="cb10-429"><a href="#cb10-429" aria-hidden="true" tabindex="-1"></a><span class="in">program define boot_poisson_cf, rclass</span></span>
+<span id="cb10-430"><a href="#cb10-430" aria-hidden="true" tabindex="-1"></a><span class="in">    * Mundlak means must be rebuilt on the RESAMPLED clusters (new_id), not</span></span>
+<span id="cb10-431"><a href="#cb10-431" aria-hidden="true" tabindex="-1"></a><span class="in">    * carried in from the original data, or every replication reuses the</span></span>
+<span id="cb10-432"><a href="#cb10-432" aria-hidden="true" tabindex="-1"></a><span class="in">    * means of the original panel and the bootstrap understates the variance.</span></span>
+<span id="cb10-433"><a href="#cb10-433" aria-hidden="true" tabindex="-1"></a><span class="in">    quietly bysort new_id: egen double mz_b = mean(z)</span></span>
+<span id="cb10-434"><a href="#cb10-434" aria-hidden="true" tabindex="-1"></a><span class="in">    quietly bysort new_id: egen double mx_b = mean(x)</span></span>
+<span id="cb10-435"><a href="#cb10-435" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-436"><a href="#cb10-436" aria-hidden="true" tabindex="-1"></a><span class="in">    * First stage</span></span>
+<span id="cb10-437"><a href="#cb10-437" aria-hidden="true" tabindex="-1"></a><span class="in">    quietly probit y2 z x mz_b mx_b</span></span>
+<span id="cb10-438"><a href="#cb10-438" aria-hidden="true" tabindex="-1"></a><span class="in">    quietly predict double eta_b, xb</span></span>
+<span id="cb10-439"><a href="#cb10-439" aria-hidden="true" tabindex="-1"></a><span class="in">    quietly gen double r2_b = cond(y2 == 1, normalden(eta_b)/normal(eta_b), -normalden(eta_b)/(1 - normal(eta_b)))</span></span>
+<span id="cb10-440"><a href="#cb10-440" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-441"><a href="#cb10-441" aria-hidden="true" tabindex="-1"></a><span class="in">    * Second stage</span></span>
+<span id="cb10-442"><a href="#cb10-442" aria-hidden="true" tabindex="-1"></a><span class="in">    quietly ppmlhdfe y1 y2 r2_b x, absorb(new_id time)</span></span>
+<span id="cb10-443"><a href="#cb10-443" aria-hidden="true" tabindex="-1"></a><span class="in">    return scalar alpha1 = _b[y2]</span></span>
+<span id="cb10-444"><a href="#cb10-444" aria-hidden="true" tabindex="-1"></a><span class="in">    return scalar rho1   = _b[r2_b]</span></span>
+<span id="cb10-445"><a href="#cb10-445" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-446"><a href="#cb10-446" aria-hidden="true" tabindex="-1"></a><span class="in">    drop eta_b r2_b mz_b mx_b</span></span>
+<span id="cb10-447"><a href="#cb10-447" aria-hidden="true" tabindex="-1"></a><span class="in">end</span></span>
+<span id="cb10-448"><a href="#cb10-448" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-449"><a href="#cb10-449" aria-hidden="true" tabindex="-1"></a><span class="in">bootstrap r(alpha1) r(rho1), reps(500) cluster(id) idcluster(new_id): boot_poisson_cf</span></span>
+<span id="cb10-450"><a href="#cb10-450" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

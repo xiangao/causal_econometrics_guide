@@ -111,3 +111,19 @@ takes the PDF with it.
 > simulation. `continuous-treatments` gains the theory behind all three of its
 > estimators. Chapter 15's prose was trimmed by 14% with every code chunk left
 > byte-identical.
+
+> **2026-08-29:** Absorbed the theory from the blog book's FE-Poisson chapter into
+> `poisson-iv.qmd`, which it had come to duplicate. Three additions. A section on
+> why FE Poisson has no incidental-parameters problem, and the software that
+> follows (`ppmlhdfe` over `xtpoisson, fe`; `ivpoisson` cannot absorb HDFE, which
+> is why the chapter uses a control function at all). Lin & Wooldridge's result
+> that the FE residual and the Mundlak residual give numerically identical
+> estimates, framed as a reparameterization — the two differ by a unit constant
+> and the second stage already carries a free unit effect — and verified
+> numerically at 3e-15. And a correction: the practical-workflow section had said
+> that an insignificant coefficient on the control function "supports" plain
+> fixed-effects Poisson, which is exactly the pretest Guggenberger (2010) shows
+> has asymptotic size one. That step now describes the test without licensing the
+> model switch, and a new subsection gives the mechanism, stated as an analogy
+> since Guggenberger's results are for linear models.
+

@@ -11,6 +11,15 @@ A Quarto book covering causal inference methods for observational data, by Xiang
 5. **Causal Discovery** — PC and GES for observed-only systems; FCI and RFCI when latent confounders are present; a survey-weighted real-data example on PISA 2022 (background-knowledge tier orientation, bootstrap edge stability)
 6. **Appendix** — R package ecosystem map
 
+## Writing style
+
+Chapters are written in a direct, conversational voice: state the question, show the
+equation or example, then say what the result means. Headings are sentence case and
+descriptive — the canned "The Problem" / "The Solution" / "Key Takeaways" template is
+not used, and an ordinary explanation is written as prose rather than a list of bold
+labels. Tightening prose must not make a claim stronger or more general than the
+algebra, code or evidence supports. The full convention is in `CLAUDE.md`.
+
 ## Build
 
 ```bash

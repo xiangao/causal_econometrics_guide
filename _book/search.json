@@ -1596,15 +1596,15 @@
     "href": "causal-discovery.html",
     "title": "\n19  Causal Discovery: Observed Variables\n",
     "section": "",
-    "text": "19.1 The Problem\nEarlier chapters assumed the graph was known, or at least that we could draw a defensible DAG from subject knowledge. Causal discovery asks what can be learned about the graph from observational data.\nGiven \\(n\\) i.i.d. observations of \\(p\\) variables \\((X_1, \\ldots, X_p)\\), we want to recover the directed acyclic graph (DAG) \\(G\\) that generated the data.\nThere is an important limit: observational data alone cannot distinguish between DAGs with the same conditional independence structure. The set of observationally equivalent DAGs is a Markov equivalence class. The data can identify this class, represented by a CPDAG, not necessarily the one true DAG.\nA CPDAG has the same skeleton (undirected edges) as all DAGs in its MEC. Some edges can be oriented (they have the same direction in every member of the MEC); others remain undirected because both directions are consistent with the CI structure.",
+    "text": "19.1 What can be recovered from the data?\nEarlier chapters assumed the graph was known, or at least that we could draw a defensible DAG from subject knowledge. Causal discovery asks what can be learned about the graph from observational data.\nSuppose we observe \\(n\\) independent and identically distributed observations of \\(p\\) variables \\((X_1,\\ldots,X_p)\\). We would like to learn the directed acyclic graph \\(G\\) that generated them.\nThere is an important limit: observational data alone cannot distinguish between DAGs with the same conditional independence structure. The set of observationally equivalent DAGs is a Markov equivalence class. The data can identify this class, represented by a CPDAG, not necessarily the one true DAG.\nA CPDAG has the same skeleton (undirected edges) as all DAGs in its MEC. Some edges can be oriented (they have the same direction in every member of the MEC); others remain undirected because both directions are consistent with the CI structure.",
     "crumbs": [
       "Causal Discovery",
       "<span class='chapter-number'>19</span>  <span class='chapter-title'>Causal Discovery: Observed Variables</span>"
     ]
   },
   {
-    "objectID": "causal-discovery.html#the-problem",
-    "href": "causal-discovery.html#the-problem",
+    "objectID": "causal-discovery.html#what-can-be-recovered-from-the-data",
+    "href": "causal-discovery.html#what-can-be-recovered-from-the-data",
     "title": "\n19  Causal Discovery: Observed Variables\n",
     "section": "",
     "text": "19.1.1 Why some edges cannot be oriented\nThree DAGs are observationally equivalent — they produce the same set of conditional independences — and therefore indistinguishable from data:\n\\[X \\to Y \\to Z \\qquad X \\leftarrow Y \\leftarrow Z \\qquad X \\leftarrow Y \\to Z \\tag{19.1}\\]\nAll three imply \\(X \\perp\\!\\!\\!\\perp Z \\mid Y\\) and no other CI. Their CPDAG shows \\(X - Y - Z\\) with no arrowheads.\nThe structure \\(X \\to Y \\leftarrow Z\\) (a collider at \\(Y\\)) is not equivalent: here \\(X \\perp\\!\\!\\!\\perp Z\\) but \\(X \\not\\perp\\!\\!\\!\\perp Z \\mid Y\\). Because it has a unique CI signature, the \\(\\to Y \\leftarrow\\) orientation is identifiable from data. Algorithms orient these colliders; non-collider edges often remain undirected.\n\n19.1.2 What a CPDAG tells you\nA directed edge \\(X \\to Y\\) in the CPDAG means: in every DAG consistent with the data, \\(X\\) causes \\(Y\\). An undirected edge \\(X - Y\\) means some consistent DAGs have \\(X \\to Y\\) and others have \\(X \\leftarrow Y\\) — data alone cannot decide.\nFor causal estimation: once you have a CPDAG, you can use background knowledge (temporal ordering, experimental context) to orient the remaining undirected edges, and then apply identification strategies from earlier chapters.",
@@ -1867,11 +1867,11 @@
     ]
   },
   {
-    "objectID": "graph-to-estimate.html#why-this-matters",
-    "href": "graph-to-estimate.html#why-this-matters",
+    "objectID": "graph-to-estimate.html#what-changes-after-identification",
+    "href": "graph-to-estimate.html#what-changes-after-identification",
     "title": "\n21  From Graph to Estimate\n",
-    "section": "\n21.5 Why this matters",
-    "text": "21.5 Why this matters\nThe graph-identification-estimation sequence matters because:\n\n\nBackdoor adjustment is not always available. Many real DAGs have hidden confounders. Front-door, nested, and general ID algorithms are the recourse, but they are too complex to derive by hand for non-trivial graphs.\n\nThe right estimator depends on the identification strategy. AIPW-for-backdoor uses a different formula than the front-door plug-in. Matching the estimator to the identification result avoids the common mistake of plugging a graph into the wrong estimator.\n\nReporting becomes more disciplined. Once the workflow forces you to specify a graph, it becomes harder to wave hands about “unconfoundedness” — you have to say exactly which variables are doing the unconfounding work.",
+    "section": "\n21.5 What changes after identification",
+    "text": "21.5 What changes after identification\nBackdoor adjustment is not always available because many realistic DAGs have hidden confounders. Front-door, nested, and general ID algorithms may still identify the effect, although their formulas quickly become difficult to derive by hand.\nThe identification result also determines the estimator. AIPW for a backdoor adjustment uses a different formula from a front-door plug-in estimator. Keeping these steps together helps us avoid applying an estimator that does not match the graph. It also forces us to state which variables support an unconfoundedness claim instead of leaving the claim implicit.",
     "crumbs": [
       "Causal Discovery",
       "<span class='chapter-number'>21</span>  <span class='chapter-title'>From Graph to Estimate</span>"

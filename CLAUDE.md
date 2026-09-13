@@ -1,5 +1,14 @@
 # Causal Econometrics Guide
 
+## Prose style
+
+- Match the author's direct, conversational style. State the question, show the equation or example, and explain what the result means.
+- Prefer "we," "I," "suppose," and "let's look" where they sound natural. Do not replace them with an impersonal textbook voice.
+- Use sentence case and descriptive headings. Avoid canned headings such as "The Problem," "The Solution," "Key Takeaways," and "Why This Matters."
+- Do not turn ordinary explanations into lists of bold labels. Use a list only when the items are genuinely parallel steps or alternatives.
+- Avoid slogan-like contrasts, rhetorical fragments, and repeated em dashes. Write the qualification directly.
+- Preserve technical qualifications. Tightening prose must not make a claim stronger or more general than the algebra, code, or evidence supports.
+
 ## Project Overview
 A Quarto book covering causal econometrics with observational data. Structure mirrors the companion Julia book `causal_econometrics_julia`. Topics: identification & potential outcomes (with DAG/ADMG workflow and applied NHEFS case study), estimation (RA, IPW, AIPW, IPWRA), nonparametric methods (IF-based, TMLE, DoubleML), difference-in-differences (including staggered/ETWFE, synthetic control, synthetic DiD), IV & RDD with the control function approach, IV in Poisson, causal mediation analysis, and causal discovery (PC/GES for observed, FCI/RFCI for latent variables).
 

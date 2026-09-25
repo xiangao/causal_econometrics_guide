@@ -1023,7 +1023,7 @@ Comparison: 1 - 0</code></pre>
 </tr>
 <tr class="odd">
 <td><strong>Entropy balancing</strong></td>
-<td>Exact mean balance; doubly robust for ATT</td>
+<td>Exact mean balance; doubly robust for the ATT under the conditions below</td>
 <td>Balances means only, not distributions</td>
 </tr>
 <tr class="even">
@@ -1033,6 +1033,7 @@ Comparison: 1 - 0</code></pre>
 </tr>
 </tbody>
 </table>
+<p>The double-robustness claim for entropy balancing is conditional, not automatic. <span class="citation" data-cites="zhao-percival-2017">Zhao and Percival (<a href="references.html#ref-zhao-percival-2017" role="doc-biblioref">2017</a>)</span> show the ATT estimator is consistent if <em>either</em> the outcome regression is linear in the balanced moment functions <em>or</em> the propensity score is loglinear in them. Exact balance on a chosen set of moments is what delivers that pair of models; it is not double robustness against arbitrary misspecification, and balancing means leaves any dependence on higher moments unconstrained.</p>
 <p>For applied work, entropy balancing is often a good default because it is simple and the balance diagnostics are easy to explain. Energy balancing is useful when matching the whole covariate distribution is important.</p>
 </section><section id="comparing-matching-to-weighting" class="level3" data-number="7.11.7"><h3 data-number="7.11.7" class="anchored" data-anchor-id="comparing-matching-to-weighting">
 <span class="header-section-number">7.11.7</span> Comparing matching to weighting</h3>
@@ -2196,215 +2197,223 @@ Zhao, Qingyuan, and Daniel Percival. 2017. <span>“Entropy Balancing Is Doubly 
 <span id="cb33-519"><a href="#cb33-519" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
 <span id="cb33-520"><a href="#cb33-520" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **IPW** (glm) <span class="pp">|</span> Familiar; well-studied <span class="pp">|</span> Sensitive to PS misspecification; extreme weights <span class="pp">|</span></span>
 <span id="cb33-521"><a href="#cb33-521" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **CBPS** <span class="pp">|</span> Balance-constrained PS; robust to model misspecification <span class="pp">|</span> Slower; can fail with many covariates <span class="pp">|</span></span>
-<span id="cb33-522"><a href="#cb33-522" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Entropy balancing** <span class="pp">|</span> Exact mean balance; doubly robust for ATT <span class="pp">|</span> Balances means only, not distributions <span class="pp">|</span></span>
+<span id="cb33-522"><a href="#cb33-522" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Entropy balancing** <span class="pp">|</span> Exact mean balance; doubly robust for the ATT under the conditions below <span class="pp">|</span> Balances means only, not distributions <span class="pp">|</span></span>
 <span id="cb33-523"><a href="#cb33-523" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Energy balancing** <span class="pp">|</span> Balances entire distribution <span class="pp">|</span> Computationally heavier; less mature theory <span class="pp">|</span></span>
 <span id="cb33-524"><a href="#cb33-524" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-525"><a href="#cb33-525" aria-hidden="true" tabindex="-1"></a>For applied work, entropy balancing is often a good default because it is</span>
-<span id="cb33-526"><a href="#cb33-526" aria-hidden="true" tabindex="-1"></a>simple and the balance diagnostics are easy to explain. Energy balancing is</span>
-<span id="cb33-527"><a href="#cb33-527" aria-hidden="true" tabindex="-1"></a>useful when matching the whole covariate distribution is important.</span>
-<span id="cb33-528"><a href="#cb33-528" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-529"><a href="#cb33-529" aria-hidden="true" tabindex="-1"></a><span class="fu">### Comparing matching to weighting</span></span>
-<span id="cb33-530"><a href="#cb33-530" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-531"><a href="#cb33-531" aria-hidden="true" tabindex="-1"></a>The matching and weighting examples here target the same ATT, so put the two</span>
-<span id="cb33-532"><a href="#cb33-532" aria-hidden="true" tabindex="-1"></a>estimates next to each other rather than reporting whichever came last:</span>
-<span id="cb33-533"><a href="#cb33-533" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-536"><a href="#cb33-536" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb33-537"><a href="#cb33-537" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: compare-methods</span></span>
-<span id="cb33-538"><a href="#cb33-538" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb33-539"><a href="#cb33-539" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-540"><a href="#cb33-540" aria-hidden="true" tabindex="-1"></a>cmp <span class="ot">&lt;-</span> <span class="fu">rbind</span>(</span>
-<span id="cb33-541"><a href="#cb33-541" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transform</span>(<span class="fu">as.data.frame</span>(</span>
-<span id="cb33-542"><a href="#cb33-542" aria-hidden="true" tabindex="-1"></a>    <span class="fu">avg_comparisons</span>(fit, <span class="at">variables =</span> <span class="st">"treat"</span>, <span class="at">vcov =</span> <span class="sc">~</span>subclass,</span>
-<span id="cb33-543"><a href="#cb33-543" aria-hidden="true" tabindex="-1"></a>                    <span class="at">newdata =</span> <span class="fu">subset</span>(m.data, treat <span class="sc">==</span> <span class="dv">1</span>))),</span>
-<span id="cb33-544"><a href="#cb33-544" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"Full matching (subclass-clustered SE)"</span>),</span>
-<span id="cb33-545"><a href="#cb33-545" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transform</span>(<span class="fu">as.data.frame</span>(</span>
-<span id="cb33-546"><a href="#cb33-546" aria-hidden="true" tabindex="-1"></a>    <span class="fu">avg_comparisons</span>(fit_ebal, <span class="at">variables =</span> <span class="st">"treat"</span>,</span>
-<span id="cb33-547"><a href="#cb33-547" aria-hidden="true" tabindex="-1"></a>                    <span class="at">newdata =</span> <span class="fu">subset</span>(lalonde, treat <span class="sc">==</span> <span class="dv">1</span>))),</span>
-<span id="cb33-548"><a href="#cb33-548" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"Entropy balancing (sandwich SE)"</span>)</span>
-<span id="cb33-549"><a href="#cb33-549" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb33-550"><a href="#cb33-550" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-551"><a href="#cb33-551" aria-hidden="true" tabindex="-1"></a>cmp[, <span class="fu">c</span>(<span class="st">"method"</span>, <span class="st">"estimate"</span>, <span class="st">"std.error"</span>, <span class="st">"conf.low"</span>, <span class="st">"conf.high"</span>, <span class="st">"p.value"</span>)] <span class="sc">|&gt;</span></span>
-<span id="cb33-552"><a href="#cb33-552" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">3</span>),</span>
-<span id="cb33-553"><a href="#cb33-553" aria-hidden="true" tabindex="-1"></a>               <span class="at">caption =</span> <span class="st">"Two routes to the same ATT on the Lalonde data"</span>)</span>
-<span id="cb33-554"><a href="#cb33-554" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb33-555"><a href="#cb33-555" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-556"><a href="#cb33-556" aria-hidden="true" tabindex="-1"></a>The gap is instructive. The two point estimates differ by roughly one standard</span>
-<span id="cb33-557"><a href="#cb33-557" aria-hidden="true" tabindex="-1"></a>error, and one interval excludes zero while the other does not --- a reader who</span>
-<span id="cb33-558"><a href="#cb33-558" aria-hidden="true" tabindex="-1"></a>sees only one of these tables would draw a different conclusion about whether</span>
-<span id="cb33-559"><a href="#cb33-559" aria-hidden="true" tabindex="-1"></a>the programme worked. Note also that the ranking on balance does not settle it:</span>
-<span id="cb33-560"><a href="#cb33-560" aria-hidden="true" tabindex="-1"></a>entropy balancing imposes *exact* mean balance (every standardized difference</span>
-<span id="cb33-561"><a href="#cb33-561" aria-hidden="true" tabindex="-1"></a>above is at most 0.023), whereas full matching leaves <span class="in">`educ`</span> at $-0.096$, yet it</span>
-<span id="cb33-562"><a href="#cb33-562" aria-hidden="true" tabindex="-1"></a>is entropy balancing that gives the smaller estimate and the wider interval.</span>
-<span id="cb33-563"><a href="#cb33-563" aria-hidden="true" tabindex="-1"></a>Better mean balance is not the same thing as a more precise or more credible</span>
-<span id="cb33-564"><a href="#cb33-564" aria-hidden="true" tabindex="-1"></a>answer.</span>
-<span id="cb33-565"><a href="#cb33-565" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-566"><a href="#cb33-566" aria-hidden="true" tabindex="-1"></a>This is model dependence, not a bug in either method. In an applied paper I would</span>
-<span id="cb33-567"><a href="#cb33-567" aria-hidden="true" tabindex="-1"></a>report balance for each method, not just the final coefficient, and I would report</span>
-<span id="cb33-568"><a href="#cb33-568" aria-hidden="true" tabindex="-1"></a>both estimates. If several reasonable methods give similar balance and similar</span>
-<span id="cb33-569"><a href="#cb33-569" aria-hidden="true" tabindex="-1"></a>estimates, the result is more credible. If they differ sharply, as here, the</span>
-<span id="cb33-570"><a href="#cb33-570" aria-hidden="true" tabindex="-1"></a>problem is usually weak overlap or model dependence, and the honest summary says</span>
-<span id="cb33-571"><a href="#cb33-571" aria-hidden="true" tabindex="-1"></a>so instead of picking the number that crosses the significance line.</span>
-<span id="cb33-572"><a href="#cb33-572" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-573"><a href="#cb33-573" aria-hidden="true" tabindex="-1"></a>For more details on <span class="in">`MatchIt`</span> and the Stata <span class="in">`teffects`</span> commands, see the</span>
-<span id="cb33-574"><a href="#cb33-574" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">matching blog chapter</span><span class="co">](https://xiangao.github.io/blog_book/matching-part1.html)</span></span>
-<span id="cb33-575"><a href="#cb33-575" aria-hidden="true" tabindex="-1"></a>and <span class="co">[</span><span class="ot">treatment-effects in Stata</span><span class="co">](https://xiangao.github.io/blog_book/treatment-matching.html)</span>.</span>
-<span id="cb33-576"><a href="#cb33-576" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-577"><a href="#cb33-577" aria-hidden="true" tabindex="-1"></a><span class="fu">## Matching, weighting, and direct estimation</span></span>
-<span id="cb33-578"><a href="#cb33-578" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-579"><a href="#cb33-579" aria-hidden="true" tabindex="-1"></a>The estimation chapter estimated a treatment effect by regression adjustment,</span>
-<span id="cb33-580"><a href="#cb33-580" aria-hidden="true" tabindex="-1"></a>IPW, AIPW and IPWRA. This chapter estimated one by matching and by four</span>
-<span id="cb33-581"><a href="#cb33-581" aria-hidden="true" tabindex="-1"></a>weighting methods. Those are not two families of estimators. They are one</span>
-<span id="cb33-582"><a href="#cb33-582" aria-hidden="true" tabindex="-1"></a>estimand and several ways of building it, and it is worth saying how they line</span>
-<span id="cb33-583"><a href="#cb33-583" aria-hidden="true" tabindex="-1"></a>up.</span>
+<span id="cb33-525"><a href="#cb33-525" aria-hidden="true" tabindex="-1"></a>The double-robustness claim for entropy balancing is conditional, not automatic.</span>
+<span id="cb33-526"><a href="#cb33-526" aria-hidden="true" tabindex="-1"></a>@zhao-percival-2017 show the ATT estimator is consistent if *either* the outcome</span>
+<span id="cb33-527"><a href="#cb33-527" aria-hidden="true" tabindex="-1"></a>regression is linear in the balanced moment functions *or* the propensity score</span>
+<span id="cb33-528"><a href="#cb33-528" aria-hidden="true" tabindex="-1"></a>is loglinear in them. Exact balance on a chosen set of moments is what delivers</span>
+<span id="cb33-529"><a href="#cb33-529" aria-hidden="true" tabindex="-1"></a>that pair of models; it is not double robustness against arbitrary</span>
+<span id="cb33-530"><a href="#cb33-530" aria-hidden="true" tabindex="-1"></a>misspecification, and balancing means leaves any dependence on higher moments</span>
+<span id="cb33-531"><a href="#cb33-531" aria-hidden="true" tabindex="-1"></a>unconstrained.</span>
+<span id="cb33-532"><a href="#cb33-532" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-533"><a href="#cb33-533" aria-hidden="true" tabindex="-1"></a>For applied work, entropy balancing is often a good default because it is</span>
+<span id="cb33-534"><a href="#cb33-534" aria-hidden="true" tabindex="-1"></a>simple and the balance diagnostics are easy to explain. Energy balancing is</span>
+<span id="cb33-535"><a href="#cb33-535" aria-hidden="true" tabindex="-1"></a>useful when matching the whole covariate distribution is important.</span>
+<span id="cb33-536"><a href="#cb33-536" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-537"><a href="#cb33-537" aria-hidden="true" tabindex="-1"></a><span class="fu">### Comparing matching to weighting</span></span>
+<span id="cb33-538"><a href="#cb33-538" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-539"><a href="#cb33-539" aria-hidden="true" tabindex="-1"></a>The matching and weighting examples here target the same ATT, so put the two</span>
+<span id="cb33-540"><a href="#cb33-540" aria-hidden="true" tabindex="-1"></a>estimates next to each other rather than reporting whichever came last:</span>
+<span id="cb33-541"><a href="#cb33-541" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-544"><a href="#cb33-544" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb33-545"><a href="#cb33-545" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: compare-methods</span></span>
+<span id="cb33-546"><a href="#cb33-546" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb33-547"><a href="#cb33-547" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-548"><a href="#cb33-548" aria-hidden="true" tabindex="-1"></a>cmp <span class="ot">&lt;-</span> <span class="fu">rbind</span>(</span>
+<span id="cb33-549"><a href="#cb33-549" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transform</span>(<span class="fu">as.data.frame</span>(</span>
+<span id="cb33-550"><a href="#cb33-550" aria-hidden="true" tabindex="-1"></a>    <span class="fu">avg_comparisons</span>(fit, <span class="at">variables =</span> <span class="st">"treat"</span>, <span class="at">vcov =</span> <span class="sc">~</span>subclass,</span>
+<span id="cb33-551"><a href="#cb33-551" aria-hidden="true" tabindex="-1"></a>                    <span class="at">newdata =</span> <span class="fu">subset</span>(m.data, treat <span class="sc">==</span> <span class="dv">1</span>))),</span>
+<span id="cb33-552"><a href="#cb33-552" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"Full matching (subclass-clustered SE)"</span>),</span>
+<span id="cb33-553"><a href="#cb33-553" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transform</span>(<span class="fu">as.data.frame</span>(</span>
+<span id="cb33-554"><a href="#cb33-554" aria-hidden="true" tabindex="-1"></a>    <span class="fu">avg_comparisons</span>(fit_ebal, <span class="at">variables =</span> <span class="st">"treat"</span>,</span>
+<span id="cb33-555"><a href="#cb33-555" aria-hidden="true" tabindex="-1"></a>                    <span class="at">newdata =</span> <span class="fu">subset</span>(lalonde, treat <span class="sc">==</span> <span class="dv">1</span>))),</span>
+<span id="cb33-556"><a href="#cb33-556" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"Entropy balancing (sandwich SE)"</span>)</span>
+<span id="cb33-557"><a href="#cb33-557" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb33-558"><a href="#cb33-558" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-559"><a href="#cb33-559" aria-hidden="true" tabindex="-1"></a>cmp[, <span class="fu">c</span>(<span class="st">"method"</span>, <span class="st">"estimate"</span>, <span class="st">"std.error"</span>, <span class="st">"conf.low"</span>, <span class="st">"conf.high"</span>, <span class="st">"p.value"</span>)] <span class="sc">|&gt;</span></span>
+<span id="cb33-560"><a href="#cb33-560" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">3</span>),</span>
+<span id="cb33-561"><a href="#cb33-561" aria-hidden="true" tabindex="-1"></a>               <span class="at">caption =</span> <span class="st">"Two routes to the same ATT on the Lalonde data"</span>)</span>
+<span id="cb33-562"><a href="#cb33-562" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb33-563"><a href="#cb33-563" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-564"><a href="#cb33-564" aria-hidden="true" tabindex="-1"></a>The gap is instructive. The two point estimates differ by roughly one standard</span>
+<span id="cb33-565"><a href="#cb33-565" aria-hidden="true" tabindex="-1"></a>error, and one interval excludes zero while the other does not --- a reader who</span>
+<span id="cb33-566"><a href="#cb33-566" aria-hidden="true" tabindex="-1"></a>sees only one of these tables would draw a different conclusion about whether</span>
+<span id="cb33-567"><a href="#cb33-567" aria-hidden="true" tabindex="-1"></a>the programme worked. Note also that the ranking on balance does not settle it:</span>
+<span id="cb33-568"><a href="#cb33-568" aria-hidden="true" tabindex="-1"></a>entropy balancing imposes *exact* mean balance (every standardized difference</span>
+<span id="cb33-569"><a href="#cb33-569" aria-hidden="true" tabindex="-1"></a>above is at most 0.023), whereas full matching leaves <span class="in">`educ`</span> at $-0.096$, yet it</span>
+<span id="cb33-570"><a href="#cb33-570" aria-hidden="true" tabindex="-1"></a>is entropy balancing that gives the smaller estimate and the wider interval.</span>
+<span id="cb33-571"><a href="#cb33-571" aria-hidden="true" tabindex="-1"></a>Better mean balance is not the same thing as a more precise or more credible</span>
+<span id="cb33-572"><a href="#cb33-572" aria-hidden="true" tabindex="-1"></a>answer.</span>
+<span id="cb33-573"><a href="#cb33-573" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-574"><a href="#cb33-574" aria-hidden="true" tabindex="-1"></a>This is model dependence, not a bug in either method. In an applied paper I would</span>
+<span id="cb33-575"><a href="#cb33-575" aria-hidden="true" tabindex="-1"></a>report balance for each method, not just the final coefficient, and I would report</span>
+<span id="cb33-576"><a href="#cb33-576" aria-hidden="true" tabindex="-1"></a>both estimates. If several reasonable methods give similar balance and similar</span>
+<span id="cb33-577"><a href="#cb33-577" aria-hidden="true" tabindex="-1"></a>estimates, the result is more credible. If they differ sharply, as here, the</span>
+<span id="cb33-578"><a href="#cb33-578" aria-hidden="true" tabindex="-1"></a>problem is usually weak overlap or model dependence, and the honest summary says</span>
+<span id="cb33-579"><a href="#cb33-579" aria-hidden="true" tabindex="-1"></a>so instead of picking the number that crosses the significance line.</span>
+<span id="cb33-580"><a href="#cb33-580" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-581"><a href="#cb33-581" aria-hidden="true" tabindex="-1"></a>For more details on <span class="in">`MatchIt`</span> and the Stata <span class="in">`teffects`</span> commands, see the</span>
+<span id="cb33-582"><a href="#cb33-582" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">matching blog chapter</span><span class="co">](https://xiangao.github.io/blog_book/matching-part1.html)</span></span>
+<span id="cb33-583"><a href="#cb33-583" aria-hidden="true" tabindex="-1"></a>and <span class="co">[</span><span class="ot">treatment-effects in Stata</span><span class="co">](https://xiangao.github.io/blog_book/treatment-matching.html)</span>.</span>
 <span id="cb33-584"><a href="#cb33-584" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-585"><a href="#cb33-585" aria-hidden="true" tabindex="-1"></a>The ATT is</span>
+<span id="cb33-585"><a href="#cb33-585" aria-hidden="true" tabindex="-1"></a><span class="fu">## Matching, weighting, and direct estimation</span></span>
 <span id="cb33-586"><a href="#cb33-586" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-587"><a href="#cb33-587" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb33-588"><a href="#cb33-588" aria-hidden="true" tabindex="-1"></a>\tau_{ATT} = E<span class="co">[</span><span class="ot">Y \mid W = 1</span><span class="co">]</span> - E_{X \mid W = 1}\bigl<span class="co">[</span><span class="ot">\, E[Y \mid W = 0, X] \,\bigr</span><span class="co">]</span>.</span>
-<span id="cb33-589"><a href="#cb33-589" aria-hidden="true" tabindex="-1"></a>$$ {#eq-matching-att-routes}</span>
-<span id="cb33-590"><a href="#cb33-590" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-591"><a href="#cb33-591" aria-hidden="true" tabindex="-1"></a>The first term is observed. It is the mean outcome among the treated. The</span>
-<span id="cb33-592"><a href="#cb33-592" aria-hidden="true" tabindex="-1"></a>second term is not observed. It is the mean outcome the treated would have had</span>
-<span id="cb33-593"><a href="#cb33-593" aria-hidden="true" tabindex="-1"></a>untreated, averaged over the covariate distribution of the treated. Every</span>
-<span id="cb33-594"><a href="#cb33-594" aria-hidden="true" tabindex="-1"></a>method in both chapters is a way of forming that second term, and every one of</span>
-<span id="cb33-595"><a href="#cb33-595" aria-hidden="true" tabindex="-1"></a>them ends up as a weighted average of control outcomes,</span>
-<span id="cb33-596"><a href="#cb33-596" aria-hidden="true" tabindex="-1"></a>$\sum_{i: W_i = 0} w_i Y_i$. What differs is where the weights come from.</span>
-<span id="cb33-597"><a href="#cb33-597" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-598"><a href="#cb33-598" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Route <span class="pp">|</span> What is modelled <span class="pp">|</span> Weight on control $i$ <span class="pp">|</span></span>
-<span id="cb33-599"><a href="#cb33-599" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
-<span id="cb33-600"><a href="#cb33-600" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Regression adjustment <span class="pp">|</span> the outcome, $\mu_0(x) = E<span class="co">[</span><span class="ot">Y \mid W=0, X=x</span><span class="co">]</span>$ <span class="pp">|</span> implicit in the fitted values used to predict at treated $x$ <span class="pp">|</span></span>
-<span id="cb33-601"><a href="#cb33-601" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> IPW <span class="pp">|</span> the propensity score $\pi(x)$ <span class="pp">|</span> the odds $\pi(x_i)/(1-\pi(x_i))$ <span class="pp">|</span></span>
-<span id="cb33-602"><a href="#cb33-602" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Matching <span class="pp">|</span> neither; a distance rule <span class="pp">|</span> 0 if unmatched, else 1, the number of times reused, or the subclass ratio <span class="pp">|</span></span>
-<span id="cb33-603"><a href="#cb33-603" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Entropy, CBPS, energy balancing <span class="pp">|</span> the weights themselves <span class="pp">|</span> whatever satisfies the balance constraints <span class="pp">|</span></span>
-<span id="cb33-604"><a href="#cb33-604" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> AIPW <span class="pp">|</span> both <span class="pp">|</span> the odds, applied to the residual $Y - \hat\mu_0(X)$ <span class="pp">|</span></span>
+<span id="cb33-587"><a href="#cb33-587" aria-hidden="true" tabindex="-1"></a>The estimation chapter estimated a treatment effect by regression adjustment,</span>
+<span id="cb33-588"><a href="#cb33-588" aria-hidden="true" tabindex="-1"></a>IPW, AIPW and IPWRA. This chapter estimated one by matching and by four</span>
+<span id="cb33-589"><a href="#cb33-589" aria-hidden="true" tabindex="-1"></a>weighting methods. Those are not two families of estimators. They are one</span>
+<span id="cb33-590"><a href="#cb33-590" aria-hidden="true" tabindex="-1"></a>estimand and several ways of building it, and it is worth saying how they line</span>
+<span id="cb33-591"><a href="#cb33-591" aria-hidden="true" tabindex="-1"></a>up.</span>
+<span id="cb33-592"><a href="#cb33-592" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-593"><a href="#cb33-593" aria-hidden="true" tabindex="-1"></a>The ATT is</span>
+<span id="cb33-594"><a href="#cb33-594" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-595"><a href="#cb33-595" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb33-596"><a href="#cb33-596" aria-hidden="true" tabindex="-1"></a>\tau_{ATT} = E<span class="co">[</span><span class="ot">Y \mid W = 1</span><span class="co">]</span> - E_{X \mid W = 1}\bigl<span class="co">[</span><span class="ot">\, E[Y \mid W = 0, X] \,\bigr</span><span class="co">]</span>.</span>
+<span id="cb33-597"><a href="#cb33-597" aria-hidden="true" tabindex="-1"></a>$$ {#eq-matching-att-routes}</span>
+<span id="cb33-598"><a href="#cb33-598" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-599"><a href="#cb33-599" aria-hidden="true" tabindex="-1"></a>The first term is observed. It is the mean outcome among the treated. The</span>
+<span id="cb33-600"><a href="#cb33-600" aria-hidden="true" tabindex="-1"></a>second term is not observed. It is the mean outcome the treated would have had</span>
+<span id="cb33-601"><a href="#cb33-601" aria-hidden="true" tabindex="-1"></a>untreated, averaged over the covariate distribution of the treated. Every</span>
+<span id="cb33-602"><a href="#cb33-602" aria-hidden="true" tabindex="-1"></a>method in both chapters is a way of forming that second term, and every one of</span>
+<span id="cb33-603"><a href="#cb33-603" aria-hidden="true" tabindex="-1"></a>them ends up as a weighted average of control outcomes,</span>
+<span id="cb33-604"><a href="#cb33-604" aria-hidden="true" tabindex="-1"></a>$\sum_{i: W_i = 0} w_i Y_i$. What differs is where the weights come from.</span>
 <span id="cb33-605"><a href="#cb33-605" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-606"><a href="#cb33-606" aria-hidden="true" tabindex="-1"></a>Weighting is IPW. That is the second row, and <span class="in">`weightit`</span> with</span>
-<span id="cb33-607"><a href="#cb33-607" aria-hidden="true" tabindex="-1"></a><span class="in">`estimand = "ATT"`</span> and <span class="in">`method = "glm"`</span> returns exactly those odds. CBPS,</span>
-<span id="cb33-608"><a href="#cb33-608" aria-hidden="true" tabindex="-1"></a>entropy balancing and energy balancing do not change the estimator. They</span>
-<span id="cb33-609"><a href="#cb33-609" aria-hidden="true" tabindex="-1"></a>change how the weights are found. IPW fits $\pi$ by maximum likelihood and</span>
-<span id="cb33-610"><a href="#cb33-610" aria-hidden="true" tabindex="-1"></a>then transforms it into weights; the balancing methods skip the likelihood and</span>
-<span id="cb33-611"><a href="#cb33-611" aria-hidden="true" tabindex="-1"></a>solve for the weights directly. For entropy balancing the link is exact rather</span>
-<span id="cb33-612"><a href="#cb33-612" aria-hidden="true" tabindex="-1"></a>than an analogy: the control weights are proportional to $\exp(x'\lambda)$, as</span>
-<span id="cb33-613"><a href="#cb33-613" aria-hidden="true" tabindex="-1"></a>the CBPS comparison above showed, and that is the odds of a logistic</span>
-<span id="cb33-614"><a href="#cb33-614" aria-hidden="true" tabindex="-1"></a>propensity score. Entropy balancing is IPW for a logit model whose</span>
-<span id="cb33-615"><a href="#cb33-615" aria-hidden="true" tabindex="-1"></a>coefficients are set by exact mean balance instead of by likelihood.</span>
-<span id="cb33-616"><a href="#cb33-616" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-617"><a href="#cb33-617" aria-hidden="true" tabindex="-1"></a>Matching is weighting too, with the weights restricted to zero and small</span>
-<span id="cb33-618"><a href="#cb33-618" aria-hidden="true" tabindex="-1"></a>integers and chosen by a distance rule rather than by a model. That is what</span>
-<span id="cb33-619"><a href="#cb33-619" aria-hidden="true" tabindex="-1"></a>lets <span class="in">`match_data`</span> hand a weights column to <span class="in">`lm`</span>. The restriction is where the</span>
-<span id="cb33-620"><a href="#cb33-620" aria-hidden="true" tabindex="-1"></a>trade-off lives. Matching sets some weights to zero, so it discards</span>
-<span id="cb33-621"><a href="#cb33-621" aria-hidden="true" tabindex="-1"></a>observations, and when it discards treated units --- as CEM did above, keeping</span>
-<span id="cb33-622"><a href="#cb33-622" aria-hidden="true" tabindex="-1"></a>65 of 185 --- the estimand becomes the ATT among the matched treated. Weighting</span>
-<span id="cb33-623"><a href="#cb33-623" aria-hidden="true" tabindex="-1"></a>keeps everyone, so the estimand survives, and pays for it with extreme weights</span>
-<span id="cb33-624"><a href="#cb33-624" aria-hidden="true" tabindex="-1"></a>when overlap is poor, which is what the effective sample sizes in this chapter</span>
-<span id="cb33-625"><a href="#cb33-625" aria-hidden="true" tabindex="-1"></a>have been reporting. Matching buys stability with the estimand. Weighting buys</span>
-<span id="cb33-626"><a href="#cb33-626" aria-hidden="true" tabindex="-1"></a>the estimand with variance.</span>
-<span id="cb33-627"><a href="#cb33-627" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-628"><a href="#cb33-628" aria-hidden="true" tabindex="-1"></a>AIPW uses both columns. Start from regression adjustment, then add the</span>
-<span id="cb33-629"><a href="#cb33-629" aria-hidden="true" tabindex="-1"></a>odds-weighted average of the control residuals $Y - \hat\mu_0(X)$. It is</span>
-<span id="cb33-630"><a href="#cb33-630" aria-hidden="true" tabindex="-1"></a>consistent if either model is right. The section on estimation after matching</span>
-<span id="cb33-631"><a href="#cb33-631" aria-hidden="true" tabindex="-1"></a>did an informal version of the same thing: match first, then run a regression</span>
-<span id="cb33-632"><a href="#cb33-632" aria-hidden="true" tabindex="-1"></a>with treatment-covariate interactions on the matched sample. That is regression adjustment after</span>
-<span id="cb33-633"><a href="#cb33-633" aria-hidden="true" tabindex="-1"></a>matching, and the regression plays the part of the augmentation term. It is a</span>
-<span id="cb33-634"><a href="#cb33-634" aria-hidden="true" tabindex="-1"></a>relative of @abadie-imbens-2011 bias-corrected matching rather than the same</span>
-<span id="cb33-635"><a href="#cb33-635" aria-hidden="true" tabindex="-1"></a>estimator: their correction is applied unit by unit to matched outcomes and comes</span>
-<span id="cb33-636"><a href="#cb33-636" aria-hidden="true" tabindex="-1"></a>with its own variance theory, neither of which a post-matching interacted</span>
-<span id="cb33-637"><a href="#cb33-637" aria-hidden="true" tabindex="-1"></a>regression reproduces.</span>
-<span id="cb33-638"><a href="#cb33-638" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-639"><a href="#cb33-639" aria-hidden="true" tabindex="-1"></a>Five routes, one data set. Each row below is built by hand from the weight</span>
-<span id="cb33-640"><a href="#cb33-640" aria-hidden="true" tabindex="-1"></a>representation so the arithmetic is visible.</span>
-<span id="cb33-641"><a href="#cb33-641" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-644"><a href="#cb33-644" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb33-645"><a href="#cb33-645" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: compare-routes</span></span>
-<span id="cb33-646"><a href="#cb33-646" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb33-647"><a href="#cb33-647" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-648"><a href="#cb33-648" aria-hidden="true" tabindex="-1"></a>covs <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"age"</span>, <span class="st">"educ"</span>, <span class="st">"race"</span>, <span class="st">"married"</span>, <span class="st">"nodegree"</span>, <span class="st">"re74"</span>, <span class="st">"re75"</span>)</span>
-<span id="cb33-649"><a href="#cb33-649" aria-hidden="true" tabindex="-1"></a>trt  <span class="ot">&lt;-</span> lalonde<span class="sc">$</span>treat <span class="sc">==</span> <span class="dv">1</span></span>
-<span id="cb33-650"><a href="#cb33-650" aria-hidden="true" tabindex="-1"></a>y    <span class="ot">&lt;-</span> lalonde<span class="sc">$</span>re78</span>
-<span id="cb33-651"><a href="#cb33-651" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-652"><a href="#cb33-652" aria-hidden="true" tabindex="-1"></a><span class="co"># Outcome model, fitted on controls only, then predicted everywhere</span></span>
-<span id="cb33-653"><a href="#cb33-653" aria-hidden="true" tabindex="-1"></a>mu0_fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="fu">reformulate</span>(covs, <span class="at">response =</span> <span class="st">"re78"</span>),</span>
-<span id="cb33-654"><a href="#cb33-654" aria-hidden="true" tabindex="-1"></a>              <span class="at">data =</span> <span class="fu">subset</span>(lalonde, treat <span class="sc">==</span> <span class="dv">0</span>))</span>
-<span id="cb33-655"><a href="#cb33-655" aria-hidden="true" tabindex="-1"></a>mu0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu0_fit, <span class="at">newdata =</span> lalonde)</span>
-<span id="cb33-656"><a href="#cb33-656" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-657"><a href="#cb33-657" aria-hidden="true" tabindex="-1"></a><span class="co"># Odds weights from a logistic propensity score</span></span>
-<span id="cb33-658"><a href="#cb33-658" aria-hidden="true" tabindex="-1"></a>ps     <span class="ot">&lt;-</span> <span class="fu">predict</span>(<span class="fu">glm</span>(<span class="fu">reformulate</span>(covs, <span class="at">response =</span> <span class="st">"treat"</span>),</span>
-<span id="cb33-659"><a href="#cb33-659" aria-hidden="true" tabindex="-1"></a>                      <span class="at">data =</span> lalonde, <span class="at">family =</span> binomial), <span class="at">type =</span> <span class="st">"response"</span>)</span>
-<span id="cb33-660"><a href="#cb33-660" aria-hidden="true" tabindex="-1"></a>odds   <span class="ot">&lt;-</span> ps <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">-</span> ps)</span>
-<span id="cb33-661"><a href="#cb33-661" aria-hidden="true" tabindex="-1"></a>wt_ipw <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(trt, <span class="dv">1</span>, odds)</span>
-<span id="cb33-662"><a href="#cb33-662" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-663"><a href="#cb33-663" aria-hidden="true" tabindex="-1"></a><span class="co"># Weighted difference in means: the common shape of rows 2 to 4</span></span>
-<span id="cb33-664"><a href="#cb33-664" aria-hidden="true" tabindex="-1"></a>hajek <span class="ot">&lt;-</span> <span class="cf">function</span>(w) {</span>
-<span id="cb33-665"><a href="#cb33-665" aria-hidden="true" tabindex="-1"></a>  <span class="fu">weighted.mean</span>(y[trt], w[trt]) <span class="sc">-</span> <span class="fu">weighted.mean</span>(y[<span class="sc">!</span>trt], w[<span class="sc">!</span>trt])</span>
-<span id="cb33-666"><a href="#cb33-666" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb33-667"><a href="#cb33-667" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-668"><a href="#cb33-668" aria-hidden="true" tabindex="-1"></a>att_ra   <span class="ot">&lt;-</span> <span class="fu">mean</span>(y[trt] <span class="sc">-</span> mu0[trt])</span>
-<span id="cb33-669"><a href="#cb33-669" aria-hidden="true" tabindex="-1"></a>att_ipw  <span class="ot">&lt;-</span> <span class="fu">hajek</span>(wt_ipw)</span>
-<span id="cb33-670"><a href="#cb33-670" aria-hidden="true" tabindex="-1"></a>att_eb   <span class="ot">&lt;-</span> <span class="fu">hajek</span>(w_ebal<span class="sc">$</span>weights)</span>
-<span id="cb33-671"><a href="#cb33-671" aria-hidden="true" tabindex="-1"></a>att_fm   <span class="ot">&lt;-</span> <span class="fu">hajek</span>(m.full<span class="sc">$</span>weights)</span>
-<span id="cb33-672"><a href="#cb33-672" aria-hidden="true" tabindex="-1"></a>att_aipw <span class="ot">&lt;-</span> att_ra <span class="sc">-</span> <span class="fu">weighted.mean</span>(y[<span class="sc">!</span>trt] <span class="sc">-</span> mu0[<span class="sc">!</span>trt], odds[<span class="sc">!</span>trt])</span>
-<span id="cb33-673"><a href="#cb33-673" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-674"><a href="#cb33-674" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
-<span id="cb33-675"><a href="#cb33-675" aria-hidden="true" tabindex="-1"></a>  <span class="at">route =</span> <span class="fu">c</span>(<span class="st">"Regression adjustment (outcome model)"</span>,</span>
-<span id="cb33-676"><a href="#cb33-676" aria-hidden="true" tabindex="-1"></a>            <span class="st">"IPW (propensity model)"</span>,</span>
-<span id="cb33-677"><a href="#cb33-677" aria-hidden="true" tabindex="-1"></a>            <span class="st">"Entropy balancing (balance constraints)"</span>,</span>
-<span id="cb33-678"><a href="#cb33-678" aria-hidden="true" tabindex="-1"></a>            <span class="st">"Full matching (distance rule)"</span>,</span>
-<span id="cb33-679"><a href="#cb33-679" aria-hidden="true" tabindex="-1"></a>            <span class="st">"AIPW (both models)"</span>),</span>
-<span id="cb33-680"><a href="#cb33-680" aria-hidden="true" tabindex="-1"></a>  <span class="at">att =</span> <span class="fu">c</span>(att_ra, att_ipw, att_eb, att_fm, att_aipw)</span>
-<span id="cb33-681"><a href="#cb33-681" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
-<span id="cb33-682"><a href="#cb33-682" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">0</span>, <span class="at">col.names =</span> <span class="fu">c</span>(<span class="st">"Route"</span>, <span class="st">"ATT"</span>),</span>
-<span id="cb33-683"><a href="#cb33-683" aria-hidden="true" tabindex="-1"></a>               <span class="at">caption =</span> <span class="st">"Five routes to the same ATT on the Lalonde data."</span>)</span>
-<span id="cb33-684"><a href="#cb33-684" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb33-685"><a href="#cb33-685" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-686"><a href="#cb33-686" aria-hidden="true" tabindex="-1"></a>Two of these numbers confirm the algebra directly. The hand-built odds weights</span>
-<span id="cb33-687"><a href="#cb33-687" aria-hidden="true" tabindex="-1"></a>agree with the <span class="in">`weightit`</span> propensity-score weights from the IPW section above to</span>
-<span id="cb33-688"><a href="#cb33-688" aria-hidden="true" tabindex="-1"></a>machine precision, so the claim that weighting is IPW is an identity here and not</span>
-<span id="cb33-689"><a href="#cb33-689" aria-hidden="true" tabindex="-1"></a>a resemblance. And entropy balancing gives \$1,273 --- the same figure that</span>
-<span id="cb33-690"><a href="#cb33-690" aria-hidden="true" tabindex="-1"></a><span class="in">`lm_weightit`</span> produced earlier with the full set of treatment-covariate</span>
-<span id="cb33-691"><a href="#cb33-691" aria-hidden="true" tabindex="-1"></a>interactions, agreeing to nine decimal places. Exact mean balance leaves nothing for a linear</span>
-<span id="cb33-692"><a href="#cb33-692" aria-hidden="true" tabindex="-1"></a>outcome model to correct, so adding one changes the estimate not at all. That is</span>
-<span id="cb33-693"><a href="#cb33-693" aria-hidden="true" tabindex="-1"></a>the double robustness of entropy balancing <span class="co">[</span><span class="ot">@zhao-percival-2017</span><span class="co">]</span> appearing as</span>
-<span id="cb33-694"><a href="#cb33-694" aria-hidden="true" tabindex="-1"></a>arithmetic: the same weights deliver the IPW estimator for a logit propensity</span>
-<span id="cb33-695"><a href="#cb33-695" aria-hidden="true" tabindex="-1"></a>model and the regression-adjustment estimator for a linear outcome model.</span>
-<span id="cb33-696"><a href="#cb33-696" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-697"><a href="#cb33-697" aria-hidden="true" tabindex="-1"></a>The spread across routes is the part to read carefully. Regression adjustment</span>
-<span id="cb33-698"><a href="#cb33-698" aria-hidden="true" tabindex="-1"></a>gives \$1,648 and IPW gives \$1,214. AIPW starts from the regression-adjustment</span>
-<span id="cb33-699"><a href="#cb33-699" aria-hidden="true" tabindex="-1"></a>figure and the augmentation term subtracts \$417, landing at \$1,231 --- next to</span>
-<span id="cb33-700"><a href="#cb33-700" aria-hidden="true" tabindex="-1"></a>IPW, not next to regression adjustment. The propensity side is doing the work</span>
-<span id="cb33-701"><a href="#cb33-701" aria-hidden="true" tabindex="-1"></a>here, which is what we should expect when the treated and control covariate</span>
-<span id="cb33-702"><a href="#cb33-702" aria-hidden="true" tabindex="-1"></a>distributions are as far apart as the balance tables in this chapter have shown.</span>
-<span id="cb33-703"><a href="#cb33-703" aria-hidden="true" tabindex="-1"></a>Full matching sits highest at \$1,855. It fits a propensity score too --- a</span>
-<span id="cb33-704"><a href="#cb33-704" aria-hidden="true" tabindex="-1"></a>probit, used as the distance for forming subclasses --- so the gap between it and</span>
-<span id="cb33-705"><a href="#cb33-705" aria-hidden="true" tabindex="-1"></a>IPW's \$1,214 is not about whether a propensity model was estimated. It is about</span>
-<span id="cb33-706"><a href="#cb33-706" aria-hidden="true" tabindex="-1"></a>how the score is turned into weights: coarse subclass weights that throw away the</span>
-<span id="cb33-707"><a href="#cb33-707" aria-hidden="true" tabindex="-1"></a>score's fine gradations, against the odds transformation that keeps them.</span>
-<span id="cb33-708"><a href="#cb33-708" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-709"><a href="#cb33-709" aria-hidden="true" tabindex="-1"></a>These are point estimates. Standard errors are not comparable across the rows</span>
-<span id="cb33-710"><a href="#cb33-710" aria-hidden="true" tabindex="-1"></a>and are deliberately left out: matching is not a smooth functional of the data,</span>
-<span id="cb33-711"><a href="#cb33-711" aria-hidden="true" tabindex="-1"></a>so the bootstrap is invalid for it <span class="co">[</span><span class="ot">@abadie-imbens-2008</span><span class="co">]</span> and the subclass</span>
-<span id="cb33-712"><a href="#cb33-712" aria-hidden="true" tabindex="-1"></a>clustering used earlier is needed, while IPW and AIPW have influence-function</span>
-<span id="cb33-713"><a href="#cb33-713" aria-hidden="true" tabindex="-1"></a>variances and AIPW attains the semiparametric efficiency bound that fixed-$M$</span>
-<span id="cb33-714"><a href="#cb33-714" aria-hidden="true" tabindex="-1"></a>matching does not --- given positivity, enough regularity, nuisance estimators</span>
-<span id="cb33-715"><a href="#cb33-715" aria-hidden="true" tabindex="-1"></a>converging fast enough (with cross-fitting when they are flexible), and both</span>
-<span id="cb33-716"><a href="#cb33-716" aria-hidden="true" tabindex="-1"></a>nuisance limits at the truth. The bound is a property of the estimator plus those</span>
-<span id="cb33-717"><a href="#cb33-717" aria-hidden="true" tabindex="-1"></a>conditions, not of the name. The lesson from the column of estimates is the same one the</span>
-<span id="cb33-718"><a href="#cb33-718" aria-hidden="true" tabindex="-1"></a>matching-versus-weighting comparison gave: with overlap this weak, the choice</span>
-<span id="cb33-719"><a href="#cb33-719" aria-hidden="true" tabindex="-1"></a>of route moves the answer by more than one standard error, so report several</span>
-<span id="cb33-720"><a href="#cb33-720" aria-hidden="true" tabindex="-1"></a>routes rather than the one that reads best.</span>
-<span id="cb33-721"><a href="#cb33-721" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-722"><a href="#cb33-722" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
-<span id="cb33-723"><a href="#cb33-723" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-724"><a href="#cb33-724" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Matching is for selection on observables. It does not fix unobserved</span>
-<span id="cb33-725"><a href="#cb33-725" aria-hidden="true" tabindex="-1"></a>  confounding.</span>
-<span id="cb33-726"><a href="#cb33-726" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The main diagnostic is covariate balance, not the treatment-effect</span>
-<span id="cb33-727"><a href="#cb33-727" aria-hidden="true" tabindex="-1"></a>  coefficient.</span>
-<span id="cb33-728"><a href="#cb33-728" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Propensity-score matching is simple, but full matching or weighting often</span>
-<span id="cb33-729"><a href="#cb33-729" aria-hidden="true" tabindex="-1"></a>  balances better.</span>
-<span id="cb33-730"><a href="#cb33-730" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>If there is no overlap, change the estimand or restrict the sample. Do not</span>
-<span id="cb33-731"><a href="#cb33-731" aria-hidden="true" tabindex="-1"></a>  hide the support problem.</span>
-<span id="cb33-732"><a href="#cb33-732" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Matching, weighting, and the direct estimators of the previous chapter are</span>
-<span id="cb33-733"><a href="#cb33-733" aria-hidden="true" tabindex="-1"></a>  one estimand built several ways. Weighting with <span class="in">`method = "glm"`</span> is IPW, and</span>
-<span id="cb33-734"><a href="#cb33-734" aria-hidden="true" tabindex="-1"></a>  matching is weighting with the weights restricted to zero and small integers.</span>
+<span id="cb33-606"><a href="#cb33-606" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Route <span class="pp">|</span> What is modelled <span class="pp">|</span> Weight on control $i$ <span class="pp">|</span></span>
+<span id="cb33-607"><a href="#cb33-607" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
+<span id="cb33-608"><a href="#cb33-608" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Regression adjustment <span class="pp">|</span> the outcome, $\mu_0(x) = E<span class="co">[</span><span class="ot">Y \mid W=0, X=x</span><span class="co">]</span>$ <span class="pp">|</span> implicit in the fitted values used to predict at treated $x$ <span class="pp">|</span></span>
+<span id="cb33-609"><a href="#cb33-609" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> IPW <span class="pp">|</span> the propensity score $\pi(x)$ <span class="pp">|</span> the odds $\pi(x_i)/(1-\pi(x_i))$ <span class="pp">|</span></span>
+<span id="cb33-610"><a href="#cb33-610" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Matching <span class="pp">|</span> neither; a distance rule <span class="pp">|</span> 0 if unmatched, else 1, the number of times reused, or the subclass ratio <span class="pp">|</span></span>
+<span id="cb33-611"><a href="#cb33-611" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Entropy, CBPS, energy balancing <span class="pp">|</span> the weights themselves <span class="pp">|</span> whatever satisfies the balance constraints <span class="pp">|</span></span>
+<span id="cb33-612"><a href="#cb33-612" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> AIPW <span class="pp">|</span> both <span class="pp">|</span> the odds, applied to the residual $Y - \hat\mu_0(X)$ <span class="pp">|</span></span>
+<span id="cb33-613"><a href="#cb33-613" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-614"><a href="#cb33-614" aria-hidden="true" tabindex="-1"></a>Weighting is IPW. That is the second row, and <span class="in">`weightit`</span> with</span>
+<span id="cb33-615"><a href="#cb33-615" aria-hidden="true" tabindex="-1"></a><span class="in">`estimand = "ATT"`</span> and <span class="in">`method = "glm"`</span> returns exactly those odds. CBPS,</span>
+<span id="cb33-616"><a href="#cb33-616" aria-hidden="true" tabindex="-1"></a>entropy balancing and energy balancing do not change the estimator. They</span>
+<span id="cb33-617"><a href="#cb33-617" aria-hidden="true" tabindex="-1"></a>change how the weights are found. IPW fits $\pi$ by maximum likelihood and</span>
+<span id="cb33-618"><a href="#cb33-618" aria-hidden="true" tabindex="-1"></a>then transforms it into weights; the balancing methods skip the likelihood and</span>
+<span id="cb33-619"><a href="#cb33-619" aria-hidden="true" tabindex="-1"></a>solve for the weights directly. For entropy balancing the link is exact rather</span>
+<span id="cb33-620"><a href="#cb33-620" aria-hidden="true" tabindex="-1"></a>than an analogy: the control weights are proportional to $\exp(x'\lambda)$, as</span>
+<span id="cb33-621"><a href="#cb33-621" aria-hidden="true" tabindex="-1"></a>the CBPS comparison above showed, and that is the odds of a logistic</span>
+<span id="cb33-622"><a href="#cb33-622" aria-hidden="true" tabindex="-1"></a>propensity score. Entropy balancing is IPW for a logit model whose</span>
+<span id="cb33-623"><a href="#cb33-623" aria-hidden="true" tabindex="-1"></a>coefficients are set by exact mean balance instead of by likelihood.</span>
+<span id="cb33-624"><a href="#cb33-624" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-625"><a href="#cb33-625" aria-hidden="true" tabindex="-1"></a>Matching is weighting too, with the weights restricted to zero and small</span>
+<span id="cb33-626"><a href="#cb33-626" aria-hidden="true" tabindex="-1"></a>integers and chosen by a distance rule rather than by a model. That is what</span>
+<span id="cb33-627"><a href="#cb33-627" aria-hidden="true" tabindex="-1"></a>lets <span class="in">`match_data`</span> hand a weights column to <span class="in">`lm`</span>. The restriction is where the</span>
+<span id="cb33-628"><a href="#cb33-628" aria-hidden="true" tabindex="-1"></a>trade-off lives. Matching sets some weights to zero, so it discards</span>
+<span id="cb33-629"><a href="#cb33-629" aria-hidden="true" tabindex="-1"></a>observations, and when it discards treated units --- as CEM did above, keeping</span>
+<span id="cb33-630"><a href="#cb33-630" aria-hidden="true" tabindex="-1"></a>65 of 185 --- the estimand becomes the ATT among the matched treated. Weighting</span>
+<span id="cb33-631"><a href="#cb33-631" aria-hidden="true" tabindex="-1"></a>keeps everyone, so the estimand survives, and pays for it with extreme weights</span>
+<span id="cb33-632"><a href="#cb33-632" aria-hidden="true" tabindex="-1"></a>when overlap is poor, which is what the effective sample sizes in this chapter</span>
+<span id="cb33-633"><a href="#cb33-633" aria-hidden="true" tabindex="-1"></a>have been reporting. Matching buys stability with the estimand. Weighting buys</span>
+<span id="cb33-634"><a href="#cb33-634" aria-hidden="true" tabindex="-1"></a>the estimand with variance.</span>
+<span id="cb33-635"><a href="#cb33-635" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-636"><a href="#cb33-636" aria-hidden="true" tabindex="-1"></a>AIPW uses both columns. Start from regression adjustment, then add the</span>
+<span id="cb33-637"><a href="#cb33-637" aria-hidden="true" tabindex="-1"></a>odds-weighted average of the control residuals $Y - \hat\mu_0(X)$. It is</span>
+<span id="cb33-638"><a href="#cb33-638" aria-hidden="true" tabindex="-1"></a>consistent if either model is right. The section on estimation after matching</span>
+<span id="cb33-639"><a href="#cb33-639" aria-hidden="true" tabindex="-1"></a>did an informal version of the same thing: match first, then run a regression</span>
+<span id="cb33-640"><a href="#cb33-640" aria-hidden="true" tabindex="-1"></a>with treatment-covariate interactions on the matched sample. That is regression adjustment after</span>
+<span id="cb33-641"><a href="#cb33-641" aria-hidden="true" tabindex="-1"></a>matching, and the regression plays the part of the augmentation term. It is a</span>
+<span id="cb33-642"><a href="#cb33-642" aria-hidden="true" tabindex="-1"></a>relative of @abadie-imbens-2011 bias-corrected matching rather than the same</span>
+<span id="cb33-643"><a href="#cb33-643" aria-hidden="true" tabindex="-1"></a>estimator: their correction is applied unit by unit to matched outcomes and comes</span>
+<span id="cb33-644"><a href="#cb33-644" aria-hidden="true" tabindex="-1"></a>with its own variance theory, neither of which a post-matching interacted</span>
+<span id="cb33-645"><a href="#cb33-645" aria-hidden="true" tabindex="-1"></a>regression reproduces.</span>
+<span id="cb33-646"><a href="#cb33-646" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-647"><a href="#cb33-647" aria-hidden="true" tabindex="-1"></a>Five routes, one data set. Each row below is built by hand from the weight</span>
+<span id="cb33-648"><a href="#cb33-648" aria-hidden="true" tabindex="-1"></a>representation so the arithmetic is visible.</span>
+<span id="cb33-649"><a href="#cb33-649" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-652"><a href="#cb33-652" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb33-653"><a href="#cb33-653" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: compare-routes</span></span>
+<span id="cb33-654"><a href="#cb33-654" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb33-655"><a href="#cb33-655" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-656"><a href="#cb33-656" aria-hidden="true" tabindex="-1"></a>covs <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"age"</span>, <span class="st">"educ"</span>, <span class="st">"race"</span>, <span class="st">"married"</span>, <span class="st">"nodegree"</span>, <span class="st">"re74"</span>, <span class="st">"re75"</span>)</span>
+<span id="cb33-657"><a href="#cb33-657" aria-hidden="true" tabindex="-1"></a>trt  <span class="ot">&lt;-</span> lalonde<span class="sc">$</span>treat <span class="sc">==</span> <span class="dv">1</span></span>
+<span id="cb33-658"><a href="#cb33-658" aria-hidden="true" tabindex="-1"></a>y    <span class="ot">&lt;-</span> lalonde<span class="sc">$</span>re78</span>
+<span id="cb33-659"><a href="#cb33-659" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-660"><a href="#cb33-660" aria-hidden="true" tabindex="-1"></a><span class="co"># Outcome model, fitted on controls only, then predicted everywhere</span></span>
+<span id="cb33-661"><a href="#cb33-661" aria-hidden="true" tabindex="-1"></a>mu0_fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="fu">reformulate</span>(covs, <span class="at">response =</span> <span class="st">"re78"</span>),</span>
+<span id="cb33-662"><a href="#cb33-662" aria-hidden="true" tabindex="-1"></a>              <span class="at">data =</span> <span class="fu">subset</span>(lalonde, treat <span class="sc">==</span> <span class="dv">0</span>))</span>
+<span id="cb33-663"><a href="#cb33-663" aria-hidden="true" tabindex="-1"></a>mu0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mu0_fit, <span class="at">newdata =</span> lalonde)</span>
+<span id="cb33-664"><a href="#cb33-664" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-665"><a href="#cb33-665" aria-hidden="true" tabindex="-1"></a><span class="co"># Odds weights from a logistic propensity score</span></span>
+<span id="cb33-666"><a href="#cb33-666" aria-hidden="true" tabindex="-1"></a>ps     <span class="ot">&lt;-</span> <span class="fu">predict</span>(<span class="fu">glm</span>(<span class="fu">reformulate</span>(covs, <span class="at">response =</span> <span class="st">"treat"</span>),</span>
+<span id="cb33-667"><a href="#cb33-667" aria-hidden="true" tabindex="-1"></a>                      <span class="at">data =</span> lalonde, <span class="at">family =</span> binomial), <span class="at">type =</span> <span class="st">"response"</span>)</span>
+<span id="cb33-668"><a href="#cb33-668" aria-hidden="true" tabindex="-1"></a>odds   <span class="ot">&lt;-</span> ps <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">-</span> ps)</span>
+<span id="cb33-669"><a href="#cb33-669" aria-hidden="true" tabindex="-1"></a>wt_ipw <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(trt, <span class="dv">1</span>, odds)</span>
+<span id="cb33-670"><a href="#cb33-670" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-671"><a href="#cb33-671" aria-hidden="true" tabindex="-1"></a><span class="co"># Weighted difference in means: the common shape of rows 2 to 4</span></span>
+<span id="cb33-672"><a href="#cb33-672" aria-hidden="true" tabindex="-1"></a>hajek <span class="ot">&lt;-</span> <span class="cf">function</span>(w) {</span>
+<span id="cb33-673"><a href="#cb33-673" aria-hidden="true" tabindex="-1"></a>  <span class="fu">weighted.mean</span>(y[trt], w[trt]) <span class="sc">-</span> <span class="fu">weighted.mean</span>(y[<span class="sc">!</span>trt], w[<span class="sc">!</span>trt])</span>
+<span id="cb33-674"><a href="#cb33-674" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb33-675"><a href="#cb33-675" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-676"><a href="#cb33-676" aria-hidden="true" tabindex="-1"></a>att_ra   <span class="ot">&lt;-</span> <span class="fu">mean</span>(y[trt] <span class="sc">-</span> mu0[trt])</span>
+<span id="cb33-677"><a href="#cb33-677" aria-hidden="true" tabindex="-1"></a>att_ipw  <span class="ot">&lt;-</span> <span class="fu">hajek</span>(wt_ipw)</span>
+<span id="cb33-678"><a href="#cb33-678" aria-hidden="true" tabindex="-1"></a>att_eb   <span class="ot">&lt;-</span> <span class="fu">hajek</span>(w_ebal<span class="sc">$</span>weights)</span>
+<span id="cb33-679"><a href="#cb33-679" aria-hidden="true" tabindex="-1"></a>att_fm   <span class="ot">&lt;-</span> <span class="fu">hajek</span>(m.full<span class="sc">$</span>weights)</span>
+<span id="cb33-680"><a href="#cb33-680" aria-hidden="true" tabindex="-1"></a>att_aipw <span class="ot">&lt;-</span> att_ra <span class="sc">-</span> <span class="fu">weighted.mean</span>(y[<span class="sc">!</span>trt] <span class="sc">-</span> mu0[<span class="sc">!</span>trt], odds[<span class="sc">!</span>trt])</span>
+<span id="cb33-681"><a href="#cb33-681" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-682"><a href="#cb33-682" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
+<span id="cb33-683"><a href="#cb33-683" aria-hidden="true" tabindex="-1"></a>  <span class="at">route =</span> <span class="fu">c</span>(<span class="st">"Regression adjustment (outcome model)"</span>,</span>
+<span id="cb33-684"><a href="#cb33-684" aria-hidden="true" tabindex="-1"></a>            <span class="st">"IPW (propensity model)"</span>,</span>
+<span id="cb33-685"><a href="#cb33-685" aria-hidden="true" tabindex="-1"></a>            <span class="st">"Entropy balancing (balance constraints)"</span>,</span>
+<span id="cb33-686"><a href="#cb33-686" aria-hidden="true" tabindex="-1"></a>            <span class="st">"Full matching (distance rule)"</span>,</span>
+<span id="cb33-687"><a href="#cb33-687" aria-hidden="true" tabindex="-1"></a>            <span class="st">"AIPW (both models)"</span>),</span>
+<span id="cb33-688"><a href="#cb33-688" aria-hidden="true" tabindex="-1"></a>  <span class="at">att =</span> <span class="fu">c</span>(att_ra, att_ipw, att_eb, att_fm, att_aipw)</span>
+<span id="cb33-689"><a href="#cb33-689" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb33-690"><a href="#cb33-690" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">0</span>, <span class="at">col.names =</span> <span class="fu">c</span>(<span class="st">"Route"</span>, <span class="st">"ATT"</span>),</span>
+<span id="cb33-691"><a href="#cb33-691" aria-hidden="true" tabindex="-1"></a>               <span class="at">caption =</span> <span class="st">"Five routes to the same ATT on the Lalonde data."</span>)</span>
+<span id="cb33-692"><a href="#cb33-692" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb33-693"><a href="#cb33-693" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-694"><a href="#cb33-694" aria-hidden="true" tabindex="-1"></a>Two of these numbers confirm the algebra directly. The hand-built odds weights</span>
+<span id="cb33-695"><a href="#cb33-695" aria-hidden="true" tabindex="-1"></a>agree with the <span class="in">`weightit`</span> propensity-score weights from the IPW section above to</span>
+<span id="cb33-696"><a href="#cb33-696" aria-hidden="true" tabindex="-1"></a>machine precision, so the claim that weighting is IPW is an identity here and not</span>
+<span id="cb33-697"><a href="#cb33-697" aria-hidden="true" tabindex="-1"></a>a resemblance. And entropy balancing gives \$1,273 --- the same figure that</span>
+<span id="cb33-698"><a href="#cb33-698" aria-hidden="true" tabindex="-1"></a><span class="in">`lm_weightit`</span> produced earlier with the full set of treatment-covariate</span>
+<span id="cb33-699"><a href="#cb33-699" aria-hidden="true" tabindex="-1"></a>interactions, agreeing to nine decimal places. Exact mean balance leaves nothing for a linear</span>
+<span id="cb33-700"><a href="#cb33-700" aria-hidden="true" tabindex="-1"></a>outcome model to correct, so adding one changes the estimate not at all. That is</span>
+<span id="cb33-701"><a href="#cb33-701" aria-hidden="true" tabindex="-1"></a>the double robustness of entropy balancing <span class="co">[</span><span class="ot">@zhao-percival-2017</span><span class="co">]</span> appearing as</span>
+<span id="cb33-702"><a href="#cb33-702" aria-hidden="true" tabindex="-1"></a>arithmetic: the same weights deliver the IPW estimator for a logit propensity</span>
+<span id="cb33-703"><a href="#cb33-703" aria-hidden="true" tabindex="-1"></a>model and the regression-adjustment estimator for a linear outcome model.</span>
+<span id="cb33-704"><a href="#cb33-704" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-705"><a href="#cb33-705" aria-hidden="true" tabindex="-1"></a>The spread across routes is the part to read carefully. Regression adjustment</span>
+<span id="cb33-706"><a href="#cb33-706" aria-hidden="true" tabindex="-1"></a>gives \$1,648 and IPW gives \$1,214. AIPW starts from the regression-adjustment</span>
+<span id="cb33-707"><a href="#cb33-707" aria-hidden="true" tabindex="-1"></a>figure and the augmentation term subtracts \$417, landing at \$1,231 --- next to</span>
+<span id="cb33-708"><a href="#cb33-708" aria-hidden="true" tabindex="-1"></a>IPW, not next to regression adjustment. The propensity side is doing the work</span>
+<span id="cb33-709"><a href="#cb33-709" aria-hidden="true" tabindex="-1"></a>here, which is what we should expect when the treated and control covariate</span>
+<span id="cb33-710"><a href="#cb33-710" aria-hidden="true" tabindex="-1"></a>distributions are as far apart as the balance tables in this chapter have shown.</span>
+<span id="cb33-711"><a href="#cb33-711" aria-hidden="true" tabindex="-1"></a>Full matching sits highest at \$1,855. It fits a propensity score too --- a</span>
+<span id="cb33-712"><a href="#cb33-712" aria-hidden="true" tabindex="-1"></a>probit, used as the distance for forming subclasses --- so the gap between it and</span>
+<span id="cb33-713"><a href="#cb33-713" aria-hidden="true" tabindex="-1"></a>IPW's \$1,214 is not about whether a propensity model was estimated. It is about</span>
+<span id="cb33-714"><a href="#cb33-714" aria-hidden="true" tabindex="-1"></a>how the score is turned into weights: coarse subclass weights that throw away the</span>
+<span id="cb33-715"><a href="#cb33-715" aria-hidden="true" tabindex="-1"></a>score's fine gradations, against the odds transformation that keeps them.</span>
+<span id="cb33-716"><a href="#cb33-716" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-717"><a href="#cb33-717" aria-hidden="true" tabindex="-1"></a>These are point estimates. Standard errors are not comparable across the rows</span>
+<span id="cb33-718"><a href="#cb33-718" aria-hidden="true" tabindex="-1"></a>and are deliberately left out: matching is not a smooth functional of the data,</span>
+<span id="cb33-719"><a href="#cb33-719" aria-hidden="true" tabindex="-1"></a>so the bootstrap is invalid for it <span class="co">[</span><span class="ot">@abadie-imbens-2008</span><span class="co">]</span> and the subclass</span>
+<span id="cb33-720"><a href="#cb33-720" aria-hidden="true" tabindex="-1"></a>clustering used earlier is needed, while IPW and AIPW have influence-function</span>
+<span id="cb33-721"><a href="#cb33-721" aria-hidden="true" tabindex="-1"></a>variances and AIPW attains the semiparametric efficiency bound that fixed-$M$</span>
+<span id="cb33-722"><a href="#cb33-722" aria-hidden="true" tabindex="-1"></a>matching does not --- given positivity, enough regularity, nuisance estimators</span>
+<span id="cb33-723"><a href="#cb33-723" aria-hidden="true" tabindex="-1"></a>converging fast enough (with cross-fitting when they are flexible), and both</span>
+<span id="cb33-724"><a href="#cb33-724" aria-hidden="true" tabindex="-1"></a>nuisance limits at the truth. The bound is a property of the estimator plus those</span>
+<span id="cb33-725"><a href="#cb33-725" aria-hidden="true" tabindex="-1"></a>conditions, not of the name. The lesson from the column of estimates is the same one the</span>
+<span id="cb33-726"><a href="#cb33-726" aria-hidden="true" tabindex="-1"></a>matching-versus-weighting comparison gave: with overlap this weak, the choice</span>
+<span id="cb33-727"><a href="#cb33-727" aria-hidden="true" tabindex="-1"></a>of route moves the answer by more than one standard error, so report several</span>
+<span id="cb33-728"><a href="#cb33-728" aria-hidden="true" tabindex="-1"></a>routes rather than the one that reads best.</span>
+<span id="cb33-729"><a href="#cb33-729" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-730"><a href="#cb33-730" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb33-731"><a href="#cb33-731" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-732"><a href="#cb33-732" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Matching is for selection on observables. It does not fix unobserved</span>
+<span id="cb33-733"><a href="#cb33-733" aria-hidden="true" tabindex="-1"></a>  confounding.</span>
+<span id="cb33-734"><a href="#cb33-734" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The main diagnostic is covariate balance, not the treatment-effect</span>
+<span id="cb33-735"><a href="#cb33-735" aria-hidden="true" tabindex="-1"></a>  coefficient.</span>
+<span id="cb33-736"><a href="#cb33-736" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Propensity-score matching is simple, but full matching or weighting often</span>
+<span id="cb33-737"><a href="#cb33-737" aria-hidden="true" tabindex="-1"></a>  balances better.</span>
+<span id="cb33-738"><a href="#cb33-738" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>If there is no overlap, change the estimand or restrict the sample. Do not</span>
+<span id="cb33-739"><a href="#cb33-739" aria-hidden="true" tabindex="-1"></a>  hide the support problem.</span>
+<span id="cb33-740"><a href="#cb33-740" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Matching, weighting, and the direct estimators of the previous chapter are</span>
+<span id="cb33-741"><a href="#cb33-741" aria-hidden="true" tabindex="-1"></a>  one estimand built several ways. Weighting with <span class="in">`method = "glm"`</span> is IPW, and</span>
+<span id="cb33-742"><a href="#cb33-742" aria-hidden="true" tabindex="-1"></a>  matching is weighting with the weights restricted to zero and small integers.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

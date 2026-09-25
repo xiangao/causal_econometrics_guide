@@ -731,7 +731,7 @@ Figure&nbsp;20.1: Full DAG (all 8 nodes) and the true MAG skeleton over observed
 <img src="causal-discovery-latent_files/figure-html/fig-fci-pag-1.png" class="img-fluid figure-img" width="528">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-fci-pag-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;20.2: PAG estimated by FCI. Dashed edges indicate endpoints with circle (○) marks — orientations the algorithm could not determine. Solid double-headed arrows (↔︎) flag definite hidden common causes.
+Figure&nbsp;20.2: PAG estimated by FCI. Dashed edges indicate endpoints with circle (○) marks — orientations the algorithm could not determine. Solid double-headed arrows (↔︎) mark edges with an invariant arrowhead at both ends, which under the maintained assumptions indicates a latent confounding path rather than one identified hidden variable.
 </figcaption></figure>
 </div>
 </div>
@@ -740,10 +740,10 @@ Figure&nbsp;20.2: PAG estimated by FCI. Dashed edges indicate endpoints with cir
 <p>In <code>pcalg</code>’s plot output:</p>
 <ul>
 <li>A <strong>plain arrow</strong> <span class="math inline">\(X \to Y\)</span> is a definite cause <em>under the maintained discovery model</em> — causal Markov, faithfulness, acyclicity, a correct conditional-independence test, and no selection bias. Given those, <span class="math inline">\(X\)</span> is an ancestor of <span class="math inline">\(Y\)</span> in every equivalent MAG. It need not be a <em>direct</em> effect: the path may run through latent mediators (the DAG <span class="math inline">\(X \to L \to Y\)</span> with <span class="math inline">\(L\)</span> hidden yields the MAG <span class="math inline">\(X \to Y\)</span>).</li>
-<li>A <strong>double-headed arrow</strong> <span class="math inline">\(X \leftrightarrow Y\)</span> is a definite hidden common cause.</li>
+<li>A <strong>double-headed arrow</strong> <span class="math inline">\(X \leftrightarrow Y\)</span> has an invariant arrowhead at both ends. <em>Under the same maintained model</em>, neither variable is an ancestor of the other in any MAG in the class, and the association between them runs through a latent inducing path. Read it as confounding that no observed adjustment set removes. It does not tell you that one particular hidden variable exists, how many there are, or what they are.</li>
 <li>A <strong>circle endpoint</strong> is the <span class="math inline">\(\circ\)</span> mark — uncertain at that endpoint.</li>
 </ul>
-<p>In practice for economic research: focus first on <span class="math inline">\(\leftrightarrow\)</span> edges — these flag definite confounding and tell you where IV or proxy strategies are needed. Then examine <span class="math inline">\(\to\)</span> edges — these are causal claims that survive across all statistically equivalent structures.</p>
+<p>In practice for economic research: focus first on <span class="math inline">\(\leftrightarrow\)</span> edges. Under the maintained assumptions they mark confounding that adjustment on the observed variables cannot remove, which is where a design-based remedy is needed — an instrument, a proxy, a front-door route, or a panel design. Then examine <span class="math inline">\(\to\)</span> edges, the causal claims that survive across all statistically equivalent structures.</p>
 <p><strong>When FCI gives wrong answers:</strong> FCI assumes the CI tests are perfectly accurate (no finite-sample error). In practice, with small <span class="math inline">\(n\)</span> or many variables, some false CI decisions propagate through the 10 orientation rules. The skeleton quality (F1) is generally more reliable than the orientation quality.</p>
 </section><section id="rfci-algorithm" class="level2" data-number="20.5"><h2 data-number="20.5" class="anchored" data-anchor-id="rfci-algorithm">
 <span class="header-section-number">20.5</span> RFCI Algorithm</h2>
@@ -1009,7 +1009,7 @@ Figure&nbsp;20.4: CI-test count distributions across 100 replications. By skippi
 </ol>
 <p>Causal discovery narrows the space of possible structures. Domain knowledge still does the hard work.</p>
 <p><strong>Going further: orientation in the latent case</strong></p>
-<p>FCI’s PAG output distinguishes definite causes (<span class="math inline">\(\to\)</span>), definite hidden common causes (<span class="math inline">\(\leftrightarrow\)</span>), and uncertain cases (<span class="math inline">\(\circ\)</span>). The PAG can be combined with background knowledge such as temporal ordering to further orient edges before estimation.</p>
+<p>FCI’s PAG output distinguishes invariant tails and arrowheads: ancestral relations that hold in every MAG in the class (<span class="math inline">\(\to\)</span>), edges bidirected in every MAG and so attributable to a latent path (<span class="math inline">\(\leftrightarrow\)</span>), and endpoints the data cannot orient (<span class="math inline">\(\circ\)</span>). All three readings are conditional on the maintained discovery assumptions. The PAG can be combined with background knowledge such as temporal ordering to further orient edges before estimation.</p>
 </section></section><section id="how-much-does-causal-discovery-help-in-economics" class="level2" data-number="20.9"><h2 data-number="20.9" class="anchored" data-anchor-id="how-much-does-causal-discovery-help-in-economics">
 <span class="header-section-number">20.9</span> How Much Does Causal Discovery Help in Economics?</h2>
 <p>Recovering the MAG skeleton is still far from recovering the full DAG. Much is still missing:</p>
@@ -1851,7 +1851,7 @@ Zhang, Jiji. 2008. <span>“On the Completeness of Orientation Rules for Causal 
 <span id="cb16-341"><a href="#cb16-341" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-344"><a href="#cb16-344" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
 <span id="cb16-345"><a href="#cb16-345" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: fig-fci-pag</span></span>
-<span id="cb16-346"><a href="#cb16-346" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "PAG estimated by FCI. Dashed edges indicate endpoints with circle (○) marks — orientations the algorithm could not determine. Solid double-headed arrows (↔) flag definite hidden common causes."</span></span>
+<span id="cb16-346"><a href="#cb16-346" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "PAG estimated by FCI. Dashed edges indicate endpoints with circle (○) marks — orientations the algorithm could not determine. Solid double-headed arrows (↔) mark edges with an invariant arrowhead at both ends, which under the maintained assumptions indicates a latent confounding path rather than one identified hidden variable."</span></span>
 <span id="cb16-347"><a href="#cb16-347" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-width: 5.5</span></span>
 <span id="cb16-348"><a href="#cb16-348" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-height: 4.5</span></span>
 <span id="cb16-349"><a href="#cb16-349" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_ig</span>(ig_fci, <span class="at">layout =</span> obs_layout)</span>
@@ -1862,10 +1862,10 @@ Zhang, Jiji. 2008. <span>“On the Completeness of Orientation Rules for Causal 
 <span id="cb16-354"><a href="#cb16-354" aria-hidden="true" tabindex="-1"></a>In <span class="in">`pcalg`</span>'s plot output:</span>
 <span id="cb16-355"><a href="#cb16-355" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-356"><a href="#cb16-356" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A **plain arrow** $X \to Y$ is a definite cause *under the maintained discovery model* — causal Markov, faithfulness, acyclicity, a correct conditional-independence test, and no selection bias. Given those, $X$ is an ancestor of $Y$ in every equivalent MAG. It need not be a *direct* effect: the path may run through latent mediators (the DAG $X \to L \to Y$ with $L$ hidden yields the MAG $X \to Y$).</span>
-<span id="cb16-357"><a href="#cb16-357" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A **double-headed arrow** $X \leftrightarrow Y$ is a definite hidden common cause.</span>
+<span id="cb16-357"><a href="#cb16-357" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A **double-headed arrow** $X \leftrightarrow Y$ has an invariant arrowhead at both ends. *Under the same maintained model*, neither variable is an ancestor of the other in any MAG in the class, and the association between them runs through a latent inducing path. Read it as confounding that no observed adjustment set removes. It does not tell you that one particular hidden variable exists, how many there are, or what they are.</span>
 <span id="cb16-358"><a href="#cb16-358" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A **circle endpoint** is the $\circ$ mark — uncertain at that endpoint.</span>
 <span id="cb16-359"><a href="#cb16-359" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-360"><a href="#cb16-360" aria-hidden="true" tabindex="-1"></a>In practice for economic research: focus first on $\leftrightarrow$ edges — these flag definite confounding and tell you where IV or proxy strategies are needed. Then examine $\to$ edges — these are causal claims that survive across all statistically equivalent structures.</span>
+<span id="cb16-360"><a href="#cb16-360" aria-hidden="true" tabindex="-1"></a>In practice for economic research: focus first on $\leftrightarrow$ edges. Under the maintained assumptions they mark confounding that adjustment on the observed variables cannot remove, which is where a design-based remedy is needed — an instrument, a proxy, a front-door route, or a panel design. Then examine $\to$ edges, the causal claims that survive across all statistically equivalent structures.</span>
 <span id="cb16-361"><a href="#cb16-361" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-362"><a href="#cb16-362" aria-hidden="true" tabindex="-1"></a>**When FCI gives wrong answers:** FCI assumes the CI tests are perfectly accurate (no finite-sample error). In practice, with small $n$ or many variables, some false CI decisions propagate through the 10 orientation rules. The skeleton quality (F1) is generally more reliable than the orientation quality.</span>
 <span id="cb16-363"><a href="#cb16-363" aria-hidden="true" tabindex="-1"></a></span>
@@ -2069,7 +2069,7 @@ Zhang, Jiji. 2008. <span>“On the Completeness of Orientation Rules for Causal 
 <span id="cb16-571"><a href="#cb16-571" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-572"><a href="#cb16-572" aria-hidden="true" tabindex="-1"></a>**Going further: orientation in the latent case**</span>
 <span id="cb16-573"><a href="#cb16-573" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-574"><a href="#cb16-574" aria-hidden="true" tabindex="-1"></a>FCI's PAG output distinguishes definite causes ($\to$), definite hidden common causes ($\leftrightarrow$), and uncertain cases ($\circ$). The PAG can be combined with background knowledge such as temporal ordering to further orient edges before estimation.</span>
+<span id="cb16-574"><a href="#cb16-574" aria-hidden="true" tabindex="-1"></a>FCI's PAG output distinguishes invariant tails and arrowheads: ancestral relations that hold in every MAG in the class ($\to$), edges bidirected in every MAG and so attributable to a latent path ($\leftrightarrow$), and endpoints the data cannot orient ($\circ$). All three readings are conditional on the maintained discovery assumptions. The PAG can be combined with background knowledge such as temporal ordering to further orient edges before estimation.</span>
 <span id="cb16-575"><a href="#cb16-575" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-576"><a href="#cb16-576" aria-hidden="true" tabindex="-1"></a><span class="fu">## How Much Does Causal Discovery Help in Economics?</span></span>
 <span id="cb16-577"><a href="#cb16-577" aria-hidden="true" tabindex="-1"></a></span>

@@ -84,7 +84,7 @@ $$y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2 + \e
 
 By the **Frisch–Waugh–Lovell (FWL) theorem**, OLS estimation of this augmented regression produces an estimate $\hat{\alpha}_1$ that is **numerically identical to 2SLS**. No additional distributional assumptions are required beyond the standard orthogonality condition $E(\mathbf{z}'\varepsilon_1) = \mathbf{0}$.
 
-### 2.2 The Nonlinear Second Stage: Control Function Requires Independence
+### 2.2 The Nonlinear Second Stage: The Control Function Needs More Than Uncorrelatedness
 
 When the conditional mean is exponential, this automatic numerical equivalence breaks down. 
 
@@ -99,13 +99,13 @@ $$E\left[ \exp(e_1) \mid \mathbf{z}, y_2, v_2 \right] = \text{constant}$$
 
 This is why @wooldridge-2010-crosssection (sec. 18.5) normalizes $E[\exp(e_1)] = 1$ rather than $E(e_1) = 0$.
 
-This condition is a requirement on the **moment-generating function** of $e_1$—a condition across all moments simultaneously, which requires that $e_1$ is **fully independent** of $(\mathbf{z}, v_2)$, and in turn that the reduced-form error $v_2$ is **independent** of $\mathbf{z}$ ($v_2 \perp \mathbf{z}$).
+This condition restricts the **conditional moment-generating function** of $e_1$ at a single point. Every moment of $e_1$ enters it, so it is far stronger than the zero-covariance condition that suffices in the linear model. It is not, however, an independence condition. Independence of $e_1$ from $(\mathbf{z}, v_2)$, together with $v_2 \perp \mathbf{z}$, is a **sufficient** assumption that delivers it, and it is the assumption we maintain below because it is simple to state and is what the standard derivation uses. Any weaker restriction that holds $E[\exp(e_1) \mid \mathbf{z}, y_2, v_2]$ constant would serve equally well.
 
 | Property | Linear Model (OLS / 2SLS) | Nonlinear Model (Poisson CF) |
 |:---|:---|:---|
 | **Second stage** | $y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2$ | $y_1 \sim \text{Poisson}(\exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2))$ |
 | **CF vs. 2SLS/GMM** | **Identical** (by FWL theorem) | **Different** (FWL does not hold) |
-| **Required assumption** | Uncorrelatedness: $E(\mathbf{z}'\varepsilon_1) = \mathbf{0}$ | **Full Independence:** $v_2 \perp \mathbf{z}$ and $e_1 \perp (\mathbf{z}, v_2)$ |
+| **Required assumption** | Uncorrelatedness: $E(\mathbf{z}'\varepsilon_1) = \mathbf{0}$ | Constant conditional exponential moment; **sufficient:** $v_2 \perp \mathbf{z}$ and $e_1 \perp (\mathbf{z}, v_2)$ |
 | **Second-stage standard errors** | Valid under $H_0: \rho_1 = 0$ | **Invalid** (must bootstrap generated regressor) |
 | **Endogeneity test** | $t$-statistic on $\hat{v}_2 = 0$ (DWH test) | $t$-statistic on $\hat{v}_2 = 0$ (Variable addition test) |
 
@@ -285,18 +285,18 @@ The coefficient on $\hat{r}_2$ estimates $\rho_1$, and its $t$-statistic is a **
 ### 4. Robustness Against Non-Normality (Curvature Misspecification)
 - Terza’s correction is **exact only under strict joint bivariate normality**.
 - If the true unobservables $(c_1, v_2)$ are non-normal (e.g. skewed or heavy-tailed), $h(\cdot)$ has the wrong functional form. The profile then picks the $\rho_1$ that best fits a curve the data do not follow, and that misspecification passes straight into $\hat{\alpha}_1$. This is misspecification bias, not overfitting — there is only one extra parameter, so there is nothing to overfit with.
-- The generalized residual commits to less. It controls for $E[v_2 \mid y_2, \mathbf{z}]$ and stops at first order, so a wrong $h$ cannot drag it. Whether this actually wins under non-normality is an open question; @lin-wooldridge-2019 leave "investigations into the quality of CF approximations in discrete cases to future research.
+- The generalized residual commits to less. It controls for $E[v_2 \mid y_2, \mathbf{z}]$ and stops at first order, so a wrong $h$ cannot drag it. Whether this actually wins under non-normality is an open question; @lin-wooldridge-2019 leave "investigations into the quality of CF approximations in discrete cases to future research."
 
 ### 5. The Approximation Error Shrinks with the Endogeneity
-The error is $O(\rho_1^2)$, so it vanishes quadratically as $\rho_1 \to 0$ — and $\rho_1$ is not a quantity you have to guess at, because it is estimated as the coefficient on $\hat{r}_2$. The error is also asymmetric: $h$ scales the treated mean by a factor bounded by $1/\Phi(\mathbf{z}\boldsymbol{\pi}_2)$, which is unbounded in the tail for $\rho_1 > 0$ but shrinks smoothly toward zero for $\rho_1 < 0$, so positive confounding is the case to worry about. We give no numerical threshold here: the size of the error at a given $\rho_1$ depends on how far the probit index reaches into the tail, so it is design-specific rather than a property of $\rho_1$ alone.
+The error is $O(\rho_1^2)$, so it vanishes quadratically as $\rho_1 \to 0$, and the second stage reports a coefficient on $\hat{r}_2$ that estimates $\rho_1$ to that same first order. The error is also asymmetric, but the asymmetry is **specific to the treatment state** and runs in opposite directions for the two states. For a treated observation $h$ scales the mean by $\Phi(\mathbf{z}\boldsymbol{\pi}_2 + \rho_1)/\Phi(\mathbf{z}\boldsymbol{\pi}_2)$, bounded by $1/\Phi(\mathbf{z}\boldsymbol{\pi}_2)$, which grows without bound in the lower tail of the index when $\rho_1 > 0$. For an untreated observation the factor is $[1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2 + \rho_1)]/[1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2)]$, which grows without bound in the upper tail when $\rho_1 < 0$. The two cases are mirror images, so neither sign of $\rho_1$ is the safe one. What governs the error is $|\rho_1|$ together with the treatment state and how far the probit index reaches into the relevant tail. It is design-specific, not a property of the sign of $\rho_1$.
 
 ### Practical Strategy
 
 | Situation | Recommended Estimator | Rationale |
 |:---|:---|:---|
 | **Routine empirical analysis & testing** | **Generalized-Residual CF** | Fast, standard 1-line command, built-in $t$-test for $\rho_1 = 0$, works with Logit ($y_2 - \hat{p}_2$), handles panel FE via Mundlak. |
-| **$\hat{\rho}_1$ small, or negative** | **Generalized-Residual CF alone** | The $O(\rho_1^2)$ error is smallest exactly here, and it is the negative side of the asymmetry. |
-| **$\hat{\rho}_1$ large and positive** | **Add the Terza Exact Profiled 2-Step** | This is where the Taylor error bites hardest. Fit the exact model alongside and report both; if they agree the approximation was safe, and if they do not, the exact one is right provided the probit is. |
+| **$|\hat{\rho}_1|$ small** | **Generalized-Residual CF alone** | The $O(\rho_1^2)$ error is smallest exactly here. |
+| **$|\hat{\rho}_1|$ large, either sign, or an index reaching far into either tail** | **Add the Terza Exact Profiled 2-Step** | This is where the Taylor remainder can bite, and it can do so for either sign. Fit the exact model alongside and report both; if they agree the approximation was safe, and if they do not, the exact one is right provided the probit is. |
 
 ---
 
@@ -307,13 +307,13 @@ The error is $O(\rho_1^2)$, so it vanishes quadratically as $\rho_1 \to 0$ — a
 | **Linear CF** | Linear OLS | Add $\hat{v}_2$ inside $\exp(\cdot)$ | Inconsistent | Yes (Poisson with FE) | Cluster Bootstrap |
 | **Generalized CF** | Probit / Logit (with Mundlak) | Add $\hat{r}_2$ inside $\exp(\cdot)$ | Approx. ($O(\rho_1^2)$ error) | Yes (Mundlak in 1st stage) | Cluster Bootstrap |
 | **Terza Exact 2-Step** | Probit | Profile $\rho_1$ with offset $\log h(\rho_1)$ | **Yes** (under normality) | Yes (Poisson with offset) | Cluster Bootstrap |
-| **Multiplicative GMM** | Any ($\hat{p}_2$) | Instrument $y_2$ in moments | **Yes** (distribution-free) | Needs quasi-differencing | Sandwich vcov |
+| **Multiplicative GMM** | Any ($\hat{p}_2$) | Instrument $y_2$ in moments | **Yes** (moment-based; needs valid multiplicative moments) | Needs quasi-differencing | Sandwich vcov |
 
 ---
 
 ## 6. Practical Guidance: An Observable Diagnostic Workflow
 
-In empirical practice, we do not need to guess the confounding parameter $\rho_1$—**it is estimated directly as the coefficient on the generalized residual $\hat{r}_2$ in your second-stage Poisson regression table.**
+In empirical practice, we do not need to guess the confounding parameter $\rho_1$—**the second-stage Poisson table reports a coefficient on the generalized residual $\hat{r}_2$ that estimates it.** Read that number as the control-function coefficient. It is a first-order variable-addition coefficient, and it coincides with the $\rho_1$ inside Terza's exact correction only to that order and only with a probit first stage. With a logit first stage the residual is on a different scale, so the two are not directly comparable without an explicit mapping.
 
 A standard applied workflow proceeds in four steps:
 
@@ -325,22 +325,21 @@ A standard applied workflow proceeds in four steps:
 2. **Check the $t$-statistic on the residual (Exogeneity Test):**  
    The $t$-statistic on $\hat{r}_2$ (testing $\hat{\rho}_1 = 0$) is an asymptotically valid Hausman-type exogeneity test. Read it as a description of how much endogeneity the data can detect. Do not read it as a licence to drop the residual — see the pretest warning below.
 
-3. **Read the size and sign of $\hat{\rho}_1$ (Approximation Diagnostic):**  
-   - **If $\hat{\rho}_1$ is small or negative:** the $O(\rho_1^2)$ error is at its smallest, and on the benign side of the asymmetry. The Generalized-Residual CF stands on its own.
-   - **If $\hat{\rho}_1$ is large and positive:** the Taylor error is upward and grows quadratically. Fit Terza's exact 2-step alongside it and report both. Do not read a threshold off $\hat{\rho}_1$ alone — how much the error matters also depends on how far your probit index reaches into the tail, so the comparison is the diagnostic, not a rule of thumb.
+3. **Read the magnitude of $\hat{\rho}_1$ (Approximation Diagnostic):** judge magnitude from the coefficient and its confidence interval, not from the $t$-statistic.
+   - **If $|\hat{\rho}_1|$ is small:** the $O(\rho_1^2)$ error is at its smallest and the Generalized-Residual CF stands on its own.
+   - **If $|\hat{\rho}_1|$ is large, whatever its sign:** fit Terza's exact 2-step alongside it and report both. Which tail is dangerous depends on the treatment state. Positive $\rho_1$ inflates treated observations whose index sits in the lower tail; negative $\rho_1$ inflates untreated observations whose index sits in the upper tail. Do not read a threshold off $\hat{\rho}_1$ alone — the comparison of the two fits is the diagnostic, not a rule of thumb.
 
-4. **Inference:**  
-   Always compute standard errors using a cluster bootstrap over panel units to account for first-stage estimation uncertainty.
+4. **Inference:** the second-stage standard errors ignore first-stage estimation error, so they need a correction whenever $\rho_1 \neq 0$. In a panel, resampling whole units is the natural implementation, provided there are enough units for the bootstrap to behave; with few clusters it needs a small-cluster correction of its own. In a cross-section, resample observations or use an analytic two-step correction. Under $H_0: \rho_1 = 0$ the uncorrected $t$-statistic on $\hat{r}_2$ is already valid, which is why the exogeneity test in step 2 needs no bootstrap.
 
 ### Do Not Use the Exogeneity Test to Choose the Model
 
-The tempting next move is to let step 2 pick the specification: if the $t$-statistic on $\hat{r}_2$ is insignificant, drop the residual and report the plain FE Poisson; if it is significant, keep the control function. This is a pretest estimator, and it is worse than either of the two models it chooses between.
+The tempting next move is to let step 2 pick the specification: if the $t$-statistic on $\hat{r}_2$ is insignificant, drop the residual and report the plain FE Poisson; if it is significant, keep the control function. This is a pretest estimator. The objection is not that its point estimates are uniformly worse than those of either model it chooses between. It is that the inference reported afterwards is no longer valid at its nominal level.
 
 @guggenberger-2010 works this out for the linear case. A Hausman pretest followed by OLS-or-2SLS, with the second-stage $t$-test reported at its nominal level, has **asymptotic size equal to one**: there are points in the parameter space where the procedure rejects a true null with probability approaching 1. The mechanism is a sequence of local alternatives. Let the endogeneity drift toward zero at rate $n^{-1/2}$. The pretest then has low power and often fails to reject, so the procedure falls back on the estimator that ignores endogeneity — but at that drift rate the bias of that estimator is the same order as its standard error, so the reported confidence interval is centred in the wrong place by about its own width. Taking the supremum of rejection probability over the parameter space picks out exactly these points. @guggenberger-2010-panel obtains the same conclusion for the panel Hausman test between fixed and random effects.
 
 These results are proved for linear models, and we are not aware of an analogous theorem for the Poisson control function. The mechanism does not depend on linearity: it needs only a pretest with low power against local endogeneity and a fallback estimator whose bias does not vanish faster than its standard error, and both are present here. We treat it as a warning that carries over rather than a result that has been established in this setting.
 
-The practical rule is to **report the naive FE Poisson and the control-function FE Poisson side by side** and let the reader see both. The $t$-statistic on $\hat{r}_2$ still belongs in the table; it is evidence about the size of $\rho_1$, which is what step 3 needs. What it must not do is silently delete one of the two columns.
+The practical rule is to **report the naive FE Poisson and the control-function FE Poisson side by side** and let the reader see both. The $t$-statistic on $\hat{r}_2$ still belongs in the table as a test of $\rho_1 = 0$. For the magnitude that step 3 needs, read $\hat{\rho}_1$ itself and its confidence interval. A $t$-statistic combines the coefficient with its precision and measures neither on its own. What it must not do is silently delete one of the two columns.
 
 ---
 

@@ -329,7 +329,7 @@ conditional independences left to find, and each missed edge costs more.
 
 ```{r}
 #| label: fig-fci-pag
-#| fig-cap: "PAG estimated by FCI. Dashed edges indicate endpoints with circle (○) marks — orientations the algorithm could not determine. Solid double-headed arrows (↔) flag definite hidden common causes."
+#| fig-cap: "PAG estimated by FCI. Dashed edges indicate endpoints with circle (○) marks — orientations the algorithm could not determine. Solid double-headed arrows (↔) mark edges with an invariant arrowhead at both ends, which under the maintained assumptions indicates a latent confounding path rather than one identified hidden variable."
 #| fig-width: 5.5
 #| fig-height: 4.5
 plot_ig(ig_fci, layout = obs_layout)
@@ -340,10 +340,10 @@ plot_ig(ig_fci, layout = obs_layout)
 In `pcalg`'s plot output:
 
 - A **plain arrow** $X \to Y$ is a definite cause *under the maintained discovery model* — causal Markov, faithfulness, acyclicity, a correct conditional-independence test, and no selection bias. Given those, $X$ is an ancestor of $Y$ in every equivalent MAG. It need not be a *direct* effect: the path may run through latent mediators (the DAG $X \to L \to Y$ with $L$ hidden yields the MAG $X \to Y$).
-- A **double-headed arrow** $X \leftrightarrow Y$ is a definite hidden common cause.
+- A **double-headed arrow** $X \leftrightarrow Y$ has an invariant arrowhead at both ends. *Under the same maintained model*, neither variable is an ancestor of the other in any MAG in the class, and the association between them runs through a latent inducing path. Read it as confounding that no observed adjustment set removes. It does not tell you that one particular hidden variable exists, how many there are, or what they are.
 - A **circle endpoint** is the $\circ$ mark — uncertain at that endpoint.
 
-In practice for economic research: focus first on $\leftrightarrow$ edges — these flag definite confounding and tell you where IV or proxy strategies are needed. Then examine $\to$ edges — these are causal claims that survive across all statistically equivalent structures.
+In practice for economic research: focus first on $\leftrightarrow$ edges. Under the maintained assumptions they mark confounding that adjustment on the observed variables cannot remove, which is where a design-based remedy is needed — an instrument, a proxy, a front-door route, or a panel design. Then examine $\to$ edges, the causal claims that survive across all statistically equivalent structures.
 
 **When FCI gives wrong answers:** FCI assumes the CI tests are perfectly accurate (no finite-sample error). In practice, with small $n$ or many variables, some false CI decisions propagate through the 10 orientation rules. The skeleton quality (F1) is generally more reliable than the orientation quality.
 
@@ -547,7 +547,7 @@ still does the hard work.
 
 **Going further: orientation in the latent case**
 
-FCI's PAG output distinguishes definite causes ($\to$), definite hidden common causes ($\leftrightarrow$), and uncertain cases ($\circ$). The PAG can be combined with background knowledge such as temporal ordering to further orient edges before estimation.
+FCI's PAG output distinguishes invariant tails and arrowheads: ancestral relations that hold in every MAG in the class ($\to$), edges bidirected in every MAG and so attributable to a latent path ($\leftrightarrow$), and endpoints the data cannot orient ($\circ$). All three readings are conditional on the maintained discovery assumptions. The PAG can be combined with background knowledge such as temporal ordering to further orient edges before estimation.
 
 ## How Much Does Causal Discovery Help in Economics?
 

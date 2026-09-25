@@ -386,3 +386,33 @@ New bib entries: `guggenberger-2010` (Econometric Theory), `guggenberger-2010-pa
 from 7 items to 8.
 
 Rendered clean to HTML and PDF (304 pages, was 302).
+
+
+## 2026-09-25 — Codex review pass: qualification fixes across six chapters
+
+Source: `../BOOK_REVIEW_20260925.md`. Every finding re-checked against the source
+before editing; all edits prose-only (chunk hashes unchanged except one `fig-cap`).
+
+`poisson-iv.qmd` carried the bulk. The constant-conditional-exponential-moment
+condition no longer *requires* full independence — independence is the sufficient
+assumption we maintain, and the table row says so. The Terza tail asymmetry was
+wrong as stated: it is treatment-state specific, not one-sided in `rho`. Verified
+numerically — at index 3 with `rho = -0.8` the untreated factor reaches 10.3, the
+mirror of the treated factor at index -3 with `rho = +0.8`. Every "small or
+negative rho is safe" rule was rescoped to `|rho|`. The control-function
+coefficient is now distinguished from Terza's structural `rho` (they agree only to
+first order, and only under a probit first stage). Multiplicative GMM is
+"moment-based", not "distribution-free". The Guggenberger pretest result is about
+nonuniform size, not MSE dominance. Bootstrap advice scoped to panel vs
+cross-section, with the point that the exogeneity test itself needs no correction.
+
+Elsewhere: entropy balancing's double robustness now carries its Zhao-Percival
+conditions; `nonparametric.qmd` separates orthogonality from efficiency at first
+mention and names the empirical-process term's conditions; `identification.qmd`
+stops deriving "only averages can be estimated" in one step; `did.qmd` states
+consistency, no-interference, overlap and stable composition alongside PT and NA,
+and cross-references the new `{#sec-spatial-interference}` anchor;
+`causal-discovery-latent.qmd` describes bidirected PAG edges as invariant
+arrowheads plus a latent inducing path rather than a definite hidden common cause.
+
+Rendered clean to HTML and PDF.

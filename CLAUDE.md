@@ -424,3 +424,10 @@ for sentence case, per the Prose style rule; the book has no `number-sections`, 
 one in-text "Section 3.4" now uses `@sec-poisson-iv-gr`. "Two standard deviations from
 Wooldridge's notation" now reads "Two departures". The Julia book's chapter was ported
 to match this one verbatim (except code) the same day.
+
+## 2026-09-28 — Mediation example: DGP statement and truth
+
+The interventional-effects example stated the mediator index as `+ A - Z`; the code
+(`rowSums` over two columns) gives `+ 2A - 2Z`. It also said there was no closed-form
+truth; every variable is binary, so IDE = -0.074, IIE = -0.025, ATE = -0.083 by
+enumeration (checked independently in Julia and R). The prose now states them.

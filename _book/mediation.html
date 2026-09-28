@@ -768,8 +768,8 @@ IDE + IIE = E[Y(1,M^*_1)] - E[Y(0,M^*_0)],
 <section id="example" class="level3" data-number="18.4.1"><h3 data-number="18.4.1" class="anchored" data-anchor-id="example">
 <span class="header-section-number">18.4.1</span> Example</h3>
 <p>This example uses the <code>medoutcon</code> vignette’s own DGP, which is built to contain exactly the treatment-induced confounder that defeats natural effects. We draw <span class="math inline">\(n = 1000\)</span> observations. Three binary baseline covariates: <span class="math inline">\(W_1 \sim \text{Bernoulli}(0.6)\)</span>, <span class="math inline">\(W_2 \sim \text{Bernoulli}(0.3)\)</span>, and <span class="math inline">\(W_3 \sim \text{Bernoulli}(\min(0.2 + (W_1+W_2)/3,\, 1))\)</span>. Treatment is <span class="math inline">\(A \sim \text{Bernoulli}(\Lambda(\sum_j W_j - 2))\)</span>.</p>
-<p>Then the key variable: <span class="math inline">\(Z \sim \text{Bernoulli}(\Lambda(\overline{-\log 2 + W - A} + 0.2))\)</span> is a mediator-outcome confounder that depends on <span class="math inline">\(A\)</span>. The mediator is <span class="math inline">\(M \sim \text{Bernoulli}(\Lambda(\log 3 (W_1 + W_2) + A - Z))\)</span> and the outcome is <span class="math inline">\(Y \sim \text{Bernoulli}(\Lambda(1/(\sum_j W_j - Z + A + M)))\)</span>.</p>
-<p>Because <span class="math inline">\(Z\)</span> is affected by <span class="math inline">\(A\)</span> and confounds <span class="math inline">\(M\)</span> and <span class="math inline">\(Y\)</span>, natural direct and indirect effects are not identified here by the formula of the previous section. Interventional effects are, which is the reason for this example. We do not have a closed-form truth for this DGP — the reciprocal inside the outcome link makes it awkward — so read the estimates against each other and against zero rather than against a target.</p>
+<p>Then the key variable: <span class="math inline">\(Z \sim \text{Bernoulli}(\Lambda(-\log 2 + (W_1+W_2+W_3)/3 - A + 0.2))\)</span> is a mediator-outcome confounder that depends on <span class="math inline">\(A\)</span>. The mediator is <span class="math inline">\(M \sim \text{Bernoulli}(\Lambda(\log 3 (W_1 + W_2) + 2A - 2Z))\)</span> and the outcome is <span class="math inline">\(Y \sim \text{Bernoulli}(\Lambda(1/(\sum_j W_j - Z + A + M)))\)</span>.</p>
+<p>Because <span class="math inline">\(Z\)</span> is affected by <span class="math inline">\(A\)</span> and confounds <span class="math inline">\(M\)</span> and <span class="math inline">\(Y\)</span>, natural direct and indirect effects are not identified here by the formula of the previous section. Interventional effects are, which is the reason for this example. Every variable is binary, so the truth follows by summing over the DGP: <span class="math inline">\(IDE = -0.074\)</span> and <span class="math inline">\(IIE = -0.025\)</span>. Their sum, the overall interventional effect, is <span class="math inline">\(-0.099\)</span>, while the <span class="math inline">\(ATE\)</span> is <span class="math inline">\(-0.083\)</span>. That is the gap <a href="#eq-mediation-16" class="quarto-xref">Equation&nbsp;<span>18.16</span></a> warns about: with <span class="math inline">\(Z\)</span> present, the two interventional effects do not add up to the total effect.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com">data.table</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyverse.tidyverse.org">tidyverse</a></span><span class="op">)</span></span>
@@ -844,7 +844,7 @@ IDE + IIE = E[Y(1,M^*_1)] - E[Y(0,M^*_0)],
 1 -0.170   -0.0708 0.0281 0.00254 1.12e-16 onestep   direct_interventional</code></pre>
 </div>
 </div>
-<p>The one-step estimator gives an interventional direct effect of <span class="math inline">\(-0.071\)</span> with a 95% interval of <span class="math inline">\([-0.170, 0.028]\)</span>. The interval includes zero.</p>
+<p>The one-step estimator gives an interventional direct effect of <span class="math inline">\(-0.071\)</span> with a 95% interval of <span class="math inline">\([-0.170, 0.028]\)</span>, against a true <span class="math inline">\(-0.074\)</span>. The interval includes zero.</p>
 <p>The same estimand can be targeted by TMLE instead:</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># compute targeted minimum loss estimate of the interventional direct effect</span></span>
@@ -1747,112 +1747,115 @@ Vansteelandt, Stijn, and Rhian M. Daniel. 2017. <span>“Interventional Effects 
 <span id="cb19-408"><a href="#cb19-408" aria-hidden="true" tabindex="-1"></a>$W_3 \sim \text{Bernoulli}(\min(0.2 + (W_1+W_2)/3,\, 1))$. Treatment is</span>
 <span id="cb19-409"><a href="#cb19-409" aria-hidden="true" tabindex="-1"></a>$A \sim \text{Bernoulli}(\Lambda(\sum_j W_j - 2))$.</span>
 <span id="cb19-410"><a href="#cb19-410" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-411"><a href="#cb19-411" aria-hidden="true" tabindex="-1"></a>Then the key variable: $Z \sim \text{Bernoulli}(\Lambda(\overline{-\log 2 + W - A} + 0.2))$</span>
+<span id="cb19-411"><a href="#cb19-411" aria-hidden="true" tabindex="-1"></a>Then the key variable: $Z \sim \text{Bernoulli}(\Lambda(-\log 2 + (W_1+W_2+W_3)/3 - A + 0.2))$</span>
 <span id="cb19-412"><a href="#cb19-412" aria-hidden="true" tabindex="-1"></a>is a mediator-outcome confounder that depends on $A$. The mediator is</span>
-<span id="cb19-413"><a href="#cb19-413" aria-hidden="true" tabindex="-1"></a>$M \sim \text{Bernoulli}(\Lambda(\log 3 (W_1 + W_2) + A - Z))$ and the outcome is</span>
+<span id="cb19-413"><a href="#cb19-413" aria-hidden="true" tabindex="-1"></a>$M \sim \text{Bernoulli}(\Lambda(\log 3 (W_1 + W_2) + 2A - 2Z))$ and the outcome is</span>
 <span id="cb19-414"><a href="#cb19-414" aria-hidden="true" tabindex="-1"></a>$Y \sim \text{Bernoulli}(\Lambda(1/(\sum_j W_j - Z + A + M)))$.</span>
 <span id="cb19-415"><a href="#cb19-415" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-416"><a href="#cb19-416" aria-hidden="true" tabindex="-1"></a>Because $Z$ is affected by $A$ and confounds $M$ and $Y$, natural direct and</span>
 <span id="cb19-417"><a href="#cb19-417" aria-hidden="true" tabindex="-1"></a>indirect effects are not identified here by the formula of the previous</span>
-<span id="cb19-418"><a href="#cb19-418" aria-hidden="true" tabindex="-1"></a>section. Interventional effects are, which is the reason for this example. We</span>
-<span id="cb19-419"><a href="#cb19-419" aria-hidden="true" tabindex="-1"></a>do not have a closed-form truth for this DGP --- the reciprocal inside the</span>
-<span id="cb19-420"><a href="#cb19-420" aria-hidden="true" tabindex="-1"></a>outcome link makes it awkward --- so read the estimates against each other and</span>
-<span id="cb19-421"><a href="#cb19-421" aria-hidden="true" tabindex="-1"></a>against zero rather than against a target.</span>
-<span id="cb19-422"><a href="#cb19-422" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-423"><a href="#cb19-423" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med7, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb19-424"><a href="#cb19-424" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
-<span id="cb19-425"><a href="#cb19-425" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb19-426"><a href="#cb19-426" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(medoutcon)</span>
-<span id="cb19-427"><a href="#cb19-427" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1584</span>)</span>
-<span id="cb19-428"><a href="#cb19-428" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-429"><a href="#cb19-429" aria-hidden="true" tabindex="-1"></a><span class="co"># produces a simple data set based on ca causal model with mediation</span></span>
-<span id="cb19-430"><a href="#cb19-430" aria-hidden="true" tabindex="-1"></a>make_example_data <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">n_obs =</span> <span class="dv">1000</span>) {</span>
-<span id="cb19-431"><a href="#cb19-431" aria-hidden="true" tabindex="-1"></a>  <span class="do">## baseline covariates</span></span>
-<span id="cb19-432"><a href="#cb19-432" aria-hidden="true" tabindex="-1"></a>  w_1 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fl">0.6</span>)</span>
-<span id="cb19-433"><a href="#cb19-433" aria-hidden="true" tabindex="-1"></a>  w_2 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fl">0.3</span>)</span>
-<span id="cb19-434"><a href="#cb19-434" aria-hidden="true" tabindex="-1"></a>  w_3 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fu">pmin</span>(<span class="fl">0.2</span> <span class="sc">+</span> (w_1 <span class="sc">+</span> w_2) <span class="sc">/</span> <span class="dv">3</span>, <span class="dv">1</span>))</span>
-<span id="cb19-435"><a href="#cb19-435" aria-hidden="true" tabindex="-1"></a>  w <span class="ot">&lt;-</span> <span class="fu">cbind</span>(w_1, w_2, w_3)</span>
-<span id="cb19-436"><a href="#cb19-436" aria-hidden="true" tabindex="-1"></a>  w_names <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="st">"W"</span>, <span class="fu">seq_len</span>(<span class="fu">ncol</span>(w)), <span class="at">sep =</span> <span class="st">"_"</span>)</span>
-<span id="cb19-437"><a href="#cb19-437" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-438"><a href="#cb19-438" aria-hidden="true" tabindex="-1"></a>  <span class="do">## exposure</span></span>
-<span id="cb19-439"><a href="#cb19-439" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fu">rowSums</span>(w) <span class="sc">-</span> <span class="dv">2</span>)))</span>
-<span id="cb19-440"><a href="#cb19-440" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-441"><a href="#cb19-441" aria-hidden="true" tabindex="-1"></a>  <span class="do">## mediator-outcome confounder affected by treatment</span></span>
-<span id="cb19-442"><a href="#cb19-442" aria-hidden="true" tabindex="-1"></a>  z <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fu">rowMeans</span>(<span class="sc">-</span><span class="fu">log</span>(<span class="dv">2</span>) <span class="sc">+</span> w <span class="sc">-</span> a) <span class="sc">+</span> <span class="fl">0.2</span>))</span>
-<span id="cb19-443"><a href="#cb19-443" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-444"><a href="#cb19-444" aria-hidden="true" tabindex="-1"></a>  <span class="do">## mediator -- could be multivariate</span></span>
-<span id="cb19-445"><a href="#cb19-445" aria-hidden="true" tabindex="-1"></a>  m <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fu">rowSums</span>(<span class="fu">log</span>(<span class="dv">3</span>) <span class="sc">*</span> w[, <span class="sc">-</span><span class="dv">3</span>] <span class="sc">+</span> a <span class="sc">-</span> z)))</span>
-<span id="cb19-446"><a href="#cb19-446" aria-hidden="true" tabindex="-1"></a>  m_names <span class="ot">&lt;-</span> <span class="st">"M"</span></span>
-<span id="cb19-447"><a href="#cb19-447" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-448"><a href="#cb19-448" aria-hidden="true" tabindex="-1"></a>  <span class="do">## outcome</span></span>
-<span id="cb19-449"><a href="#cb19-449" aria-hidden="true" tabindex="-1"></a>  <span class="do">## (the reciprocal inside plogis is an idiosyncrasy of the medoutcon</span></span>
-<span id="cb19-450"><a href="#cb19-450" aria-hidden="true" tabindex="-1"></a>  <span class="do">##  vignette DGP, not a standard logistic model; a zero denominator</span></span>
-<span id="cb19-451"><a href="#cb19-451" aria-hidden="true" tabindex="-1"></a>  <span class="do">##  gives plogis(Inf) = 1, which R handles without error)</span></span>
-<span id="cb19-452"><a href="#cb19-452" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="dv">1</span> <span class="sc">/</span> (<span class="fu">rowSums</span>(w) <span class="sc">-</span> z <span class="sc">+</span> a <span class="sc">+</span> m)))</span>
-<span id="cb19-453"><a href="#cb19-453" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-454"><a href="#cb19-454" aria-hidden="true" tabindex="-1"></a>  <span class="do">## construct output</span></span>
-<span id="cb19-455"><a href="#cb19-455" aria-hidden="true" tabindex="-1"></a>  dat <span class="ot">&lt;-</span> <span class="fu">as.data.table</span>(<span class="fu">cbind</span>(<span class="at">w =</span> w, <span class="at">a =</span> a, <span class="at">z =</span> z, <span class="at">m =</span> m, <span class="at">y =</span> y))</span>
-<span id="cb19-456"><a href="#cb19-456" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setnames</span>(dat, <span class="fu">c</span>(w_names, <span class="st">"A"</span>, <span class="st">"Z"</span>, m_names, <span class="st">"Y"</span>))</span>
-<span id="cb19-457"><a href="#cb19-457" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(dat)</span>
-<span id="cb19-458"><a href="#cb19-458" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb19-459"><a href="#cb19-459" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb19-460"><a href="#cb19-460" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-461"><a href="#cb19-461" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med8, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb19-462"><a href="#cb19-462" aria-hidden="true" tabindex="-1"></a><span class="co"># set seed and simulate example data</span></span>
-<span id="cb19-463"><a href="#cb19-463" aria-hidden="true" tabindex="-1"></a>example_data <span class="ot">&lt;-</span> <span class="fu">make_example_data</span>()</span>
-<span id="cb19-464"><a href="#cb19-464" aria-hidden="true" tabindex="-1"></a>w_names <span class="ot">&lt;-</span> <span class="fu">str_subset</span>(<span class="fu">colnames</span>(example_data), <span class="st">"W"</span>)</span>
-<span id="cb19-465"><a href="#cb19-465" aria-hidden="true" tabindex="-1"></a>m_names <span class="ot">&lt;-</span> <span class="fu">str_subset</span>(<span class="fu">colnames</span>(example_data), <span class="st">"M"</span>)</span>
-<span id="cb19-466"><a href="#cb19-466" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-467"><a href="#cb19-467" aria-hidden="true" tabindex="-1"></a><span class="co"># quick look at the data</span></span>
-<span id="cb19-468"><a href="#cb19-468" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(example_data)</span>
-<span id="cb19-469"><a href="#cb19-469" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb19-470"><a href="#cb19-470" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-471"><a href="#cb19-471" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med9, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb19-472"><a href="#cb19-472" aria-hidden="true" tabindex="-1"></a><span class="co"># compute one-step estimate of the interventional direct effect</span></span>
-<span id="cb19-473"><a href="#cb19-473" aria-hidden="true" tabindex="-1"></a>os_de <span class="ot">&lt;-</span> <span class="fu">medoutcon</span>(<span class="at">W =</span> example_data[, ..w_names],</span>
-<span id="cb19-474"><a href="#cb19-474" aria-hidden="true" tabindex="-1"></a>                   <span class="at">A =</span> example_data<span class="sc">$</span>A,</span>
-<span id="cb19-475"><a href="#cb19-475" aria-hidden="true" tabindex="-1"></a>                   <span class="at">Z =</span> example_data<span class="sc">$</span>Z,</span>
-<span id="cb19-476"><a href="#cb19-476" aria-hidden="true" tabindex="-1"></a>                   <span class="at">M =</span> example_data[, ..m_names],</span>
-<span id="cb19-477"><a href="#cb19-477" aria-hidden="true" tabindex="-1"></a>                   <span class="at">Y =</span> example_data<span class="sc">$</span>Y,</span>
-<span id="cb19-478"><a href="#cb19-478" aria-hidden="true" tabindex="-1"></a>                   <span class="at">effect =</span> <span class="st">"direct"</span>,</span>
-<span id="cb19-479"><a href="#cb19-479" aria-hidden="true" tabindex="-1"></a>                   <span class="at">estimator =</span> <span class="st">"onestep"</span>)</span>
-<span id="cb19-480"><a href="#cb19-480" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(os_de)</span>
-<span id="cb19-481"><a href="#cb19-481" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb19-482"><a href="#cb19-482" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-483"><a href="#cb19-483" aria-hidden="true" tabindex="-1"></a>The one-step estimator gives an interventional direct effect of $-0.071$ with a</span>
-<span id="cb19-484"><a href="#cb19-484" aria-hidden="true" tabindex="-1"></a>95% interval of $<span class="co">[</span><span class="ot">-0.170, 0.028</span><span class="co">]</span>$. The interval includes zero.</span>
-<span id="cb19-485"><a href="#cb19-485" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-486"><a href="#cb19-486" aria-hidden="true" tabindex="-1"></a>The same estimand can be targeted by TMLE instead:</span>
-<span id="cb19-487"><a href="#cb19-487" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-488"><a href="#cb19-488" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med10, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
-<span id="cb19-489"><a href="#cb19-489" aria-hidden="true" tabindex="-1"></a><span class="co"># compute targeted minimum loss estimate of the interventional direct effect</span></span>
-<span id="cb19-490"><a href="#cb19-490" aria-hidden="true" tabindex="-1"></a>tmle_de <span class="ot">&lt;-</span> <span class="fu">medoutcon</span>(<span class="at">W =</span> example_data[, ..w_names],</span>
-<span id="cb19-491"><a href="#cb19-491" aria-hidden="true" tabindex="-1"></a>                     <span class="at">A =</span> example_data<span class="sc">$</span>A,</span>
-<span id="cb19-492"><a href="#cb19-492" aria-hidden="true" tabindex="-1"></a>                     <span class="at">Z =</span> example_data<span class="sc">$</span>Z,</span>
-<span id="cb19-493"><a href="#cb19-493" aria-hidden="true" tabindex="-1"></a>                     <span class="at">M =</span> example_data[, ..m_names],</span>
-<span id="cb19-494"><a href="#cb19-494" aria-hidden="true" tabindex="-1"></a>                     <span class="at">Y =</span> example_data<span class="sc">$</span>Y,</span>
-<span id="cb19-495"><a href="#cb19-495" aria-hidden="true" tabindex="-1"></a>                     <span class="at">effect =</span> <span class="st">"direct"</span>,</span>
-<span id="cb19-496"><a href="#cb19-496" aria-hidden="true" tabindex="-1"></a>                     <span class="at">estimator =</span> <span class="st">"tmle"</span>)</span>
-<span id="cb19-497"><a href="#cb19-497" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-498"><a href="#cb19-498" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(tmle_de)</span>
-<span id="cb19-499"><a href="#cb19-499" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb19-418"><a href="#cb19-418" aria-hidden="true" tabindex="-1"></a>section. Interventional effects are, which is the reason for this example.</span>
+<span id="cb19-419"><a href="#cb19-419" aria-hidden="true" tabindex="-1"></a>Every variable is binary, so the truth follows by summing over the DGP:</span>
+<span id="cb19-420"><a href="#cb19-420" aria-hidden="true" tabindex="-1"></a>$IDE = -0.074$ and $IIE = -0.025$. Their sum, the overall interventional effect,</span>
+<span id="cb19-421"><a href="#cb19-421" aria-hidden="true" tabindex="-1"></a>is $-0.099$, while the $ATE$ is $-0.083$. That is the gap @eq-mediation-16 warns</span>
+<span id="cb19-422"><a href="#cb19-422" aria-hidden="true" tabindex="-1"></a>about: with $Z$ present, the two interventional effects do not add up to the</span>
+<span id="cb19-423"><a href="#cb19-423" aria-hidden="true" tabindex="-1"></a>total effect.</span>
+<span id="cb19-424"><a href="#cb19-424" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-425"><a href="#cb19-425" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med7, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb19-426"><a href="#cb19-426" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
+<span id="cb19-427"><a href="#cb19-427" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb19-428"><a href="#cb19-428" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(medoutcon)</span>
+<span id="cb19-429"><a href="#cb19-429" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1584</span>)</span>
+<span id="cb19-430"><a href="#cb19-430" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-431"><a href="#cb19-431" aria-hidden="true" tabindex="-1"></a><span class="co"># produces a simple data set based on ca causal model with mediation</span></span>
+<span id="cb19-432"><a href="#cb19-432" aria-hidden="true" tabindex="-1"></a>make_example_data <span class="ot">&lt;-</span> <span class="cf">function</span>(<span class="at">n_obs =</span> <span class="dv">1000</span>) {</span>
+<span id="cb19-433"><a href="#cb19-433" aria-hidden="true" tabindex="-1"></a>  <span class="do">## baseline covariates</span></span>
+<span id="cb19-434"><a href="#cb19-434" aria-hidden="true" tabindex="-1"></a>  w_1 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fl">0.6</span>)</span>
+<span id="cb19-435"><a href="#cb19-435" aria-hidden="true" tabindex="-1"></a>  w_2 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fl">0.3</span>)</span>
+<span id="cb19-436"><a href="#cb19-436" aria-hidden="true" tabindex="-1"></a>  w_3 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="at">prob =</span> <span class="fu">pmin</span>(<span class="fl">0.2</span> <span class="sc">+</span> (w_1 <span class="sc">+</span> w_2) <span class="sc">/</span> <span class="dv">3</span>, <span class="dv">1</span>))</span>
+<span id="cb19-437"><a href="#cb19-437" aria-hidden="true" tabindex="-1"></a>  w <span class="ot">&lt;-</span> <span class="fu">cbind</span>(w_1, w_2, w_3)</span>
+<span id="cb19-438"><a href="#cb19-438" aria-hidden="true" tabindex="-1"></a>  w_names <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="st">"W"</span>, <span class="fu">seq_len</span>(<span class="fu">ncol</span>(w)), <span class="at">sep =</span> <span class="st">"_"</span>)</span>
+<span id="cb19-439"><a href="#cb19-439" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-440"><a href="#cb19-440" aria-hidden="true" tabindex="-1"></a>  <span class="do">## exposure</span></span>
+<span id="cb19-441"><a href="#cb19-441" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fu">rowSums</span>(w) <span class="sc">-</span> <span class="dv">2</span>)))</span>
+<span id="cb19-442"><a href="#cb19-442" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-443"><a href="#cb19-443" aria-hidden="true" tabindex="-1"></a>  <span class="do">## mediator-outcome confounder affected by treatment</span></span>
+<span id="cb19-444"><a href="#cb19-444" aria-hidden="true" tabindex="-1"></a>  z <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fu">rowMeans</span>(<span class="sc">-</span><span class="fu">log</span>(<span class="dv">2</span>) <span class="sc">+</span> w <span class="sc">-</span> a) <span class="sc">+</span> <span class="fl">0.2</span>))</span>
+<span id="cb19-445"><a href="#cb19-445" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-446"><a href="#cb19-446" aria-hidden="true" tabindex="-1"></a>  <span class="do">## mediator -- could be multivariate</span></span>
+<span id="cb19-447"><a href="#cb19-447" aria-hidden="true" tabindex="-1"></a>  m <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="fu">rowSums</span>(<span class="fu">log</span>(<span class="dv">3</span>) <span class="sc">*</span> w[, <span class="sc">-</span><span class="dv">3</span>] <span class="sc">+</span> a <span class="sc">-</span> z)))</span>
+<span id="cb19-448"><a href="#cb19-448" aria-hidden="true" tabindex="-1"></a>  m_names <span class="ot">&lt;-</span> <span class="st">"M"</span></span>
+<span id="cb19-449"><a href="#cb19-449" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-450"><a href="#cb19-450" aria-hidden="true" tabindex="-1"></a>  <span class="do">## outcome</span></span>
+<span id="cb19-451"><a href="#cb19-451" aria-hidden="true" tabindex="-1"></a>  <span class="do">## (the reciprocal inside plogis is an idiosyncrasy of the medoutcon</span></span>
+<span id="cb19-452"><a href="#cb19-452" aria-hidden="true" tabindex="-1"></a>  <span class="do">##  vignette DGP, not a standard logistic model; a zero denominator</span></span>
+<span id="cb19-453"><a href="#cb19-453" aria-hidden="true" tabindex="-1"></a>  <span class="do">##  gives plogis(Inf) = 1, which R handles without error)</span></span>
+<span id="cb19-454"><a href="#cb19-454" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n_obs, <span class="dv">1</span>, <span class="fu">plogis</span>(<span class="dv">1</span> <span class="sc">/</span> (<span class="fu">rowSums</span>(w) <span class="sc">-</span> z <span class="sc">+</span> a <span class="sc">+</span> m)))</span>
+<span id="cb19-455"><a href="#cb19-455" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-456"><a href="#cb19-456" aria-hidden="true" tabindex="-1"></a>  <span class="do">## construct output</span></span>
+<span id="cb19-457"><a href="#cb19-457" aria-hidden="true" tabindex="-1"></a>  dat <span class="ot">&lt;-</span> <span class="fu">as.data.table</span>(<span class="fu">cbind</span>(<span class="at">w =</span> w, <span class="at">a =</span> a, <span class="at">z =</span> z, <span class="at">m =</span> m, <span class="at">y =</span> y))</span>
+<span id="cb19-458"><a href="#cb19-458" aria-hidden="true" tabindex="-1"></a>  <span class="fu">setnames</span>(dat, <span class="fu">c</span>(w_names, <span class="st">"A"</span>, <span class="st">"Z"</span>, m_names, <span class="st">"Y"</span>))</span>
+<span id="cb19-459"><a href="#cb19-459" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(dat)</span>
+<span id="cb19-460"><a href="#cb19-460" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb19-461"><a href="#cb19-461" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb19-462"><a href="#cb19-462" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-463"><a href="#cb19-463" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med8, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb19-464"><a href="#cb19-464" aria-hidden="true" tabindex="-1"></a><span class="co"># set seed and simulate example data</span></span>
+<span id="cb19-465"><a href="#cb19-465" aria-hidden="true" tabindex="-1"></a>example_data <span class="ot">&lt;-</span> <span class="fu">make_example_data</span>()</span>
+<span id="cb19-466"><a href="#cb19-466" aria-hidden="true" tabindex="-1"></a>w_names <span class="ot">&lt;-</span> <span class="fu">str_subset</span>(<span class="fu">colnames</span>(example_data), <span class="st">"W"</span>)</span>
+<span id="cb19-467"><a href="#cb19-467" aria-hidden="true" tabindex="-1"></a>m_names <span class="ot">&lt;-</span> <span class="fu">str_subset</span>(<span class="fu">colnames</span>(example_data), <span class="st">"M"</span>)</span>
+<span id="cb19-468"><a href="#cb19-468" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-469"><a href="#cb19-469" aria-hidden="true" tabindex="-1"></a><span class="co"># quick look at the data</span></span>
+<span id="cb19-470"><a href="#cb19-470" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(example_data)</span>
+<span id="cb19-471"><a href="#cb19-471" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb19-472"><a href="#cb19-472" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-473"><a href="#cb19-473" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med9, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb19-474"><a href="#cb19-474" aria-hidden="true" tabindex="-1"></a><span class="co"># compute one-step estimate of the interventional direct effect</span></span>
+<span id="cb19-475"><a href="#cb19-475" aria-hidden="true" tabindex="-1"></a>os_de <span class="ot">&lt;-</span> <span class="fu">medoutcon</span>(<span class="at">W =</span> example_data[, ..w_names],</span>
+<span id="cb19-476"><a href="#cb19-476" aria-hidden="true" tabindex="-1"></a>                   <span class="at">A =</span> example_data<span class="sc">$</span>A,</span>
+<span id="cb19-477"><a href="#cb19-477" aria-hidden="true" tabindex="-1"></a>                   <span class="at">Z =</span> example_data<span class="sc">$</span>Z,</span>
+<span id="cb19-478"><a href="#cb19-478" aria-hidden="true" tabindex="-1"></a>                   <span class="at">M =</span> example_data[, ..m_names],</span>
+<span id="cb19-479"><a href="#cb19-479" aria-hidden="true" tabindex="-1"></a>                   <span class="at">Y =</span> example_data<span class="sc">$</span>Y,</span>
+<span id="cb19-480"><a href="#cb19-480" aria-hidden="true" tabindex="-1"></a>                   <span class="at">effect =</span> <span class="st">"direct"</span>,</span>
+<span id="cb19-481"><a href="#cb19-481" aria-hidden="true" tabindex="-1"></a>                   <span class="at">estimator =</span> <span class="st">"onestep"</span>)</span>
+<span id="cb19-482"><a href="#cb19-482" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(os_de)</span>
+<span id="cb19-483"><a href="#cb19-483" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb19-484"><a href="#cb19-484" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-485"><a href="#cb19-485" aria-hidden="true" tabindex="-1"></a>The one-step estimator gives an interventional direct effect of $-0.071$ with a</span>
+<span id="cb19-486"><a href="#cb19-486" aria-hidden="true" tabindex="-1"></a>95% interval of $<span class="co">[</span><span class="ot">-0.170, 0.028</span><span class="co">]</span>$, against a true $-0.074$. The interval includes</span>
+<span id="cb19-487"><a href="#cb19-487" aria-hidden="true" tabindex="-1"></a>zero.</span>
+<span id="cb19-488"><a href="#cb19-488" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-489"><a href="#cb19-489" aria-hidden="true" tabindex="-1"></a>The same estimand can be targeted by TMLE instead:</span>
+<span id="cb19-490"><a href="#cb19-490" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-491"><a href="#cb19-491" aria-hidden="true" tabindex="-1"></a><span class="in">```{r med10, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}</span></span>
+<span id="cb19-492"><a href="#cb19-492" aria-hidden="true" tabindex="-1"></a><span class="co"># compute targeted minimum loss estimate of the interventional direct effect</span></span>
+<span id="cb19-493"><a href="#cb19-493" aria-hidden="true" tabindex="-1"></a>tmle_de <span class="ot">&lt;-</span> <span class="fu">medoutcon</span>(<span class="at">W =</span> example_data[, ..w_names],</span>
+<span id="cb19-494"><a href="#cb19-494" aria-hidden="true" tabindex="-1"></a>                     <span class="at">A =</span> example_data<span class="sc">$</span>A,</span>
+<span id="cb19-495"><a href="#cb19-495" aria-hidden="true" tabindex="-1"></a>                     <span class="at">Z =</span> example_data<span class="sc">$</span>Z,</span>
+<span id="cb19-496"><a href="#cb19-496" aria-hidden="true" tabindex="-1"></a>                     <span class="at">M =</span> example_data[, ..m_names],</span>
+<span id="cb19-497"><a href="#cb19-497" aria-hidden="true" tabindex="-1"></a>                     <span class="at">Y =</span> example_data<span class="sc">$</span>Y,</span>
+<span id="cb19-498"><a href="#cb19-498" aria-hidden="true" tabindex="-1"></a>                     <span class="at">effect =</span> <span class="st">"direct"</span>,</span>
+<span id="cb19-499"><a href="#cb19-499" aria-hidden="true" tabindex="-1"></a>                     <span class="at">estimator =</span> <span class="st">"tmle"</span>)</span>
 <span id="cb19-500"><a href="#cb19-500" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-501"><a href="#cb19-501" aria-hidden="true" tabindex="-1"></a>TMLE gives $-0.068$ with a 95% interval of $<span class="co">[</span><span class="ot">-0.169, 0.033</span><span class="co">]</span>$, essentially the</span>
-<span id="cb19-502"><a href="#cb19-502" aria-hidden="true" tabindex="-1"></a>same answer as the one-step estimator. Both are indistinguishable from zero at</span>
-<span id="cb19-503"><a href="#cb19-503" aria-hidden="true" tabindex="-1"></a>$n = 1000$: the interval is about 0.2 wide for an effect of 0.07, so this</span>
-<span id="cb19-504"><a href="#cb19-504" aria-hidden="true" tabindex="-1"></a>sample cannot resolve it.</span>
-<span id="cb19-505"><a href="#cb19-505" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-506"><a href="#cb19-506" aria-hidden="true" tabindex="-1"></a>One diagnostic in the output is worth reading. The <span class="in">`eif_mean`</span> column reports the</span>
-<span id="cb19-507"><a href="#cb19-507" aria-hidden="true" tabindex="-1"></a>mean of the estimated efficient influence function, which should be zero at the</span>
-<span id="cb19-508"><a href="#cb19-508" aria-hidden="true" tabindex="-1"></a>solution. The one-step estimator gives $1.1 \times 10^{-16}$, machine zero, as</span>
-<span id="cb19-509"><a href="#cb19-509" aria-hidden="true" tabindex="-1"></a>it must --- solving that equation is what a one-step estimator does. TMLE gives</span>
-<span id="cb19-510"><a href="#cb19-510" aria-hidden="true" tabindex="-1"></a>0.021, which is not zero. TMLE reaches its solution by tilting the initial</span>
-<span id="cb19-511"><a href="#cb19-511" aria-hidden="true" tabindex="-1"></a>outcome fit rather than by adding a correction term, and here the tilt has not</span>
-<span id="cb19-512"><a href="#cb19-512" aria-hidden="true" tabindex="-1"></a>driven the score all the way to zero. The two estimates agree anyway, but a</span>
-<span id="cb19-513"><a href="#cb19-513" aria-hidden="true" tabindex="-1"></a>large <span class="in">`eif_mean`</span> is the signal that a TMLE fit has not converged. The</span>
-<span id="cb19-514"><a href="#cb19-514" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">TMLE chapter</span><span class="co">](https://xiangao.github.io/blog_book/tmle.html)</span> in *Topics on</span>
-<span id="cb19-515"><a href="#cb19-515" aria-hidden="true" tabindex="-1"></a>Econometrics and Causal Inference* works through the tilting step and its</span>
-<span id="cb19-516"><a href="#cb19-516" aria-hidden="true" tabindex="-1"></a>convergence diagnostics in detail.</span>
+<span id="cb19-501"><a href="#cb19-501" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(tmle_de)</span>
+<span id="cb19-502"><a href="#cb19-502" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb19-503"><a href="#cb19-503" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-504"><a href="#cb19-504" aria-hidden="true" tabindex="-1"></a>TMLE gives $-0.068$ with a 95% interval of $<span class="co">[</span><span class="ot">-0.169, 0.033</span><span class="co">]</span>$, essentially the</span>
+<span id="cb19-505"><a href="#cb19-505" aria-hidden="true" tabindex="-1"></a>same answer as the one-step estimator. Both are indistinguishable from zero at</span>
+<span id="cb19-506"><a href="#cb19-506" aria-hidden="true" tabindex="-1"></a>$n = 1000$: the interval is about 0.2 wide for an effect of 0.07, so this</span>
+<span id="cb19-507"><a href="#cb19-507" aria-hidden="true" tabindex="-1"></a>sample cannot resolve it.</span>
+<span id="cb19-508"><a href="#cb19-508" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-509"><a href="#cb19-509" aria-hidden="true" tabindex="-1"></a>One diagnostic in the output is worth reading. The <span class="in">`eif_mean`</span> column reports the</span>
+<span id="cb19-510"><a href="#cb19-510" aria-hidden="true" tabindex="-1"></a>mean of the estimated efficient influence function, which should be zero at the</span>
+<span id="cb19-511"><a href="#cb19-511" aria-hidden="true" tabindex="-1"></a>solution. The one-step estimator gives $1.1 \times 10^{-16}$, machine zero, as</span>
+<span id="cb19-512"><a href="#cb19-512" aria-hidden="true" tabindex="-1"></a>it must --- solving that equation is what a one-step estimator does. TMLE gives</span>
+<span id="cb19-513"><a href="#cb19-513" aria-hidden="true" tabindex="-1"></a>0.021, which is not zero. TMLE reaches its solution by tilting the initial</span>
+<span id="cb19-514"><a href="#cb19-514" aria-hidden="true" tabindex="-1"></a>outcome fit rather than by adding a correction term, and here the tilt has not</span>
+<span id="cb19-515"><a href="#cb19-515" aria-hidden="true" tabindex="-1"></a>driven the score all the way to zero. The two estimates agree anyway, but a</span>
+<span id="cb19-516"><a href="#cb19-516" aria-hidden="true" tabindex="-1"></a>large <span class="in">`eif_mean`</span> is the signal that a TMLE fit has not converged. The</span>
+<span id="cb19-517"><a href="#cb19-517" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">TMLE chapter</span><span class="co">](https://xiangao.github.io/blog_book/tmle.html)</span> in *Topics on</span>
+<span id="cb19-518"><a href="#cb19-518" aria-hidden="true" tabindex="-1"></a>Econometrics and Causal Inference* works through the tilting step and its</span>
+<span id="cb19-519"><a href="#cb19-519" aria-hidden="true" tabindex="-1"></a>convergence diagnostics in detail.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

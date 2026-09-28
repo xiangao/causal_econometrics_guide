@@ -416,3 +416,11 @@ and cross-references the new `{#sec-spatial-interference}` anchor;
 arrowheads plus a latent inducing path rather than a definite hidden common cause.
 
 Rendered clean to HTML and PDF.
+
+## 2026-09-28 — Poisson IV headings to sentence case
+
+`poisson-iv.qmd` headings dropped their hand-typed numbers ("## 3. Estimators for ...")
+for sentence case, per the Prose style rule; the book has no `number-sections`, and the
+one in-text "Section 3.4" now uses `@sec-poisson-iv-gr`. "Two standard deviations from
+Wooldridge's notation" now reads "Two departures". The Julia book's chapter was ported
+to match this one verbatim (except code) the same day.

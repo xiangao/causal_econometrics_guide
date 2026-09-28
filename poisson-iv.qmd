@@ -25,7 +25,7 @@ This chapter covers:
 
 ---
 
-## 1. The Model and Setup
+## The model and setup
 
 Let $y_1$ denote the count outcome, $y_2$ the endogenous explanatory variable, and $\mathbf{z} = (\mathbf{z}_1, \mathbf{z}_2)$ the vector of exogenous variables ($\mathbf{z}_1$ included in the structural equation, $\mathbf{z}_2$ excluded instruments).
 
@@ -34,7 +34,7 @@ $$E(y_1 \mid \mathbf{z}_1, y_2, c_1) = \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + 
 
 where $c_1$ is an unobserved omitted variable correlated with $y_2$. Our primary estimand of interest is $\alpha_1$, the structural semi-elasticity of $y_1$ with respect to $y_2$.
 
-### Subscripts Index Equations
+### Subscripts index equations
 
 Following the simultaneous-equations convention of @wooldridge-2010-crosssection (ch. 18), **subscripts index equations rather than individual variables**:
 - **Equation 1 (Structural equation):** outcome $y_1$, parameters $(\boldsymbol{\delta}_1, \alpha_1)$, unobserved error $c_1$.
@@ -50,11 +50,11 @@ Following the simultaneous-equations convention of @wooldridge-2010-crosssection
 | Structural unobservable | $U$ | $c_1$ | Confounder correlated with $y_2$ |
 | Endogeneity parameter | $\rho$ | $\rho_1$ | Projection coefficient: $c_1 = \rho_1 v_2 + e_1$ |
 
-Two standard deviations from Wooldridge's notation are maintained for clarity:
+Two departures from Wooldridge's notation are maintained for clarity:
 1. Wooldridge writes the coefficient on $y_2$ as $\gamma_1$; we write $\alpha_1$ to align with standard treatment effect notation.
 2. Where Wooldridge writes $\mathbf{x}_1\boldsymbol{\beta}_1$, we write $\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2$.
 
-### Fixed Effects in the Exponential Model
+### Fixed effects in the exponential model
 
 Everything below absorbs fixed effects without comment, and it is worth saying once why that is allowed. Fixed-effects Poisson has no incidental parameters problem [@wooldridge-1999-multiplicative; @lin-wooldridge-2019]. With $N \to \infty$ and $T$ fixed, the unit effects enter multiplicatively, factor out of the score, and are conditioned out cleanly. The estimator of $\boldsymbol{\beta}$ is consistent even though the number of unit parameters grows with the sample. Probit and logit have no such property, which is why the first stage of @sec-poisson-iv-gr needs the Mundlak device while the second stage does not.
 
@@ -64,9 +64,9 @@ Stata's `ivpoisson` handles endogenous regressors, but it cannot absorb high-dim
 
 ---
 
-## 2. Theoretical Foundations: Control Functions vs. GMM
+## Control functions and GMM
 
-### 2.1 The Linear Second Stage: Control Function *is* 2SLS
+### A linear second stage: the control function *is* 2SLS
 
 To see where the nonlinear complication begins, consider first the linear model:
 $$y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \varepsilon_1, \qquad E(\mathbf{z}'\varepsilon_1) = \mathbf{0}$$
@@ -84,7 +84,7 @@ $$y_1 = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{v}_2 + \e
 
 By the **Frisch–Waugh–Lovell (FWL) theorem**, OLS estimation of this augmented regression produces an estimate $\hat{\alpha}_1$ that is **numerically identical to 2SLS**. No additional distributional assumptions are required beyond the standard orthogonality condition $E(\mathbf{z}'\varepsilon_1) = \mathbf{0}$.
 
-### 2.2 The Nonlinear Second Stage: The Control Function Needs More Than Uncorrelatedness
+### A nonlinear second stage: the control function needs more than uncorrelatedness
 
 When the conditional mean is exponential, this automatic numerical equivalence breaks down. 
 
@@ -111,9 +111,9 @@ This condition restricts the **conditional moment-generating function** of $e_1$
 
 ---
 
-## 3. Estimators for Endogenous Regressors
+## Estimators for endogenous regressors
 
-### 3.1 Continuous $y_2$: The Linear Reduced Form Holds
+### Continuous $y_2$: the linear reduced form holds
 
 When $y_2$ is continuous (e.g., hours worked, prices, expenditures), a linear reduced form with additive errors is natural:
 $$y_2 = \mathbf{z}\boldsymbol{\pi}_2 + v_2, \qquad c_1 = \rho_1 v_2 + e_1$$ {#eq-poisson-iv-3}
@@ -129,7 +129,7 @@ $$E(y_1 \mid \mathbf{z}_1, y_2, v_2) = \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + 
 
 This is @lin-wooldridge-2019's Procedure 3. In a panel, step 1 absorbs the unit effects (`reghdfe` in Stata, `feols` in R) and step 2 absorbs them again (`ppmlhdfe`, `fepois`).
 
-#### The First Stage May Absorb or Average: Both Give the Same Answer
+#### The first stage may absorb or average: both give the same answer
 
 There are two ways to handle unit effects in a linear first stage, and it does not matter which we pick. Regressing $y_{it2}$ on $\mathbf{z}_{it}$ and unit dummies gives the fixed-effects residual $\hat{v}_{it2}^{FE}$. Regressing $y_{it2}$ on $\mathbf{z}_{it}$ and the unit means $\bar{\mathbf{z}}_i$ — the Mundlak device — gives the Mundlak residual $\hat{v}_{it2}^{M}$. Substituting either one into the second-stage FE Poisson gives **numerically identical** $\hat{\alpha}_1$ and $\hat{\rho}_1$ [@lin-wooldridge-2019, app. A.1–A.2].
 
@@ -144,7 +144,7 @@ This holds only when the first stage averages or absorbs on the same dimension t
 
 ---
 
-### 3.2 Binary $y_2$: Why the Linear Reduced Form Fails
+### Binary $y_2$: why the linear reduced form fails
 
 When $y_2 \in \{0, 1\}$ is binary, the linear reduced-form residual $v_2 = y_2 - \mathbf{z}\boldsymbol{\pi}_2$ takes exactly two values conditional on $\mathbf{z}$:
 $$v_2 \mid \mathbf{z} = \begin{cases} 1 - \mathbf{z}\boldsymbol{\pi}_2 & \text{with probability } p(\mathbf{z}) \\ -\mathbf{z}\boldsymbol{\pi}_2 & \text{with probability } 1 - p(\mathbf{z}) \end{cases}$$ {#eq-poisson-iv-5}
@@ -156,19 +156,19 @@ As @wooldridge-2010-crosssection [p. 746] emphasizes:
 
 A distribution whose support moves with $\mathbf{z}$ cannot be independent of $\mathbf{z}$ (unless $\boldsymbol{\pi}_2 = \mathbf{0}$, meaning there is no first stage). Therefore, $v_2 \perp \mathbf{z}$ fails mathematically for any discrete endogenous variable.
 
-#### Where the Independence Assumption Belongs
-The issue is not that the observed residual is discrete. The generalized residual of Section 3.4 is also two-valued given $\mathbf{z}$. 
+#### Where the independence assumption belongs
+The issue is not that the observed residual is discrete. The generalized residual of @sec-poisson-iv-gr is also two-valued given $\mathbf{z}$. 
 
 The critical distinction is **which object independence is asserted about**:
 - The linear CF asserts independence of the **observed discrete residual** $v_2$, which is impossible.
 - Terza's threshold model asserts independence of the **continuous latent probit error** $v_2 \mid \mathbf{z} \sim N(0, 1)$, which is the standard assumption of probit models.
 
-#### What Survives: The Exogeneity Test
+#### What survives: the exogeneity test
 The linear-residual construction remains **fully valid as a Hausman-type exogeneity test** [@wooldridge-2010-crosssection, p. 744]. Under the null hypothesis of exogeneity ($H_0: \rho_1 = 0$), $c_1$ does not enter the model, so none of the joint independence assumptions are needed. A standard $t$-test on $\hat{v}_2 = 0$ in the Poisson second stage provides an asymptotically valid test for endogeneity.
 
 ---
 
-### 3.3 Terza's (1998) Exact Correction
+### Terza's (1998) exact correction
 
 To resolve the discreteness problem, @terza-1998 and @wooldridge-2010-crosssection (sec. 18.5) replace the linear probability model with a **latent threshold model**:
 $$y_2 = \mathbf{1}[\mathbf{z}\boldsymbol{\pi}_2 + v_2 \ge 0], \qquad v_2 \mid \mathbf{z} \sim N(0, 1)$$ {#eq-poisson-iv-6}
@@ -186,7 +186,7 @@ $$h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1) = \exp(\rho_1^2 / 2) \left[ y_2 \
 
 Here $\Phi(\cdot)$ denotes the standard normal CDF, $\rho_1 = \mathrm{Cov}(c_1, v_2)$ is a projection coefficient on the scale of the probit index, and $\exp(\rho_1^2 / 2)$ is the lognormal correction factor.
 
-#### Estimation via 1D Profile Likelihood with Offset
+#### Estimation by a one-dimensional profile likelihood with an offset
 Notice that for any fixed value of $\rho_1$, $\log h(y_2, \mathbf{z}\hat{\boldsymbol{\pi}}_2, \rho_1)$ is a known data column. The conditional mean can be written as:
 $$E(y_1 \mid \mathbf{z}, y_2, \alpha_i) = \exp\bigl(\mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \alpha_i + \log h(\rho_1)\bigr)$$ {#eq-poisson-iv-9}
 
@@ -197,7 +197,7 @@ $$\exp(\hat{\alpha}_i) = \frac{\sum_t y_{1,it}}{\sum_t \exp(\mathbf{z}_{1,it}\bo
 
 Fixed effects are absorbed without an incidental parameters problem. The full model is estimated by profiling out $(\boldsymbol{\delta}_1, \alpha_1)$ and optimizing over the single scalar $\rho_1 \in [-2, 2]$ using 1D optimization.
 
-#### Terza's Estimators and FIML
+#### Terza's estimators and FIML
 @terza-1998 proposes three estimators:
 1. **Full-Information Maximum Likelihood (FIML):** Evaluates the joint likelihood of $y_1$ and $y_2$ by integrating out $v_2$ via Gauss–Hermite quadrature.
 2. **Two-Stage Method of Moments / QMLE:** The two-step estimator above (probit followed by QMLE on @eq-poisson-iv-7).
@@ -211,7 +211,7 @@ By contrast, the two-step profile QMLE concentrates out fixed effects cleanly.
 
 ---
 
-### 3.4 Generalized-Residual CF and the Mundlak Device {#sec-poisson-iv-gr}
+### The generalized-residual CF and the Mundlak device {#sec-poisson-iv-gr}
 
 A first-order Taylor expansion of $h(y_2, \mathbf{z}\boldsymbol{\pi}_2, \rho_1)$ around $\rho_1 = 0$ yields:
 $$\left. \frac{\partial}{\partial \rho_1} \frac{\Phi(\rho_1 + \mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} \right|_{\rho_1 = 0} = \frac{\phi(\mathbf{z}\boldsymbol{\pi}_2)}{\Phi(\mathbf{z}\boldsymbol{\pi}_2)} \equiv \lambda(\mathbf{z}\boldsymbol{\pi}_2)$$ {#eq-poisson-iv-10}
@@ -228,13 +228,13 @@ $$E(y_1 \mid \mathbf{z}, y_2) \approx \exp(\mathbf{z}_1\boldsymbol{\delta}_1 + \
 
 The generalized-residual CF is a **first-order local approximation to Terza's exact correction with error $O(\rho_1^2)$**.
 
-#### Probit vs. Logit Generalized Residuals
+#### Probit and logit generalized residuals
 For a **logit** first stage ($\Lambda(\eta) = \frac{1}{1 + e^{-\eta}}$), the generalized residual collapses algebraically:
 $$\hat{r}_2 = y_2 \frac{\Lambda'(\eta)}{\Lambda(\eta)} - (1 - y_2)\frac{\Lambda'(\eta)}{1 - \Lambda(\eta)} = y_2 (1 - \hat{p}_2) - (1 - y_2)\hat{p}_2 = y_2 - \hat{p}_2$$ {#eq-poisson-iv-12}
 
 The logit generalized residual is simply the **raw response residual** ($y_2 - \hat{p}_2$).
 
-#### Dealing with Panel Fixed Effects: The Mundlak Device
+#### Panel fixed effects: the Mundlak device
 In short panels ($T$ small, $N \to \infty$), estimating individual unit dummies in a nonlinear first stage (probit or logit) suffers from the **incidental parameters problem**, producing heavily biased first-stage estimates and distorted generalized residuals.
 
 As @lin-wooldridge-2019 show, the standard solution is the **Mundlak device** (Correlated Random Effects):
@@ -245,14 +245,14 @@ As @lin-wooldridge-2019 show, the standard solution is the **Mundlak device** (C
 
 ---
 
-### 3.5 Multiplicative-Moment GMM
+### Multiplicative-moment GMM
 
 Instead of a control function, @mullahy-1997 proposes multiplicative moment conditions:
 $$E\left[ \mathbf{z}' \left( y_1 \exp(-\mathbf{z}_1\boldsymbol{\delta}_1 - \alpha_1 y_2) - 1 \right) \right] = \mathbf{0}$$ {#eq-poisson-iv-13}
 
 Under $E[\exp(c_1) \mid \mathbf{z}] = 1$, this condition holds without requiring the first-stage model for $y_2$ to be correctly specified.
 
-#### Panel Fixed Effects via Quasi-Differencing
+#### Panel fixed effects by quasi-differencing
 In panel data with unobserved individual heterogeneity $\eta_i$, $E[y_{it} \mid \mathbf{z}_i, \eta_i] = \eta_i \exp(\mathbf{x}_{it}\boldsymbol{\beta})$. Individual effects cannot be removed by additive demeaning; they must be eliminated via **multiplicative quasi-differencing** [@chamberlain-1992; @wooldridge-1999-multiplicative; @windmeijer-2000]:
 $$E\left[ \mathbf{z}_{it}' \left( y_{it} \frac{\exp(\mathbf{x}_{is}\boldsymbol{\beta})}{\exp(\mathbf{x}_{it}\boldsymbol{\beta})} - y_{is} \right) \right] = \mathbf{0}$$ {#eq-poisson-iv-14}
 
@@ -260,13 +260,13 @@ This requires repeated time periods and strict exogeneity of instruments across 
 
 ---
 
-## 4. Why Recommend Generalized Residuals Instead of Exact Terza?
+## Why recommend generalized residuals over exact Terza
 
 Given that Terza's correction [@terza-1998] is theoretically exact under bivariate normality, why do applied econometricians and textbooks [@wooldridge-2010-crosssection; @wooldridge-2014-qmle; @lin-wooldridge-2019] frequently recommend the **Generalized-Residual Control Function**?
 
 There are five key reasons:
 
-### 1. Built-in Hausman Exogeneity Test in a Single Step
+### A built-in Hausman exogeneity test in one step
 In the generalized residual model:
 $$\log E(y_1 \mid \mathbf{z}, y_2) = \mathbf{z}_1\boldsymbol{\delta}_1 + \alpha_1 y_2 + \rho_1 \hat{r}_2$$
 
@@ -274,23 +274,23 @@ The coefficient on $\hat{r}_2$ estimates $\rho_1$, and its $t$-statistic is a **
 - Under $H_0$, none of the joint normality or reduced-form assumptions are required [@wooldridge-2010-crosssection, p. 744].
 - Terza's exact method does not yield a simple linear $t$-statistic directly beside $\hat{\alpha}_1$.
 
-### 2. Standard Software Drop-in
+### Standard software
 - **Generalized Residual:** Fits directly in standard software without custom numerical optimization.
 - **Terza’s Exact 2-Step:** Requires writing a custom 1D profile likelihood wrapper to search over $\rho_1$ with an offset.
 
-### 3. Distributional Flexibility: Beyond the Probit Link
+### Distributional flexibility beyond the probit link
 - **Terza’s $h(\cdot)$ is strictly probit-specific:** The formula in @eq-poisson-iv-8 is derived exclusively from truncated moments of a bivariate normal distribution, and no closed-form analogue for logit appears in @terza-1998, @wooldridge-2010-crosssection or @imbens-wooldridge-2007-cf.
 - **Generalized residuals apply to any GLM link:** For logit, the generalized residual collapses to the simple **raw response residual** $\hat{r}_2 = y_2 - \hat{p}_2$, requiring zero Mills-ratio machinery.
 
-### 4. Robustness Against Non-Normality (Curvature Misspecification)
+### Robustness to non-normality
 - Terza’s correction is **exact only under strict joint bivariate normality**.
 - If the true unobservables $(c_1, v_2)$ are non-normal (e.g. skewed or heavy-tailed), $h(\cdot)$ has the wrong functional form. The profile then picks the $\rho_1$ that best fits a curve the data do not follow, and that misspecification passes straight into $\hat{\alpha}_1$. This is misspecification bias, not overfitting — there is only one extra parameter, so there is nothing to overfit with.
 - The generalized residual commits to less. It controls for $E[v_2 \mid y_2, \mathbf{z}]$ and stops at first order, so a wrong $h$ cannot drag it. Whether this actually wins under non-normality is an open question; @lin-wooldridge-2019 leave "investigations into the quality of CF approximations in discrete cases to future research."
 
-### 5. The Approximation Error Shrinks with the Endogeneity
+### The approximation error shrinks with the endogeneity
 The error is $O(\rho_1^2)$, so it vanishes quadratically as $\rho_1 \to 0$, and the second stage reports a coefficient on $\hat{r}_2$ that estimates $\rho_1$ to that same first order. The error is also asymmetric, but the asymmetry is **specific to the treatment state** and runs in opposite directions for the two states. For a treated observation $h$ scales the mean by $\Phi(\mathbf{z}\boldsymbol{\pi}_2 + \rho_1)/\Phi(\mathbf{z}\boldsymbol{\pi}_2)$, bounded by $1/\Phi(\mathbf{z}\boldsymbol{\pi}_2)$, which grows without bound in the lower tail of the index when $\rho_1 > 0$. For an untreated observation the factor is $[1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2 + \rho_1)]/[1 - \Phi(\mathbf{z}\boldsymbol{\pi}_2)]$, which grows without bound in the upper tail when $\rho_1 < 0$. The two cases are mirror images, so neither sign of $\rho_1$ is the safe one. What governs the error is $|\rho_1|$ together with the treatment state and how far the probit index reaches into the relevant tail. It is design-specific, not a property of the sign of $\rho_1$.
 
-### Practical Strategy
+### Practical strategy
 
 | Situation | Recommended Estimator | Rationale |
 |:---|:---|:---|
@@ -300,7 +300,7 @@ The error is $O(\rho_1^2)$, so it vanishes quadratically as $\rho_1 \to 0$, and 
 
 ---
 
-## 5. Overview and Comparison of the Four Estimators
+## The four estimators compared
 
 | Estimator | First Stage | Second Stage Adjustment | Consistency (Binary $y_2$) | Panel Fixed Effects | Standard Errors |
 |:---|:---:|:---:|:---:|:---:|:---:|
@@ -311,7 +311,7 @@ The error is $O(\rho_1^2)$, so it vanishes quadratically as $\rho_1 \to 0$, and 
 
 ---
 
-## 6. Practical Guidance: An Observable Diagnostic Workflow
+## Practical guidance: an observable diagnostic workflow
 
 In empirical practice, we do not need to guess the confounding parameter $\rho_1$—**the second-stage Poisson table reports a coefficient on the generalized residual $\hat{r}_2$ that estimates it.** Read that number as the control-function coefficient. It is a first-order variable-addition coefficient, and it coincides with the $\rho_1$ inside Terza's exact correction only to that order and only with a probit first stage. With a logit first stage the residual is on a different scale, so the two are not directly comparable without an explicit mapping.
 
@@ -331,7 +331,7 @@ A standard applied workflow proceeds in four steps:
 
 4. **Inference:** the second-stage standard errors ignore first-stage estimation error, so they need a correction whenever $\rho_1 \neq 0$. In a panel, resampling whole units is the natural implementation, provided there are enough units for the bootstrap to behave; with few clusters it needs a small-cluster correction of its own. In a cross-section, resample observations or use an analytic two-step correction. Under $H_0: \rho_1 = 0$ the uncorrected $t$-statistic on $\hat{r}_2$ is already valid, which is why the exogeneity test in step 2 needs no bootstrap.
 
-### Do Not Use the Exogeneity Test to Choose the Model
+### Do not use the exogeneity test to choose the model
 
 The tempting next move is to let step 2 pick the specification: if the $t$-statistic on $\hat{r}_2$ is insignificant, drop the residual and report the plain FE Poisson; if it is significant, keep the control function. This is a pretest estimator. The objection is not that its point estimates are uniformly worse than those of either model it chooses between. It is that the inference reported afterwards is no longer valid at its nominal level.
 
@@ -343,11 +343,11 @@ The practical rule is to **report the naive FE Poisson and the control-function 
 
 ---
 
-## 7. Implementation Demos in R and Stata
+## Implementation in R and Stata
 
 Below are concise, copy-pasteable implementation templates in R (`fixest`) and Stata (`ppmlhdfe`).
 
-### 7.1 R Implementation Demo (`fixest`)
+### R (`fixest`)
 
 ```{r demo-r}
 #| echo: true
@@ -397,7 +397,7 @@ draw cannot separate the two estimators; it is a template for the syntax, not
 evidence about the estimator. The naive coefficient is reported beside it so the
 direction of the correction is visible.
 
-### 7.2 Stata Implementation Demo (`ppmlhdfe`)
+### Stata (`ppmlhdfe`)
 
 ```stata
 * ==============================================================================

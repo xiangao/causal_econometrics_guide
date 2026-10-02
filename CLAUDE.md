@@ -24,6 +24,7 @@ Converted from RevealJS slides to a multi-chapter Quarto book in March 2026. Syn
 - `estimation.qmd` — Estimation: RA, IPW, AIPW, IPWRA
 - `nonparametric.qmd` — Nonparametric Causal Methods (IF, TMLE, DoubleML)
 - `did.qmd` — Difference-in-Differences (ETWFE, Synthetic Control, Synthetic DiD)
+- `did-continuous.qmd` — DiD with a continuous treatment: two-period CGBS (ATT(d|d) vs ATE(d), strong parallel trends), Wooldridge (2026) heterogeneous-slopes ETWFE, and the Walmart replication of his Table 7.1 (every cell, estimates and SEs, matches to 4 decimals)
 - `iv-rdd.qmd` — IV & Regression Discontinuity (with Control Function exposition)
 - `poisson-iv.qmd` — IV in Poisson with Fixed Effects (CF, GMM)
 - `mediation.qmd` — Causal Mediation Analysis
@@ -58,6 +59,7 @@ Results are validated to match `causal_econometrics_julia` within 1% (real data)
 ### Shared datasets (generated in R, loaded by both books)
 Chapters that load pre-generated CSVs from `data/` to ensure identical results:
 - `survival-causal.qmd` → `data/survival_sim.csv` (n=1500 Weibull; propensity intercept=-4 for ~30% treatment)
+- `did-continuous.qmd` → `data/walmart_lw.csv` (extract of Wooldridge's `walmart_lw.dta`, Dropbox via tinyurl.com/wooldridge-ER-MacKinnon-data; generator `data/gen_walmart_lw.R`)
 - `shift-share-iv.qmd` → `data/shift_share_sim.csv`, `shift_share_shares.csv`, `shift_share_shocks.csv`, `shift_share_bad_v.csv`, `shift_share_bad_noise.csv`
 - `causal-discovery.qmd` → `data/pisa_usa2022.csv` — **real** PISA data (USA 2022, 3,890 students; 6 nodes: HISEI, HOMEPOS, IMMIG, GRADE, GENDER, MATH = mean of 10 PVs; survey weight `W`). Generated from `~/projects/pisa-covid-did/output/pisa_pooled.rds` (draft at `~/projects/pisa_discovery_demo/`). **`PARED` is absent in PISA 2022 — do not add it as a node.** The section runs weighted PC + GES, tier-based orientation, and bootstrap stability; deliberately no F1 (real data has no ground truth).
 
@@ -431,3 +433,11 @@ The interventional-effects example stated the mediator index as `+ A - Z`; the c
 (`rowSums` over two columns) gives `+ 2A - 2Z`. It also said there was no closed-form
 truth; every variable is binary, so IDE = -0.074, IIE = -0.025, ATE = -0.083 by
 enumeration (checked independently in Julia and R). The prose now states them.
+
+## DiD with continuous treatment chapter (2026-10-01)
+
+New chapter `did-continuous.qmd` after `did.qmd`, mirrored in the Julia book. Verified: Table 7.1 of Wooldridge (2026) reproduced exactly with `fixest` (overall 0.0386 (0.0051) without trends, 0.0156 (0.0046) with cohort trends; single-coefficient TWFE 0.0344 / 0.0100). fixest's clustered small-sample K equals Stata `xtreg, fe vce(cluster)`: K = p + 1 + sum over FE not nested in the cluster of (levels - 1).
+
+`contdid` 0.1.1 (and GitHub master as of 2026-10-01) has a bug in `cont_did_acrt`: the dose-specific curve is evaluated on `splines2::bSpline(dvals, ...)` without the fitted basis's `Boundary.knots`, so the grid basis differs from the fitted one. With the default grid (10th-99th percentiles) the curve is off by up to 0.23 in the chapter's simulation. Overall ATT and overall ACRT are unaffected (they evaluate on the sample doses). Since the simulation was cut (2026-10-02) the chapter no longer runs `contdid`; it appears only in the comparison table. Not reported upstream (xao's choice).
+
+2026-10-02: the two-period simulation was cut from `did-continuous.qmd` (xao: it showed only what the identification equation and the decomposition already prove); its data and generator were removed. Added @eq-dc-diff showing B as a difference of potential outcomes per unit of dose, and a sentence that linearity makes the per-unit effect equal to the effect of one more unit at any dose.

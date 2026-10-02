@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>13&nbsp; DiD with Continuous Treatment – Introduction to Causal Econometrics with Observational Data</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./iv-rdd.html" rel="next">
+<link href="./did.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-6eb2a311e0ae5a9b436ea9f7e52955e6.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light"><script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script><script>
+try {
+  if (window.localStorage) {
+    window.localStorage.setItem("quarto-reader-mode", "false");
+  }
+} catch (e) {}
+</script><script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script><script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script><link rel="stylesheet" href="style.css">
+</head>
+<body class="nav-sidebar floating fullcontent quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top"><nav class="quarto-secondary-nav"><div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./did.html">Designs</a></li><li class="breadcrumb-item"><a href="./did-continuous.html"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">DiD with Continuous Treatment</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav></header><!-- content --><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto"><div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Introduction to Causal Econometrics with Observational Data</a> 
+        <div class="sidebar-tools-main tools-wide">
+    <a href="https://xiangao.github.io/" title="Xiang Ao home" class="quarto-navigation-tool px-1" aria-label="Xiang Ao home"><i class="bi bi-house-door-fill"></i></a>
+    <a href="https://xiangao.github.io/books.html" title="Other books" class="quarto-navigation-tool px-1" aria-label="Other books"><i class="bi bi-book"></i></a>
+    <a href="https://github.com/xiangao/causal_econometrics_guide/" title="Source Code" class="quarto-navigation-tool px-1" aria-label="Source Code"><i class="bi bi-github"></i></a>
+  <a href="" class="quarto-reader-toggle quarto-navigation-tool px-1" onclick="window.quartoToggleReader(); return false;" title="Toggle reader mode">
+  <div class="quarto-reader-toggle-btn">
+  <i class="bi"></i>
+  </div>
+</a>
+</div>
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Identification</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./identification.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Identification &amp; Potential Outcomes</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./causal-estimands.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Five Estimands on One DGP</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./graphs-identification-estimation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">DAGs, ADMGs, Identification, and Estimation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./smoking-cessation-graphs.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Applied Graph Workflow: Smoking Cessation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./sensitivity-analysis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Sensitivity Analysis</span></span></a>
+  </div>
+</li>
+      </ul>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Estimation</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./estimation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Estimation: RA, IPW, AIPW and IPWRA</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./matching.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Matching Estimators</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./nonparametric.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Nonparametric Causal Methods</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./heterogeneous-effects.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Heterogeneous Treatment Effects with Machine Learning</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./continuous-treatments.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Continuous and Multivalued Treatments</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./bayesian-causal.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Bayesian Causal Inference</span></span></a>
+  </div>
+</li>
+      </ul>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Designs</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./did.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Difference-in-Differences</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./did-continuous.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">DiD with Continuous Treatment</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./iv-rdd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">IV &amp; Regression Discontinuity</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./shift-share-iv.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Shift-Share Instrumental Variables</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./poisson-iv.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">IV in Poisson with Fixed Effects</span></span></a>
+  </div>
+</li>
+      </ul>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Longitudinal Causal Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./g-methods.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">G-Methods for Time-Varying Treatments</span></span></a>
+  </div>
+</li>
+      </ul>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Survival &amp; Time-to-Event</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./survival-causal.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Survival Analysis with Causal Inference</span></span></a>
+  </div>
+</li>
+      </ul>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Mediation</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./mediation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Causal Mediation Analysis</span></span></a>
+  </div>
+</li>
+      </ul>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Causal Discovery</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./causal-discovery.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Causal Discovery: Observed Variables</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./causal-discovery-latent.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Causal Discovery: Latent Variables</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./graph-to-estimate.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">From Graph to Estimate</span></span></a>
+  </div>
+</li>
+      </ul>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Appendix</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">
+<li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./package-ecosystem.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">R Packages Used in This Book</span></span></a>
+  </div>
+</li>
+      </ul>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+    </ul>
+</div>
+</nav><div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./did.html">Designs</a></li><li class="breadcrumb-item"><a href="./did-continuous.html"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">DiD with Continuous Treatment</span></a></li></ol></nav><div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">
+<span class="chapter-number">13</span>&nbsp; <span class="chapter-title">DiD with Continuous Treatment</span>
+</h1><button type="button" class="btn code-tools-button dropdown-toggle" id="quarto-code-tools-menu" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi"></i> Code</button><ul class="dropdown-menu dropdown-menu-end" aria-labelelledby="quarto-code-tools-menu"><li><a id="quarto-show-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Show All Code</a></li><li><a id="quarto-hide-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Hide All Code</a></li><li><hr class="dropdown-divider"></li><li><a id="quarto-view-source" class="dropdown-item" href="javascript:void(0)" role="button">View Source</a></li></ul></div></div>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header><p>The DiD chapter treats the treatment as on or off. Many treatments come in amounts. A county gets one Walmart or five. A state raises the minimum wage by fifty cents or by three dollars. A hospital receives a small grant or a large one. With a dose we want more than the effect of being treated. We want to know how the effect changes with the dose.</p>
+<p>We first look at two periods, where <span class="citation" data-cites="callaway-goodman-bacon-santanna-2024">Callaway, Goodman-Bacon, and Sant’Anna (<a href="references.html#ref-callaway-goodman-bacon-santanna-2024" role="doc-biblioref">2024</a>)</span>, CGBS from here on, show what parallel trends identifies with a dose and what it leaves out. Two assumptions carry everything that follows: parallel trends and strong parallel trends. We then move to staggered adoption, using the heterogeneous-slopes extension of extended two-way fixed effects (ETWFE) in <span class="citation" data-cites="wooldridge-2026-nonbinary">Wooldridge (<a href="references.html#ref-wooldridge-2026-nonbinary" role="doc-biblioref">2026</a>)</span>, and replicate his study of Walmart and county retail employment.</p>
+<section id="two-periods" class="level2" data-number="13.1"><h2 data-number="13.1" class="anchored" data-anchor-id="two-periods">
+<span class="header-section-number">13.1</span> Two periods</h2>
+<p>We observe units <span class="math inline">\(i = 1, \dots, n\)</span> in two periods, <span class="math inline">\(t = 1, 2\)</span>. Nobody is treated in period 1. Before period 2, each unit receives a dose <span class="math inline">\(D_i \ge 0\)</span>, and units with <span class="math inline">\(D_i = 0\)</span> stay untreated. For each dose <span class="math inline">\(d\)</span>, unit <span class="math inline">\(i\)</span> has a potential outcome <span class="math inline">\(Y_{it}(d)\)</span>, and we observe <span class="math inline">\(Y_{it} = Y_{it}(D_i)\)</span>. No anticipation means <span class="math inline">\(Y_{i1}(d) = Y_{i1}(0)\)</span> for every <span class="math inline">\(d\)</span>. Let <span class="math inline">\(\Delta Y_i = Y_{i2} - Y_{i1}\)</span>.</p>
+<p>There are two natural estimands. Take two doses <span class="math inline">\(d\)</span> and <span class="math inline">\(d'\)</span>. The first estimand, <span class="math inline">\(ATT(d \mid d')\)</span>, is the average effect of dose <span class="math inline">\(d\)</span>, relative to no treatment, among the units that actually received dose <span class="math inline">\(d'\)</span>:</p>
+<p><span id="eq-dc-att"><span class="math display">\[ATT(d \mid d') = E[Y_{i2}(d) - Y_{i2}(0) \mid D_i = d']. \tag{13.1}\]</span></span></p>
+<p>The leading case is <span class="math inline">\(ATT(d \mid d)\)</span>, the effect of each group’s own dose. The second estimand, <span class="math inline">\(ATE(d)\)</span>, is the effect of dose <span class="math inline">\(d\)</span> averaged over all treated units, whatever dose they received:</p>
+<p><span id="eq-dc-ate"><span class="math display">\[ATE(d) = E[Y_{i2}(d) - Y_{i2}(0) \mid D_i &gt; 0]. \tag{13.2}\]</span></span></p>
+<p>Its derivative <span class="math inline">\(ATE'(d)\)</span> is the average causal response at <span class="math inline">\(d\)</span>: the average effect of a small increase in the dose.</p>
+<section id="parallel-trends" class="level3" data-number="13.1.1"><h3 data-number="13.1.1" class="anchored" data-anchor-id="parallel-trends">
+<span class="header-section-number">13.1.1</span> Parallel trends</h3>
+<p>The first assumption is parallel trends. With a dose it says that, without treatment, every dose group would have followed the trend of the untreated:</p>
+<p><span id="eq-dc-pt"><span class="math display">\[E[Y_{i2}(0) - Y_{i1}(0) \mid D_i = d] = E[Y_{i2}(0) - Y_{i1}(0) \mid D_i = 0] \quad \text{for all } d. \tag{13.3}\]</span></span></p>
+<p>In words, the change in the untreated potential outcome between periods 1 and 2 is the same at every dose, including zero. The assumption restricts untreated outcomes only. Under <a href="#eq-dc-pt" class="quarto-xref">Equation&nbsp;<span>13.3</span></a> and no anticipation,</p>
+<p><span id="eq-dc-id"><span class="math display">\[E[\Delta Y_i \mid D_i = d] - E[\Delta Y_i \mid D_i = 0] = ATT(d \mid d). \tag{13.4}\]</span></span></p>
+<p>This is the binary DiD done separately at each dose. Parallel trends identifies the whole curve <span class="math inline">\(ATT(d \mid d)\)</span>, each dose group’s effect of its own dose. With more periods before treatment we can check it in the usual way: the dose groups should have moved together before anyone was treated.</p>
+<p>Parallel trends does not identify comparisons across doses. For the two doses <span class="math inline">\(d\)</span> and <span class="math inline">\(d'\)</span>,</p>
+<p><span id="eq-dc-decomp"><span class="math display">\[ATT(d \mid d) - ATT(d' \mid d') = \underbrace{ATT(d \mid d) - ATT(d' \mid d)}_{\text{causal response}} + \underbrace{ATT(d' \mid d) - ATT(d' \mid d')}_{\text{selection on gains}}. \tag{13.5}\]</span></span></p>
+<p>The first term is causal. It is what moving the dose from <span class="math inline">\(d'\)</span> to <span class="math inline">\(d\)</span> does for the units that chose <span class="math inline">\(d\)</span>. The second term compares two groups at the same dose <span class="math inline">\(d'\)</span>. It is non-zero when the units that chose <span class="math inline">\(d\)</span> would gain differently from dose <span class="math inline">\(d'\)</span> than the units that chose <span class="math inline">\(d'\)</span>. Parallel trends says nothing about this term, and pre-treatment data cannot reveal it, because it involves treated outcomes. So the slope of the curve in <a href="#eq-dc-id" class="quarto-xref">Equation&nbsp;<span>13.4</span></a> mixes the causal response with selection on gains.</p>
+</section><section id="strong-parallel-trends" class="level3" data-number="13.1.2"><h3 data-number="13.1.2" class="anchored" data-anchor-id="strong-parallel-trends">
+<span class="header-section-number">13.1.2</span> Strong parallel trends</h3>
+<p>The second assumption removes the selection term. CGBS call it strong parallel trends:</p>
+<p><span id="eq-dc-spt"><span class="math display">\[E[Y_{i2}(d) - Y_{i1}(0) \mid D_i = d] = E[Y_{i2}(d) - Y_{i1}(0) \mid D_i &gt; 0] \quad \text{for all } d &gt; 0. \tag{13.6}\]</span></span></p>
+<p>In words, the average path from untreated in period 1 to dose <span class="math inline">\(d\)</span> in period 2 is the same for the units that chose <span class="math inline">\(d\)</span> as for all treated units. Together with <a href="#eq-dc-pt" class="quarto-xref">Equation&nbsp;<span>13.3</span></a> it gives <span class="math inline">\(ATT(d \mid d) = ATE(d)\)</span> for every <span class="math inline">\(d\)</span>: the average effect of a dose is the same in every dose group, whatever dose the group chose. The selection term in <a href="#eq-dc-decomp" class="quarto-xref">Equation&nbsp;<span>13.5</span></a> is then zero. Comparisons across doses are causal, and the slope of the identified curve is the average causal response.</p>
+<p>Strong parallel trends is a stronger assumption than parallel trends, and of a different kind. It restricts treated potential outcomes, so no pre-treatment data can check it, and passing a pre-trend test says nothing about it. It restricts how units choose their dose. It is plausible when the dose is set for reasons unrelated to the gain, for example by a formula or a lottery. It is hard to defend when units choose their dose knowing what they will gain.</p>
+<p><span class="citation" data-cites="wooldridge-2026-nonbinary">Wooldridge (<a href="references.html#ref-wooldridge-2026-nonbinary" role="doc-biblioref">2026</a>)</span> reaches the same point from a regression. Let <span class="math inline">\(B_i\)</span> be the gain of unit <span class="math inline">\(i\)</span> from one unit of dose, so that the effect is linear in the dose with a slope that varies across units: <span class="math inline">\(Y_{i2}(d) = Y_{i2}(0) + d B_i\)</span>. Let <span class="math inline">\(\gamma = E[Y_{i2}(0) - Y_{i1}(0)]\)</span> be the untreated trend, and let <span class="math inline">\(\delta = E(B_i \mid D_i &gt; 0)\)</span> be the average slope among the treated. Under <a href="#eq-dc-pt" class="quarto-xref">Equation&nbsp;<span>13.3</span></a>,</p>
+<p><span id="eq-dc-linear"><span class="math display">\[E(\Delta Y_i \mid D_i) = \gamma + \delta D_i \tag{13.7}\]</span></span></p>
+<p>holds when <span class="math inline">\(E(B_i \mid D_i = d) = \delta\)</span> for every <span class="math inline">\(d &gt; 0\)</span>. That condition is strong parallel trends for the linear model. Adding powers of <span class="math inline">\(D_i\)</span> to the regression relaxes the linearity.</p>
+</section></section><section id="staggered-adoption" class="level2" data-number="13.2"><h2 data-number="13.2" class="anchored" data-anchor-id="staggered-adoption">
+<span class="header-section-number">13.2</span> Staggered adoption</h2>
+<p>Now units enter treatment at different times, as in the ETWFE section of the DiD chapter. Periods run <span class="math inline">\(t = 1, \dots, T\)</span>, and the first period in which any unit is treated is <span class="math inline">\(q\)</span>. A cohort <span class="math inline">\(g \in \{q, \dots, T\}\)</span> is the set of units first treated in period <span class="math inline">\(g\)</span>. Let <span class="math inline">\(D_{ig} = 1\)</span> if unit <span class="math inline">\(i\)</span> is in cohort <span class="math inline">\(g\)</span>, and <span class="math inline">\(D_{ig} = 0\)</span> otherwise. Never-treated units have <span class="math inline">\(D_{ig} = 0\)</span> for every <span class="math inline">\(g\)</span>. The vector <span class="math inline">\(\mathbf D_i = (D_{iq}, \dots, D_{iT})\)</span> collects unit <span class="math inline">\(i\)</span>’s cohort dummies. For each period <span class="math inline">\(s\)</span>, the time dummy <span class="math inline">\(fs_t\)</span> equals 1 if <span class="math inline">\(t = s\)</span> and 0 otherwise.</p>
+<p>The treatment <span class="math inline">\(\mathbf W_{it}\)</span> is a <span class="math inline">\(1 \times J\)</span> row vector, where <span class="math inline">\(J\)</span> is the number of treatment variables. A single dose has <span class="math inline">\(J = 1\)</span>. A dose and its square has <span class="math inline">\(J = 2\)</span>. A set of mutually exclusive treatment levels has <span class="math inline">\(J\)</span> equal to the number of levels. Every unit has <span class="math inline">\(\mathbf W_{it} = \mathbf 0\)</span> before its entry period, and <span class="math inline">\(\mathbf W_i\)</span> stacks unit <span class="math inline">\(i\)</span>’s rows over all <span class="math inline">\(T\)</span> periods. We write <span class="math inline">\(\mathbf w\)</span> for a possible value of <span class="math inline">\(\mathbf W_{it}\)</span>. The dose may change after entry. In the Walmart data it is the number of stores open.</p>
+<p><span class="citation" data-cites="wooldridge-2026-nonbinary">Wooldridge (<a href="references.html#ref-wooldridge-2026-nonbinary" role="doc-biblioref">2026</a>)</span> writes potential outcomes as linear in the treatment, with slopes that vary by unit and period. Let <span class="math inline">\(\mathbf B_{it}\)</span> be a <span class="math inline">\(J \times 1\)</span> vector of random slopes, whose <span class="math inline">\(j\)</span>-th element is unit <span class="math inline">\(i\)</span>’s gain in period <span class="math inline">\(t\)</span> from one unit of treatment variable <span class="math inline">\(j\)</span>. Let <span class="math inline">\(\gamma_t\)</span> be a time effect, <span class="math inline">\(C_i\)</span> an unobserved unit effect, and <span class="math inline">\(U_{it}\)</span> an idiosyncratic error. The potential outcome at treatment value <span class="math inline">\(\mathbf w\)</span> is</p>
+<p><span id="eq-dc-po"><span class="math display">\[Y_{it}(\mathbf w) = \mathbf w\, \mathbf B_{it} + \gamma_t + C_i + U_{it}. \tag{13.8}\]</span></span></p>
+<p>For a single dose, <span class="math inline">\(J = 1\)</span>, write the scalar dose as <span class="math inline">\(w\)</span>. Subtracting the untreated potential outcome cancels the time effect, the unit effect and the error:</p>
+<p><span id="eq-dc-diff"><span class="math display">\[Y_{it}(w) - Y_{it}(0) = w\, B_{it}. \tag{13.9}\]</span></span></p>
+<p>So <span class="math inline">\(B_{it}\)</span> is the difference in potential outcomes per unit of dose. With several treatment variables, the <span class="math inline">\(j\)</span>-th element of <span class="math inline">\(\mathbf B_{it}\)</span> is the change in the potential outcome from one more unit of treatment variable <span class="math inline">\(j\)</span>, holding the others fixed. The additive <span class="math inline">\(\gamma_t + C_i\)</span> is parallel trends. Nothing restricts <span class="math inline">\(\mathbf B_{it}\)</span>. The estimand is its mean for each cohort and period:</p>
+<p><span id="eq-dc-delta"><span class="math display">\[\boldsymbol\delta_{gs} = E(\mathbf B_{is} \mid D_{ig} = 1), \qquad s \ge g. \tag{13.10}\]</span></span></p>
+<p>In words, <span class="math inline">\(\boldsymbol\delta_{gs}\)</span> is the average effect per unit of each treatment variable for cohort <span class="math inline">\(g\)</span> in period <span class="math inline">\(s\)</span>. Because the potential outcome is linear in the dose, it is also the effect of one more unit at any dose: going from 0 to 1 has the same effect as going from 1 to 2. Adding powers of the dose, or dummies for dose levels, to <span class="math inline">\(\mathbf W_{it}\)</span> relaxes this. With a binary treatment, <span class="math inline">\(\boldsymbol\delta_{gs}\)</span> is the cohort-period ATT of ETWFE.</p>
+<p>Wooldridge assumes no anticipation and strict exogeneity. Strict exogeneity says the error <span class="math inline">\(U_{it}\)</span> has mean zero given the whole treatment path <span class="math inline">\(\mathbf W_i\)</span>, the unit effect <span class="math inline">\(C_i\)</span> and the slopes <span class="math inline">\(\mathbf B_{it}\)</span>. He needs one more assumption, which has no counterpart in the binary case. He calls it limited selection:</p>
+<p><span id="eq-dc-ls"><span class="math display">\[E(\mathbf B_{it} \mid \mathbf W_i) = E(\mathbf B_{it} \mid \mathbf D_i). \tag{13.11}\]</span></span></p>
+<p>Once we know when a unit entered, its dose path carries no information about its average gain. With a binary treatment the entry date fixes the whole treatment path, so <a href="#eq-dc-ls" class="quarto-xref">Equation&nbsp;<span>13.11</span></a> holds automatically. With two periods and a scalar dose it is the strong parallel trends of <a href="#eq-dc-spt" class="quarto-xref">Equation&nbsp;<span>13.6</span></a> in its linear form. Parallel trends enters through the additive <span class="math inline">\(\gamma_t + C_i\)</span> in <a href="#eq-dc-po" class="quarto-xref">Equation&nbsp;<span>13.8</span></a>. So the staggered estimates rest on the same two assumptions as the two-period ones.</p>
+<p>Let <span class="math inline">\(A_i = E(C_i \mid \mathbf W_i)\)</span> be the mean of the unit effect given the treatment path. Under these assumptions,</p>
+<p><span id="eq-dc-reg"><span class="math display">\[E(Y_{it} \mid \mathbf W_i) = \sum_{g=q}^{T} \sum_{s=g}^{T} (D_{ig}\, fs_t\, \mathbf W_{it})\, \boldsymbol\delta_{gs} + \gamma_t + A_i. \tag{13.12}\]</span></span></p>
+<p><span class="math inline">\(A_i\)</span> is a unit effect. So a two-way fixed effects (TWFE) regression of <span class="math inline">\(Y_{it}\)</span> on the interactions <span class="math inline">\(D_{ig}\, fs_t\, \mathbf W_{it}\)</span>, with unit and time effects, estimates every <span class="math inline">\(\boldsymbol\delta_{gs}\)</span>. This is ETWFE with the treatment indicator replaced by the dose. Standard errors are clustered by unit.</p>
+<p>There are many cohort-period slopes, so we aggregate them. Let <span class="math inline">\(e\)</span> be the exposure time, the number of periods since entry, and let <span class="math inline">\(N_g\)</span> be the number of units in cohort <span class="math inline">\(g\)</span>. Let <span class="math inline">\(\hat{\boldsymbol\delta}_{gs}\)</span> be the TWFE estimate of <span class="math inline">\(\boldsymbol\delta_{gs}\)</span>. The estimated effect at exposure <span class="math inline">\(e\)</span>, written <span class="math inline">\(\hat{\boldsymbol\tau}_{e}\)</span>, averages over the cohorts observed that long, with weights proportional to cohort size:</p>
+<p><span id="eq-dc-agg"><span class="math display">\[\hat{\boldsymbol\tau}_{e} = \sum_{g=q}^{T-e} \frac{N_g}{N_q + \dots + N_{T-e}}\, \hat{\boldsymbol\delta}_{g,g+e}. \tag{13.13}\]</span></span></p>
+<p>The overall effect weights every cohort-period slope by <span class="math inline">\(N_g\)</span>. In a balanced panel it is the average slope over all treated unit-periods.</p>
+<p>Pre-trends can be tested in two ways. A lead is a dummy <span class="math inline">\(D_{ig}\, fs_t\)</span> for a period <span class="math inline">\(s\)</span> before cohort <span class="math inline">\(g\)</span> enters. The first test fits TWFE on the untreated observations only, the unit-periods with <span class="math inline">\(\mathbf W_{it} = \mathbf 0\)</span>, with leads for <span class="math inline">\(s \le g - 2\)</span>, so that the period just before entry is the base. It then tests whether the leads are zero. The second test adds the same leads to <a href="#eq-dc-reg" class="quarto-xref">Equation&nbsp;<span>13.12</span></a>. With a binary treatment the two give identical estimates. With a dose they differ. Both tests check parallel trends. Neither checks limited selection. When the leads show a trend, Wooldridge adds cohort-specific linear trends to <a href="#eq-dc-reg" class="quarto-xref">Equation&nbsp;<span>13.12</span></a>. For each cohort <span class="math inline">\(g\)</span>, the regressor <span class="math inline">\(D_{ig} \cdot t\)</span> is a linear time trend for that cohort only. The assumption then becomes that each cohort’s gap from the never-treated units would have kept growing along the same line after entry.</p>
+</section><section id="wooldridges-regression-and-the-cgbs-estimator" class="level2" data-number="13.3"><h2 data-number="13.3" class="anchored" data-anchor-id="wooldridges-regression-and-the-cgbs-estimator">
+<span class="header-section-number">13.3</span> Wooldridge’s regression and the CGBS estimator</h2>
+<p>The two approaches target the same objects. Under parallel trends and strong parallel trends, each identifies the average effect of the dose for every cohort and period. They differ in how they estimate it and in what they can handle.</p>
+<p>The first difference is the comparison group. Wooldridge runs one TWFE regression in levels on all periods, <a href="#eq-dc-reg" class="quarto-xref">Equation&nbsp;<span>13.12</span></a>. Every untreated observation serves as a control: the never-treated units, the not-yet-treated units, and the pre-entry periods of every cohort. In the binary case this regression is the imputation estimator of <span class="citation" data-cites="borusyak-jaravel-spiess-2024">Borusyak, Jaravel, and Spiess (<a href="references.html#ref-borusyak-jaravel-spiess-2024" role="doc-biblioref">2024</a>)</span>. <span class="citation" data-cites="callaway-goodman-bacon-santanna-2024">Callaway, Goodman-Bacon, and Sant’Anna (<a href="references.html#ref-callaway-goodman-bacon-santanna-2024" role="doc-biblioref">2024</a>)</span> build on <span class="citation" data-cites="callaway-santanna-2021">Callaway and Sant’Anna (<a href="references.html#ref-callaway-santanna-2021" role="doc-biblioref">2021</a>)</span> instead. For each cohort and period they compare the cohort with the never-treated or the not-yet-treated units, using the long difference from the period just before entry, and fit the dose response in that comparison. The regression uses more data, and it is more efficient when the errors are homoskedastic and serially uncorrelated. In exchange it needs parallel trends in every pre-entry period. The differencing approach needs it only from the base period on.</p>
+<p>The second difference is the shape of the dose response. In Wooldridge’s regression, the shape comes from the functions of the dose placed in <span class="math inline">\(\mathbf W_{it}\)</span>: the dose itself, its powers, or dummies for dose levels. The estimand is the average slope <span class="math inline">\(\boldsymbol\delta_{gs}\)</span>. CGBS fit a B-spline in the dose within each cohort and period, or a nonparametric curve whose complexity is chosen from the data. They report the curve <span class="math inline">\(ATT(d \mid d)\)</span> and its derivative. The two also treat a dose near zero differently. With two periods, Wooldridge’s regression has no separate intercept for the treated units, so its fitted effect goes to zero as the dose goes to zero. The CGBS fit gives the treated units their own intercept, so the effect can jump at any positive dose. The two coincide once a dummy for a positive dose is added to <span class="math inline">\(\mathbf W_{it}\)</span>.</p>
+<p>The third difference is scope. The table compares Wooldridge’s regression with the R package <code>contdid</code>, version 0.1.1, which implements CGBS.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead><tr class="header">
+<th></th>
+<th>Wooldridge (2026)</th>
+<th>
+<code>contdid</code> 0.1.1</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Dose changes after entry</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr class="even">
+<td>Covariates</td>
+<td>Yes, in the trends and in the slopes</td>
+<td>No</td>
+</tr>
+<tr class="odd">
+<td>Cohort-specific trends</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr class="even">
+<td>Unbalanced panel</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr class="odd">
+<td>Multi-level or vector treatment</td>
+<td>Yes, through <span class="math inline">\(\mathbf W_{it}\)</span>
+</td>
+<td>No</td>
+</tr>
+<tr class="even">
+<td>Exit from treatment</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr class="odd">
+<td>Standard errors</td>
+<td>Analytic, clustered by unit</td>
+<td>Multiplier bootstrap</td>
+</tr>
+<tr class="even">
+<td>Reported effects</td>
+<td>Average slopes by cohort and period, aggregated by exposure</td>
+<td>
+<span class="math inline">\(ATT(d \mid d)\)</span> and its derivative, aggregated by dose or by exposure</td>
+</tr>
+</tbody>
+</table>
+<p>The first row decides the Walmart application. The number of stores changes after entry, so the CGBS estimator, as implemented, does not apply. The other rows show what the single regression buys: covariates, trends, exit and missing years enter as extra terms. In the other direction, CGBS trace out the whole dose-response curve within each cohort and period. Wooldridge reports average slopes and needs powers of the dose to show curvature.</p>
+</section><section id="walmart-and-county-retail-employment" class="level2" data-number="13.4"><h2 data-number="13.4" class="anchored" data-anchor-id="walmart-and-county-retail-employment">
+<span class="header-section-number">13.4</span> Walmart and county retail employment</h2>
+<p><span class="citation" data-cites="wooldridge-2026-nonbinary">Wooldridge (<a href="references.html#ref-wooldridge-2026-nonbinary" role="doc-biblioref">2026</a>)</span> applies the method to the county panel of <span class="citation" data-cites="brown-butts-2025">Brown and Butts (<a href="references.html#ref-brown-butts-2025" role="doc-biblioref">2025</a>)</span>. It covers 1,288 counties from 1977 to 1999. No county had a Walmart before 1986. Stores then opened in 14 cohorts, from 1986 to 1999, and 395 counties never got one. The treatment is a single dose, so <span class="math inline">\(J = 1\)</span> and we write it without bold: <span class="math inline">\(W_{it}\)</span> is the number of Walmarts open in county <span class="math inline">\(i\)</span> in year <span class="math inline">\(t\)</span>. The outcome is log retail employment.</p>
+<div class="cell">
+<details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># extract of walmart_lw.dta from Wooldridge's replication files (data/gen_walmart_lw.R)</span></span>
+<span><span class="va">wm</span> <span class="op">&lt;-</span> <span class="fu">fread</span><span class="op">(</span><span class="st">"data/walmart_lw.csv"</span><span class="op">)</span></span>
+<span><span class="va">wm</span><span class="op">[</span><span class="va">year</span> <span class="op">==</span> <span class="fl">1999</span>, <span class="va">.N</span>, by <span class="op">=</span> <span class="fu">.</span><span class="op">(</span><span class="va">cohort</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html">order</a></span><span class="op">(</span><span class="va">cohort</span><span class="op">)</span><span class="op">]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details><div class="cell-output cell-output-stdout">
+<pre><code>    cohort     N
+     &lt;int&gt; &lt;int&gt;
+ 1:      0   395
+ 2:   1986    69
+ 3:   1987    74
+ 4:   1988    60
+ 5:   1989    77
+ 6:   1990   118
+ 7:   1991   113
+ 8:   1992    88
+ 9:   1993    98
+10:   1994    48
+11:   1995    53
+12:   1996    25
+13:   1997    26
+14:   1998    23
+15:   1999    21</code></pre>
+</div>
+<details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">wm</span><span class="op">[</span><span class="va">n_open</span> <span class="op">&gt;</span> <span class="fl">0</span>, <span class="va">.N</span>, by <span class="op">=</span> <span class="va">n_open</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html">order</a></span><span class="op">(</span><span class="va">n_open</span><span class="op">)</span><span class="op">]</span><span class="op">[</span>, <span class="va">share</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html">round</a></span><span class="op">(</span><span class="va">N</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="op">]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details><div class="cell-output cell-output-stdout">
+<pre><code>    n_open     N share
+     &lt;int&gt; &lt;int&gt; &lt;num&gt;
+ 1:      1  6278 0.797
+ 2:      2  1042 0.132
+ 3:      3   300 0.038
+ 4:      4   128 0.016
+ 5:      5    54 0.007
+ 6:      6    17 0.002
+ 7:      7    20 0.003
+ 8:      8    11 0.001
+ 9:      9     7 0.001
+10:     10     5 0.001
+11:     11    12 0.002
+12:     12     5 0.001
+13:     13     1 0.000</code></pre>
+</div>
+</div>
+<p>Most treated counties have a single store. One store accounts for 80% of treated county-years, two for 13%, and the largest count is 13. Within a cohort and year, the slope is fit from the change relative to untreated counties and from the differences in store counts. With so many single-store counties, it mostly measures the effect of the first store.</p>
+<p>A single-coefficient TWFE regression is the natural starting point.</p>
+<div class="cell">
+<details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">coeftable</span><span class="op">(</span><span class="fu">feols</span><span class="op">(</span><span class="va">log_retail_emp</span> <span class="op">~</span> <span class="va">n_open</span> <span class="op">|</span> <span class="va">fips</span> <span class="op">+</span> <span class="va">year</span>, <span class="va">wm</span>, cluster <span class="op">=</span> <span class="op">~</span><span class="va">fips</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details><div class="cell-output cell-output-stdout">
+<pre><code>         Estimate  Std. Error  t value     Pr(&gt;|t|)
+n_open 0.03441203 0.005651171 6.089363 1.494081e-09
+attr(,"vcov_type")
+[1] "Clustered (fips)"</code></pre>
+</div>
+</div>
+<p>One more Walmart raises retail employment by 3.4%, with a standard error of 0.57 percentage points. In the binary case this regression makes forbidden comparisons, which use already-treated units as controls, when effects vary by cohort and time. The same holds with a dose. So we build the regressors of <a href="#eq-dc-reg" class="quarto-xref">Equation&nbsp;<span>13.12</span></a>, one for each cohort and year from entry on: <span class="math inline">\(W_{it}\)</span> times the cohort dummy times the year dummy.</p>
+<div class="cell">
+<details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">cohorts</span> <span class="op">&lt;-</span> <span class="fl">1986</span><span class="op">:</span><span class="fl">1999</span></span>
+<span><span class="va">cells</span> <span class="op">&lt;-</span> <span class="fu">CJ</span><span class="op">(</span>g <span class="op">=</span> <span class="va">cohorts</span>, s <span class="op">=</span> <span class="va">cohorts</span><span class="op">)</span><span class="op">[</span><span class="va">s</span> <span class="op">&gt;=</span> <span class="va">g</span><span class="op">]</span></span>
+<span><span class="va">wcols</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"w_%d_%d"</span>, <span class="va">cells</span><span class="op">$</span><span class="va">g</span>, <span class="va">cells</span><span class="op">$</span><span class="va">s</span><span class="op">)</span></span>
+<span><span class="kw">for</span> <span class="op">(</span><span class="va">k</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">cells</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu">set</span><span class="op">(</span><span class="va">wm</span>, j <span class="op">=</span> <span class="va">wcols</span><span class="op">[</span><span class="va">k</span><span class="op">]</span>,</span>
+<span>      value <span class="op">=</span> <span class="op">(</span><span class="va">wm</span><span class="op">$</span><span class="va">cohort</span> <span class="op">==</span> <span class="va">cells</span><span class="op">$</span><span class="va">g</span><span class="op">[</span><span class="va">k</span><span class="op">]</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="va">wm</span><span class="op">$</span><span class="va">year</span> <span class="op">==</span> <span class="va">cells</span><span class="op">$</span><span class="va">s</span><span class="op">[</span><span class="va">k</span><span class="op">]</span><span class="op">)</span> <span class="op">*</span> <span class="va">wm</span><span class="op">$</span><span class="va">n_open</span><span class="op">)</span></span>
+<span><span class="va">trcols</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"tr_%d"</span>, <span class="va">cohorts</span><span class="op">)</span></span>
+<span><span class="kw">for</span> <span class="op">(</span><span class="va">k</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_along</a></span><span class="op">(</span><span class="va">cohorts</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu">set</span><span class="op">(</span><span class="va">wm</span>, j <span class="op">=</span> <span class="va">trcols</span><span class="op">[</span><span class="va">k</span><span class="op">]</span>, value <span class="op">=</span> <span class="op">(</span><span class="va">wm</span><span class="op">$</span><span class="va">cohort</span> <span class="op">==</span> <span class="va">cohorts</span><span class="op">[</span><span class="va">k</span><span class="op">]</span><span class="op">)</span> <span class="op">*</span> <span class="va">wm</span><span class="op">$</span><span class="va">year</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">fit_het</span> <span class="op">&lt;-</span> <span class="fu">feols</span><span class="op">(</span><span class="va">log_retail_emp</span> <span class="op">~</span> <span class="fu">..</span><span class="op">(</span><span class="st">"^w_"</span><span class="op">)</span> <span class="op">|</span> <span class="va">fips</span> <span class="op">+</span> <span class="va">year</span>, <span class="va">wm</span>, cluster <span class="op">=</span> <span class="op">~</span><span class="va">fips</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html">coef</a></span><span class="op">(</span><span class="va">fit_het</span><span class="op">)</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details><div class="cell-output cell-output-stdout">
+<pre><code>[1] 105</code></pre>
+</div>
+</div>
+<p>That gives 105 slopes. We aggregate them with <a href="#eq-dc-agg" class="quarto-xref">Equation&nbsp;<span>13.13</span></a>. Each aggregate is a linear combination of the slopes with fixed weights, so its standard error comes from the clustered covariance matrix. This matches Stata’s <code>margins</code> in Wooldridge’s code.</p>
+<div class="cell">
+<details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">Ng</span> <span class="op">&lt;-</span> <span class="va">wm</span><span class="op">[</span><span class="va">year</span> <span class="op">==</span> <span class="fl">1999</span> <span class="op">&amp;</span> <span class="va">cohort</span> <span class="op">&gt;</span> <span class="fl">0</span>, <span class="va">.N</span>, by <span class="op">=</span> <span class="va">cohort</span><span class="op">]</span></span>
+<span><span class="fu">setkey</span><span class="op">(</span><span class="va">Ng</span>, <span class="va">cohort</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">aggregate_slopes</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">b</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[</span><span class="va">wcols</span><span class="op">]</span>; <span class="va">V</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/vcov.html">vcov</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[</span><span class="va">wcols</span>, <span class="va">wcols</span><span class="op">]</span></span>
+<span>  <span class="va">lincomb</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">a</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>estimate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">a</span> <span class="op">*</span> <span class="va">b</span><span class="op">)</span>, se <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/drop.html">drop</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span><span class="op">(</span><span class="va">a</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html">%*%</a></span> <span class="va">V</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html">%*%</a></span> <span class="va">a</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">by_e</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">sapply</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">13</span>, <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">gs</span> <span class="op">&lt;-</span> <span class="va">cohorts</span><span class="op">[</span><span class="va">cohorts</span> <span class="op">+</span> <span class="va">e</span> <span class="op">&lt;=</span> <span class="fl">1999</span><span class="op">]</span></span>
+<span>    <span class="va">a</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html">setNames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">wcols</span><span class="op">)</span><span class="op">)</span>, <span class="va">wcols</span><span class="op">)</span></span>
+<span>    <span class="va">a</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"w_%d_%d"</span>, <span class="va">gs</span>, <span class="va">gs</span> <span class="op">+</span> <span class="va">e</span><span class="op">)</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">Ng</span><span class="op">[</span><span class="fu">J</span><span class="op">(</span><span class="va">gs</span><span class="op">)</span><span class="op">]</span><span class="op">$</span><span class="va">N</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">Ng</span><span class="op">[</span><span class="fu">J</span><span class="op">(</span><span class="va">gs</span><span class="op">)</span><span class="op">]</span><span class="op">$</span><span class="va">N</span><span class="op">)</span></span>
+<span>    <span class="fu">lincomb</span><span class="op">(</span><span class="va">a</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">a_all</span> <span class="op">&lt;-</span> <span class="va">Ng</span><span class="op">[</span><span class="fu">J</span><span class="op">(</span><span class="va">cells</span><span class="op">$</span><span class="va">g</span><span class="op">)</span><span class="op">]</span><span class="op">$</span><span class="va">N</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cbind.html">rbind</a></span><span class="op">(</span><span class="va">by_e</span>, overall <span class="op">=</span> <span class="fu">lincomb</span><span class="op">(</span><span class="va">a_all</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">a_all</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">agg_het</span> <span class="op">&lt;-</span> <span class="fu">aggregate_slopes</span><span class="op">(</span><span class="va">fit_het</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Before reading the effects, we check pre-trends. Following the first test above, we fit TWFE on the untreated county-years with a lead for each cohort and each year at least two years before entry. We then average the leads by years until entry, with the cohort weights of <a href="#eq-dc-agg" class="quarto-xref">Equation&nbsp;<span>13.13</span></a>.</p>
+<div class="cell">
+<details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">un</span> <span class="op">&lt;-</span> <span class="va">wm</span><span class="op">[</span><span class="va">n_open</span> <span class="op">==</span> <span class="fl">0</span>, <span class="fu">.</span><span class="op">(</span><span class="va">fips</span>, <span class="va">year</span>, <span class="va">cohort</span>, <span class="va">log_retail_emp</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">leads</span> <span class="op">&lt;-</span> <span class="fu">CJ</span><span class="op">(</span>g <span class="op">=</span> <span class="va">cohorts</span>, s <span class="op">=</span> <span class="fl">1977</span><span class="op">:</span><span class="fl">1999</span><span class="op">)</span><span class="op">[</span><span class="va">s</span> <span class="op">&lt;=</span> <span class="va">g</span> <span class="op">-</span> <span class="fl">2</span><span class="op">]</span></span>
+<span><span class="va">lcols</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"l_%d_%d"</span>, <span class="va">leads</span><span class="op">$</span><span class="va">g</span>, <span class="va">leads</span><span class="op">$</span><span class="va">s</span><span class="op">)</span></span>
+<span><span class="kw">for</span> <span class="op">(</span><span class="va">k</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">leads</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu">set</span><span class="op">(</span><span class="va">un</span>, j <span class="op">=</span> <span class="va">lcols</span><span class="op">[</span><span class="va">k</span><span class="op">]</span>, value <span class="op">=</span> <span class="op">(</span><span class="va">un</span><span class="op">$</span><span class="va">cohort</span> <span class="op">==</span> <span class="va">leads</span><span class="op">$</span><span class="va">g</span><span class="op">[</span><span class="va">k</span><span class="op">]</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="va">un</span><span class="op">$</span><span class="va">year</span> <span class="op">==</span> <span class="va">leads</span><span class="op">$</span><span class="va">s</span><span class="op">[</span><span class="va">k</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">fit_pre</span> <span class="op">&lt;-</span> <span class="fu">feols</span><span class="op">(</span><span class="va">log_retail_emp</span> <span class="op">~</span> <span class="fu">..</span><span class="op">(</span><span class="st">"^l_"</span><span class="op">)</span> <span class="op">|</span> <span class="va">fips</span> <span class="op">+</span> <span class="va">year</span>, <span class="va">un</span>, cluster <span class="op">=</span> <span class="op">~</span><span class="va">fips</span><span class="op">)</span></span>
+<span><span class="va">b</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html">coef</a></span><span class="op">(</span><span class="va">fit_pre</span><span class="op">)</span>; <span class="va">V</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/vcov.html">vcov</a></span><span class="op">(</span><span class="va">fit_pre</span><span class="op">)</span></span>
+<span><span class="va">pre</span> <span class="op">&lt;-</span> <span class="fu">rbindlist</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="fl">2</span><span class="op">:</span><span class="fl">22</span>, <span class="kw">function</span><span class="op">(</span><span class="va">k</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">gs</span> <span class="op">&lt;-</span> <span class="va">cohorts</span><span class="op">[</span><span class="va">cohorts</span> <span class="op">-</span> <span class="va">k</span> <span class="op">&gt;=</span> <span class="fl">1977</span><span class="op">]</span></span>
+<span>  <span class="va">a</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html">setNames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">b</span><span class="op">)</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">b</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">a</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"l_%d_%d"</span>, <span class="va">gs</span>, <span class="va">gs</span> <span class="op">-</span> <span class="va">k</span><span class="op">)</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">Ng</span><span class="op">[</span><span class="fu">J</span><span class="op">(</span><span class="va">gs</span><span class="op">)</span><span class="op">]</span><span class="op">$</span><span class="va">N</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">Ng</span><span class="op">[</span><span class="fu">J</span><span class="op">(</span><span class="va">gs</span><span class="op">)</span><span class="op">]</span><span class="op">$</span><span class="va">N</span><span class="op">)</span></span>
+<span>  <span class="fu">data.table</span><span class="op">(</span>time <span class="op">=</span> <span class="op">-</span><span class="va">k</span>, estimate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="va">a</span> <span class="op">*</span> <span class="va">b</span><span class="op">)</span>, se <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/drop.html">drop</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/t.html">t</a></span><span class="op">(</span><span class="va">a</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html">%*%</a></span> <span class="va">V</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html">%*%</a></span> <span class="va">a</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">ggplot</span><span class="op">(</span><span class="va">pre</span>, <span class="fu">aes</span><span class="op">(</span><span class="va">time</span>, <span class="va">estimate</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">geom_hline</span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fl">0</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">geom_pointrange</span><span class="op">(</span><span class="fu">aes</span><span class="op">(</span>ymin <span class="op">=</span> <span class="va">estimate</span> <span class="op">-</span> <span class="fl">1.96</span> <span class="op">*</span> <span class="va">se</span>, ymax <span class="op">=</span> <span class="va">estimate</span> <span class="op">+</span> <span class="fl">1.96</span> <span class="op">*</span> <span class="va">se</span><span class="op">)</span>,</span>
+<span>                  colour <span class="op">=</span> <span class="st">"darkcyan"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">labs</span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Years until first Walmart"</span>, y <span class="op">=</span> <span class="st">"Log retail employment"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">theme_bw</span><span class="op">(</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details><div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure"><p><img src="did-continuous_files/figure-html/dc-wm-pre-1.png" class="img-fluid figure-img" width="672"></p>
+<figcaption>Weighted pre-treatment estimates from the untreated observations, with 95% intervals. The year before entry is the base.</figcaption></figure>
+</div>
+</div>
+</div>
+<p>The leads fall almost linearly as we go back in time. Twenty years before entry, counties that later got a Walmart had retail employment about 19 log points lower, relative to the year before entry, than the never-treated counties. Retail employment was growing faster in these counties long before any store opened. Parallel trends fails, so Wooldridge also reports estimates with the cohort-specific linear trends.</p>
+<div class="cell">
+<details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">fit_trend</span> <span class="op">&lt;-</span> <span class="fu">feols</span><span class="op">(</span><span class="va">log_retail_emp</span> <span class="op">~</span> <span class="fu">..</span><span class="op">(</span><span class="st">"^w_"</span><span class="op">)</span> <span class="op">+</span> <span class="fu">..</span><span class="op">(</span><span class="st">"^tr_"</span><span class="op">)</span> <span class="op">|</span> <span class="va">fips</span> <span class="op">+</span> <span class="va">year</span>,</span>
+<span>                   <span class="va">wm</span>, cluster <span class="op">=</span> <span class="op">~</span><span class="va">fips</span><span class="op">)</span></span>
+<span><span class="va">agg_trend</span> <span class="op">&lt;-</span> <span class="fu">aggregate_slopes</span><span class="op">(</span><span class="va">fit_trend</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">tab</span> <span class="op">&lt;-</span> <span class="fu">data.table</span><span class="op">(</span>exposure <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">13</span>, <span class="st">"overall"</span><span class="op">)</span>,</span>
+<span>                  no_trends <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"%.4f (%.4f)"</span>, <span class="va">agg_het</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span>, <span class="va">agg_het</span><span class="op">[</span>, <span class="fl">2</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>                  cohort_trends <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"%.4f (%.4f)"</span>, <span class="va">agg_trend</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span>, <span class="va">agg_trend</span><span class="op">[</span>, <span class="fl">2</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span><span class="va">tab</span>, col.names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"Exposure"</span>, <span class="st">"No trends"</span>, <span class="st">"Cohort trends"</span><span class="op">)</span>,</span>
+<span>             align <span class="op">=</span> <span class="st">"lrr"</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details><div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead><tr class="header">
+<th style="text-align: left;">Exposure</th>
+<th style="text-align: right;">No trends</th>
+<th style="text-align: right;">Cohort trends</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">0</td>
+<td style="text-align: right;">0.0291 (0.0041)</td>
+<td style="text-align: right;">0.0049 (0.0033)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">1</td>
+<td style="text-align: right;">0.0439 (0.0042)</td>
+<td style="text-align: right;">0.0196 (0.0034)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2</td>
+<td style="text-align: right;">0.0357 (0.0044)</td>
+<td style="text-align: right;">0.0113 (0.0035)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">3</td>
+<td style="text-align: right;">0.0301 (0.0046)</td>
+<td style="text-align: right;">0.0070 (0.0036)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">4</td>
+<td style="text-align: right;">0.0286 (0.0048)</td>
+<td style="text-align: right;">0.0060 (0.0039)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">5</td>
+<td style="text-align: right;">0.0316 (0.0051)</td>
+<td style="text-align: right;">0.0073 (0.0041)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">6</td>
+<td style="text-align: right;">0.0344 (0.0055)</td>
+<td style="text-align: right;">0.0106 (0.0046)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">7</td>
+<td style="text-align: right;">0.0412 (0.0063)</td>
+<td style="text-align: right;">0.0200 (0.0054)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">8</td>
+<td style="text-align: right;">0.0459 (0.0072)</td>
+<td style="text-align: right;">0.0236 (0.0064)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">9</td>
+<td style="text-align: right;">0.0480 (0.0082)</td>
+<td style="text-align: right;">0.0274 (0.0083)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">10</td>
+<td style="text-align: right;">0.0624 (0.0104)</td>
+<td style="text-align: right;">0.0373 (0.0111)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">11</td>
+<td style="text-align: right;">0.0671 (0.0121)</td>
+<td style="text-align: right;">0.0422 (0.0146)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">12</td>
+<td style="text-align: right;">0.0706 (0.0160)</td>
+<td style="text-align: right;">0.0587 (0.0200)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">13</td>
+<td style="text-align: right;">0.0895 (0.0210)</td>
+<td style="text-align: right;">0.0925 (0.0302)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">overall</td>
+<td style="text-align: right;">0.0386 (0.0051)</td>
+<td style="text-align: right;">0.0156 (0.0046)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>The table reproduces Table 7.1 of <span class="citation" data-cites="wooldridge-2026-nonbinary">Wooldridge (<a href="references.html#ref-wooldridge-2026-nonbinary" role="doc-biblioref">2026</a>)</span>, estimates and standard errors, to all four decimals.</p>
+<p>Without trends, one more store raises retail employment by about 3% to 4% in the first years. The effect climbs to 9% by year 13. The overall effect is 0.0386 (0.0051). It is close to the single-coefficient TWFE estimate of 0.0344, and a little more precise.</p>
+<p>The cohort trends change the estimates a lot. The effect in the entry year is 0.0049 (0.0033), indistinguishable from zero. From the entry year to year 6, the effects are between a sixth and a half of their values without trends. They then rise steadily, and by year 13 the two columns agree at about 0.09. The overall effect falls to 0.0156 (0.0046), less than half the estimate without trends. The trends also make the estimates more precise up to about year 8. The long exposures rest on the earliest cohorts only, so their standard errors grow. Year 13 comes from the 1986 cohort alone.</p>
+<p>For comparison, we add the same 14 cohort trends to the single-coefficient regression. One slope on the store count is then shared by every cohort and year.</p>
+<div class="cell">
+<details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu">coeftable</span><span class="op">(</span><span class="fu">feols</span><span class="op">(</span><span class="va">log_retail_emp</span> <span class="op">~</span> <span class="va">n_open</span> <span class="op">+</span> <span class="fu">..</span><span class="op">(</span><span class="st">"^tr_"</span><span class="op">)</span> <span class="op">|</span> <span class="va">fips</span> <span class="op">+</span> <span class="va">year</span>,</span>
+<span>                <span class="va">wm</span>, cluster <span class="op">=</span> <span class="op">~</span><span class="va">fips</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="st">"n_open"</span>, <span class="op">]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details><div class="cell-output cell-output-stdout">
+<pre><code>   Estimate  Std. Error     t value    Pr(&gt;|t|) 
+0.009987276 0.004501562 2.218624830 0.026686196 </code></pre>
+</div>
+</div>
+<p>With the same trends, the single-coefficient regression gives 0.0100 (0.0045). The flexible model costs almost nothing in precision.</p>
+<p>The table averages over cohorts. To see the path of a single cohort, we take the 1990 cohort, the largest, with 118 counties and ten years after entry. Under <a href="#eq-dc-po" class="quarto-xref">Equation&nbsp;<span>13.8</span></a>, with <span class="math inline">\(J = 1\)</span>, the effect of <span class="math inline">\(w\)</span> stores on cohort <span class="math inline">\(g\)</span> in year <span class="math inline">\(s\)</span> is <span class="math inline">\(w\,\delta_{gs}\)</span>. The figure plots the estimated effect of one store, <span class="math inline">\(\hat\delta_{1990,s}\)</span>, for each year after entry, with and without cohort trends. The effect of two stores is twice as large in every year, because the model is linear in the dose.</p>
+<div class="cell">
+<details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">g0</span> <span class="op">&lt;-</span> <span class="fl">1990</span></span>
+<span><span class="va">nm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html">sprintf</a></span><span class="op">(</span><span class="st">"w_%d_%d"</span>, <span class="va">g0</span>, <span class="va">g0</span><span class="op">:</span><span class="fl">1999</span><span class="op">)</span></span>
+<span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu">rbindlist</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>`No trends` <span class="op">=</span> <span class="va">fit_het</span>, `Cohort trends` <span class="op">=</span> <span class="va">fit_trend</span><span class="op">)</span>,</span>
+<span>                         <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="fu">data.table</span><span class="op">(</span>e <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">9</span>, estimate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html">coef</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">[</span><span class="va">nm</span><span class="op">]</span>, se <span class="op">=</span> <span class="fu">se</span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">[</span><span class="va">nm</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                  idcol <span class="op">=</span> <span class="st">"model"</span><span class="op">)</span></span>
+<span><span class="fu">ggplot</span><span class="op">(</span><span class="va">path</span>, <span class="fu">aes</span><span class="op">(</span><span class="va">e</span>, <span class="va">estimate</span>, colour <span class="op">=</span> <span class="va">model</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">geom_hline</span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fl">0</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">geom_pointrange</span><span class="op">(</span><span class="fu">aes</span><span class="op">(</span>ymin <span class="op">=</span> <span class="va">estimate</span> <span class="op">-</span> <span class="fl">1.96</span> <span class="op">*</span> <span class="va">se</span>, ymax <span class="op">=</span> <span class="va">estimate</span> <span class="op">+</span> <span class="fl">1.96</span> <span class="op">*</span> <span class="va">se</span><span class="op">)</span>,</span>
+<span>                  position <span class="op">=</span> <span class="fu">position_dodge</span><span class="op">(</span>width <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">scale_x_continuous</span><span class="op">(</span>breaks <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">9</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">labs</span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Years since the first Walmart opened"</span>, y <span class="op">=</span> <span class="st">"Effect of one store"</span>, colour <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">theme_bw</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> <span class="fu">theme</span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"bottom"</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details><div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure"><p><img src="did-continuous_files/figure-html/dc-wm-cohort-1.png" class="img-fluid figure-img" width="672"></p>
+<figcaption>Effect of one Walmart on log retail employment in the 1990 cohort, by year since entry, with 95% intervals.</figcaption></figure>
+</div>
+</div>
+</div>
+<p>Without trends, one store raises retail employment in the 1990 cohort by 1.7% in the entry year and by 4.0% a year later, and the effect then settles near 2.7%. From year 1 on, the estimates are about twice their standard errors or more. With cohort trends the path is lower, and the gap grows from 0.6 percentage points in the entry year to 1.6 by year 9. Only the year-1 estimate, 3.1%, is more than twice its standard error. The growing gap is what we would see if the trend absorbs part of an effect that grows with exposure, a point we return to below. The plot holds the dose at one store. The cohort’s average number of stores rises from 1.08 in 1990 to 1.75 in 1999, so the effect it actually experienced grows faster than the plotted per-store effect.</p>
+</section><section id="where-it-can-go-wrong" class="level2" data-number="13.5"><h2 data-number="13.5" class="anchored" data-anchor-id="where-it-can-go-wrong">
+<span class="header-section-number">13.5</span> Where it can go wrong</h2>
+<p>The Walmart estimates rest on the two assumptions. The pre-trend figure checks parallel trends, and it fails, which is why we add cohort trends. Nothing in the data checks limited selection. In the Walmart data the dose changes after entry, so <a href="#eq-dc-ls" class="quarto-xref">Equation&nbsp;<span>13.11</span></a> requires that the number of stores a county ends up with says nothing about its gain from them. A county where the first store did well is a likely site for a second and a third. If so, high-count counties have larger slopes, and the estimates mix the causal response with selection on gains, the second term of <a href="#eq-dc-decomp" class="quarto-xref">Equation&nbsp;<span>13.5</span></a>. Store openings that respond to past retail growth also violate strict exogeneity. The model is also linear in the count, so the second store has the same effect as the first. Adding <span class="math inline">\(W_{it}^2\)</span>, or the indicator <span class="math inline">\(1[W_{it} \ge 2]\)</span> that equals 1 when the county has two or more stores, to <span class="math inline">\(\mathbf W_{it}\)</span> checks this.</p>
+<p>The trend-adjusted estimates extrapolate a straight line for up to 13 years after entry. The pre-period leads support a straight line before entry. Nothing in the data can check whether it continues after entry. There is a second issue. <a href="#eq-dc-reg" class="quarto-xref">Equation&nbsp;<span>13.12</span></a> has no separate intercept for each cohort and year after entry, and every treated county has at least one store. So the trend <span class="math inline">\(D_{ig} \cdot t\)</span> is fit from post-entry years as well as from the years before. If the effect grows with exposure, part of that growth can load onto the trend. <span class="citation" data-cites="wolfers-2006">Wolfers (<a href="references.html#ref-wolfers-2006" role="doc-biblioref">2006</a>)</span> showed this with unit-specific trends for divorce laws. It is one reason the trend estimates are so much smaller in the middle years.</p>
+<p>A sensitivity analysis in the style of <span class="citation" data-cites="rambachan-roth-2023">Rambachan and Roth (<a href="references.html#ref-rambachan-roth-2023" role="doc-biblioref">2023</a>)</span> suits this case. It bounds how far the post-entry path may depart from the extrapolated trend, and reports the effect as a function of that bound.</p>
+
+
+<!-- -->
+
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-borusyak-jaravel-spiess-2024" class="csl-entry" role="listitem">
+Borusyak, Kirill, Xavier Jaravel, and Jann Spiess. 2024. <span>“Revisiting Event Study Designs: Robust and Efficient Estimation.”</span> <em>Review of Economic Studies</em> 91 (6): 3253–85.
+</div>
+<div id="ref-brown-butts-2025" class="csl-entry" role="listitem">
+Brown, Nicholas, and Kyle Butts. 2025. <span>“Dynamic Treatment Effect Estimation with Interactive Fixed Effects and Short Panels.”</span> <em>Journal of Econometrics</em> 250: 106013.
+</div>
+<div id="ref-callaway-goodman-bacon-santanna-2024" class="csl-entry" role="listitem">
+Callaway, Brantly, Andrew Goodman-Bacon, and Pedro H. C. Sant’Anna. 2024. <span>“Difference-in-Differences with a Continuous Treatment.”</span> NBER Working Paper 32117. National Bureau of Economic Research. <a href="https://doi.org/10.3386/w32117">https://doi.org/10.3386/w32117</a>.
+</div>
+<div id="ref-callaway-santanna-2021" class="csl-entry" role="listitem">
+Callaway, Brantly, and Pedro H. C. Sant’Anna. 2021. <span>“Difference-in-Differences with Multiple Time Periods.”</span> <em>Journal of Econometrics</em> 225 (2): 200–230.
+</div>
+<div id="ref-rambachan-roth-2023" class="csl-entry" role="listitem">
+Rambachan, Ashesh, and Jonathan Roth. 2023. <span>“A More Credible Approach to Parallel Trends.”</span> <em>Review of Economic Studies</em> 90 (5): 2555–91.
+</div>
+<div id="ref-wolfers-2006" class="csl-entry" role="listitem">
+Wolfers, Justin. 2006. <span>“Did Unilateral Divorce Laws Raise Divorce Rates? <span>A</span> Reconciliation and New Results.”</span> <em>American Economic Review</em> 96 (5): 1802–20.
+</div>
+<div id="ref-wooldridge-2026-nonbinary" class="csl-entry" role="listitem">
+Wooldridge, Jeffrey M. 2026. <span>“A Heterogeneous Slopes Approach to Difference-in-Differences with Non-Binary Treatments.”</span> SSRN Working Paper 7530698.
+</div>
+</div>
+</section></main><!-- /main --><script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/xiangao\.github\.io\/causal_econometrics_guide\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><nav class="page-navigation"><div class="nav-page nav-page-previous">
+      <a href="./did.html" class="pagination-link" aria-label="Difference-in-Differences">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Difference-in-Differences</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./iv-rdd.html" class="pagination-link" aria-label="IV &amp; Regression Discontinuity">
+        <span class="nav-page-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">IV &amp; Regression Discontinuity</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># DiD with Continuous Treatment</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: false</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fixest)</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>The DiD chapter treats the treatment as on or off. Many treatments come in amounts. A county gets one Walmart or five. A state raises the minimum wage by fifty cents or by three dollars. A hospital receives a small grant or a large one. With a dose we want more than the effect of being treated. We want to know how the effect changes with the dose.</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>We first look at two periods, where @callaway-goodman-bacon-santanna-2024, CGBS from here on, show what parallel trends identifies with a dose and what it leaves out. Two assumptions carry everything that follows: parallel trends and strong parallel trends. We then move to staggered adoption, using the heterogeneous-slopes extension of extended two-way fixed effects (ETWFE) in @wooldridge-2026-nonbinary, and replicate his study of Walmart and county retail employment.</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="fu">## Two periods</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>We observe units $i = 1, \dots, n$ in two periods, $t = 1, 2$. Nobody is treated in period 1. Before period 2, each unit receives a dose $D_i \ge 0$, and units with $D_i = 0$ stay untreated. For each dose $d$, unit $i$ has a potential outcome $Y_{it}(d)$, and we observe $Y_{it} = Y_{it}(D_i)$. No anticipation means $Y_{i1}(d) = Y_{i1}(0)$ for every $d$. Let $\Delta Y_i = Y_{i2} - Y_{i1}$.</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>There are two natural estimands. Take two doses $d$ and $d'$. The first estimand, $ATT(d \mid d')$, is the average effect of dose $d$, relative to no treatment, among the units that actually received dose $d'$:</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>$$ATT(d \mid d') = E<span class="co">[</span><span class="ot">Y_{i2}(d) - Y_{i2}(0) \mid D_i = d'</span><span class="co">]</span>.$$ {#eq-dc-att}</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>The leading case is $ATT(d \mid d)$, the effect of each group's own dose. The second estimand, $ATE(d)$, is the effect of dose $d$ averaged over all treated units, whatever dose they received:</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>$$ATE(d) = E<span class="co">[</span><span class="ot">Y_{i2}(d) - Y_{i2}(0) \mid D_i &gt; 0</span><span class="co">]</span>.$$ {#eq-dc-ate}</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>Its derivative $ATE'(d)$ is the average causal response at $d$: the average effect of a small increase in the dose.</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a><span class="fu">### Parallel trends</span></span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>The first assumption is parallel trends. With a dose it says that, without treatment, every dose group would have followed the trend of the untreated:</span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>$$E<span class="co">[</span><span class="ot">Y_{i2}(0) - Y_{i1}(0) \mid D_i = d</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">Y_{i2}(0) - Y_{i1}(0) \mid D_i = 0</span><span class="co">]</span> \quad \text{for all } d.$$ {#eq-dc-pt}</span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>In words, the change in the untreated potential outcome between periods 1 and 2 is the same at every dose, including zero. The assumption restricts untreated outcomes only. Under @eq-dc-pt and no anticipation,</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>$$E<span class="co">[</span><span class="ot">\Delta Y_i \mid D_i = d</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">\Delta Y_i \mid D_i = 0</span><span class="co">]</span> = ATT(d \mid d).$$ {#eq-dc-id}</span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>This is the binary DiD done separately at each dose. Parallel trends identifies the whole curve $ATT(d \mid d)$, each dose group's effect of its own dose. With more periods before treatment we can check it in the usual way: the dose groups should have moved together before anyone was treated.</span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a>Parallel trends does not identify comparisons across doses. For the two doses $d$ and $d'$,</span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a>$$ATT(d \mid d) - ATT(d' \mid d') = \underbrace{ATT(d \mid d) - ATT(d' \mid d)}_{\text{causal response}} + \underbrace{ATT(d' \mid d) - ATT(d' \mid d')}_{\text{selection on gains}}.$$ {#eq-dc-decomp}</span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a>The first term is causal. It is what moving the dose from $d'$ to $d$ does for the units that chose $d$. The second term compares two groups at the same dose $d'$. It is non-zero when the units that chose $d$ would gain differently from dose $d'$ than the units that chose $d'$. Parallel trends says nothing about this term, and pre-treatment data cannot reveal it, because it involves treated outcomes. So the slope of the curve in @eq-dc-id mixes the causal response with selection on gains.</span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a><span class="fu">### Strong parallel trends</span></span>
+<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-50"><a href="#cb15-50" aria-hidden="true" tabindex="-1"></a>The second assumption removes the selection term. CGBS call it strong parallel trends:</span>
+<span id="cb15-51"><a href="#cb15-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-52"><a href="#cb15-52" aria-hidden="true" tabindex="-1"></a>$$E<span class="co">[</span><span class="ot">Y_{i2}(d) - Y_{i1}(0) \mid D_i = d</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">Y_{i2}(d) - Y_{i1}(0) \mid D_i &gt; 0</span><span class="co">]</span> \quad \text{for all } d &gt; 0.$$ {#eq-dc-spt}</span>
+<span id="cb15-53"><a href="#cb15-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a>In words, the average path from untreated in period 1 to dose $d$ in period 2 is the same for the units that chose $d$ as for all treated units. Together with @eq-dc-pt it gives $ATT(d \mid d) = ATE(d)$ for every $d$: the average effect of a dose is the same in every dose group, whatever dose the group chose. The selection term in @eq-dc-decomp is then zero. Comparisons across doses are causal, and the slope of the identified curve is the average causal response.</span>
+<span id="cb15-55"><a href="#cb15-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-56"><a href="#cb15-56" aria-hidden="true" tabindex="-1"></a>Strong parallel trends is a stronger assumption than parallel trends, and of a different kind. It restricts treated potential outcomes, so no pre-treatment data can check it, and passing a pre-trend test says nothing about it. It restricts how units choose their dose. It is plausible when the dose is set for reasons unrelated to the gain, for example by a formula or a lottery. It is hard to defend when units choose their dose knowing what they will gain.</span>
+<span id="cb15-57"><a href="#cb15-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-58"><a href="#cb15-58" aria-hidden="true" tabindex="-1"></a>@wooldridge-2026-nonbinary reaches the same point from a regression. Let $B_i$ be the gain of unit $i$ from one unit of dose, so that the effect is linear in the dose with a slope that varies across units: $Y_{i2}(d) = Y_{i2}(0) + d B_i$. Let $\gamma = E<span class="co">[</span><span class="ot">Y_{i2}(0) - Y_{i1}(0)</span><span class="co">]</span>$ be the untreated trend, and let $\delta = E(B_i \mid D_i &gt; 0)$ be the average slope among the treated. Under @eq-dc-pt,</span>
+<span id="cb15-59"><a href="#cb15-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-60"><a href="#cb15-60" aria-hidden="true" tabindex="-1"></a>$$E(\Delta Y_i \mid D_i) = \gamma + \delta D_i$$ {#eq-dc-linear}</span>
+<span id="cb15-61"><a href="#cb15-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-62"><a href="#cb15-62" aria-hidden="true" tabindex="-1"></a>holds when $E(B_i \mid D_i = d) = \delta$ for every $d &gt; 0$. That condition is strong parallel trends for the linear model. Adding powers of $D_i$ to the regression relaxes the linearity.</span>
+<span id="cb15-63"><a href="#cb15-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-64"><a href="#cb15-64" aria-hidden="true" tabindex="-1"></a><span class="fu">## Staggered adoption</span></span>
+<span id="cb15-65"><a href="#cb15-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-66"><a href="#cb15-66" aria-hidden="true" tabindex="-1"></a>Now units enter treatment at different times, as in the ETWFE section of the DiD chapter. Periods run $t = 1, \dots, T$, and the first period in which any unit is treated is $q$. A cohort $g \in <span class="sc">\{</span>q, \dots, T<span class="sc">\}</span>$ is the set of units first treated in period $g$. Let $D_{ig} = 1$ if unit $i$ is in cohort $g$, and $D_{ig} = 0$ otherwise. Never-treated units have $D_{ig} = 0$ for every $g$. The vector $\mathbf D_i = (D_{iq}, \dots, D_{iT})$ collects unit $i$'s cohort dummies. For each period $s$, the time dummy $fs_t$ equals 1 if $t = s$ and 0 otherwise.</span>
+<span id="cb15-67"><a href="#cb15-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-68"><a href="#cb15-68" aria-hidden="true" tabindex="-1"></a>The treatment $\mathbf W_{it}$ is a $1 \times J$ row vector, where $J$ is the number of treatment variables. A single dose has $J = 1$. A dose and its square has $J = 2$. A set of mutually exclusive treatment levels has $J$ equal to the number of levels. Every unit has $\mathbf W_{it} = \mathbf 0$ before its entry period, and $\mathbf W_i$ stacks unit $i$'s rows over all $T$ periods. We write $\mathbf w$ for a possible value of $\mathbf W_{it}$. The dose may change after entry. In the Walmart data it is the number of stores open.</span>
+<span id="cb15-69"><a href="#cb15-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-70"><a href="#cb15-70" aria-hidden="true" tabindex="-1"></a>@wooldridge-2026-nonbinary writes potential outcomes as linear in the treatment, with slopes that vary by unit and period. Let $\mathbf B_{it}$ be a $J \times 1$ vector of random slopes, whose $j$-th element is unit $i$'s gain in period $t$ from one unit of treatment variable $j$. Let $\gamma_t$ be a time effect, $C_i$ an unobserved unit effect, and $U_{it}$ an idiosyncratic error. The potential outcome at treatment value $\mathbf w$ is</span>
+<span id="cb15-71"><a href="#cb15-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-72"><a href="#cb15-72" aria-hidden="true" tabindex="-1"></a>$$Y_{it}(\mathbf w) = \mathbf w\, \mathbf B_{it} + \gamma_t + C_i + U_{it}.$$ {#eq-dc-po}</span>
+<span id="cb15-73"><a href="#cb15-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-74"><a href="#cb15-74" aria-hidden="true" tabindex="-1"></a>For a single dose, $J = 1$, write the scalar dose as $w$. Subtracting the untreated potential outcome cancels the time effect, the unit effect and the error:</span>
+<span id="cb15-75"><a href="#cb15-75" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-76"><a href="#cb15-76" aria-hidden="true" tabindex="-1"></a>$$Y_{it}(w) - Y_{it}(0) = w\, B_{it}.$$ {#eq-dc-diff}</span>
+<span id="cb15-77"><a href="#cb15-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-78"><a href="#cb15-78" aria-hidden="true" tabindex="-1"></a>So $B_{it}$ is the difference in potential outcomes per unit of dose. With several treatment variables, the $j$-th element of $\mathbf B_{it}$ is the change in the potential outcome from one more unit of treatment variable $j$, holding the others fixed. The additive $\gamma_t + C_i$ is parallel trends. Nothing restricts $\mathbf B_{it}$. The estimand is its mean for each cohort and period:</span>
+<span id="cb15-79"><a href="#cb15-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-80"><a href="#cb15-80" aria-hidden="true" tabindex="-1"></a>$$\boldsymbol\delta_{gs} = E(\mathbf B_{is} \mid D_{ig} = 1), \qquad s \ge g.$$ {#eq-dc-delta}</span>
+<span id="cb15-81"><a href="#cb15-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-82"><a href="#cb15-82" aria-hidden="true" tabindex="-1"></a>In words, $\boldsymbol\delta_{gs}$ is the average effect per unit of each treatment variable for cohort $g$ in period $s$. Because the potential outcome is linear in the dose, it is also the effect of one more unit at any dose: going from 0 to 1 has the same effect as going from 1 to 2. Adding powers of the dose, or dummies for dose levels, to $\mathbf W_{it}$ relaxes this. With a binary treatment, $\boldsymbol\delta_{gs}$ is the cohort-period ATT of ETWFE.</span>
+<span id="cb15-83"><a href="#cb15-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-84"><a href="#cb15-84" aria-hidden="true" tabindex="-1"></a>Wooldridge assumes no anticipation and strict exogeneity. Strict exogeneity says the error $U_{it}$ has mean zero given the whole treatment path $\mathbf W_i$, the unit effect $C_i$ and the slopes $\mathbf B_{it}$. He needs one more assumption, which has no counterpart in the binary case. He calls it limited selection:</span>
+<span id="cb15-85"><a href="#cb15-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-86"><a href="#cb15-86" aria-hidden="true" tabindex="-1"></a>$$E(\mathbf B_{it} \mid \mathbf W_i) = E(\mathbf B_{it} \mid \mathbf D_i).$$ {#eq-dc-ls}</span>
+<span id="cb15-87"><a href="#cb15-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-88"><a href="#cb15-88" aria-hidden="true" tabindex="-1"></a>Once we know when a unit entered, its dose path carries no information about its average gain. With a binary treatment the entry date fixes the whole treatment path, so @eq-dc-ls holds automatically. With two periods and a scalar dose it is the strong parallel trends of @eq-dc-spt in its linear form. Parallel trends enters through the additive $\gamma_t + C_i$ in @eq-dc-po. So the staggered estimates rest on the same two assumptions as the two-period ones.</span>
+<span id="cb15-89"><a href="#cb15-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-90"><a href="#cb15-90" aria-hidden="true" tabindex="-1"></a>Let $A_i = E(C_i \mid \mathbf W_i)$ be the mean of the unit effect given the treatment path. Under these assumptions,</span>
+<span id="cb15-91"><a href="#cb15-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-92"><a href="#cb15-92" aria-hidden="true" tabindex="-1"></a>$$E(Y_{it} \mid \mathbf W_i) = \sum_{g=q}^{T} \sum_{s=g}^{T} (D_{ig}\, fs_t\, \mathbf W_{it})\, \boldsymbol\delta_{gs} + \gamma_t + A_i.$$ {#eq-dc-reg}</span>
+<span id="cb15-93"><a href="#cb15-93" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-94"><a href="#cb15-94" aria-hidden="true" tabindex="-1"></a>$A_i$ is a unit effect. So a two-way fixed effects (TWFE) regression of $Y_{it}$ on the interactions $D_{ig}\, fs_t\, \mathbf W_{it}$, with unit and time effects, estimates every $\boldsymbol\delta_{gs}$. This is ETWFE with the treatment indicator replaced by the dose. Standard errors are clustered by unit.</span>
+<span id="cb15-95"><a href="#cb15-95" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-96"><a href="#cb15-96" aria-hidden="true" tabindex="-1"></a>There are many cohort-period slopes, so we aggregate them. Let $e$ be the exposure time, the number of periods since entry, and let $N_g$ be the number of units in cohort $g$. Let $\hat{\boldsymbol\delta}_{gs}$ be the TWFE estimate of $\boldsymbol\delta_{gs}$. The estimated effect at exposure $e$, written $\hat{\boldsymbol\tau}_{e}$, averages over the cohorts observed that long, with weights proportional to cohort size:</span>
+<span id="cb15-97"><a href="#cb15-97" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-98"><a href="#cb15-98" aria-hidden="true" tabindex="-1"></a>$$\hat{\boldsymbol\tau}_{e} = \sum_{g=q}^{T-e} \frac{N_g}{N_q + \dots + N_{T-e}}\, \hat{\boldsymbol\delta}_{g,g+e}.$$ {#eq-dc-agg}</span>
+<span id="cb15-99"><a href="#cb15-99" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-100"><a href="#cb15-100" aria-hidden="true" tabindex="-1"></a>The overall effect weights every cohort-period slope by $N_g$. In a balanced panel it is the average slope over all treated unit-periods.</span>
+<span id="cb15-101"><a href="#cb15-101" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-102"><a href="#cb15-102" aria-hidden="true" tabindex="-1"></a>Pre-trends can be tested in two ways. A lead is a dummy $D_{ig}\, fs_t$ for a period $s$ before cohort $g$ enters. The first test fits TWFE on the untreated observations only, the unit-periods with $\mathbf W_{it} = \mathbf 0$, with leads for $s \le g - 2$, so that the period just before entry is the base. It then tests whether the leads are zero. The second test adds the same leads to @eq-dc-reg. With a binary treatment the two give identical estimates. With a dose they differ. Both tests check parallel trends. Neither checks limited selection. When the leads show a trend, Wooldridge adds cohort-specific linear trends to @eq-dc-reg. For each cohort $g$, the regressor $D_{ig} \cdot t$ is a linear time trend for that cohort only. The assumption then becomes that each cohort's gap from the never-treated units would have kept growing along the same line after entry.</span>
+<span id="cb15-103"><a href="#cb15-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-104"><a href="#cb15-104" aria-hidden="true" tabindex="-1"></a><span class="fu">## Wooldridge's regression and the CGBS estimator</span></span>
+<span id="cb15-105"><a href="#cb15-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-106"><a href="#cb15-106" aria-hidden="true" tabindex="-1"></a>The two approaches target the same objects. Under parallel trends and strong parallel trends, each identifies the average effect of the dose for every cohort and period. They differ in how they estimate it and in what they can handle.</span>
+<span id="cb15-107"><a href="#cb15-107" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-108"><a href="#cb15-108" aria-hidden="true" tabindex="-1"></a>The first difference is the comparison group. Wooldridge runs one TWFE regression in levels on all periods, @eq-dc-reg. Every untreated observation serves as a control: the never-treated units, the not-yet-treated units, and the pre-entry periods of every cohort. In the binary case this regression is the imputation estimator of @borusyak-jaravel-spiess-2024. @callaway-goodman-bacon-santanna-2024 build on @callaway-santanna-2021 instead. For each cohort and period they compare the cohort with the never-treated or the not-yet-treated units, using the long difference from the period just before entry, and fit the dose response in that comparison. The regression uses more data, and it is more efficient when the errors are homoskedastic and serially uncorrelated. In exchange it needs parallel trends in every pre-entry period. The differencing approach needs it only from the base period on.</span>
+<span id="cb15-109"><a href="#cb15-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-110"><a href="#cb15-110" aria-hidden="true" tabindex="-1"></a>The second difference is the shape of the dose response. In Wooldridge's regression, the shape comes from the functions of the dose placed in $\mathbf W_{it}$: the dose itself, its powers, or dummies for dose levels. The estimand is the average slope $\boldsymbol\delta_{gs}$. CGBS fit a B-spline in the dose within each cohort and period, or a nonparametric curve whose complexity is chosen from the data. They report the curve $ATT(d \mid d)$ and its derivative. The two also treat a dose near zero differently. With two periods, Wooldridge's regression has no separate intercept for the treated units, so its fitted effect goes to zero as the dose goes to zero. The CGBS fit gives the treated units their own intercept, so the effect can jump at any positive dose. The two coincide once a dummy for a positive dose is added to $\mathbf W_{it}$.</span>
+<span id="cb15-111"><a href="#cb15-111" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-112"><a href="#cb15-112" aria-hidden="true" tabindex="-1"></a>The third difference is scope. The table compares Wooldridge's regression with the R package <span class="in">`contdid`</span>, version 0.1.1, which implements CGBS.</span>
+<span id="cb15-113"><a href="#cb15-113" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-114"><a href="#cb15-114" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> <span class="pp">|</span> Wooldridge (2026) <span class="pp">|</span> <span class="in">`contdid`</span> 0.1.1 <span class="pp">|</span></span>
+<span id="cb15-115"><a href="#cb15-115" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|---|</span></span>
+<span id="cb15-116"><a href="#cb15-116" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Dose changes after entry <span class="pp">|</span> Yes <span class="pp">|</span> No <span class="pp">|</span></span>
+<span id="cb15-117"><a href="#cb15-117" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Covariates <span class="pp">|</span> Yes, in the trends and in the slopes <span class="pp">|</span> No <span class="pp">|</span></span>
+<span id="cb15-118"><a href="#cb15-118" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Cohort-specific trends <span class="pp">|</span> Yes <span class="pp">|</span> No <span class="pp">|</span></span>
+<span id="cb15-119"><a href="#cb15-119" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Unbalanced panel <span class="pp">|</span> Yes <span class="pp">|</span> No <span class="pp">|</span></span>
+<span id="cb15-120"><a href="#cb15-120" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Multi-level or vector treatment <span class="pp">|</span> Yes, through $\mathbf W_{it}$ <span class="pp">|</span> No <span class="pp">|</span></span>
+<span id="cb15-121"><a href="#cb15-121" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Exit from treatment <span class="pp">|</span> Yes <span class="pp">|</span> No <span class="pp">|</span></span>
+<span id="cb15-122"><a href="#cb15-122" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Standard errors <span class="pp">|</span> Analytic, clustered by unit <span class="pp">|</span> Multiplier bootstrap <span class="pp">|</span></span>
+<span id="cb15-123"><a href="#cb15-123" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Reported effects <span class="pp">|</span> Average slopes by cohort and period, aggregated by exposure <span class="pp">|</span> $ATT(d \mid d)$ and its derivative, aggregated by dose or by exposure <span class="pp">|</span></span>
+<span id="cb15-124"><a href="#cb15-124" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-125"><a href="#cb15-125" aria-hidden="true" tabindex="-1"></a>The first row decides the Walmart application. The number of stores changes after entry, so the CGBS estimator, as implemented, does not apply. The other rows show what the single regression buys: covariates, trends, exit and missing years enter as extra terms. In the other direction, CGBS trace out the whole dose-response curve within each cohort and period. Wooldridge reports average slopes and needs powers of the dose to show curvature.</span>
+<span id="cb15-126"><a href="#cb15-126" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-127"><a href="#cb15-127" aria-hidden="true" tabindex="-1"></a><span class="fu">## Walmart and county retail employment</span></span>
+<span id="cb15-128"><a href="#cb15-128" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-129"><a href="#cb15-129" aria-hidden="true" tabindex="-1"></a>@wooldridge-2026-nonbinary applies the method to the county panel of @brown-butts-2025. It covers 1,288 counties from 1977 to 1999. No county had a Walmart before 1986. Stores then opened in 14 cohorts, from 1986 to 1999, and 395 counties never got one. The treatment is a single dose, so $J = 1$ and we write it without bold: $W_{it}$ is the number of Walmarts open in county $i$ in year $t$. The outcome is log retail employment.</span>
+<span id="cb15-130"><a href="#cb15-130" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-131"><a href="#cb15-131" aria-hidden="true" tabindex="-1"></a><span class="in">```{r dc-wm-load, cache=TRUE}</span></span>
+<span id="cb15-132"><a href="#cb15-132" aria-hidden="true" tabindex="-1"></a><span class="co"># extract of walmart_lw.dta from Wooldridge's replication files (data/gen_walmart_lw.R)</span></span>
+<span id="cb15-133"><a href="#cb15-133" aria-hidden="true" tabindex="-1"></a>wm <span class="ot">&lt;-</span> <span class="fu">fread</span>(<span class="st">"data/walmart_lw.csv"</span>)</span>
+<span id="cb15-134"><a href="#cb15-134" aria-hidden="true" tabindex="-1"></a>wm[year <span class="sc">==</span> <span class="dv">1999</span>, .N, by <span class="ot">=</span> .(cohort)][<span class="fu">order</span>(cohort)]</span>
+<span id="cb15-135"><a href="#cb15-135" aria-hidden="true" tabindex="-1"></a>wm[n_open <span class="sc">&gt;</span> <span class="dv">0</span>, .N, by <span class="ot">=</span> n_open][<span class="fu">order</span>(n_open)][, share <span class="sc">:</span><span class="er">=</span> <span class="fu">round</span>(N <span class="sc">/</span> <span class="fu">sum</span>(N), <span class="dv">3</span>)][]</span>
+<span id="cb15-136"><a href="#cb15-136" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb15-137"><a href="#cb15-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-138"><a href="#cb15-138" aria-hidden="true" tabindex="-1"></a>Most treated counties have a single store. One store accounts for 80% of treated county-years, two for 13%, and the largest count is 13. Within a cohort and year, the slope is fit from the change relative to untreated counties and from the differences in store counts. With so many single-store counties, it mostly measures the effect of the first store.</span>
+<span id="cb15-139"><a href="#cb15-139" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-140"><a href="#cb15-140" aria-hidden="true" tabindex="-1"></a>A single-coefficient TWFE regression is the natural starting point.</span>
+<span id="cb15-141"><a href="#cb15-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-142"><a href="#cb15-142" aria-hidden="true" tabindex="-1"></a><span class="in">```{r dc-wm-twfe, cache=TRUE}</span></span>
+<span id="cb15-143"><a href="#cb15-143" aria-hidden="true" tabindex="-1"></a><span class="fu">coeftable</span>(<span class="fu">feols</span>(log_retail_emp <span class="sc">~</span> n_open <span class="sc">|</span> fips <span class="sc">+</span> year, wm, <span class="at">cluster =</span> <span class="sc">~</span>fips))</span>
+<span id="cb15-144"><a href="#cb15-144" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb15-145"><a href="#cb15-145" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-146"><a href="#cb15-146" aria-hidden="true" tabindex="-1"></a>One more Walmart raises retail employment by 3.4%, with a standard error of 0.57 percentage points. In the binary case this regression makes forbidden comparisons, which use already-treated units as controls, when effects vary by cohort and time. The same holds with a dose. So we build the regressors of @eq-dc-reg, one for each cohort and year from entry on: $W_{it}$ times the cohort dummy times the year dummy.</span>
+<span id="cb15-147"><a href="#cb15-147" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-148"><a href="#cb15-148" aria-hidden="true" tabindex="-1"></a><span class="in">```{r dc-wm-cells, cache=TRUE}</span></span>
+<span id="cb15-149"><a href="#cb15-149" aria-hidden="true" tabindex="-1"></a>cohorts <span class="ot">&lt;-</span> <span class="dv">1986</span><span class="sc">:</span><span class="dv">1999</span></span>
+<span id="cb15-150"><a href="#cb15-150" aria-hidden="true" tabindex="-1"></a>cells <span class="ot">&lt;-</span> <span class="fu">CJ</span>(<span class="at">g =</span> cohorts, <span class="at">s =</span> cohorts)[s <span class="sc">&gt;=</span> g]</span>
+<span id="cb15-151"><a href="#cb15-151" aria-hidden="true" tabindex="-1"></a>wcols <span class="ot">&lt;-</span> <span class="fu">sprintf</span>(<span class="st">"w_%d_%d"</span>, cells<span class="sc">$</span>g, cells<span class="sc">$</span>s)</span>
+<span id="cb15-152"><a href="#cb15-152" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (k <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="fu">nrow</span>(cells)))</span>
+<span id="cb15-153"><a href="#cb15-153" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set</span>(wm, <span class="at">j =</span> wcols[k],</span>
+<span id="cb15-154"><a href="#cb15-154" aria-hidden="true" tabindex="-1"></a>      <span class="at">value =</span> (wm<span class="sc">$</span>cohort <span class="sc">==</span> cells<span class="sc">$</span>g[k]) <span class="sc">*</span> (wm<span class="sc">$</span>year <span class="sc">==</span> cells<span class="sc">$</span>s[k]) <span class="sc">*</span> wm<span class="sc">$</span>n_open)</span>
+<span id="cb15-155"><a href="#cb15-155" aria-hidden="true" tabindex="-1"></a>trcols <span class="ot">&lt;-</span> <span class="fu">sprintf</span>(<span class="st">"tr_%d"</span>, cohorts)</span>
+<span id="cb15-156"><a href="#cb15-156" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (k <span class="cf">in</span> <span class="fu">seq_along</span>(cohorts))</span>
+<span id="cb15-157"><a href="#cb15-157" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set</span>(wm, <span class="at">j =</span> trcols[k], <span class="at">value =</span> (wm<span class="sc">$</span>cohort <span class="sc">==</span> cohorts[k]) <span class="sc">*</span> wm<span class="sc">$</span>year)</span>
+<span id="cb15-158"><a href="#cb15-158" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-159"><a href="#cb15-159" aria-hidden="true" tabindex="-1"></a>fit_het <span class="ot">&lt;-</span> <span class="fu">feols</span>(log_retail_emp <span class="sc">~</span> <span class="fu">..</span>(<span class="st">"^w_"</span>) <span class="sc">|</span> fips <span class="sc">+</span> year, wm, <span class="at">cluster =</span> <span class="sc">~</span>fips)</span>
+<span id="cb15-160"><a href="#cb15-160" aria-hidden="true" tabindex="-1"></a><span class="fu">length</span>(<span class="fu">coef</span>(fit_het))</span>
+<span id="cb15-161"><a href="#cb15-161" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb15-162"><a href="#cb15-162" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-163"><a href="#cb15-163" aria-hidden="true" tabindex="-1"></a>That gives 105 slopes. We aggregate them with @eq-dc-agg. Each aggregate is a linear combination of the slopes with fixed weights, so its standard error comes from the clustered covariance matrix. This matches Stata's <span class="in">`margins`</span> in Wooldridge's code.</span>
+<span id="cb15-164"><a href="#cb15-164" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-165"><a href="#cb15-165" aria-hidden="true" tabindex="-1"></a><span class="in">```{r dc-wm-agg, cache=TRUE}</span></span>
+<span id="cb15-166"><a href="#cb15-166" aria-hidden="true" tabindex="-1"></a>Ng <span class="ot">&lt;-</span> wm[year <span class="sc">==</span> <span class="dv">1999</span> <span class="sc">&amp;</span> cohort <span class="sc">&gt;</span> <span class="dv">0</span>, .N, by <span class="ot">=</span> cohort]</span>
+<span id="cb15-167"><a href="#cb15-167" aria-hidden="true" tabindex="-1"></a><span class="fu">setkey</span>(Ng, cohort)</span>
+<span id="cb15-168"><a href="#cb15-168" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-169"><a href="#cb15-169" aria-hidden="true" tabindex="-1"></a>aggregate_slopes <span class="ot">&lt;-</span> <span class="cf">function</span>(fit) {</span>
+<span id="cb15-170"><a href="#cb15-170" aria-hidden="true" tabindex="-1"></a>  b <span class="ot">&lt;-</span> <span class="fu">coef</span>(fit)[wcols]; V <span class="ot">&lt;-</span> <span class="fu">vcov</span>(fit)[wcols, wcols]</span>
+<span id="cb15-171"><a href="#cb15-171" aria-hidden="true" tabindex="-1"></a>  lincomb <span class="ot">&lt;-</span> <span class="cf">function</span>(a) <span class="fu">c</span>(<span class="at">estimate =</span> <span class="fu">sum</span>(a <span class="sc">*</span> b), <span class="at">se =</span> <span class="fu">sqrt</span>(<span class="fu">drop</span>(<span class="fu">t</span>(a) <span class="sc">%*%</span> V <span class="sc">%*%</span> a)))</span>
+<span id="cb15-172"><a href="#cb15-172" aria-hidden="true" tabindex="-1"></a>  by_e <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">sapply</span>(<span class="dv">0</span><span class="sc">:</span><span class="dv">13</span>, <span class="cf">function</span>(e) {</span>
+<span id="cb15-173"><a href="#cb15-173" aria-hidden="true" tabindex="-1"></a>    gs <span class="ot">&lt;-</span> cohorts[cohorts <span class="sc">+</span> e <span class="sc">&lt;=</span> <span class="dv">1999</span>]</span>
+<span id="cb15-174"><a href="#cb15-174" aria-hidden="true" tabindex="-1"></a>    a <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="fu">numeric</span>(<span class="fu">length</span>(wcols)), wcols)</span>
+<span id="cb15-175"><a href="#cb15-175" aria-hidden="true" tabindex="-1"></a>    a[<span class="fu">sprintf</span>(<span class="st">"w_%d_%d"</span>, gs, gs <span class="sc">+</span> e)] <span class="ot">&lt;-</span> Ng[<span class="fu">J</span>(gs)]<span class="sc">$</span>N <span class="sc">/</span> <span class="fu">sum</span>(Ng[<span class="fu">J</span>(gs)]<span class="sc">$</span>N)</span>
+<span id="cb15-176"><a href="#cb15-176" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lincomb</span>(a)</span>
+<span id="cb15-177"><a href="#cb15-177" aria-hidden="true" tabindex="-1"></a>  }))</span>
+<span id="cb15-178"><a href="#cb15-178" aria-hidden="true" tabindex="-1"></a>  a_all <span class="ot">&lt;-</span> Ng[<span class="fu">J</span>(cells<span class="sc">$</span>g)]<span class="sc">$</span>N</span>
+<span id="cb15-179"><a href="#cb15-179" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rbind</span>(by_e, <span class="at">overall =</span> <span class="fu">lincomb</span>(a_all <span class="sc">/</span> <span class="fu">sum</span>(a_all)))</span>
+<span id="cb15-180"><a href="#cb15-180" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb15-181"><a href="#cb15-181" aria-hidden="true" tabindex="-1"></a>agg_het <span class="ot">&lt;-</span> <span class="fu">aggregate_slopes</span>(fit_het)</span>
+<span id="cb15-182"><a href="#cb15-182" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb15-183"><a href="#cb15-183" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-184"><a href="#cb15-184" aria-hidden="true" tabindex="-1"></a>Before reading the effects, we check pre-trends. Following the first test above, we fit TWFE on the untreated county-years with a lead for each cohort and each year at least two years before entry. We then average the leads by years until entry, with the cohort weights of @eq-dc-agg.</span>
+<span id="cb15-185"><a href="#cb15-185" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-186"><a href="#cb15-186" aria-hidden="true" tabindex="-1"></a><span class="in">```{r dc-wm-pre, cache=TRUE, fig.width=7, fig.height=3.6}</span></span>
+<span id="cb15-187"><a href="#cb15-187" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Weighted pre-treatment estimates from the untreated observations, with 95% intervals. The year before entry is the base."</span></span>
+<span id="cb15-188"><a href="#cb15-188" aria-hidden="true" tabindex="-1"></a>un <span class="ot">&lt;-</span> wm[n_open <span class="sc">==</span> <span class="dv">0</span>, .(fips, year, cohort, log_retail_emp)]</span>
+<span id="cb15-189"><a href="#cb15-189" aria-hidden="true" tabindex="-1"></a>leads <span class="ot">&lt;-</span> <span class="fu">CJ</span>(<span class="at">g =</span> cohorts, <span class="at">s =</span> <span class="dv">1977</span><span class="sc">:</span><span class="dv">1999</span>)[s <span class="sc">&lt;=</span> g <span class="sc">-</span> <span class="dv">2</span>]</span>
+<span id="cb15-190"><a href="#cb15-190" aria-hidden="true" tabindex="-1"></a>lcols <span class="ot">&lt;-</span> <span class="fu">sprintf</span>(<span class="st">"l_%d_%d"</span>, leads<span class="sc">$</span>g, leads<span class="sc">$</span>s)</span>
+<span id="cb15-191"><a href="#cb15-191" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (k <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="fu">nrow</span>(leads)))</span>
+<span id="cb15-192"><a href="#cb15-192" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set</span>(un, <span class="at">j =</span> lcols[k], <span class="at">value =</span> (un<span class="sc">$</span>cohort <span class="sc">==</span> leads<span class="sc">$</span>g[k]) <span class="sc">*</span> (un<span class="sc">$</span>year <span class="sc">==</span> leads<span class="sc">$</span>s[k]))</span>
+<span id="cb15-193"><a href="#cb15-193" aria-hidden="true" tabindex="-1"></a>fit_pre <span class="ot">&lt;-</span> <span class="fu">feols</span>(log_retail_emp <span class="sc">~</span> <span class="fu">..</span>(<span class="st">"^l_"</span>) <span class="sc">|</span> fips <span class="sc">+</span> year, un, <span class="at">cluster =</span> <span class="sc">~</span>fips)</span>
+<span id="cb15-194"><a href="#cb15-194" aria-hidden="true" tabindex="-1"></a>b <span class="ot">&lt;-</span> <span class="fu">coef</span>(fit_pre); V <span class="ot">&lt;-</span> <span class="fu">vcov</span>(fit_pre)</span>
+<span id="cb15-195"><a href="#cb15-195" aria-hidden="true" tabindex="-1"></a>pre <span class="ot">&lt;-</span> <span class="fu">rbindlist</span>(<span class="fu">lapply</span>(<span class="dv">2</span><span class="sc">:</span><span class="dv">22</span>, <span class="cf">function</span>(k) {</span>
+<span id="cb15-196"><a href="#cb15-196" aria-hidden="true" tabindex="-1"></a>  gs <span class="ot">&lt;-</span> cohorts[cohorts <span class="sc">-</span> k <span class="sc">&gt;=</span> <span class="dv">1977</span>]</span>
+<span id="cb15-197"><a href="#cb15-197" aria-hidden="true" tabindex="-1"></a>  a <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="fu">numeric</span>(<span class="fu">length</span>(b)), <span class="fu">names</span>(b))</span>
+<span id="cb15-198"><a href="#cb15-198" aria-hidden="true" tabindex="-1"></a>  a[<span class="fu">sprintf</span>(<span class="st">"l_%d_%d"</span>, gs, gs <span class="sc">-</span> k)] <span class="ot">&lt;-</span> Ng[<span class="fu">J</span>(gs)]<span class="sc">$</span>N <span class="sc">/</span> <span class="fu">sum</span>(Ng[<span class="fu">J</span>(gs)]<span class="sc">$</span>N)</span>
+<span id="cb15-199"><a href="#cb15-199" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data.table</span>(<span class="at">time =</span> <span class="sc">-</span>k, <span class="at">estimate =</span> <span class="fu">sum</span>(a <span class="sc">*</span> b), <span class="at">se =</span> <span class="fu">sqrt</span>(<span class="fu">drop</span>(<span class="fu">t</span>(a) <span class="sc">%*%</span> V <span class="sc">%*%</span> a)))</span>
+<span id="cb15-200"><a href="#cb15-200" aria-hidden="true" tabindex="-1"></a>}))</span>
+<span id="cb15-201"><a href="#cb15-201" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pre, <span class="fu">aes</span>(time, estimate)) <span class="sc">+</span></span>
+<span id="cb15-202"><a href="#cb15-202" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>) <span class="sc">+</span></span>
+<span id="cb15-203"><a href="#cb15-203" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_pointrange</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> estimate <span class="sc">-</span> <span class="fl">1.96</span> <span class="sc">*</span> se, <span class="at">ymax =</span> estimate <span class="sc">+</span> <span class="fl">1.96</span> <span class="sc">*</span> se),</span>
+<span id="cb15-204"><a href="#cb15-204" aria-hidden="true" tabindex="-1"></a>                  <span class="at">colour =</span> <span class="st">"darkcyan"</span>) <span class="sc">+</span></span>
+<span id="cb15-205"><a href="#cb15-205" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Years until first Walmart"</span>, <span class="at">y =</span> <span class="st">"Log retail employment"</span>) <span class="sc">+</span></span>
+<span id="cb15-206"><a href="#cb15-206" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb15-207"><a href="#cb15-207" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb15-208"><a href="#cb15-208" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-209"><a href="#cb15-209" aria-hidden="true" tabindex="-1"></a>The leads fall almost linearly as we go back in time. Twenty years before entry, counties that later got a Walmart had retail employment about 19 log points lower, relative to the year before entry, than the never-treated counties. Retail employment was growing faster in these counties long before any store opened. Parallel trends fails, so Wooldridge also reports estimates with the cohort-specific linear trends.</span>
+<span id="cb15-210"><a href="#cb15-210" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-211"><a href="#cb15-211" aria-hidden="true" tabindex="-1"></a><span class="in">```{r dc-wm-trend, cache=TRUE}</span></span>
+<span id="cb15-212"><a href="#cb15-212" aria-hidden="true" tabindex="-1"></a>fit_trend <span class="ot">&lt;-</span> <span class="fu">feols</span>(log_retail_emp <span class="sc">~</span> <span class="fu">..</span>(<span class="st">"^w_"</span>) <span class="sc">+</span> <span class="fu">..</span>(<span class="st">"^tr_"</span>) <span class="sc">|</span> fips <span class="sc">+</span> year,</span>
+<span id="cb15-213"><a href="#cb15-213" aria-hidden="true" tabindex="-1"></a>                   wm, <span class="at">cluster =</span> <span class="sc">~</span>fips)</span>
+<span id="cb15-214"><a href="#cb15-214" aria-hidden="true" tabindex="-1"></a>agg_trend <span class="ot">&lt;-</span> <span class="fu">aggregate_slopes</span>(fit_trend)</span>
+<span id="cb15-215"><a href="#cb15-215" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-216"><a href="#cb15-216" aria-hidden="true" tabindex="-1"></a>tab <span class="ot">&lt;-</span> <span class="fu">data.table</span>(<span class="at">exposure =</span> <span class="fu">c</span>(<span class="dv">0</span><span class="sc">:</span><span class="dv">13</span>, <span class="st">"overall"</span>),</span>
+<span id="cb15-217"><a href="#cb15-217" aria-hidden="true" tabindex="-1"></a>                  <span class="at">no_trends =</span> <span class="fu">sprintf</span>(<span class="st">"%.4f (%.4f)"</span>, agg_het[, <span class="dv">1</span>], agg_het[, <span class="dv">2</span>]),</span>
+<span id="cb15-218"><a href="#cb15-218" aria-hidden="true" tabindex="-1"></a>                  <span class="at">cohort_trends =</span> <span class="fu">sprintf</span>(<span class="st">"%.4f (%.4f)"</span>, agg_trend[, <span class="dv">1</span>], agg_trend[, <span class="dv">2</span>]))</span>
+<span id="cb15-219"><a href="#cb15-219" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(tab, <span class="at">col.names =</span> <span class="fu">c</span>(<span class="st">"Exposure"</span>, <span class="st">"No trends"</span>, <span class="st">"Cohort trends"</span>),</span>
+<span id="cb15-220"><a href="#cb15-220" aria-hidden="true" tabindex="-1"></a>             <span class="at">align =</span> <span class="st">"lrr"</span>)</span>
+<span id="cb15-221"><a href="#cb15-221" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb15-222"><a href="#cb15-222" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-223"><a href="#cb15-223" aria-hidden="true" tabindex="-1"></a>The table reproduces Table 7.1 of @wooldridge-2026-nonbinary, estimates and standard errors, to all four decimals.</span>
+<span id="cb15-224"><a href="#cb15-224" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-225"><a href="#cb15-225" aria-hidden="true" tabindex="-1"></a>Without trends, one more store raises retail employment by about 3% to 4% in the first years. The effect climbs to 9% by year 13. The overall effect is 0.0386 (0.0051). It is close to the single-coefficient TWFE estimate of 0.0344, and a little more precise.</span>
+<span id="cb15-226"><a href="#cb15-226" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-227"><a href="#cb15-227" aria-hidden="true" tabindex="-1"></a>The cohort trends change the estimates a lot. The effect in the entry year is 0.0049 (0.0033), indistinguishable from zero. From the entry year to year 6, the effects are between a sixth and a half of their values without trends. They then rise steadily, and by year 13 the two columns agree at about 0.09. The overall effect falls to 0.0156 (0.0046), less than half the estimate without trends. The trends also make the estimates more precise up to about year 8. The long exposures rest on the earliest cohorts only, so their standard errors grow. Year 13 comes from the 1986 cohort alone.</span>
+<span id="cb15-228"><a href="#cb15-228" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-229"><a href="#cb15-229" aria-hidden="true" tabindex="-1"></a>For comparison, we add the same 14 cohort trends to the single-coefficient regression. One slope on the store count is then shared by every cohort and year.</span>
+<span id="cb15-230"><a href="#cb15-230" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-231"><a href="#cb15-231" aria-hidden="true" tabindex="-1"></a><span class="in">```{r dc-wm-twfe-trend, cache=TRUE}</span></span>
+<span id="cb15-232"><a href="#cb15-232" aria-hidden="true" tabindex="-1"></a><span class="fu">coeftable</span>(<span class="fu">feols</span>(log_retail_emp <span class="sc">~</span> n_open <span class="sc">+</span> <span class="fu">..</span>(<span class="st">"^tr_"</span>) <span class="sc">|</span> fips <span class="sc">+</span> year,</span>
+<span id="cb15-233"><a href="#cb15-233" aria-hidden="true" tabindex="-1"></a>                wm, <span class="at">cluster =</span> <span class="sc">~</span>fips))[<span class="st">"n_open"</span>, ]</span>
+<span id="cb15-234"><a href="#cb15-234" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb15-235"><a href="#cb15-235" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-236"><a href="#cb15-236" aria-hidden="true" tabindex="-1"></a>With the same trends, the single-coefficient regression gives 0.0100 (0.0045). The flexible model costs almost nothing in precision.</span>
+<span id="cb15-237"><a href="#cb15-237" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-238"><a href="#cb15-238" aria-hidden="true" tabindex="-1"></a>The table averages over cohorts. To see the path of a single cohort, we take the 1990 cohort, the largest, with 118 counties and ten years after entry. Under @eq-dc-po, with $J = 1$, the effect of $w$ stores on cohort $g$ in year $s$ is $w\,\delta_{gs}$. The figure plots the estimated effect of one store, $\hat\delta_{1990,s}$, for each year after entry, with and without cohort trends. The effect of two stores is twice as large in every year, because the model is linear in the dose.</span>
+<span id="cb15-239"><a href="#cb15-239" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-240"><a href="#cb15-240" aria-hidden="true" tabindex="-1"></a><span class="in">```{r dc-wm-cohort, cache=TRUE, fig.width=7, fig.height=3.6}</span></span>
+<span id="cb15-241"><a href="#cb15-241" aria-hidden="true" tabindex="-1"></a><span class="co">#| fig-cap: "Effect of one Walmart on log retail employment in the 1990 cohort, by year since entry, with 95% intervals."</span></span>
+<span id="cb15-242"><a href="#cb15-242" aria-hidden="true" tabindex="-1"></a>g0 <span class="ot">&lt;-</span> <span class="dv">1990</span></span>
+<span id="cb15-243"><a href="#cb15-243" aria-hidden="true" tabindex="-1"></a>nm <span class="ot">&lt;-</span> <span class="fu">sprintf</span>(<span class="st">"w_%d_%d"</span>, g0, g0<span class="sc">:</span><span class="dv">1999</span>)</span>
+<span id="cb15-244"><a href="#cb15-244" aria-hidden="true" tabindex="-1"></a>path <span class="ot">&lt;-</span> <span class="fu">rbindlist</span>(<span class="fu">lapply</span>(<span class="fu">list</span>(<span class="st">`</span><span class="at">No trends</span><span class="st">`</span> <span class="ot">=</span> fit_het, <span class="st">`</span><span class="at">Cohort trends</span><span class="st">`</span> <span class="ot">=</span> fit_trend),</span>
+<span id="cb15-245"><a href="#cb15-245" aria-hidden="true" tabindex="-1"></a>                         <span class="cf">function</span>(f) <span class="fu">data.table</span>(<span class="at">e =</span> <span class="dv">0</span><span class="sc">:</span><span class="dv">9</span>, <span class="at">estimate =</span> <span class="fu">coef</span>(f)[nm], <span class="at">se =</span> <span class="fu">se</span>(f)[nm])),</span>
+<span id="cb15-246"><a href="#cb15-246" aria-hidden="true" tabindex="-1"></a>                  <span class="at">idcol =</span> <span class="st">"model"</span>)</span>
+<span id="cb15-247"><a href="#cb15-247" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(path, <span class="fu">aes</span>(e, estimate, <span class="at">colour =</span> model)) <span class="sc">+</span></span>
+<span id="cb15-248"><a href="#cb15-248" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>) <span class="sc">+</span></span>
+<span id="cb15-249"><a href="#cb15-249" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_pointrange</span>(<span class="fu">aes</span>(<span class="at">ymin =</span> estimate <span class="sc">-</span> <span class="fl">1.96</span> <span class="sc">*</span> se, <span class="at">ymax =</span> estimate <span class="sc">+</span> <span class="fl">1.96</span> <span class="sc">*</span> se),</span>
+<span id="cb15-250"><a href="#cb15-250" aria-hidden="true" tabindex="-1"></a>                  <span class="at">position =</span> <span class="fu">position_dodge</span>(<span class="at">width =</span> <span class="fl">0.4</span>)) <span class="sc">+</span></span>
+<span id="cb15-251"><a href="#cb15-251" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="dv">0</span><span class="sc">:</span><span class="dv">9</span>) <span class="sc">+</span></span>
+<span id="cb15-252"><a href="#cb15-252" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Years since the first Walmart opened"</span>, <span class="at">y =</span> <span class="st">"Effect of one store"</span>, <span class="at">colour =</span> <span class="cn">NULL</span>) <span class="sc">+</span></span>
+<span id="cb15-253"><a href="#cb15-253" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>)</span>
+<span id="cb15-254"><a href="#cb15-254" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb15-255"><a href="#cb15-255" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-256"><a href="#cb15-256" aria-hidden="true" tabindex="-1"></a>Without trends, one store raises retail employment in the 1990 cohort by 1.7% in the entry year and by 4.0% a year later, and the effect then settles near 2.7%. From year 1 on, the estimates are about twice their standard errors or more. With cohort trends the path is lower, and the gap grows from 0.6 percentage points in the entry year to 1.6 by year 9. Only the year-1 estimate, 3.1%, is more than twice its standard error. The growing gap is what we would see if the trend absorbs part of an effect that grows with exposure, a point we return to below. The plot holds the dose at one store. The cohort's average number of stores rises from 1.08 in 1990 to 1.75 in 1999, so the effect it actually experienced grows faster than the plotted per-store effect.</span>
+<span id="cb15-257"><a href="#cb15-257" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-258"><a href="#cb15-258" aria-hidden="true" tabindex="-1"></a><span class="fu">## Where it can go wrong</span></span>
+<span id="cb15-259"><a href="#cb15-259" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-260"><a href="#cb15-260" aria-hidden="true" tabindex="-1"></a>The Walmart estimates rest on the two assumptions. The pre-trend figure checks parallel trends, and it fails, which is why we add cohort trends. Nothing in the data checks limited selection. In the Walmart data the dose changes after entry, so @eq-dc-ls requires that the number of stores a county ends up with says nothing about its gain from them. A county where the first store did well is a likely site for a second and a third. If so, high-count counties have larger slopes, and the estimates mix the causal response with selection on gains, the second term of @eq-dc-decomp. Store openings that respond to past retail growth also violate strict exogeneity. The model is also linear in the count, so the second store has the same effect as the first. Adding $W_{it}^2$, or the indicator $1<span class="co">[</span><span class="ot">W_{it} \ge 2</span><span class="co">]</span>$ that equals 1 when the county has two or more stores, to $\mathbf W_{it}$ checks this.</span>
+<span id="cb15-261"><a href="#cb15-261" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-262"><a href="#cb15-262" aria-hidden="true" tabindex="-1"></a>The trend-adjusted estimates extrapolate a straight line for up to 13 years after entry. The pre-period leads support a straight line before entry. Nothing in the data can check whether it continues after entry. There is a second issue. @eq-dc-reg has no separate intercept for each cohort and year after entry, and every treated county has at least one store. So the trend $D_{ig} \cdot t$ is fit from post-entry years as well as from the years before. If the effect grows with exposure, part of that growth can load onto the trend. @wolfers-2006 showed this with unit-specific trends for divorce laws. It is one reason the trend estimates are so much smaller in the middle years.</span>
+<span id="cb15-263"><a href="#cb15-263" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-264"><a href="#cb15-264" aria-hidden="true" tabindex="-1"></a>A sensitivity analysis in the style of @rambachan-roth-2023 suits this case. It bounds how far the post-entry path may depart from the extrapolated trend, and reports the effect as a function of that bound.</span>
+</code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions"><ul><li><a href="https://github.com/xiangao/causal_econometrics_guide/edit/main/did-continuous.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/xiangao/causal_econometrics_guide/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>

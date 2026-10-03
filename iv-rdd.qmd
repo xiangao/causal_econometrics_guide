@@ -424,7 +424,7 @@ coefficient.
 
 ### A Note on the FRDD Example
 
-The fuzzy-RDD example at the end of this chapter is 2SLS with race, state of birth, and quarter-of-birth fixed effects entered as covariates, and its 2SLS estimate sits above the local `rdrobust` one. That section attributes the gap mostly to precision. Rich covariates is a second candidate explanation for the difference in point estimates, and the RESET test on the above-cutoff instrument against those covariates is the right first thing to run.
+The fuzzy-RDD example at the end of this chapter is 2SLS with race, state of birth, and quarter-of-birth fixed effects entered as covariates. That section traces the gap between the 2SLS and the local `rdrobust` estimates to the first stage, which is close to zero near the cutoff. Rich covariates is a separate question about the 2SLS estimate itself, and the RESET test on the above-cutoff instrument against those covariates is the right first thing to run.
 
 ### Bottom Line
 
@@ -524,8 +524,9 @@ We're using the running variable quarter of birth (qob), which has been centered
 
 ```{r rdd5, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 vet <- causaldata::mortgages
-# Create an "above-cutoff" variable as the instrument
-vet <- vet %>% mutate(above = qob_minus_kw > 0)
+# Create an "above-cutoff" variable as the instrument. Keep it numeric: a
+# logical would make qob_minus_kw:above expand into two columns.
+vet <- vet %>% mutate(above = as.numeric(qob_minus_kw > 0))
 # Impose a bandwidth of 12 quarters on either side
 vet <- vet %>%  filter(abs(qob_minus_kw) < 12)
 # Note: the running variable qob_minus_kw is exogenous, so it goes in the
@@ -544,52 +545,71 @@ m <- feols(home_ownership ~
 summary(m)
 ```
 
-The 2SLS estimate is 0.1701 with a heteroskedasticity-robust standard error of
+The 2SLS estimate is 0.1702 with a heteroskedasticity-robust standard error of
 0.0459: veteran status raises home ownership by 17 percentage points. The
 sample is 56,901 people within 12 quarters of the cutoff, with birthplace and
-quarter-of-birth fixed effects. The first-stage $F$ statistics are 210 and
-1,241, so the instruments are strong, and the Wu-Hausman test rejects
+quarter-of-birth fixed effects. The first-stage $F$ statistics are 316 and
+1,861, so the instruments are strong, and the Wu-Hausman test rejects
 exogeneity of veteran status at $p = 0.001$. The interaction of veteran status
 with the running variable is not significant, so there is little evidence that
 the slope differs across the cutoff.
 
-Now the same design estimated locally with `rdrobust`, passing the covariates
-as a model matrix.
+Now the same design estimated locally with `rdrobust`. We pass race and state
+of birth as covariates, but not quarter of birth. Quarter of birth is a
+function of the running variable, and the local window holds only three
+quarters on each side of the cutoff. There the quarter-of-birth dummies
+duplicate the local linear fits, and the jump is not identified with them in.
+`rdrobust` still returns a number, but the number is arbitrary: with the
+dummies included it gives 0.096 or 0.838, depending only on whether the
+covariate matrix carries an intercept column.
 
 ```{r rdd6, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
-controls <- vet %>%
-    select(nonwhite, bpl, qob) %>%
-    mutate(qob = factor(qob))
-conmatrix <- model.matrix(~., data = controls)
+# race and state of birth; quarter of birth is left out (see text)
+conmatrix <- model.matrix(~ nonwhite + bpl, data = vet)[, -1]
 m <- rdrobust(vet$home_ownership,
               vet$qob_minus_kw,
               fuzzy = vet$vet_wwko,
               c = 0,
               covs = conmatrix)
+summary(m)
 m$Estimate
 ```
 
-`rdrobust` returns a conventional estimate of 0.0959 with a standard error of
-0.1794, and a bias-corrected estimate of 0.0334 with a robust standard error of
-0.2214. The point estimates are well below the 2SLS 0.1701.
+`rdrobust` returns a conventional estimate of 2.37 with a standard error of
+4.97, and a bias-corrected estimate of 6.51 with a robust standard error of
+5.76. The robust 95% interval runs from $-4.78$ to 17.80. For an effect on a
+probability, that says nothing.
 
-The gap is worth reading carefully, because it is easy to overstate. The two
-point estimates differ by a factor of nearly two, but the `rdrobust` standard
-error is 0.179, so its 95% interval runs from about $-0.26$ to 0.45 and
-comfortably contains the 2SLS estimate. The two are not statistically
-distinguishable. What separates them is precision: 2SLS has a standard error of
-0.046 because it uses all 56,901 observations and a linear specification, while
-`rdrobust` uses a local window around the cutoff and gets an interval four
-times wider --- so wide that it cannot reject zero.
+The reason is the first stage. A fuzzy RD divides the jump in the outcome by
+the jump in treatment at the cutoff. Here we estimate the second jump directly,
+with the same covariates and bandwidth.
 
-That is the real trade-off. 2SLS buys precision with a functional-form
-assumption over the full bandwidth; the local estimator drops that assumption
-and pays for it in variance. It is a genuine sensitivity to model choice, but
-here it shows up as a difference in what can be concluded rather than as a
-contradiction between two estimates.
+```{r rdd7, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+# first stage: the jump in veteran status at the cutoff
+fs <- rdrobust(vet$vet_wwko, vet$qob_minus_kw, c = 0,
+               covs = conmatrix, h = m$bws[1, 1])
+fs$Estimate
+# veteran share by quarter near the cutoff
+vet %>% filter(abs(qob_minus_kw) < 4) %>%
+  group_by(qob_minus_kw) %>% summarise(vet_share = mean(vet_wwko))
+```
+
+Within 2.6 quarters of the cutoff, veteran status does not jump: the estimate
+is $-0.010$ with a standard error of 0.021. The veteran share falls from 0.56
+two and a half quarters before the cutoff to 0.29 two and a half quarters after,
+but it falls steadily across those quarters, with no break at zero. The fuzzy
+estimate divides a noisy jump in home ownership by a jump in treatment that is
+indistinguishable from zero.
+
+2SLS finds a strong first stage because it fits one line on each side over 12
+quarters and reads the jump off where the two lines meet. The steep decline near
+the cutoff then registers as a large jump. Its 0.17 rests on that linear
+specification. The local estimator drops the assumption, and the data near the
+cutoff then have nothing to say. The two estimates do not contradict each other.
+The local one is uninformative here.
 
 ## Summary
 
 An instrument recovers an effect when the confounder is unobserved. It must move the treatment (relevance), reach the outcome only through the treatment (exclusion) and be as good as random. With heterogeneous effects and no defiers, the Wald ratio identifies the LATE, the effect on compliers. Adding covariates linearly keeps that interpretation only under the rich-covariates condition, that the instrument's conditional mean is linear in the covariates. A RESET test on the instrument checks it. Regression discontinuity replaces the instrument with a cutoff in a running variable and assumes continuity at the cutoff. Fuzzy RDD is IV at the cutoff.
 
-In the simulation, OLS gives 1.3589, and 2SLS gives 0.9724 against a true 1. With a nonlinear instrument propensity, the true LATE is 0.615 and the linear 2SLS converges to 0.55. The Senate incumbency effect is 7.4 percentage points. In the Korean War example, 2SLS gives 0.1701 (0.0459) and `rdrobust` 0.0959 (0.1794). The two cannot be told apart, because the local estimator pays for its weaker assumptions in variance.
+In the simulation, OLS gives 1.3589, and 2SLS gives 0.9724 against a true 1. With a nonlinear instrument propensity, the true LATE is 0.615 and the linear 2SLS converges to 0.55. The Senate incumbency effect is 7.4 percentage points. In the Korean War example, 2SLS gives 0.1702 (0.0459). The local `rdrobust` estimate, 2.37 (4.97), is uninformative, because veteran status does not jump at the cutoff within the local window. The 2SLS first stage comes from linear fits over 12 quarters.

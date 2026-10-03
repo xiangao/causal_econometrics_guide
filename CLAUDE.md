@@ -441,3 +441,17 @@ New chapter `did-continuous.qmd` after `did.qmd`, mirrored in the Julia book. Ve
 `contdid` 0.1.1 (and GitHub master as of 2026-10-01) has a bug in `cont_did_acrt`: the dose-specific curve is evaluated on `splines2::bSpline(dvals, ...)` without the fitted basis's `Boundary.knots`, so the grid basis differs from the fitted one. With the default grid (10th-99th percentiles) the curve is off by up to 0.23 in the chapter's simulation. Overall ATT and overall ACRT are unaffected (they evaluate on the sample doses). Since the simulation was cut (2026-10-02) the chapter no longer runs `contdid`; it appears only in the comparison table. Not reported upstream (xao's choice).
 
 2026-10-02: the two-period simulation was cut from `did-continuous.qmd` (xao: it showed only what the identification equation and the decomposition already prove); its data and generator were removed. Added @eq-dc-diff showing B as a difference of potential outcomes per unit of dose, and a sentence that linearity makes the per-unit effect equal to the effect of one more unit at any dose.
+
+## iv-rdd FRDD fix (2026-10-03, branch `frdd-local-first-stage`)
+
+The fuzzy-RDD `rdrobust` call passed quarter-of-birth dummies as covariates. qob is a
+function of the running variable (qob_minus_kw), and the MSE window holds 3 quarters per
+side, so the covariate block is exactly singular after partialling out the local linear
+fits; the adjusted jump is not identified. R's `ginv(tol = 1e-20)` returned noise: 0.0959
+with the model.matrix intercept column, 0.838 without. Now covs = nonwhite + bpl:
+2.368 (4.968), robust CI [-4.78, 17.80]. The real story is the local first stage: veteran
+status jumps -0.010 (0.021) at the cutoff (steady ramp, no break), so the local FRDD is
+uninformative; 2SLS's strong first stage comes from linear fits over +/-12 quarters.
+Also `above` is now numeric: as a logical, `qob_minus_kw:above` expanded to two columns and
+fixest's first-stage F used 3 numerator df (210/1,241 -> correct 316/1,861). The 2SLS
+estimate is 0.170172, so the prose now says 0.1702. Mirrored in the Julia book.

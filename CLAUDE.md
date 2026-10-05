@@ -455,3 +455,7 @@ uninformative; 2SLS's strong first stage comes from linear fits over +/-12 quart
 Also `above` is now numeric: as a logical, `qob_minus_kw:above` expanded to two columns and
 fixest's first-stage F used 3 numerator df (210/1,241 -> correct 316/1,861). The 2SLS
 estimate is 0.170172, so the prose now says 0.1702. Mirrored in the Julia book.
+
+## LMTP positivity sentence (2026-10-05)
+
+`continuous-treatments.qmd`: the claim that "a shift of one unit stays inside the observed support" was too strong. Units near the edge of the support or beside a gap are shifted to doses nobody received; the text now says so and points to the feasible-shift fix. Prompted by the incremental-effects chapter added to blog_book the same day.

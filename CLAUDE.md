@@ -61,6 +61,7 @@ Chapters that load pre-generated CSVs from `data/` to ensure identical results:
 - `survival-causal.qmd` → `data/survival_sim.csv` (n=1500 Weibull; propensity intercept=-4 for ~30% treatment)
 - `did-continuous.qmd` → `data/walmart_lw.csv` (extract of Wooldridge's `walmart_lw.dta`, Dropbox via tinyurl.com/wooldridge-ER-MacKinnon-data; generator `data/gen_walmart_lw.R`)
 - `shift-share-iv.qmd` → `data/shift_share_sim.csv`, `shift_share_shares.csv`, `shift_share_shocks.csv`, `shift_share_bad_v.csv`, `shift_share_bad_noise.csv`
+- `recentered-instruments.qmd` → `data/recenter_people.csv`, `recenter_policy_draws.csv` (generator `data/gen_recentering.R`), `adh_master.csv`, `adh_shares_triplets.csv`, `adh_shocks.csv` (GPSS bartik-weight files via `~/projects/claude/shiftshare_adh_showcase/data/`)
 - `causal-discovery.qmd` → `data/pisa_usa2022.csv` — **real** PISA data (USA 2022, 3,890 students; 6 nodes: HISEI, HOMEPOS, IMMIG, GRADE, GENDER, MATH = mean of 10 PVs; survey weight `W`). Generated from `~/projects/pisa-covid-did/output/pisa_pooled.rds` (draft at `~/projects/pisa_discovery_demo/`). **`PARED` is absent in PISA 2022 — do not add it as a node.** The section runs weighted PC + GES, tier-based orientation, and bootstrap stability; deliberately no F1 (real data has no ground truth).
 
 To regenerate the simulated datasets: run `Rscript` with the DGP code at the top of each chapter (seed is set).
@@ -309,6 +310,7 @@ Scripts: `../_review/` conventions; working copies were in the session scratchpa
   h ∝ n^{-1/5}, rate n^{-2/5}); new §"What LMTP identifies" (sequential
   exchangeability, positivity on *shifted* values, the backward regression recursion).
 - `shift-share-iv.qmd`: rewrote the chapter opening to state the structural
+- `recentered-instruments.qmd` — Recentered formula instruments (Borusyak & Hull 2023 Econometrica; 2026 "Optimal Formula Instruments" WP): expected instrument, optimal = recentered best predictor, shift-share as one formula instrument (comparison table, two differences: recentering + formula), Medicaid-style design-based MC (1,000 policy redraws), ADH recentering under two shock designs (−0.596 → −0.267 → −0.144)
   regression and name the endogenous regressor. The old opening never said what was
   endogenous.
 - `heterogeneous-effects.qmd`: BLP vs variable importance (population estimand with

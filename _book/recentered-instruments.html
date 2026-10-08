@@ -714,9 +714,79 @@ y_i = 0.3\, x_i + \varepsilon_i, \qquad
 </section><section id="the-medicaid-application" class="level2" data-number="16.5"><h2 data-number="16.5" class="anchored" data-anchor-id="the-medicaid-application">
 <span class="header-section-number">16.5</span> The Medicaid application</h2>
 <p><span class="citation" data-cites="borusyak-hull-2026">Borusyak and Hull (<a href="references.html#ref-borusyak-hull-2026" role="doc-biblioref">2026</a>)</span> instrument Medicaid eligibility in the 2014 ACA expansion with actual minus expected eligibility, treating expansion as random within the governor’s party. The first-stage partial <span class="math inline">\(R^2\)</span> rises from 0.01 to 0.80 over the simulated instrument and the standard error on crowd-out falls by 44%. Most of the gain comes from the 18% of the sample whose eligibility the expansion could change; outside it, the recentered instrument is zero, and in the full sample without an exposure control it is less precise than the simulated one <span class="citation" data-cites="borusyak-hull-2026">(<a href="references.html#ref-borusyak-hull-2026" role="doc-biblioref">Borusyak and Hull 2026</a>, Table A4)</span>. Their 2012–2013 placebo on private insurance is −0.011, half the main estimate of −0.023 (Table A2).</p>
-</section><section id="summary" class="level2" data-number="16.6"><h2 data-number="16.6" class="anchored" data-anchor-id="summary">
-<span class="header-section-number">16.6</span> Summary</h2>
-<p>Shift-share is one formula instrument, with the formula and the design fixed by convention. Any formula of shocks and exposure is valid once its expected value over the shock design is subtracted, and the most efficient formula is the recentered best prediction of the treatment. Applied to Bartik, this has two consequences. When the shares do not sum to one, the regression must control for the sum of shares times the period’s mean shock. When the treatment depends on the shocks through more than shares times shocks, a prediction built from the treatment’s own formula is a stronger instrument than Bartik. In the ADH data the first consequence alone moves the estimate from −0.60 to −0.27.</p>
+</section><section id="spillovers-deworming" class="level2" data-number="16.6"><h2 data-number="16.6" class="anchored" data-anchor-id="spillovers-deworming">
+<span class="header-section-number">16.6</span> Spillovers: deworming</h2>
+<p><span class="citation" data-cites="miguel-kremer-2004">Miguel and Kremer (<a href="references.html#ref-miguel-kremer-2004" role="doc-biblioref">2004</a>)</span> study a deworming programme in 75 primary schools in Busia, Kenya. The schools were listed alphabetically within strata and assigned in turn to three groups of 25, which started treatment in different years. Worms spread between children, so treating one school can lower infection at schools nearby. To measure this, they count the pupils at treated schools within 3 km of each school, and they control for the total number of pupils within 3 km.</p>
+<p>Let <span class="math inline">\(D_j\)</span> be 1 if school <span class="math inline">\(j\)</span> is treated, <span class="math inline">\(n_j\)</span> its number of pupils, <span class="math inline">\(p_j\)</span> the probability that it is treated, and <span class="math inline">\(j \sim i\)</span> mean that <span class="math inline">\(j\)</span> is another school within 3 km of school <span class="math inline">\(i\)</span>. The spillover exposure of school <span class="math inline">\(i\)</span> and its expected value are</p>
+<p><span id="eq-ri-spill"><span class="math display">\[
+x_i = \sum_{j \sim i} n_j D_j, \qquad \mu_i = \sum_{j \sim i} n_j p_j .
+\tag{16.7}\]</span></span></p>
+<p>The shocks <span class="math inline">\(g\)</span> are the assignments, and the predetermined variables <span class="math inline">\(w\)</span> are the locations and pupil counts. Assignment is random, but a school in a dense area has more treated neighbours in every draw. If density also affects the outcome, through crowding or sanitation, the exposure is correlated with the error. In the first year one third of the schools were treated, so <span class="math inline">\(p_j = 1/3\)</span> for every school and <span class="math inline">\(\mu_i\)</span> is one third of the total pupils within 3 km. Miguel and Kremer’s total-pupils control is therefore the recentering. The exposure is the treatment itself, as eligibility was in the simulation, so the estimator is OLS controlling for <span class="math inline">\(\mu_i\)</span>, estimator 4 above. If the treatment probability differed across schools, for example by stratum, the control would have to be <span class="math inline">\(\mu_i\)</span> and not the total pupils.</p>
+<p>A second simulation checks this in a district like Busia. We place 75 schools in a 30 km by 30 km district, half around a town and half spread over the rest, and give each about 400 pupils. In each draw exactly 25 schools are treated, so <span class="math inline">\(p_j = 1/3\)</span>. Let <span class="math inline">\(N_i\)</span> be the total pupils at other schools within 3 km and <span class="math inline">\(\eta_i \sim N(0, 0.05^2)\)</span> a school error. The outcome, school participation, is</p>
+<p><span id="eq-ri-spill-dgp"><span class="math display">\[
+y_i = 0.05 D_i + 0.03 x_i - 0.02 N_i + \eta_i ,
+\tag{16.8}\]</span></span></p>
+<p>with <span class="math inline">\(x_i\)</span> and <span class="math inline">\(N_i\)</span> in thousands of pupils. Treatment raises participation by 5 points at the school and by 3 points per thousand treated pupils nearby. Schools in dense areas have lower participation for other reasons. As before, the schools, their pupils and errors are fixed, and the 1,000 replications redraw which 25 schools are treated. We regress <span class="math inline">\(y_i\)</span> on <span class="math inline">\(D_i\)</span> and on (a) <span class="math inline">\(x_i\)</span>, (b) <span class="math inline">\(x_i - \mu_i\)</span>, or (c) <span class="math inline">\(x_i\)</span> and <span class="math inline">\(N_i\)</span>, with heteroskedasticity-robust standard errors.</p>
+<div class="cell">
+<details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">schools</span> <span class="op">&lt;-</span> <span class="fu">read_csv</span><span class="op">(</span><span class="st">"data/deworm_schools.csv"</span>, show_col_types <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">treat</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="fu">read_csv</span><span class="op">(</span><span class="st">"data/deworm_draws.csv"</span>, show_col_types <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">[</span>, <span class="op">-</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">near</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">*</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html">as.matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/dist.html">dist</a></span><span class="op">(</span><span class="va">schools</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"east"</span>, <span class="st">"north"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">3</span><span class="op">)</span>  <span class="co"># within 3 km</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/diag.html">diag</a></span><span class="op">(</span><span class="va">near</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fl">0</span></span>
+<span><span class="va">N</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/drop.html">drop</a></span><span class="op">(</span><span class="va">near</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html">%*%</a></span> <span class="va">schools</span><span class="op">$</span><span class="va">pupils</span><span class="op">)</span> <span class="op">/</span> <span class="fl">1000</span>   <span class="co"># total pupils nearby, thousands</span></span>
+<span><span class="va">mu</span> <span class="op">&lt;-</span> <span class="va">N</span> <span class="op">/</span> <span class="fl">3</span>                                  <span class="co"># expected treated pupils nearby</span></span>
+<span></span>
+<span><span class="va">one_assign</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">D</span> <span class="op">&lt;-</span> <span class="va">treat</span><span class="op">[</span><span class="va">r</span>, <span class="op">]</span></span>
+<span>  <span class="va">d</span> <span class="op">&lt;-</span> <span class="fu">tibble</span><span class="op">(</span>D <span class="op">=</span> <span class="va">D</span>, x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/drop.html">drop</a></span><span class="op">(</span><span class="va">near</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html">%*%</a></span> <span class="op">(</span><span class="va">schools</span><span class="op">$</span><span class="va">pupils</span> <span class="op">*</span> <span class="va">D</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="fl">1000</span>, N <span class="op">=</span> <span class="va">N</span>,</span>
+<span>              x_rc <span class="op">=</span> <span class="va">x</span> <span class="op">-</span> <span class="va">mu</span>, y <span class="op">=</span> <span class="fl">0.05</span> <span class="op">*</span> <span class="va">D</span> <span class="op">+</span> <span class="fl">0.03</span> <span class="op">*</span> <span class="va">x</span> <span class="op">-</span> <span class="fl">0.02</span> <span class="op">*</span> <span class="va">N</span> <span class="op">+</span> <span class="va">schools</span><span class="op">$</span><span class="va">eta</span><span class="op">)</span></span>
+<span>  <span class="va">fits</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="fu">feols</span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">D</span> <span class="op">+</span> <span class="va">x</span>, <span class="va">d</span>, vcov <span class="op">=</span> <span class="st">"hetero"</span><span class="op">)</span>,</span>
+<span>               <span class="fu">feols</span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">D</span> <span class="op">+</span> <span class="va">x_rc</span>, <span class="va">d</span>, vcov <span class="op">=</span> <span class="st">"hetero"</span><span class="op">)</span>,</span>
+<span>               <span class="fu">feols</span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">D</span> <span class="op">+</span> <span class="va">x</span> <span class="op">+</span> <span class="va">N</span>, <span class="va">d</span>, vcov <span class="op">=</span> <span class="st">"hetero"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">sapply</a></span><span class="op">(</span><span class="va">fits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span>est <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html">unname</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html">coef</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span>, se <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html">unname</a></span><span class="op">(</span><span class="fu">se</span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">dw</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">simplify2array</a></span><span class="op">(</span><span class="fu">mclapply</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">treat</span><span class="op">)</span><span class="op">)</span>, <span class="va">one_assign</span>, mc.cores <span class="op">=</span> <span class="fl">6</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">tibble</span><span class="op">(</span>estimator <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"(a) Exposure, no control"</span>, <span class="st">"(b) Recentered exposure"</span>,</span>
+<span>                     <span class="st">"(c) Exposure, control for nearby pupils"</span><span class="op">)</span>,</span>
+<span>       mean     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html">apply</a></span><span class="op">(</span><span class="va">dw</span><span class="op">[</span><span class="st">"est"</span>, , <span class="op">]</span>, <span class="fl">1</span>, <span class="va">mean</span><span class="op">)</span>,</span>
+<span>       sd       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html">apply</a></span><span class="op">(</span><span class="va">dw</span><span class="op">[</span><span class="st">"est"</span>, , <span class="op">]</span>, <span class="fl">1</span>, <span class="va">sd</span><span class="op">)</span>,</span>
+<span>       coverage <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html">apply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html">abs</a></span><span class="op">(</span><span class="va">dw</span><span class="op">[</span><span class="st">"est"</span>, , <span class="op">]</span> <span class="op">-</span> <span class="fl">0.03</span><span class="op">)</span> <span class="op">&lt;=</span> <span class="fl">1.96</span> <span class="op">*</span> <span class="va">dw</span><span class="op">[</span><span class="st">"se"</span>, , <span class="op">]</span>, <span class="fl">1</span>, <span class="va">mean</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">kable</span><span class="op">(</span>digits <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details><div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead><tr class="header">
+<th style="text-align: left;">estimator</th>
+<th style="text-align: right;">mean</th>
+<th style="text-align: right;">sd</th>
+<th style="text-align: right;">coverage</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">(a) Exposure, no control</td>
+<td style="text-align: right;">-0.024</td>
+<td style="text-align: right;">0.012</td>
+<td style="text-align: right;">0.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">(b) Recentered exposure</td>
+<td style="text-align: right;">0.030</td>
+<td style="text-align: right;">0.038</td>
+<td style="text-align: right;">0.43</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">(c) Exposure, control for nearby pupils</td>
+<td style="text-align: right;">0.030</td>
+<td style="text-align: right;">0.020</td>
+<td style="text-align: right;">0.92</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Without the control, the spillover estimate averages −0.024 against a true 0.03, and its intervals never contain 0.03. Dense schools have more treated neighbours and lower participation, and the regression assigns that gap to the spillover. Both recentered versions are centred on 0.03. Regressing on <span class="math inline">\(x_i - \mu_i\)</span> alone leaves <span class="math inline">\(-0.02 N_i\)</span> in the error, so its standard deviation is 0.038, about twice the 0.020 of (c). Neighbouring schools share that error and the same treated schools, so the robust intervals of (b) contain 0.03 only 43% of the time. With the control for nearby pupils the remaining error is independent across schools, and coverage is 92%.</p>
+</section><section id="summary" class="level2" data-number="16.7"><h2 data-number="16.7" class="anchored" data-anchor-id="summary">
+<span class="header-section-number">16.7</span> Summary</h2>
+<p>Shift-share is one formula instrument, with the formula and the design fixed by convention. Any formula of shocks and exposure is valid once its expected value over the shock design is subtracted, and the most efficient formula is the recentered best prediction of the treatment. Applied to Bartik, this has two consequences. When the shares do not sum to one, the regression must control for the sum of shares times the period’s mean shock. When the treatment depends on the shocks through more than shares times shocks, a prediction built from the treatment’s own formula is a stronger instrument than Bartik. In the ADH data the first consequence alone moves the estimate from −0.60 to −0.27. The same logic covers spillovers. A school’s expected exposure to treated neighbours is the treatment probability times its nearby pupils, which is the control Miguel and Kremer used.</p>
 <p>For the shift-share construction, the share and shock views, and inference, see the previous chapter, <a href="./shift-share-iv.html">Shift-Share Instrumental Variables</a>.</p>
 
 
@@ -737,6 +807,9 @@ Currie, Janet, and Jonathan Gruber. 1996. <span>“Health Insurance Eligibility,
 </div>
 <div id="ref-goldsmith-pinkham-sorkin-swift-2020" class="csl-entry" role="listitem">
 Goldsmith-Pinkham, Paul, Isaac Sorkin, and Henry Swift. 2020. <span>“Bartik Instruments: What, When, Why, and How.”</span> <em>American Economic Review</em> 110 (8): 2586–2624.
+</div>
+<div id="ref-miguel-kremer-2004" class="csl-entry" role="listitem">
+Miguel, Edward, and Michael Kremer. 2004. <span>“Worms: Identifying Impacts on Education and Health in the Presence of Treatment Externalities.”</span> <em>Econometrica</em> 72 (1): 159–217. <a href="https://doi.org/10.1111/j.1468-0262.2004.00481.x">https://doi.org/10.1111/j.1468-0262.2004.00481.x</a>.
 </div>
 </div>
 </section></main><!-- /main --><script id="quarto-html-after-body" type="application/javascript">
@@ -1200,398 +1273,488 @@ Goldsmith-Pinkham, Paul, Isaac Sorkin, and Henry Swift. 2020. <span>“Bartik In
       </a>
   </div>
 </nav><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># Recentered Formula Instruments</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: false</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fixest)</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(parallel)</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="fu">setFixest_nthreads</span>(<span class="dv">1</span>)</span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>Many treatments are computed from a formula that combines a random shock with</span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>non-random exposure. Medicaid eligibility is a state's rules applied to a</span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>person's income. Import exposure is national industry shocks applied to a</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>region's industry mix. The Bartik instrument of the previous chapter is one</span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>such formula. This chapter covers the general version of Borusyak and Hull</span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">@borusyak-hull-2023</span><span class="co">]</span>, their result on which formula is best</span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">@borusyak-hull-2026</span><span class="co">]</span>, and what both mean for shift-share.</span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="fu">## Formula instruments</span></span>
-<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>Unit $i$ has outcome $y_i$ and treatment $x_i$, with a constant effect $\beta$:</span>
-<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>y_i = \beta x_i + \varepsilon_i .</span>
-<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>$$ {#eq-ri-model}</span>
-<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>The treatment is $x_i = h_i(g, w, u)$, where $h_i$ is a known function, $g$</span>
-<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>collects the random shocks, $w$ collects predetermined variables such as</span>
-<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>income or industry shares, and $u$ collects anything else. The identifying</span>
-<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>assumption puts all the randomness on the shocks [@borusyak-hull-2026,</span>
-<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>Assumption 1]:</span>
-<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>E<span class="co">[</span><span class="ot">\varepsilon_i \mid g, w</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">\varepsilon_i \mid w</span><span class="co">]</span> .</span>
-<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>$$ {#eq-ri-exog}</span>
-<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>The error may depend on $w$ in any way. Poorer people may have worse</span>
-<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>outcomes, and regions with more manufacturing may have been declining anyway.</span>
-<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>A formula instrument is $z_i = f_i(g, w)$ for a fixed function $f_i$. Its</span>
-<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>expected value over the shock draws, holding $w$ fixed, is the expected</span>
-<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>instrument $\mu_i = E<span class="co">[</span><span class="ot">z_i \mid w</span><span class="co">]</span>$. The recentered instrument</span>
-<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>$\tilde z_i = z_i - \mu_i$ is valid, because by iterated expectations and</span>
-<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>@eq-ri-exog,</span>
-<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>E<span class="co">[</span><span class="ot">\tilde z_i \varepsilon_i</span><span class="co">]</span></span>
-<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>= E\big<span class="co">[</span><span class="ot">\tilde z_i\, E[\varepsilon_i \mid w]\big</span><span class="co">]</span></span>
-<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>= E\big<span class="co">[</span><span class="ot">E[\tilde z_i \mid w]\, E[\varepsilon_i \mid w]\big</span><span class="co">]</span> = 0 .</span>
-<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a>Without recentering the same steps give $E<span class="co">[</span><span class="ot">z_i \varepsilon_i</span><span class="co">]</span> = E[\mu_i</span>
-<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a>E<span class="co">[</span><span class="ot">\varepsilon_i \mid w</span><span class="co">]</span>]$, which is not zero when the expected instrument is</span>
-<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a>correlated with the predictable part of the error. Subtracting $\mu_i$ and</span>
-<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a>controlling for $\mu_i$ are equivalent by Frisch–Waugh–Lovell. Computing</span>
-<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a>$\mu_i$ requires the design: how the shocks could have been drawn. We redraw</span>
-<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a>them from that design, or permute them if they are exchangeable, and average</span>
-<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a>the formula over the draws.</span>
-<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-63"><a href="#cb3-63" aria-hidden="true" tabindex="-1"></a>Any recentered formula is valid, so we can pick the most precise.</span>
-<span id="cb3-64"><a href="#cb3-64" aria-hidden="true" tabindex="-1"></a>@borusyak-hull-2026 <span class="co">[</span><span class="ot">Theorem 1</span><span class="co">]</span> show it starts from the best prediction of the</span>
-<span id="cb3-65"><a href="#cb3-65" aria-hidden="true" tabindex="-1"></a>treatment, recentered:</span>
-<span id="cb3-66"><a href="#cb3-66" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-67"><a href="#cb3-67" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb3-68"><a href="#cb3-68" aria-hidden="true" tabindex="-1"></a>\tilde z = E<span class="co">[</span><span class="ot">x \mid g, w</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">x \mid w</span><span class="co">]</span> .</span>
-<span id="cb3-69"><a href="#cb3-69" aria-hidden="true" tabindex="-1"></a>$$ {#eq-ri-optimal}</span>
-<span id="cb3-70"><a href="#cb3-70" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-71"><a href="#cb3-71" aria-hidden="true" tabindex="-1"></a>The full optimal instrument adds two refinements, partly controlling for the</span>
-<span id="cb3-72"><a href="#cb3-72" aria-hidden="true" tabindex="-1"></a>predictable part of the error and GLS weighting, which need a model of the</span>
-<span id="cb3-73"><a href="#cb3-73" aria-hidden="true" tabindex="-1"></a>error. The authors drop them. Their algorithm predicts the treatment from its</span>
-<span id="cb3-74"><a href="#cb3-74" aria-hidden="true" tabindex="-1"></a>formula, recenters the prediction by redrawing the shocks, and uses the result</span>
-<span id="cb3-75"><a href="#cb3-75" aria-hidden="true" tabindex="-1"></a>as the instrument. When $x_i$ depends only on $(g, w)$, the prediction is</span>
-<span id="cb3-76"><a href="#cb3-76" aria-hidden="true" tabindex="-1"></a>$x_i$ itself.</span>
-<span id="cb3-77"><a href="#cb3-77" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-78"><a href="#cb3-78" aria-hidden="true" tabindex="-1"></a><span class="fu">## Shift-share as a formula instrument</span></span>
-<span id="cb3-79"><a href="#cb3-79" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-80"><a href="#cb3-80" aria-hidden="true" tabindex="-1"></a>The Bartik instrument $B_\ell = \sum_k s_{\ell k} g_k$ of @eq-shift-share-iv-1</span>
-<span id="cb3-81"><a href="#cb3-81" aria-hidden="true" tabindex="-1"></a>is the linear formula, shares times shocks. It differs from</span>
-<span id="cb3-82"><a href="#cb3-82" aria-hidden="true" tabindex="-1"></a>@eq-ri-optimal in two ways.</span>
-<span id="cb3-83"><a href="#cb3-83" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-84"><a href="#cb3-84" aria-hidden="true" tabindex="-1"></a>The first is recentering. Suppose the industry shocks are exchangeable within</span>
-<span id="cb3-85"><a href="#cb3-85" aria-hidden="true" tabindex="-1"></a>period $t$, with mean $\bar g_t$, and let $S_\ell = \sum_k s_{\ell k}$ be</span>
-<span id="cb3-86"><a href="#cb3-86" aria-hidden="true" tabindex="-1"></a>region $\ell$'s sum of shares. Then</span>
-<span id="cb3-87"><a href="#cb3-87" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-88"><a href="#cb3-88" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb3-89"><a href="#cb3-89" aria-hidden="true" tabindex="-1"></a>\mu_\ell = S_\ell\, \bar g_t .</span>
-<span id="cb3-90"><a href="#cb3-90" aria-hidden="true" tabindex="-1"></a>$$ {#eq-ri-ss-mu}</span>
-<span id="cb3-91"><a href="#cb3-91" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-92"><a href="#cb3-92" aria-hidden="true" tabindex="-1"></a>If the shares sum to one, $\mu_\ell = \bar g_t$ is common to all regions and</span>
-<span id="cb3-93"><a href="#cb3-93" aria-hidden="true" tabindex="-1"></a>period effects absorb it, so Bartik is already recentered. If they are</span>
-<span id="cb3-94"><a href="#cb3-94" aria-hidden="true" tabindex="-1"></a>incomplete, as with manufacturing shares, heavily manufacturing regions get a</span>
-<span id="cb3-95"><a href="#cb3-95" aria-hidden="true" tabindex="-1"></a>large instrument in every draw, and Bartik is biased unless we control for</span>
-<span id="cb3-96"><a href="#cb3-96" aria-hidden="true" tabindex="-1"></a>$S_\ell$ interacted with period <span class="co">[</span><span class="ot">@borusyak-hull-jaravel-2022</span><span class="co">]</span>.</span>
-<span id="cb3-97"><a href="#cb3-97" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-98"><a href="#cb3-98" aria-hidden="true" tabindex="-1"></a>The second is the formula. Take two regions with half their employment in</span>
-<span id="cb3-99"><a href="#cb3-99" aria-hidden="true" tabindex="-1"></a>electronics, and an import shock to electronics. Region A's plants compete</span>
-<span id="cb3-100"><a href="#cb3-100" aria-hidden="true" tabindex="-1"></a>with Chinese imports. Region B's make military components and do not. Bartik</span>
-<span id="cb3-101"><a href="#cb3-101" aria-hidden="true" tabindex="-1"></a>gives both half the shock, but only A's import competition rises, so the</span>
-<span id="cb3-102"><a href="#cb3-102" aria-hidden="true" tabindex="-1"></a>instrument varies where the treatment does not. The best predictor gives A</span>
-<span id="cb3-103"><a href="#cb3-103" aria-hidden="true" tabindex="-1"></a>half the shock and B nothing, then recenters each by its own expected value.</span>
-<span id="cb3-104"><a href="#cb3-104" aria-hidden="true" tabindex="-1"></a>Both instruments are valid, and the second has the stronger first stage. When</span>
-<span id="cb3-105"><a href="#cb3-105" aria-hidden="true" tabindex="-1"></a>the treatment really is shares times shocks, the best predictor is Bartik</span>
-<span id="cb3-106"><a href="#cb3-106" aria-hidden="true" tabindex="-1"></a>itself and the two differ only by recentering. The formula matters when the</span>
-<span id="cb3-107"><a href="#cb3-107" aria-hidden="true" tabindex="-1"></a>treatment has more structure than Bartik uses: eligibility rules, export</span>
-<span id="cb3-108"><a href="#cb3-108" aria-hidden="true" tabindex="-1"></a>exposure, transport networks, nonlinear indices.</span>
-<span id="cb3-109"><a href="#cb3-109" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-110"><a href="#cb3-110" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>                     <span class="pp">|</span> Shift-share (Bartik)      <span class="pp">|</span> Recentered formula instrument          <span class="pp">|</span></span>
-<span id="cb3-111"><a href="#cb3-111" aria-hidden="true" tabindex="-1"></a><span class="pp">|---------------------|---------------------------|----------------------------------------|</span></span>
-<span id="cb3-112"><a href="#cb3-112" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Formula             <span class="pp">|</span> Shares times shocks       <span class="pp">|</span> Best prediction of the treatment       <span class="pp">|</span></span>
-<span id="cb3-113"><a href="#cb3-113" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Expected instrument <span class="pp">|</span> Usually not subtracted    <span class="pp">|</span> Subtracted, or controlled for          <span class="pp">|</span></span>
-<span id="cb3-114"><a href="#cb3-114" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Shock design        <span class="pp">|</span> Implicit                  <span class="pp">|</span> Written down to compute $\mu_\ell$     <span class="pp">|</span></span>
-<span id="cb3-115"><a href="#cb3-115" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Inputs              <span class="pp">|</span> Shares and shocks         <span class="pp">|</span> Treatment formula and shock design     <span class="pp">|</span></span>
-<span id="cb3-116"><a href="#cb3-116" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-117"><a href="#cb3-117" aria-hidden="true" tabindex="-1"></a>: Shift-share and recentered formula instruments. {#tbl-ri-compare}</span>
-<span id="cb3-118"><a href="#cb3-118" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-119"><a href="#cb3-119" aria-hidden="true" tabindex="-1"></a>The formula instrument needs more inputs: the treatment's formula and an explicit</span>
-<span id="cb3-120"><a href="#cb3-120" aria-hidden="true" tabindex="-1"></a>shock design. With heterogeneous effects, different instruments weight units</span>
-<span id="cb3-121"><a href="#cb3-121" aria-hidden="true" tabindex="-1"></a>differently, so a gain in precision is a gain for a different weighted</span>
-<span id="cb3-122"><a href="#cb3-122" aria-hidden="true" tabindex="-1"></a>average <span class="co">[</span><span class="ot">@borusyak-hull-2026, Proposition D1</span><span class="co">]</span>.</span>
-<span id="cb3-123"><a href="#cb3-123" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-124"><a href="#cb3-124" aria-hidden="true" tabindex="-1"></a><span class="fu">### Why recenter</span></span>
-<span id="cb3-125"><a href="#cb3-125" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-126"><a href="#cb3-126" aria-hidden="true" tabindex="-1"></a>Bartik needs one of two assumptions. If the shares are as good as random given</span>
-<span id="cb3-127"><a href="#cb3-127" aria-hidden="true" tabindex="-1"></a>the controls <span class="co">[</span><span class="ot">@goldsmith-pinkham-sorkin-swift-2020</span><span class="co">]</span>, Bartik is valid as it</span>
-<span id="cb3-128"><a href="#cb3-128" aria-hidden="true" tabindex="-1"></a>stands and recentering is not needed. If only the shocks are random <span class="co">[</span><span class="ot">@borusyak-hull-jaravel-2022</span><span class="co">]</span>, the shares may be</span>
-<span id="cb3-129"><a href="#cb3-129" aria-hidden="true" tabindex="-1"></a>correlated with the error. Writing each shock as the mean shock plus a</span>
-<span id="cb3-130"><a href="#cb3-130" aria-hidden="true" tabindex="-1"></a>deviation splits the instrument in two:</span>
-<span id="cb3-131"><a href="#cb3-131" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-132"><a href="#cb3-132" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb3-133"><a href="#cb3-133" aria-hidden="true" tabindex="-1"></a>B_\ell = S_\ell\, \bar g_t + \sum_k s_{\ell k}\,(g_k - \bar g_t) .</span>
-<span id="cb3-134"><a href="#cb3-134" aria-hidden="true" tabindex="-1"></a>$$ {#eq-ri-bartik-split}</span>
-<span id="cb3-135"><a href="#cb3-135" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-136"><a href="#cb3-136" aria-hidden="true" tabindex="-1"></a>The first part is the expected instrument of @eq-ri-ss-mu. It depends only on</span>
-<span id="cb3-137"><a href="#cb3-137" aria-hidden="true" tabindex="-1"></a>how much exposure the region has, so with incomplete shares a region with more</span>
-<span id="cb3-138"><a href="#cb3-138" aria-hidden="true" tabindex="-1"></a>exposure gets a larger value in every draw, and this part is correlated with</span>
-<span id="cb3-139"><a href="#cb3-139" aria-hidden="true" tabindex="-1"></a>the error whenever exposure is. The second part depends on whether the</span>
-<span id="cb3-140"><a href="#cb3-140" aria-hidden="true" tabindex="-1"></a>region's industries received larger or smaller shocks than average. If the</span>
-<span id="cb3-141"><a href="#cb3-141" aria-hidden="true" tabindex="-1"></a>shocks are independent of the shares and the errors, the deviations average to</span>
-<span id="cb3-142"><a href="#cb3-142" aria-hidden="true" tabindex="-1"></a>zero whatever the shares are, so this part is uncorrelated with the error.</span>
-<span id="cb3-143"><a href="#cb3-143" aria-hidden="true" tabindex="-1"></a>Recentering keeps only the second part. When the shares sum to one, the first</span>
-<span id="cb3-144"><a href="#cb3-144" aria-hidden="true" tabindex="-1"></a>part is $\bar g_t$ for every region and the period effects absorb it.</span>
-<span id="cb3-145"><a href="#cb3-145" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-146"><a href="#cb3-146" aria-hidden="true" tabindex="-1"></a>This gives the formula instrument four advantages. Its validity rests only on the shocks, such as a policy choice or a foreign supply shock, which are often easier to defend than the shares. The</span>
-<span id="cb3-147"><a href="#cb3-147" aria-hidden="true" tabindex="-1"></a>design has to be written down, so the assumption is explicit and can be</span>
-<span id="cb3-148"><a href="#cb3-148" aria-hidden="true" tabindex="-1"></a>varied, as the two ADH designs below show. The instrument can use exposure to</span>
-<span id="cb3-149"><a href="#cb3-149" aria-hidden="true" tabindex="-1"></a>gain power, because the best predictor tracks the treatment more closely than</span>
-<span id="cb3-150"><a href="#cb3-150" aria-hidden="true" tabindex="-1"></a>a shock-only index. And it is not tied to a linear formula or to independent</span>
-<span id="cb3-151"><a href="#cb3-151" aria-hidden="true" tabindex="-1"></a>units: it covers eligibility rules, networks and nonlinear indices, with</span>
-<span id="cb3-152"><a href="#cb3-152" aria-hidden="true" tabindex="-1"></a>shocks shared by many units.</span>
-<span id="cb3-153"><a href="#cb3-153" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-154"><a href="#cb3-154" aria-hidden="true" tabindex="-1"></a><span class="fu">## Simulation</span></span>
-<span id="cb3-155"><a href="#cb3-155" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-156"><a href="#cb3-156" aria-hidden="true" tabindex="-1"></a>The aim is to compare a shock-only instrument with the recentered treatment</span>
-<span id="cb3-157"><a href="#cb3-157" aria-hidden="true" tabindex="-1"></a>when we know the true effect. There are 50 states and 10,000 people. Person</span>
-<span id="cb3-158"><a href="#cb3-158" aria-hidden="true" tabindex="-1"></a>$i$ lives in state $s(i)$ and has income $\text{inc}_i$, in multiples of the</span>
-<span id="cb3-159"><a href="#cb3-159" aria-hidden="true" tabindex="-1"></a>poverty line, drawn from a log-normal distribution with median 1.4. The shock</span>
-<span id="cb3-160"><a href="#cb3-160" aria-hidden="true" tabindex="-1"></a>is the states' policy: each state $k$ draws an eligibility threshold $T_k$</span>
-<span id="cb3-161"><a href="#cb3-161" aria-hidden="true" tabindex="-1"></a>from $<span class="sc">\{</span>0.5, 1, 1.38, 2<span class="sc">\}</span>$, each value with probability 1/4, independently</span>
-<span id="cb3-162"><a href="#cb3-162" aria-hidden="true" tabindex="-1"></a>across states. Eligibility and the outcome are</span>
-<span id="cb3-163"><a href="#cb3-163" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-164"><a href="#cb3-164" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb3-165"><a href="#cb3-165" aria-hidden="true" tabindex="-1"></a>x_i = 1<span class="co">[</span><span class="ot">\text{inc}_i &lt; T_{s(i)}</span><span class="co">]</span>, \qquad</span>
-<span id="cb3-166"><a href="#cb3-166" aria-hidden="true" tabindex="-1"></a>y_i = 0.3\, x_i + \varepsilon_i, \qquad</span>
-<span id="cb3-167"><a href="#cb3-167" aria-hidden="true" tabindex="-1"></a>\varepsilon_i = -0.5 \log \text{inc}_i + \alpha_{s(i)} + \nu_i ,</span>
-<span id="cb3-168"><a href="#cb3-168" aria-hidden="true" tabindex="-1"></a>$$ {#eq-ri-dgp}</span>
-<span id="cb3-169"><a href="#cb3-169" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-170"><a href="#cb3-170" aria-hidden="true" tabindex="-1"></a>where $\alpha_k \sim N(0, 0.3^2)$ is a state effect and $\nu_i \sim N(0, 1)$.</span>
-<span id="cb3-171"><a href="#cb3-171" aria-hidden="true" tabindex="-1"></a>The true effect is 0.3. In the notation of @eq-ri-exog, the shocks $g$ are the</span>
-<span id="cb3-172"><a href="#cb3-172" aria-hidden="true" tabindex="-1"></a>50 thresholds and the predetermined variables $w$ are the incomes and states.</span>
-<span id="cb3-173"><a href="#cb3-173" aria-hidden="true" tabindex="-1"></a>Poorer people are more often eligible and have higher errors, so eligibility</span>
-<span id="cb3-174"><a href="#cb3-174" aria-hidden="true" tabindex="-1"></a>is correlated with the error through income and OLS is biased upward. The</span>
-<span id="cb3-175"><a href="#cb3-175" aria-hidden="true" tabindex="-1"></a>thresholds are drawn independently of incomes and errors, so @eq-ri-exog</span>
-<span id="cb3-176"><a href="#cb3-176" aria-hidden="true" tabindex="-1"></a>holds.</span>
-<span id="cb3-177"><a href="#cb3-177" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-178"><a href="#cb3-178" aria-hidden="true" tabindex="-1"></a>Expected eligibility $\mu_i$ is the probability that person $i$ is eligible</span>
-<span id="cb3-179"><a href="#cb3-179" aria-hidden="true" tabindex="-1"></a>over the possible thresholds, holding income fixed. It is the share of the</span>
-<span id="cb3-180"><a href="#cb3-180" aria-hidden="true" tabindex="-1"></a>four thresholds above their income: 1 below 0.5, 0.75 between 0.5 and 1, 0.5</span>
-<span id="cb3-181"><a href="#cb3-181" aria-hidden="true" tabindex="-1"></a>between 1 and 1.38, 0.25 between 1.38 and 2, and 0 above 2. It depends on</span>
-<span id="cb3-182"><a href="#cb3-182" aria-hidden="true" tabindex="-1"></a>income only, because every state draws from the same four values. Given</span>
-<span id="cb3-183"><a href="#cb3-183" aria-hidden="true" tabindex="-1"></a>income, the recentered treatment $x_i - \mu_i$ moves only with the draw, which</span>
-<span id="cb3-184"><a href="#cb3-184" aria-hidden="true" tabindex="-1"></a>is why it is exogenous. A person with income 1.2 has $\mu_i = 0.5$. The</span>
-<span id="cb3-185"><a href="#cb3-185" aria-hidden="true" tabindex="-1"></a>instrument is 0.5 if their state drew 1.38 or 2 and −0.5 if it drew 0.5 or 1,</span>
-<span id="cb3-186"><a href="#cb3-186" aria-hidden="true" tabindex="-1"></a>with equal chance whatever their error. People below 0.5 or above 2 always</span>
-<span id="cb3-187"><a href="#cb3-187" aria-hidden="true" tabindex="-1"></a>have zero and carry no identifying variation.</span>
-<span id="cb3-188"><a href="#cb3-188" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-189"><a href="#cb3-189" aria-hidden="true" tabindex="-1"></a>We compare four estimators, all with standard errors clustered by state.</span>
-<span id="cb3-190"><a href="#cb3-190" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-191"><a href="#cb3-191" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>OLS of $y_i$ on $x_i$. This is the same as instrumenting $x_i$ with</span>
-<span id="cb3-192"><a href="#cb3-192" aria-hidden="true" tabindex="-1"></a>   itself, the best predictor without recentering. It is biased.</span>
-<span id="cb3-193"><a href="#cb3-193" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>The simulated instrument of @currie-gruber-1996. They apply each state's</span>
-<span id="cb3-194"><a href="#cb3-194" aria-hidden="true" tabindex="-1"></a>   rules to one fixed national sample and use the share of that sample who</span>
-<span id="cb3-195"><a href="#cb3-195" aria-hidden="true" tabindex="-1"></a>   would be eligible as the state's instrument. The same population is run</span>
-<span id="cb3-196"><a href="#cb3-196" aria-hidden="true" tabindex="-1"></a>   through every state's rules, so the instrument measures the generosity of</span>
-<span id="cb3-197"><a href="#cb3-197" aria-hidden="true" tabindex="-1"></a>   the rules and not the composition of the state's residents. Here the</span>
-<span id="cb3-198"><a href="#cb3-198" aria-hidden="true" tabindex="-1"></a>   national sample is all 10,000 people, and everyone in a state gets the</span>
-<span id="cb3-199"><a href="#cb3-199" aria-hidden="true" tabindex="-1"></a>   same value. It is valid.</span>
-<span id="cb3-200"><a href="#cb3-200" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>The recentered treatment, instrumenting $x_i$ with $x_i - \mu_i$. It</span>
-<span id="cb3-201"><a href="#cb3-201" aria-hidden="true" tabindex="-1"></a>   varies within states, among people whose income lies between the lowest</span>
-<span id="cb3-202"><a href="#cb3-202" aria-hidden="true" tabindex="-1"></a>   and highest thresholds. It is valid.</span>
-<span id="cb3-203"><a href="#cb3-203" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>OLS of $y_i$ on $x_i$ and $\mu_i$. Instrumenting $x_i$ with $x_i - \mu_i$</span>
-<span id="cb3-204"><a href="#cb3-204" aria-hidden="true" tabindex="-1"></a>   while controlling for $\mu_i$ reduces to this regression</span>
-<span id="cb3-205"><a href="#cb3-205" aria-hidden="true" tabindex="-1"></a>   <span class="co">[</span><span class="ot">@borusyak-hull-2026, footnote 8</span><span class="co">]</span>, so it is the controlled form of 3. It</span>
-<span id="cb3-206"><a href="#cb3-206" aria-hidden="true" tabindex="-1"></a>   is valid.</span>
-<span id="cb3-207"><a href="#cb3-207" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-208"><a href="#cb3-208" aria-hidden="true" tabindex="-1"></a>The Monte Carlo is design-based. We generate the people once: their incomes,</span>
-<span id="cb3-209"><a href="#cb3-209" aria-hidden="true" tabindex="-1"></a>states and errors are the same in every replication. In each of 1,000</span>
-<span id="cb3-210"><a href="#cb3-210" aria-hidden="true" tabindex="-1"></a>replications we draw new thresholds for the 50 states, recompute eligibility</span>
-<span id="cb3-211"><a href="#cb3-211" aria-hidden="true" tabindex="-1"></a>and outcomes, and fit the four estimators. The only randomness across</span>
-<span id="cb3-212"><a href="#cb3-212" aria-hidden="true" tabindex="-1"></a>replications is the policy draw, which is what the identifying assumption</span>
-<span id="cb3-213"><a href="#cb3-213" aria-hidden="true" tabindex="-1"></a>treats as random, so the spread of the estimates across replications measures</span>
-<span id="cb3-214"><a href="#cb3-214" aria-hidden="true" tabindex="-1"></a>each estimator's precision under that design. The people and the 1,000 × 50</span>
-<span id="cb3-215"><a href="#cb3-215" aria-hidden="true" tabindex="-1"></a>thresholds are stored as CSVs so the Julia companion computes the same</span>
-<span id="cb3-216"><a href="#cb3-216" aria-hidden="true" tabindex="-1"></a>numbers.</span>
-<span id="cb3-217"><a href="#cb3-217" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-220"><a href="#cb3-220" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb3-221"><a href="#cb3-221" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: ri-mc</span></span>
-<span id="cb3-222"><a href="#cb3-222" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb3-223"><a href="#cb3-223" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-224"><a href="#cb3-224" aria-hidden="true" tabindex="-1"></a>people <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/recenter_people.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb3-225"><a href="#cb3-225" aria-hidden="true" tabindex="-1"></a>draws  <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(<span class="fu">read_csv</span>(<span class="st">"data/recenter_policy_draws.csv"</span>,</span>
-<span id="cb3-226"><a href="#cb3-226" aria-hidden="true" tabindex="-1"></a>                             <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)[, <span class="sc">-</span><span class="dv">1</span>])</span>
-<span id="cb3-227"><a href="#cb3-227" aria-hidden="true" tabindex="-1"></a>pool <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">1.38</span>, <span class="fl">2.0</span>)</span>
-<span id="cb3-228"><a href="#cb3-228" aria-hidden="true" tabindex="-1"></a>beta_true <span class="ot">&lt;-</span> <span class="fl">0.3</span></span>
-<span id="cb3-229"><a href="#cb3-229" aria-hidden="true" tabindex="-1"></a>mu    <span class="ot">&lt;-</span> <span class="fu">sapply</span>(people<span class="sc">$</span>income, <span class="cf">function</span>(v) <span class="fu">mean</span>(v <span class="sc">&lt;</span> pool))  <span class="co"># expected eligibility</span></span>
-<span id="cb3-230"><a href="#cb3-230" aria-hidden="true" tabindex="-1"></a>gener <span class="ot">&lt;-</span> <span class="fu">sapply</span>(pool, <span class="cf">function</span>(t) <span class="fu">mean</span>(people<span class="sc">$</span>income <span class="sc">&lt;</span> t))  <span class="co"># state generosity</span></span>
-<span id="cb3-231"><a href="#cb3-231" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-232"><a href="#cb3-232" aria-hidden="true" tabindex="-1"></a>coef_x <span class="ot">&lt;-</span> <span class="cf">function</span>(f) {</span>
-<span id="cb3-233"><a href="#cb3-233" aria-hidden="true" tabindex="-1"></a>  nm <span class="ot">&lt;-</span> <span class="fu">intersect</span>(<span class="fu">c</span>(<span class="st">"fit_x"</span>, <span class="st">"x"</span>), <span class="fu">names</span>(<span class="fu">coef</span>(f)))[<span class="dv">1</span>]</span>
-<span id="cb3-234"><a href="#cb3-234" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">est =</span> <span class="fu">unname</span>(<span class="fu">coef</span>(f)[nm]), <span class="at">se =</span> <span class="fu">unname</span>(<span class="fu">se</span>(f)[nm]))</span>
-<span id="cb3-235"><a href="#cb3-235" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb3-236"><a href="#cb3-236" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-237"><a href="#cb3-237" aria-hidden="true" tabindex="-1"></a>one_draw <span class="ot">&lt;-</span> <span class="cf">function</span>(r) {</span>
-<span id="cb3-238"><a href="#cb3-238" aria-hidden="true" tabindex="-1"></a>  thr <span class="ot">&lt;-</span> draws[r, people<span class="sc">$</span>state]</span>
-<span id="cb3-239"><a href="#cb3-239" aria-hidden="true" tabindex="-1"></a>  d <span class="ot">&lt;-</span> <span class="fu">mutate</span>(people, <span class="at">x =</span> <span class="fu">as.numeric</span>(income <span class="sc">&lt;</span> thr), <span class="at">y =</span> beta_true <span class="sc">*</span> x <span class="sc">+</span> eps,</span>
-<span id="cb3-240"><a href="#cb3-240" aria-hidden="true" tabindex="-1"></a>              <span class="at">z_sim =</span> gener[<span class="fu">match</span>(thr, pool)], <span class="at">z_rc =</span> x <span class="sc">-</span> mu, <span class="at">mu =</span> mu)</span>
-<span id="cb3-241"><a href="#cb3-241" aria-hidden="true" tabindex="-1"></a>  fits <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="fu">feols</span>(y <span class="sc">~</span> x, d, <span class="at">cluster =</span> <span class="sc">~</span>state),</span>
-<span id="cb3-242"><a href="#cb3-242" aria-hidden="true" tabindex="-1"></a>               <span class="fu">feols</span>(y <span class="sc">~</span> <span class="dv">1</span> <span class="sc">|</span> x <span class="sc">~</span> z_sim, d, <span class="at">cluster =</span> <span class="sc">~</span>state),</span>
-<span id="cb3-243"><a href="#cb3-243" aria-hidden="true" tabindex="-1"></a>               <span class="fu">feols</span>(y <span class="sc">~</span> <span class="dv">1</span> <span class="sc">|</span> x <span class="sc">~</span> z_rc, d, <span class="at">cluster =</span> <span class="sc">~</span>state),</span>
-<span id="cb3-244"><a href="#cb3-244" aria-hidden="true" tabindex="-1"></a>               <span class="fu">feols</span>(y <span class="sc">~</span> x <span class="sc">+</span> mu, d, <span class="at">cluster =</span> <span class="sc">~</span>state))</span>
-<span id="cb3-245"><a href="#cb3-245" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rbind</span>(<span class="fu">sapply</span>(fits, coef_x),</span>
-<span id="cb3-246"><a href="#cb3-246" aria-hidden="true" tabindex="-1"></a>        <span class="at">r2 =</span> <span class="fu">c</span>(<span class="cn">NA</span>, <span class="fu">cor</span>(d<span class="sc">$</span>x, d<span class="sc">$</span>z_sim)<span class="sc">^</span><span class="dv">2</span>, <span class="fu">cor</span>(d<span class="sc">$</span>x, d<span class="sc">$</span>z_rc)<span class="sc">^</span><span class="dv">2</span>, <span class="cn">NA</span>))</span>
-<span id="cb3-247"><a href="#cb3-247" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb3-248"><a href="#cb3-248" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-249"><a href="#cb3-249" aria-hidden="true" tabindex="-1"></a>mc <span class="ot">&lt;-</span> <span class="fu">simplify2array</span>(<span class="fu">mclapply</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(draws)), one_draw, <span class="at">mc.cores =</span> <span class="dv">6</span>))</span>
-<span id="cb3-250"><a href="#cb3-250" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-251"><a href="#cb3-251" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(<span class="at">estimator =</span> <span class="fu">c</span>(<span class="st">"OLS"</span>, <span class="st">"Simulated instrument"</span>, <span class="st">"Recentered treatment"</span>,</span>
-<span id="cb3-252"><a href="#cb3-252" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"OLS controlling for mu"</span>),</span>
-<span id="cb3-253"><a href="#cb3-253" aria-hidden="true" tabindex="-1"></a>       <span class="at">mean     =</span> <span class="fu">apply</span>(mc[<span class="st">"est"</span>, , ], <span class="dv">1</span>, mean),</span>
-<span id="cb3-254"><a href="#cb3-254" aria-hidden="true" tabindex="-1"></a>       <span class="at">sd       =</span> <span class="fu">apply</span>(mc[<span class="st">"est"</span>, , ], <span class="dv">1</span>, sd),</span>
-<span id="cb3-255"><a href="#cb3-255" aria-hidden="true" tabindex="-1"></a>       <span class="at">coverage =</span> <span class="fu">apply</span>(<span class="fu">abs</span>(mc[<span class="st">"est"</span>, , ] <span class="sc">-</span> beta_true) <span class="sc">&lt;=</span> <span class="fl">1.96</span> <span class="sc">*</span> mc[<span class="st">"se"</span>, , ], <span class="dv">1</span>, mean),</span>
-<span id="cb3-256"><a href="#cb3-256" aria-hidden="true" tabindex="-1"></a>       <span class="at">first_stage_R2 =</span> <span class="fu">apply</span>(mc[<span class="st">"r2"</span>, , ], <span class="dv">1</span>, mean)) <span class="sc">|&gt;</span></span>
-<span id="cb3-257"><a href="#cb3-257" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span>
-<span id="cb3-258"><a href="#cb3-258" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb3-259"><a href="#cb3-259" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-260"><a href="#cb3-260" aria-hidden="true" tabindex="-1"></a>The table gives each estimator's mean and standard deviation over the 1,000</span>
-<span id="cb3-261"><a href="#cb3-261" aria-hidden="true" tabindex="-1"></a>replications, the share of clustered 95% intervals that contain 0.3, and the</span>
-<span id="cb3-262"><a href="#cb3-262" aria-hidden="true" tabindex="-1"></a>average first-stage $R^2$. OLS averages 0.637 against a true 0.3, and its</span>
-<span id="cb3-263"><a href="#cb3-263" aria-hidden="true" tabindex="-1"></a>intervals never contain 0.3. The three other estimators are centred on 0.3,</span>
-<span id="cb3-264"><a href="#cb3-264" aria-hidden="true" tabindex="-1"></a>with coverage of 92.7% to 93.7%, slightly below 95% with 50 clusters. They</span>
-<span id="cb3-265"><a href="#cb3-265" aria-hidden="true" tabindex="-1"></a>differ in precision. The simulated instrument has a standard deviation of</span>
-<span id="cb3-266"><a href="#cb3-266" aria-hidden="true" tabindex="-1"></a>0.167 and a first-stage $R^2$ of 0.26. It gives everyone in a state the same</span>
-<span id="cb3-267"><a href="#cb3-267" aria-hidden="true" tabindex="-1"></a>value, so it cannot separate people whose eligibility depends on the</span>
-<span id="cb3-268"><a href="#cb3-268" aria-hidden="true" tabindex="-1"></a>threshold from people who are eligible, or ineligible, under every threshold.</span>
-<span id="cb3-269"><a href="#cb3-269" aria-hidden="true" tabindex="-1"></a>The recentered treatment has a standard deviation of 0.086, half as large, and</span>
-<span id="cb3-270"><a href="#cb3-270" aria-hidden="true" tabindex="-1"></a>an $R^2$ of 0.59, because it uses that variation within states. Its controlled</span>
-<span id="cb3-271"><a href="#cb3-271" aria-hidden="true" tabindex="-1"></a>form has 0.080.</span>
-<span id="cb3-272"><a href="#cb3-272" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-273"><a href="#cb3-273" aria-hidden="true" tabindex="-1"></a><span class="fu">## The China shock</span></span>
-<span id="cb3-274"><a href="#cb3-274" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-275"><a href="#cb3-275" aria-hidden="true" tabindex="-1"></a>In ADH the shocks are at the industry-period level: the growth of Chinese</span>
-<span id="cb3-276"><a href="#cb3-276" aria-hidden="true" tabindex="-1"></a>imports into eight other high-income countries, per US worker, in 397</span>
-<span id="cb3-277"><a href="#cb3-277" aria-hidden="true" tabindex="-1"></a>manufacturing industries over 1990–2000 and 2000–2007. ADH argue they are</span>
-<span id="cb3-278"><a href="#cb3-278" aria-hidden="true" tabindex="-1"></a>exogenous because the growth came from China's side, through reform, rising</span>
-<span id="cb3-279"><a href="#cb3-279" aria-hidden="true" tabindex="-1"></a>productivity and WTO accession, and because imports into other countries do</span>
-<span id="cb3-280"><a href="#cb3-280" aria-hidden="true" tabindex="-1"></a>not respond to US demand. The argument is weaker for demand or technology</span>
-<span id="cb3-281"><a href="#cb3-281" aria-hidden="true" tabindex="-1"></a>shocks shared by all rich countries, and the identifying variation is</span>
-<span id="cb3-282"><a href="#cb3-282" aria-hidden="true" tabindex="-1"></a>concentrated in a few industries such as computers, toys and audio equipment</span>
-<span id="cb3-283"><a href="#cb3-283" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">@goldsmith-pinkham-sorkin-swift-2020</span><span class="co">]</span>.</span>
-<span id="cb3-284"><a href="#cb3-284" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-285"><a href="#cb3-285" aria-hidden="true" tabindex="-1"></a>All four regressions below use the same instrument and differ only in what</span>
-<span id="cb3-286"><a href="#cb3-286" aria-hidden="true" tabindex="-1"></a>they control for. The treatment, US import exposure per worker, is shares</span>
-<span id="cb3-287"><a href="#cb3-287" aria-hidden="true" tabindex="-1"></a>times US import growth, and US imports also reflect US demand. Replacing them</span>
-<span id="cb3-288"><a href="#cb3-288" aria-hidden="true" tabindex="-1"></a>with the other-country shocks gives the prediction, which is the Bartik</span>
-<span id="cb3-289"><a href="#cb3-289" aria-hidden="true" tabindex="-1"></a>instrument itself, so the formula-instrument approach does not change the</span>
-<span id="cb3-290"><a href="#cb3-290" aria-hidden="true" tabindex="-1"></a>instrument. It changes the control. The shares, lagged employment shares in</span>
-<span id="cb3-291"><a href="#cb3-291" aria-hidden="true" tabindex="-1"></a>the 722 commuting zones, are incomplete, so the expected instrument $\mu_\ell$</span>
-<span id="cb3-292"><a href="#cb3-292" aria-hidden="true" tabindex="-1"></a>varies across zones, and controlling for it is equivalent to subtracting it.</span>
-<span id="cb3-293"><a href="#cb3-293" aria-hidden="true" tabindex="-1"></a>Its form depends on the shock design.</span>
-<span id="cb3-294"><a href="#cb3-294" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-295"><a href="#cb3-295" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Design 1: the 397 shocks are exchangeable within each period. Every</span>
-<span id="cb3-296"><a href="#cb3-296" aria-hidden="true" tabindex="-1"></a>  industry then has the same expected shock, the period mean $\bar g_t$, which</span>
-<span id="cb3-297"><a href="#cb3-297" aria-hidden="true" tabindex="-1"></a>  is 4.8 in the first period and 17.3 in the second, and @eq-ri-ss-mu gives</span>
-<span id="cb3-298"><a href="#cb3-298" aria-hidden="true" tabindex="-1"></a>  $\mu_\ell = S_\ell \bar g_t$. Only a zone's manufacturing intensity is</span>
-<span id="cb3-299"><a href="#cb3-299" aria-hidden="true" tabindex="-1"></a>  treated as predictable.</span>
-<span id="cb3-300"><a href="#cb3-300" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Design 2: the shocks are exchangeable only within each of the 20 two-digit</span>
-<span id="cb3-301"><a href="#cb3-301" aria-hidden="true" tabindex="-1"></a>  SIC sectors in each period. Each industry's expected shock is its sector's</span>
-<span id="cb3-302"><a href="#cb3-302" aria-hidden="true" tabindex="-1"></a>  mean $\bar g_{mt}$, and $\mu_\ell = \sum_m S_{\ell m} \bar g_{mt}$, where</span>
-<span id="cb3-303"><a href="#cb3-303" aria-hidden="true" tabindex="-1"></a>  $S_{\ell m}$ is the zone's share in sector $m$. A zone's sector mix is also</span>
-<span id="cb3-304"><a href="#cb3-304" aria-hidden="true" tabindex="-1"></a>  treated as predictable: a zone heavy in electronics is expected to receive a</span>
-<span id="cb3-305"><a href="#cb3-305" aria-hidden="true" tabindex="-1"></a>  large instrument.</span>
-<span id="cb3-306"><a href="#cb3-306" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-307"><a href="#cb3-307" aria-hidden="true" tabindex="-1"></a>ADH control for the start-of-period manufacturing share with one coefficient</span>
-<span id="cb3-308"><a href="#cb3-308" aria-hidden="true" tabindex="-1"></a>for both periods, which approximates design 1's $\mu_\ell$. The second row</span>
-<span id="cb3-309"><a href="#cb3-309" aria-hidden="true" tabindex="-1"></a>drops that control, so nothing recenters the instrument, and it is valid only</span>
-<span id="cb3-310"><a href="#cb3-310" aria-hidden="true" tabindex="-1"></a>if the shares are exogenous. All fits use ADH's other controls,</span>
-<span id="cb3-311"><a href="#cb3-311" aria-hidden="true" tabindex="-1"></a>census-division effects, population weights and standard errors clustered by</span>
-<span id="cb3-312"><a href="#cb3-312" aria-hidden="true" tabindex="-1"></a>state, with the GPSS replication files.</span>
-<span id="cb3-313"><a href="#cb3-313" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-316"><a href="#cb3-316" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb3-317"><a href="#cb3-317" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: ri-adh</span></span>
-<span id="cb3-318"><a href="#cb3-318" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb3-319"><a href="#cb3-319" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-320"><a href="#cb3-320" aria-hidden="true" tabindex="-1"></a>adh <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/adh_master.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb3-321"><a href="#cb3-321" aria-hidden="true" tabindex="-1"></a>tr  <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/adh_shares_triplets.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb3-322"><a href="#cb3-322" aria-hidden="true" tabindex="-1"></a>shk <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/adh_shocks.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb3-323"><a href="#cb3-323" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-324"><a href="#cb3-324" aria-hidden="true" tabindex="-1"></a>by_row <span class="ot">&lt;-</span> <span class="cf">function</span>(v) {                        <span class="co"># sum over industries, by zone</span></span>
-<span id="cb3-325"><a href="#cb3-325" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">numeric</span>(<span class="fu">nrow</span>(adh)); s <span class="ot">&lt;-</span> <span class="fu">rowsum</span>(v, tr<span class="sc">$</span>row)</span>
-<span id="cb3-326"><a href="#cb3-326" aria-hidden="true" tabindex="-1"></a>  out[<span class="fu">as.integer</span>(<span class="fu">rownames</span>(s))] <span class="ot">&lt;-</span> s[, <span class="dv">1</span>]; out</span>
-<span id="cb3-327"><a href="#cb3-327" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb3-328"><a href="#cb3-328" aria-hidden="true" tabindex="-1"></a>sector  <span class="ot">&lt;-</span> <span class="fu">paste</span>(shk<span class="sc">$</span>sic87dd <span class="sc">%/%</span> <span class="dv">100</span>, shk<span class="sc">$</span>year)</span>
-<span id="cb3-329"><a href="#cb3-329" aria-hidden="true" tabindex="-1"></a>g_bar_m <span class="ot">&lt;-</span> <span class="fu">tapply</span>(shk<span class="sc">$</span>g, sector, mean)</span>
-<span id="cb3-330"><a href="#cb3-330" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-331"><a href="#cb3-331" aria-hidden="true" tabindex="-1"></a>adh <span class="ot">&lt;-</span> <span class="fu">mutate</span>(adh, <span class="at">B =</span> <span class="fu">by_row</span>(tr<span class="sc">$</span>share <span class="sc">*</span> shk<span class="sc">$</span>g[tr<span class="sc">$</span>col]), <span class="at">S =</span> <span class="fu">by_row</span>(tr<span class="sc">$</span>share),</span>
-<span id="cb3-332"><a href="#cb3-332" aria-hidden="true" tabindex="-1"></a>              <span class="at">mu2 =</span> <span class="fu">by_row</span>(tr<span class="sc">$</span>share <span class="sc">*</span> g_bar_m[sector[tr<span class="sc">$</span>col]]))</span>
-<span id="cb3-333"><a href="#cb3-333" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-334"><a href="#cb3-334" aria-hidden="true" tabindex="-1"></a>controls <span class="ot">&lt;-</span> <span class="st">"l_sh_popedu_c + l_sh_popfborn + l_sh_empl_f + l_sh_routine33 +</span></span>
-<span id="cb3-335"><a href="#cb3-335" aria-hidden="true" tabindex="-1"></a><span class="st">             l_task_outsource + t2 | division"</span></span>
-<span id="cb3-336"><a href="#cb3-336" aria-hidden="true" tabindex="-1"></a>iv <span class="ot">&lt;-</span> <span class="cf">function</span>(extra) {</span>
-<span id="cb3-337"><a href="#cb3-337" aria-hidden="true" tabindex="-1"></a>  <span class="fu">feols</span>(<span class="fu">as.formula</span>(<span class="fu">paste</span>(<span class="st">"d_sh_empl_mfg ~"</span>, extra, controls, <span class="st">"| shock ~ B"</span>)),</span>
-<span id="cb3-338"><a href="#cb3-338" aria-hidden="true" tabindex="-1"></a>        adh, <span class="at">weights =</span> <span class="sc">~</span>weights, <span class="at">cluster =</span> <span class="sc">~</span>statefip)</span>
-<span id="cb3-339"><a href="#cb3-339" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb3-340"><a href="#cb3-340" aria-hidden="true" tabindex="-1"></a>fits <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">"Bartik, ADH controls"</span>                <span class="ot">=</span> <span class="fu">iv</span>(<span class="st">"l_shind_manuf_cbp +"</span>),</span>
-<span id="cb3-341"><a href="#cb3-341" aria-hidden="true" tabindex="-1"></a>             <span class="st">"Bartik, no manufacturing control"</span>    <span class="ot">=</span> <span class="fu">iv</span>(<span class="st">""</span>),</span>
-<span id="cb3-342"><a href="#cb3-342" aria-hidden="true" tabindex="-1"></a>             <span class="st">"Bartik, design 1 mu (S x period)"</span>    <span class="ot">=</span> <span class="fu">iv</span>(<span class="st">"S + S:t2 +"</span>),</span>
-<span id="cb3-343"><a href="#cb3-343" aria-hidden="true" tabindex="-1"></a>             <span class="st">"Bartik, design 2 mu (sector means)"</span>  <span class="ot">=</span> <span class="fu">iv</span>(<span class="st">"mu2 +"</span>))</span>
-<span id="cb3-344"><a href="#cb3-344" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(<span class="at">specification =</span> <span class="fu">names</span>(fits),</span>
-<span id="cb3-345"><a href="#cb3-345" aria-hidden="true" tabindex="-1"></a>       <span class="at">estimate =</span> <span class="fu">sapply</span>(fits, \(f) <span class="fu">coef</span>(f)[<span class="st">"fit_shock"</span>]),</span>
-<span id="cb3-346"><a href="#cb3-346" aria-hidden="true" tabindex="-1"></a>       <span class="at">se       =</span> <span class="fu">sapply</span>(fits, \(f) <span class="fu">se</span>(f)[<span class="st">"fit_shock"</span>])) <span class="sc">|&gt;</span></span>
-<span id="cb3-347"><a href="#cb3-347" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span>
-<span id="cb3-348"><a href="#cb3-348" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb3-349"><a href="#cb3-349" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-350"><a href="#cb3-350" aria-hidden="true" tabindex="-1"></a>The first row reproduces ADH's −0.596: an increase in import exposure of</span>
-<span id="cb3-351"><a href="#cb3-351" aria-hidden="true" tabindex="-1"></a>$1,000 per worker over a decade lowers the manufacturing employment share by</span>
-<span id="cb3-352"><a href="#cb3-352" aria-hidden="true" tabindex="-1"></a>about 0.6 percentage points. Without the manufacturing-share control the</span>
-<span id="cb3-353"><a href="#cb3-353" aria-hidden="true" tabindex="-1"></a>estimate is −0.712.</span>
-<span id="cb3-354"><a href="#cb3-354" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-355"><a href="#cb3-355" aria-hidden="true" tabindex="-1"></a>Each of the last two rows removes one source of variation. ADH's estimate</span>
-<span id="cb3-356"><a href="#cb3-356" aria-hidden="true" tabindex="-1"></a>partly compares zones with more and less manufacturing across the two periods:</span>
-<span id="cb3-357"><a href="#cb3-357" aria-hidden="true" tabindex="-1"></a>because the mean shock more than triples, a manufacturing-heavy zone gets a</span>
-<span id="cb3-358"><a href="#cb3-358" aria-hidden="true" tabindex="-1"></a>much larger instrument in the second period whichever industries China hit.</span>
-<span id="cb3-359"><a href="#cb3-359" aria-hidden="true" tabindex="-1"></a>Controlling for design 1's $\mu_\ell$ removes that comparison, and the estimate</span>
-<span id="cb3-360"><a href="#cb3-360" aria-hidden="true" tabindex="-1"></a>falls to −0.267 (0.087). ADH's control is close to $S_\ell$, with a</span>
-<span id="cb3-361"><a href="#cb3-361" aria-hidden="true" tabindex="-1"></a>correlation of 0.92, but one coefficient cannot absorb a term whose slope more</span>
-<span id="cb3-362"><a href="#cb3-362" aria-hidden="true" tabindex="-1"></a>than triples between periods. Design 2 also removes the comparison across</span>
-<span id="cb3-363"><a href="#cb3-363" aria-hidden="true" tabindex="-1"></a>sectors, such as electronics and toys against food and paper, and the estimate</span>
-<span id="cb3-364"><a href="#cb3-364" aria-hidden="true" tabindex="-1"></a>falls to −0.144 (0.117).</span>
-<span id="cb3-365"><a href="#cb3-365" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-366"><a href="#cb3-366" aria-hidden="true" tabindex="-1"></a>Whether the removed comparisons are confounded is the substantive question.</span>
-<span id="cb3-367"><a href="#cb3-367" aria-hidden="true" tabindex="-1"></a>If manufacturing-heavy zones declined faster in the 2000s for other reasons,</span>
-<span id="cb3-368"><a href="#cb3-368" aria-hidden="true" tabindex="-1"></a>such as automation, the design 1 control is needed and ADH overstate the</span>
-<span id="cb3-369"><a href="#cb3-369" aria-hidden="true" tabindex="-1"></a>effect. But the average shock is itself part of the China shock, since</span>
-<span id="cb3-370"><a href="#cb3-370" aria-hidden="true" tabindex="-1"></a>Chinese imports rose across nearly all of manufacturing. Designs 1 and 2 treat</span>
-<span id="cb3-371"><a href="#cb3-371" aria-hidden="true" tabindex="-1"></a>that average as predictable and use only the variation in which industries</span>
-<span id="cb3-372"><a href="#cb3-372" aria-hidden="true" tabindex="-1"></a>China hit harder than average, so they cannot measure an effect that works</span>
-<span id="cb3-373"><a href="#cb3-373" aria-hidden="true" tabindex="-1"></a>through manufacturing as a whole. ADH's −0.596 does use it, and it is valid if</span>
-<span id="cb3-374"><a href="#cb3-374" aria-hidden="true" tabindex="-1"></a>the shares are exogenous given the controls. The data cannot tell us which</span>
-<span id="cb3-375"><a href="#cb3-375" aria-hidden="true" tabindex="-1"></a>assumption holds. Every estimate is negative, and recentering shows how much</span>
-<span id="cb3-376"><a href="#cb3-376" aria-hidden="true" tabindex="-1"></a>of the size depends on the assumption.</span>
-<span id="cb3-377"><a href="#cb3-377" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-378"><a href="#cb3-378" aria-hidden="true" tabindex="-1"></a><span class="fu">## The Medicaid application</span></span>
-<span id="cb3-379"><a href="#cb3-379" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-380"><a href="#cb3-380" aria-hidden="true" tabindex="-1"></a>@borusyak-hull-2026 instrument Medicaid eligibility in the 2014 ACA expansion</span>
-<span id="cb3-381"><a href="#cb3-381" aria-hidden="true" tabindex="-1"></a>with actual minus expected eligibility, treating expansion as random within</span>
-<span id="cb3-382"><a href="#cb3-382" aria-hidden="true" tabindex="-1"></a>the governor's party. The first-stage partial $R^2$ rises from 0.01 to 0.80</span>
-<span id="cb3-383"><a href="#cb3-383" aria-hidden="true" tabindex="-1"></a>over the simulated instrument and the standard error on crowd-out falls by</span>
-<span id="cb3-384"><a href="#cb3-384" aria-hidden="true" tabindex="-1"></a>44%. Most of the gain comes from the 18% of the sample whose eligibility the</span>
-<span id="cb3-385"><a href="#cb3-385" aria-hidden="true" tabindex="-1"></a>expansion could change; outside it, the recentered instrument is zero, and in</span>
-<span id="cb3-386"><a href="#cb3-386" aria-hidden="true" tabindex="-1"></a>the full sample without an exposure control it is less precise than the</span>
-<span id="cb3-387"><a href="#cb3-387" aria-hidden="true" tabindex="-1"></a>simulated one <span class="co">[</span><span class="ot">@borusyak-hull-2026, Table A4</span><span class="co">]</span>. Their 2012–2013 placebo on</span>
-<span id="cb3-388"><a href="#cb3-388" aria-hidden="true" tabindex="-1"></a>private insurance is −0.011, half the main estimate of −0.023 (Table A2).</span>
-<span id="cb3-389"><a href="#cb3-389" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-390"><a href="#cb3-390" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
-<span id="cb3-391"><a href="#cb3-391" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-392"><a href="#cb3-392" aria-hidden="true" tabindex="-1"></a>Shift-share is one formula instrument, with the formula and the design fixed</span>
-<span id="cb3-393"><a href="#cb3-393" aria-hidden="true" tabindex="-1"></a>by convention. Any formula of shocks and exposure is valid once its expected</span>
-<span id="cb3-394"><a href="#cb3-394" aria-hidden="true" tabindex="-1"></a>value over the shock design is subtracted, and the most efficient formula is</span>
-<span id="cb3-395"><a href="#cb3-395" aria-hidden="true" tabindex="-1"></a>the recentered best prediction of the treatment. Applied to Bartik, this has two consequences. When the shares do not sum to one, the regression must control for the sum of shares times the period's mean shock. When the treatment depends on the shocks through more than shares times shocks, a prediction built from the treatment's own formula is a stronger instrument than Bartik. In the ADH data the first consequence alone moves the estimate from −0.60 to −0.27.</span>
-<span id="cb3-396"><a href="#cb3-396" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-397"><a href="#cb3-397" aria-hidden="true" tabindex="-1"></a>For the shift-share construction, the share and shock views, and inference,</span>
-<span id="cb3-398"><a href="#cb3-398" aria-hidden="true" tabindex="-1"></a>see the previous chapter, <span class="co">[</span><span class="ot">Shift-Share Instrumental Variables</span><span class="co">](shift-share-iv.qmd)</span>.</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># Recentered Formula Instruments</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co">#| include: false</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fixest)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(parallel)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="fu">setFixest_nthreads</span>(<span class="dv">1</span>)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>Many treatments are computed from a formula that combines a random shock with</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>non-random exposure. Medicaid eligibility is a state's rules applied to a</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>person's income. Import exposure is national industry shocks applied to a</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>region's industry mix. The Bartik instrument of the previous chapter is one</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>such formula. This chapter covers the general version of Borusyak and Hull</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">@borusyak-hull-2023</span><span class="co">]</span>, their result on which formula is best</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">@borusyak-hull-2026</span><span class="co">]</span>, and what both mean for shift-share.</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="fu">## Formula instruments</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>Unit $i$ has outcome $y_i$ and treatment $x_i$, with a constant effect $\beta$:</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>y_i = \beta x_i + \varepsilon_i .</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>$$ {#eq-ri-model}</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>The treatment is $x_i = h_i(g, w, u)$, where $h_i$ is a known function, $g$</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>collects the random shocks, $w$ collects predetermined variables such as</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>income or industry shares, and $u$ collects anything else. The identifying</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>assumption puts all the randomness on the shocks [@borusyak-hull-2026,</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>Assumption 1]:</span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>E<span class="co">[</span><span class="ot">\varepsilon_i \mid g, w</span><span class="co">]</span> = E<span class="co">[</span><span class="ot">\varepsilon_i \mid w</span><span class="co">]</span> .</span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>$$ {#eq-ri-exog}</span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>The error may depend on $w$ in any way. Poorer people may have worse</span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>outcomes, and regions with more manufacturing may have been declining anyway.</span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>A formula instrument is $z_i = f_i(g, w)$ for a fixed function $f_i$. Its</span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>expected value over the shock draws, holding $w$ fixed, is the expected</span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>instrument $\mu_i = E<span class="co">[</span><span class="ot">z_i \mid w</span><span class="co">]</span>$. The recentered instrument</span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>$\tilde z_i = z_i - \mu_i$ is valid, because by iterated expectations and</span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>@eq-ri-exog,</span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>E<span class="co">[</span><span class="ot">\tilde z_i \varepsilon_i</span><span class="co">]</span></span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>= E\big<span class="co">[</span><span class="ot">\tilde z_i\, E[\varepsilon_i \mid w]\big</span><span class="co">]</span></span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>= E\big<span class="co">[</span><span class="ot">E[\tilde z_i \mid w]\, E[\varepsilon_i \mid w]\big</span><span class="co">]</span> = 0 .</span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>Without recentering the same steps give $E<span class="co">[</span><span class="ot">z_i \varepsilon_i</span><span class="co">]</span> = E[\mu_i</span>
+<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>E<span class="co">[</span><span class="ot">\varepsilon_i \mid w</span><span class="co">]</span>]$, which is not zero when the expected instrument is</span>
+<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a>correlated with the predictable part of the error. Subtracting $\mu_i$ and</span>
+<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a>controlling for $\mu_i$ are equivalent by Frisch–Waugh–Lovell. Computing</span>
+<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a>$\mu_i$ requires the design: how the shocks could have been drawn. We redraw</span>
+<span id="cb4-60"><a href="#cb4-60" aria-hidden="true" tabindex="-1"></a>them from that design, or permute them if they are exchangeable, and average</span>
+<span id="cb4-61"><a href="#cb4-61" aria-hidden="true" tabindex="-1"></a>the formula over the draws.</span>
+<span id="cb4-62"><a href="#cb4-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-63"><a href="#cb4-63" aria-hidden="true" tabindex="-1"></a>Any recentered formula is valid, so we can pick the most precise.</span>
+<span id="cb4-64"><a href="#cb4-64" aria-hidden="true" tabindex="-1"></a>@borusyak-hull-2026 <span class="co">[</span><span class="ot">Theorem 1</span><span class="co">]</span> show it starts from the best prediction of the</span>
+<span id="cb4-65"><a href="#cb4-65" aria-hidden="true" tabindex="-1"></a>treatment, recentered:</span>
+<span id="cb4-66"><a href="#cb4-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-67"><a href="#cb4-67" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb4-68"><a href="#cb4-68" aria-hidden="true" tabindex="-1"></a>\tilde z = E<span class="co">[</span><span class="ot">x \mid g, w</span><span class="co">]</span> - E<span class="co">[</span><span class="ot">x \mid w</span><span class="co">]</span> .</span>
+<span id="cb4-69"><a href="#cb4-69" aria-hidden="true" tabindex="-1"></a>$$ {#eq-ri-optimal}</span>
+<span id="cb4-70"><a href="#cb4-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-71"><a href="#cb4-71" aria-hidden="true" tabindex="-1"></a>The full optimal instrument adds two refinements, partly controlling for the</span>
+<span id="cb4-72"><a href="#cb4-72" aria-hidden="true" tabindex="-1"></a>predictable part of the error and GLS weighting, which need a model of the</span>
+<span id="cb4-73"><a href="#cb4-73" aria-hidden="true" tabindex="-1"></a>error. The authors drop them. Their algorithm predicts the treatment from its</span>
+<span id="cb4-74"><a href="#cb4-74" aria-hidden="true" tabindex="-1"></a>formula, recenters the prediction by redrawing the shocks, and uses the result</span>
+<span id="cb4-75"><a href="#cb4-75" aria-hidden="true" tabindex="-1"></a>as the instrument. When $x_i$ depends only on $(g, w)$, the prediction is</span>
+<span id="cb4-76"><a href="#cb4-76" aria-hidden="true" tabindex="-1"></a>$x_i$ itself.</span>
+<span id="cb4-77"><a href="#cb4-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-78"><a href="#cb4-78" aria-hidden="true" tabindex="-1"></a><span class="fu">## Shift-share as a formula instrument</span></span>
+<span id="cb4-79"><a href="#cb4-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-80"><a href="#cb4-80" aria-hidden="true" tabindex="-1"></a>The Bartik instrument $B_\ell = \sum_k s_{\ell k} g_k$ of @eq-shift-share-iv-1</span>
+<span id="cb4-81"><a href="#cb4-81" aria-hidden="true" tabindex="-1"></a>is the linear formula, shares times shocks. It differs from</span>
+<span id="cb4-82"><a href="#cb4-82" aria-hidden="true" tabindex="-1"></a>@eq-ri-optimal in two ways.</span>
+<span id="cb4-83"><a href="#cb4-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-84"><a href="#cb4-84" aria-hidden="true" tabindex="-1"></a>The first is recentering. Suppose the industry shocks are exchangeable within</span>
+<span id="cb4-85"><a href="#cb4-85" aria-hidden="true" tabindex="-1"></a>period $t$, with mean $\bar g_t$, and let $S_\ell = \sum_k s_{\ell k}$ be</span>
+<span id="cb4-86"><a href="#cb4-86" aria-hidden="true" tabindex="-1"></a>region $\ell$'s sum of shares. Then</span>
+<span id="cb4-87"><a href="#cb4-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-88"><a href="#cb4-88" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb4-89"><a href="#cb4-89" aria-hidden="true" tabindex="-1"></a>\mu_\ell = S_\ell\, \bar g_t .</span>
+<span id="cb4-90"><a href="#cb4-90" aria-hidden="true" tabindex="-1"></a>$$ {#eq-ri-ss-mu}</span>
+<span id="cb4-91"><a href="#cb4-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-92"><a href="#cb4-92" aria-hidden="true" tabindex="-1"></a>If the shares sum to one, $\mu_\ell = \bar g_t$ is common to all regions and</span>
+<span id="cb4-93"><a href="#cb4-93" aria-hidden="true" tabindex="-1"></a>period effects absorb it, so Bartik is already recentered. If they are</span>
+<span id="cb4-94"><a href="#cb4-94" aria-hidden="true" tabindex="-1"></a>incomplete, as with manufacturing shares, heavily manufacturing regions get a</span>
+<span id="cb4-95"><a href="#cb4-95" aria-hidden="true" tabindex="-1"></a>large instrument in every draw, and Bartik is biased unless we control for</span>
+<span id="cb4-96"><a href="#cb4-96" aria-hidden="true" tabindex="-1"></a>$S_\ell$ interacted with period <span class="co">[</span><span class="ot">@borusyak-hull-jaravel-2022</span><span class="co">]</span>.</span>
+<span id="cb4-97"><a href="#cb4-97" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-98"><a href="#cb4-98" aria-hidden="true" tabindex="-1"></a>The second is the formula. Take two regions with half their employment in</span>
+<span id="cb4-99"><a href="#cb4-99" aria-hidden="true" tabindex="-1"></a>electronics, and an import shock to electronics. Region A's plants compete</span>
+<span id="cb4-100"><a href="#cb4-100" aria-hidden="true" tabindex="-1"></a>with Chinese imports. Region B's make military components and do not. Bartik</span>
+<span id="cb4-101"><a href="#cb4-101" aria-hidden="true" tabindex="-1"></a>gives both half the shock, but only A's import competition rises, so the</span>
+<span id="cb4-102"><a href="#cb4-102" aria-hidden="true" tabindex="-1"></a>instrument varies where the treatment does not. The best predictor gives A</span>
+<span id="cb4-103"><a href="#cb4-103" aria-hidden="true" tabindex="-1"></a>half the shock and B nothing, then recenters each by its own expected value.</span>
+<span id="cb4-104"><a href="#cb4-104" aria-hidden="true" tabindex="-1"></a>Both instruments are valid, and the second has the stronger first stage. When</span>
+<span id="cb4-105"><a href="#cb4-105" aria-hidden="true" tabindex="-1"></a>the treatment really is shares times shocks, the best predictor is Bartik</span>
+<span id="cb4-106"><a href="#cb4-106" aria-hidden="true" tabindex="-1"></a>itself and the two differ only by recentering. The formula matters when the</span>
+<span id="cb4-107"><a href="#cb4-107" aria-hidden="true" tabindex="-1"></a>treatment has more structure than Bartik uses: eligibility rules, export</span>
+<span id="cb4-108"><a href="#cb4-108" aria-hidden="true" tabindex="-1"></a>exposure, transport networks, nonlinear indices.</span>
+<span id="cb4-109"><a href="#cb4-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-110"><a href="#cb4-110" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>                     <span class="pp">|</span> Shift-share (Bartik)      <span class="pp">|</span> Recentered formula instrument          <span class="pp">|</span></span>
+<span id="cb4-111"><a href="#cb4-111" aria-hidden="true" tabindex="-1"></a><span class="pp">|---------------------|---------------------------|----------------------------------------|</span></span>
+<span id="cb4-112"><a href="#cb4-112" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Formula             <span class="pp">|</span> Shares times shocks       <span class="pp">|</span> Best prediction of the treatment       <span class="pp">|</span></span>
+<span id="cb4-113"><a href="#cb4-113" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Expected instrument <span class="pp">|</span> Usually not subtracted    <span class="pp">|</span> Subtracted, or controlled for          <span class="pp">|</span></span>
+<span id="cb4-114"><a href="#cb4-114" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Shock design        <span class="pp">|</span> Implicit                  <span class="pp">|</span> Written down to compute $\mu_\ell$     <span class="pp">|</span></span>
+<span id="cb4-115"><a href="#cb4-115" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Inputs              <span class="pp">|</span> Shares and shocks         <span class="pp">|</span> Treatment formula and shock design     <span class="pp">|</span></span>
+<span id="cb4-116"><a href="#cb4-116" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-117"><a href="#cb4-117" aria-hidden="true" tabindex="-1"></a>: Shift-share and recentered formula instruments. {#tbl-ri-compare}</span>
+<span id="cb4-118"><a href="#cb4-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-119"><a href="#cb4-119" aria-hidden="true" tabindex="-1"></a>The formula instrument needs more inputs: the treatment's formula and an explicit</span>
+<span id="cb4-120"><a href="#cb4-120" aria-hidden="true" tabindex="-1"></a>shock design. With heterogeneous effects, different instruments weight units</span>
+<span id="cb4-121"><a href="#cb4-121" aria-hidden="true" tabindex="-1"></a>differently, so a gain in precision is a gain for a different weighted</span>
+<span id="cb4-122"><a href="#cb4-122" aria-hidden="true" tabindex="-1"></a>average <span class="co">[</span><span class="ot">@borusyak-hull-2026, Proposition D1</span><span class="co">]</span>.</span>
+<span id="cb4-123"><a href="#cb4-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-124"><a href="#cb4-124" aria-hidden="true" tabindex="-1"></a><span class="fu">### Why recenter</span></span>
+<span id="cb4-125"><a href="#cb4-125" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-126"><a href="#cb4-126" aria-hidden="true" tabindex="-1"></a>Bartik needs one of two assumptions. If the shares are as good as random given</span>
+<span id="cb4-127"><a href="#cb4-127" aria-hidden="true" tabindex="-1"></a>the controls <span class="co">[</span><span class="ot">@goldsmith-pinkham-sorkin-swift-2020</span><span class="co">]</span>, Bartik is valid as it</span>
+<span id="cb4-128"><a href="#cb4-128" aria-hidden="true" tabindex="-1"></a>stands and recentering is not needed. If only the shocks are random <span class="co">[</span><span class="ot">@borusyak-hull-jaravel-2022</span><span class="co">]</span>, the shares may be</span>
+<span id="cb4-129"><a href="#cb4-129" aria-hidden="true" tabindex="-1"></a>correlated with the error. Writing each shock as the mean shock plus a</span>
+<span id="cb4-130"><a href="#cb4-130" aria-hidden="true" tabindex="-1"></a>deviation splits the instrument in two:</span>
+<span id="cb4-131"><a href="#cb4-131" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-132"><a href="#cb4-132" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb4-133"><a href="#cb4-133" aria-hidden="true" tabindex="-1"></a>B_\ell = S_\ell\, \bar g_t + \sum_k s_{\ell k}\,(g_k - \bar g_t) .</span>
+<span id="cb4-134"><a href="#cb4-134" aria-hidden="true" tabindex="-1"></a>$$ {#eq-ri-bartik-split}</span>
+<span id="cb4-135"><a href="#cb4-135" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-136"><a href="#cb4-136" aria-hidden="true" tabindex="-1"></a>The first part is the expected instrument of @eq-ri-ss-mu. It depends only on</span>
+<span id="cb4-137"><a href="#cb4-137" aria-hidden="true" tabindex="-1"></a>how much exposure the region has, so with incomplete shares a region with more</span>
+<span id="cb4-138"><a href="#cb4-138" aria-hidden="true" tabindex="-1"></a>exposure gets a larger value in every draw, and this part is correlated with</span>
+<span id="cb4-139"><a href="#cb4-139" aria-hidden="true" tabindex="-1"></a>the error whenever exposure is. The second part depends on whether the</span>
+<span id="cb4-140"><a href="#cb4-140" aria-hidden="true" tabindex="-1"></a>region's industries received larger or smaller shocks than average. If the</span>
+<span id="cb4-141"><a href="#cb4-141" aria-hidden="true" tabindex="-1"></a>shocks are independent of the shares and the errors, the deviations average to</span>
+<span id="cb4-142"><a href="#cb4-142" aria-hidden="true" tabindex="-1"></a>zero whatever the shares are, so this part is uncorrelated with the error.</span>
+<span id="cb4-143"><a href="#cb4-143" aria-hidden="true" tabindex="-1"></a>Recentering keeps only the second part. When the shares sum to one, the first</span>
+<span id="cb4-144"><a href="#cb4-144" aria-hidden="true" tabindex="-1"></a>part is $\bar g_t$ for every region and the period effects absorb it.</span>
+<span id="cb4-145"><a href="#cb4-145" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-146"><a href="#cb4-146" aria-hidden="true" tabindex="-1"></a>This gives the formula instrument four advantages. Its validity rests only on the shocks, such as a policy choice or a foreign supply shock, which are often easier to defend than the shares. The</span>
+<span id="cb4-147"><a href="#cb4-147" aria-hidden="true" tabindex="-1"></a>design has to be written down, so the assumption is explicit and can be</span>
+<span id="cb4-148"><a href="#cb4-148" aria-hidden="true" tabindex="-1"></a>varied, as the two ADH designs below show. The instrument can use exposure to</span>
+<span id="cb4-149"><a href="#cb4-149" aria-hidden="true" tabindex="-1"></a>gain power, because the best predictor tracks the treatment more closely than</span>
+<span id="cb4-150"><a href="#cb4-150" aria-hidden="true" tabindex="-1"></a>a shock-only index. And it is not tied to a linear formula or to independent</span>
+<span id="cb4-151"><a href="#cb4-151" aria-hidden="true" tabindex="-1"></a>units: it covers eligibility rules, networks and nonlinear indices, with</span>
+<span id="cb4-152"><a href="#cb4-152" aria-hidden="true" tabindex="-1"></a>shocks shared by many units.</span>
+<span id="cb4-153"><a href="#cb4-153" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-154"><a href="#cb4-154" aria-hidden="true" tabindex="-1"></a><span class="fu">## Simulation</span></span>
+<span id="cb4-155"><a href="#cb4-155" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-156"><a href="#cb4-156" aria-hidden="true" tabindex="-1"></a>The aim is to compare a shock-only instrument with the recentered treatment</span>
+<span id="cb4-157"><a href="#cb4-157" aria-hidden="true" tabindex="-1"></a>when we know the true effect. There are 50 states and 10,000 people. Person</span>
+<span id="cb4-158"><a href="#cb4-158" aria-hidden="true" tabindex="-1"></a>$i$ lives in state $s(i)$ and has income $\text{inc}_i$, in multiples of the</span>
+<span id="cb4-159"><a href="#cb4-159" aria-hidden="true" tabindex="-1"></a>poverty line, drawn from a log-normal distribution with median 1.4. The shock</span>
+<span id="cb4-160"><a href="#cb4-160" aria-hidden="true" tabindex="-1"></a>is the states' policy: each state $k$ draws an eligibility threshold $T_k$</span>
+<span id="cb4-161"><a href="#cb4-161" aria-hidden="true" tabindex="-1"></a>from $<span class="sc">\{</span>0.5, 1, 1.38, 2<span class="sc">\}</span>$, each value with probability 1/4, independently</span>
+<span id="cb4-162"><a href="#cb4-162" aria-hidden="true" tabindex="-1"></a>across states. Eligibility and the outcome are</span>
+<span id="cb4-163"><a href="#cb4-163" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-164"><a href="#cb4-164" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb4-165"><a href="#cb4-165" aria-hidden="true" tabindex="-1"></a>x_i = 1<span class="co">[</span><span class="ot">\text{inc}_i &lt; T_{s(i)}</span><span class="co">]</span>, \qquad</span>
+<span id="cb4-166"><a href="#cb4-166" aria-hidden="true" tabindex="-1"></a>y_i = 0.3\, x_i + \varepsilon_i, \qquad</span>
+<span id="cb4-167"><a href="#cb4-167" aria-hidden="true" tabindex="-1"></a>\varepsilon_i = -0.5 \log \text{inc}_i + \alpha_{s(i)} + \nu_i ,</span>
+<span id="cb4-168"><a href="#cb4-168" aria-hidden="true" tabindex="-1"></a>$$ {#eq-ri-dgp}</span>
+<span id="cb4-169"><a href="#cb4-169" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-170"><a href="#cb4-170" aria-hidden="true" tabindex="-1"></a>where $\alpha_k \sim N(0, 0.3^2)$ is a state effect and $\nu_i \sim N(0, 1)$.</span>
+<span id="cb4-171"><a href="#cb4-171" aria-hidden="true" tabindex="-1"></a>The true effect is 0.3. In the notation of @eq-ri-exog, the shocks $g$ are the</span>
+<span id="cb4-172"><a href="#cb4-172" aria-hidden="true" tabindex="-1"></a>50 thresholds and the predetermined variables $w$ are the incomes and states.</span>
+<span id="cb4-173"><a href="#cb4-173" aria-hidden="true" tabindex="-1"></a>Poorer people are more often eligible and have higher errors, so eligibility</span>
+<span id="cb4-174"><a href="#cb4-174" aria-hidden="true" tabindex="-1"></a>is correlated with the error through income and OLS is biased upward. The</span>
+<span id="cb4-175"><a href="#cb4-175" aria-hidden="true" tabindex="-1"></a>thresholds are drawn independently of incomes and errors, so @eq-ri-exog</span>
+<span id="cb4-176"><a href="#cb4-176" aria-hidden="true" tabindex="-1"></a>holds.</span>
+<span id="cb4-177"><a href="#cb4-177" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-178"><a href="#cb4-178" aria-hidden="true" tabindex="-1"></a>Expected eligibility $\mu_i$ is the probability that person $i$ is eligible</span>
+<span id="cb4-179"><a href="#cb4-179" aria-hidden="true" tabindex="-1"></a>over the possible thresholds, holding income fixed. It is the share of the</span>
+<span id="cb4-180"><a href="#cb4-180" aria-hidden="true" tabindex="-1"></a>four thresholds above their income: 1 below 0.5, 0.75 between 0.5 and 1, 0.5</span>
+<span id="cb4-181"><a href="#cb4-181" aria-hidden="true" tabindex="-1"></a>between 1 and 1.38, 0.25 between 1.38 and 2, and 0 above 2. It depends on</span>
+<span id="cb4-182"><a href="#cb4-182" aria-hidden="true" tabindex="-1"></a>income only, because every state draws from the same four values. Given</span>
+<span id="cb4-183"><a href="#cb4-183" aria-hidden="true" tabindex="-1"></a>income, the recentered treatment $x_i - \mu_i$ moves only with the draw, which</span>
+<span id="cb4-184"><a href="#cb4-184" aria-hidden="true" tabindex="-1"></a>is why it is exogenous. A person with income 1.2 has $\mu_i = 0.5$. The</span>
+<span id="cb4-185"><a href="#cb4-185" aria-hidden="true" tabindex="-1"></a>instrument is 0.5 if their state drew 1.38 or 2 and −0.5 if it drew 0.5 or 1,</span>
+<span id="cb4-186"><a href="#cb4-186" aria-hidden="true" tabindex="-1"></a>with equal chance whatever their error. People below 0.5 or above 2 always</span>
+<span id="cb4-187"><a href="#cb4-187" aria-hidden="true" tabindex="-1"></a>have zero and carry no identifying variation.</span>
+<span id="cb4-188"><a href="#cb4-188" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-189"><a href="#cb4-189" aria-hidden="true" tabindex="-1"></a>We compare four estimators, all with standard errors clustered by state.</span>
+<span id="cb4-190"><a href="#cb4-190" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-191"><a href="#cb4-191" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>OLS of $y_i$ on $x_i$. This is the same as instrumenting $x_i$ with</span>
+<span id="cb4-192"><a href="#cb4-192" aria-hidden="true" tabindex="-1"></a>   itself, the best predictor without recentering. It is biased.</span>
+<span id="cb4-193"><a href="#cb4-193" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>The simulated instrument of @currie-gruber-1996. They apply each state's</span>
+<span id="cb4-194"><a href="#cb4-194" aria-hidden="true" tabindex="-1"></a>   rules to one fixed national sample and use the share of that sample who</span>
+<span id="cb4-195"><a href="#cb4-195" aria-hidden="true" tabindex="-1"></a>   would be eligible as the state's instrument. The same population is run</span>
+<span id="cb4-196"><a href="#cb4-196" aria-hidden="true" tabindex="-1"></a>   through every state's rules, so the instrument measures the generosity of</span>
+<span id="cb4-197"><a href="#cb4-197" aria-hidden="true" tabindex="-1"></a>   the rules and not the composition of the state's residents. Here the</span>
+<span id="cb4-198"><a href="#cb4-198" aria-hidden="true" tabindex="-1"></a>   national sample is all 10,000 people, and everyone in a state gets the</span>
+<span id="cb4-199"><a href="#cb4-199" aria-hidden="true" tabindex="-1"></a>   same value. It is valid.</span>
+<span id="cb4-200"><a href="#cb4-200" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>The recentered treatment, instrumenting $x_i$ with $x_i - \mu_i$. It</span>
+<span id="cb4-201"><a href="#cb4-201" aria-hidden="true" tabindex="-1"></a>   varies within states, among people whose income lies between the lowest</span>
+<span id="cb4-202"><a href="#cb4-202" aria-hidden="true" tabindex="-1"></a>   and highest thresholds. It is valid.</span>
+<span id="cb4-203"><a href="#cb4-203" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>OLS of $y_i$ on $x_i$ and $\mu_i$. Instrumenting $x_i$ with $x_i - \mu_i$</span>
+<span id="cb4-204"><a href="#cb4-204" aria-hidden="true" tabindex="-1"></a>   while controlling for $\mu_i$ reduces to this regression</span>
+<span id="cb4-205"><a href="#cb4-205" aria-hidden="true" tabindex="-1"></a>   <span class="co">[</span><span class="ot">@borusyak-hull-2026, footnote 8</span><span class="co">]</span>, so it is the controlled form of 3. It</span>
+<span id="cb4-206"><a href="#cb4-206" aria-hidden="true" tabindex="-1"></a>   is valid.</span>
+<span id="cb4-207"><a href="#cb4-207" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-208"><a href="#cb4-208" aria-hidden="true" tabindex="-1"></a>The Monte Carlo is design-based. We generate the people once: their incomes,</span>
+<span id="cb4-209"><a href="#cb4-209" aria-hidden="true" tabindex="-1"></a>states and errors are the same in every replication. In each of 1,000</span>
+<span id="cb4-210"><a href="#cb4-210" aria-hidden="true" tabindex="-1"></a>replications we draw new thresholds for the 50 states, recompute eligibility</span>
+<span id="cb4-211"><a href="#cb4-211" aria-hidden="true" tabindex="-1"></a>and outcomes, and fit the four estimators. The only randomness across</span>
+<span id="cb4-212"><a href="#cb4-212" aria-hidden="true" tabindex="-1"></a>replications is the policy draw, which is what the identifying assumption</span>
+<span id="cb4-213"><a href="#cb4-213" aria-hidden="true" tabindex="-1"></a>treats as random, so the spread of the estimates across replications measures</span>
+<span id="cb4-214"><a href="#cb4-214" aria-hidden="true" tabindex="-1"></a>each estimator's precision under that design. The people and the 1,000 × 50</span>
+<span id="cb4-215"><a href="#cb4-215" aria-hidden="true" tabindex="-1"></a>thresholds are stored as CSVs so the Julia companion computes the same</span>
+<span id="cb4-216"><a href="#cb4-216" aria-hidden="true" tabindex="-1"></a>numbers.</span>
+<span id="cb4-217"><a href="#cb4-217" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-220"><a href="#cb4-220" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb4-221"><a href="#cb4-221" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: ri-mc</span></span>
+<span id="cb4-222"><a href="#cb4-222" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb4-223"><a href="#cb4-223" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-224"><a href="#cb4-224" aria-hidden="true" tabindex="-1"></a>people <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/recenter_people.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb4-225"><a href="#cb4-225" aria-hidden="true" tabindex="-1"></a>draws  <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(<span class="fu">read_csv</span>(<span class="st">"data/recenter_policy_draws.csv"</span>,</span>
+<span id="cb4-226"><a href="#cb4-226" aria-hidden="true" tabindex="-1"></a>                             <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)[, <span class="sc">-</span><span class="dv">1</span>])</span>
+<span id="cb4-227"><a href="#cb4-227" aria-hidden="true" tabindex="-1"></a>pool <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.5</span>, <span class="fl">1.0</span>, <span class="fl">1.38</span>, <span class="fl">2.0</span>)</span>
+<span id="cb4-228"><a href="#cb4-228" aria-hidden="true" tabindex="-1"></a>beta_true <span class="ot">&lt;-</span> <span class="fl">0.3</span></span>
+<span id="cb4-229"><a href="#cb4-229" aria-hidden="true" tabindex="-1"></a>mu    <span class="ot">&lt;-</span> <span class="fu">sapply</span>(people<span class="sc">$</span>income, <span class="cf">function</span>(v) <span class="fu">mean</span>(v <span class="sc">&lt;</span> pool))  <span class="co"># expected eligibility</span></span>
+<span id="cb4-230"><a href="#cb4-230" aria-hidden="true" tabindex="-1"></a>gener <span class="ot">&lt;-</span> <span class="fu">sapply</span>(pool, <span class="cf">function</span>(t) <span class="fu">mean</span>(people<span class="sc">$</span>income <span class="sc">&lt;</span> t))  <span class="co"># state generosity</span></span>
+<span id="cb4-231"><a href="#cb4-231" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-232"><a href="#cb4-232" aria-hidden="true" tabindex="-1"></a>coef_x <span class="ot">&lt;-</span> <span class="cf">function</span>(f) {</span>
+<span id="cb4-233"><a href="#cb4-233" aria-hidden="true" tabindex="-1"></a>  nm <span class="ot">&lt;-</span> <span class="fu">intersect</span>(<span class="fu">c</span>(<span class="st">"fit_x"</span>, <span class="st">"x"</span>), <span class="fu">names</span>(<span class="fu">coef</span>(f)))[<span class="dv">1</span>]</span>
+<span id="cb4-234"><a href="#cb4-234" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">est =</span> <span class="fu">unname</span>(<span class="fu">coef</span>(f)[nm]), <span class="at">se =</span> <span class="fu">unname</span>(<span class="fu">se</span>(f)[nm]))</span>
+<span id="cb4-235"><a href="#cb4-235" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-236"><a href="#cb4-236" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-237"><a href="#cb4-237" aria-hidden="true" tabindex="-1"></a>one_draw <span class="ot">&lt;-</span> <span class="cf">function</span>(r) {</span>
+<span id="cb4-238"><a href="#cb4-238" aria-hidden="true" tabindex="-1"></a>  thr <span class="ot">&lt;-</span> draws[r, people<span class="sc">$</span>state]</span>
+<span id="cb4-239"><a href="#cb4-239" aria-hidden="true" tabindex="-1"></a>  d <span class="ot">&lt;-</span> <span class="fu">mutate</span>(people, <span class="at">x =</span> <span class="fu">as.numeric</span>(income <span class="sc">&lt;</span> thr), <span class="at">y =</span> beta_true <span class="sc">*</span> x <span class="sc">+</span> eps,</span>
+<span id="cb4-240"><a href="#cb4-240" aria-hidden="true" tabindex="-1"></a>              <span class="at">z_sim =</span> gener[<span class="fu">match</span>(thr, pool)], <span class="at">z_rc =</span> x <span class="sc">-</span> mu, <span class="at">mu =</span> mu)</span>
+<span id="cb4-241"><a href="#cb4-241" aria-hidden="true" tabindex="-1"></a>  fits <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="fu">feols</span>(y <span class="sc">~</span> x, d, <span class="at">cluster =</span> <span class="sc">~</span>state),</span>
+<span id="cb4-242"><a href="#cb4-242" aria-hidden="true" tabindex="-1"></a>               <span class="fu">feols</span>(y <span class="sc">~</span> <span class="dv">1</span> <span class="sc">|</span> x <span class="sc">~</span> z_sim, d, <span class="at">cluster =</span> <span class="sc">~</span>state),</span>
+<span id="cb4-243"><a href="#cb4-243" aria-hidden="true" tabindex="-1"></a>               <span class="fu">feols</span>(y <span class="sc">~</span> <span class="dv">1</span> <span class="sc">|</span> x <span class="sc">~</span> z_rc, d, <span class="at">cluster =</span> <span class="sc">~</span>state),</span>
+<span id="cb4-244"><a href="#cb4-244" aria-hidden="true" tabindex="-1"></a>               <span class="fu">feols</span>(y <span class="sc">~</span> x <span class="sc">+</span> mu, d, <span class="at">cluster =</span> <span class="sc">~</span>state))</span>
+<span id="cb4-245"><a href="#cb4-245" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rbind</span>(<span class="fu">sapply</span>(fits, coef_x),</span>
+<span id="cb4-246"><a href="#cb4-246" aria-hidden="true" tabindex="-1"></a>        <span class="at">r2 =</span> <span class="fu">c</span>(<span class="cn">NA</span>, <span class="fu">cor</span>(d<span class="sc">$</span>x, d<span class="sc">$</span>z_sim)<span class="sc">^</span><span class="dv">2</span>, <span class="fu">cor</span>(d<span class="sc">$</span>x, d<span class="sc">$</span>z_rc)<span class="sc">^</span><span class="dv">2</span>, <span class="cn">NA</span>))</span>
+<span id="cb4-247"><a href="#cb4-247" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-248"><a href="#cb4-248" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-249"><a href="#cb4-249" aria-hidden="true" tabindex="-1"></a>mc <span class="ot">&lt;-</span> <span class="fu">simplify2array</span>(<span class="fu">mclapply</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(draws)), one_draw, <span class="at">mc.cores =</span> <span class="dv">6</span>))</span>
+<span id="cb4-250"><a href="#cb4-250" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-251"><a href="#cb4-251" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(<span class="at">estimator =</span> <span class="fu">c</span>(<span class="st">"OLS"</span>, <span class="st">"Simulated instrument"</span>, <span class="st">"Recentered treatment"</span>,</span>
+<span id="cb4-252"><a href="#cb4-252" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"OLS controlling for mu"</span>),</span>
+<span id="cb4-253"><a href="#cb4-253" aria-hidden="true" tabindex="-1"></a>       <span class="at">mean     =</span> <span class="fu">apply</span>(mc[<span class="st">"est"</span>, , ], <span class="dv">1</span>, mean),</span>
+<span id="cb4-254"><a href="#cb4-254" aria-hidden="true" tabindex="-1"></a>       <span class="at">sd       =</span> <span class="fu">apply</span>(mc[<span class="st">"est"</span>, , ], <span class="dv">1</span>, sd),</span>
+<span id="cb4-255"><a href="#cb4-255" aria-hidden="true" tabindex="-1"></a>       <span class="at">coverage =</span> <span class="fu">apply</span>(<span class="fu">abs</span>(mc[<span class="st">"est"</span>, , ] <span class="sc">-</span> beta_true) <span class="sc">&lt;=</span> <span class="fl">1.96</span> <span class="sc">*</span> mc[<span class="st">"se"</span>, , ], <span class="dv">1</span>, mean),</span>
+<span id="cb4-256"><a href="#cb4-256" aria-hidden="true" tabindex="-1"></a>       <span class="at">first_stage_R2 =</span> <span class="fu">apply</span>(mc[<span class="st">"r2"</span>, , ], <span class="dv">1</span>, mean)) <span class="sc">|&gt;</span></span>
+<span id="cb4-257"><a href="#cb4-257" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span>
+<span id="cb4-258"><a href="#cb4-258" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb4-259"><a href="#cb4-259" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-260"><a href="#cb4-260" aria-hidden="true" tabindex="-1"></a>The table gives each estimator's mean and standard deviation over the 1,000</span>
+<span id="cb4-261"><a href="#cb4-261" aria-hidden="true" tabindex="-1"></a>replications, the share of clustered 95% intervals that contain 0.3, and the</span>
+<span id="cb4-262"><a href="#cb4-262" aria-hidden="true" tabindex="-1"></a>average first-stage $R^2$. OLS averages 0.637 against a true 0.3, and its</span>
+<span id="cb4-263"><a href="#cb4-263" aria-hidden="true" tabindex="-1"></a>intervals never contain 0.3. The three other estimators are centred on 0.3,</span>
+<span id="cb4-264"><a href="#cb4-264" aria-hidden="true" tabindex="-1"></a>with coverage of 92.7% to 93.7%, slightly below 95% with 50 clusters. They</span>
+<span id="cb4-265"><a href="#cb4-265" aria-hidden="true" tabindex="-1"></a>differ in precision. The simulated instrument has a standard deviation of</span>
+<span id="cb4-266"><a href="#cb4-266" aria-hidden="true" tabindex="-1"></a>0.167 and a first-stage $R^2$ of 0.26. It gives everyone in a state the same</span>
+<span id="cb4-267"><a href="#cb4-267" aria-hidden="true" tabindex="-1"></a>value, so it cannot separate people whose eligibility depends on the</span>
+<span id="cb4-268"><a href="#cb4-268" aria-hidden="true" tabindex="-1"></a>threshold from people who are eligible, or ineligible, under every threshold.</span>
+<span id="cb4-269"><a href="#cb4-269" aria-hidden="true" tabindex="-1"></a>The recentered treatment has a standard deviation of 0.086, half as large, and</span>
+<span id="cb4-270"><a href="#cb4-270" aria-hidden="true" tabindex="-1"></a>an $R^2$ of 0.59, because it uses that variation within states. Its controlled</span>
+<span id="cb4-271"><a href="#cb4-271" aria-hidden="true" tabindex="-1"></a>form has 0.080.</span>
+<span id="cb4-272"><a href="#cb4-272" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-273"><a href="#cb4-273" aria-hidden="true" tabindex="-1"></a><span class="fu">## The China shock</span></span>
+<span id="cb4-274"><a href="#cb4-274" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-275"><a href="#cb4-275" aria-hidden="true" tabindex="-1"></a>In ADH the shocks are at the industry-period level: the growth of Chinese</span>
+<span id="cb4-276"><a href="#cb4-276" aria-hidden="true" tabindex="-1"></a>imports into eight other high-income countries, per US worker, in 397</span>
+<span id="cb4-277"><a href="#cb4-277" aria-hidden="true" tabindex="-1"></a>manufacturing industries over 1990–2000 and 2000–2007. ADH argue they are</span>
+<span id="cb4-278"><a href="#cb4-278" aria-hidden="true" tabindex="-1"></a>exogenous because the growth came from China's side, through reform, rising</span>
+<span id="cb4-279"><a href="#cb4-279" aria-hidden="true" tabindex="-1"></a>productivity and WTO accession, and because imports into other countries do</span>
+<span id="cb4-280"><a href="#cb4-280" aria-hidden="true" tabindex="-1"></a>not respond to US demand. The argument is weaker for demand or technology</span>
+<span id="cb4-281"><a href="#cb4-281" aria-hidden="true" tabindex="-1"></a>shocks shared by all rich countries, and the identifying variation is</span>
+<span id="cb4-282"><a href="#cb4-282" aria-hidden="true" tabindex="-1"></a>concentrated in a few industries such as computers, toys and audio equipment</span>
+<span id="cb4-283"><a href="#cb4-283" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">@goldsmith-pinkham-sorkin-swift-2020</span><span class="co">]</span>.</span>
+<span id="cb4-284"><a href="#cb4-284" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-285"><a href="#cb4-285" aria-hidden="true" tabindex="-1"></a>All four regressions below use the same instrument and differ only in what</span>
+<span id="cb4-286"><a href="#cb4-286" aria-hidden="true" tabindex="-1"></a>they control for. The treatment, US import exposure per worker, is shares</span>
+<span id="cb4-287"><a href="#cb4-287" aria-hidden="true" tabindex="-1"></a>times US import growth, and US imports also reflect US demand. Replacing them</span>
+<span id="cb4-288"><a href="#cb4-288" aria-hidden="true" tabindex="-1"></a>with the other-country shocks gives the prediction, which is the Bartik</span>
+<span id="cb4-289"><a href="#cb4-289" aria-hidden="true" tabindex="-1"></a>instrument itself, so the formula-instrument approach does not change the</span>
+<span id="cb4-290"><a href="#cb4-290" aria-hidden="true" tabindex="-1"></a>instrument. It changes the control. The shares, lagged employment shares in</span>
+<span id="cb4-291"><a href="#cb4-291" aria-hidden="true" tabindex="-1"></a>the 722 commuting zones, are incomplete, so the expected instrument $\mu_\ell$</span>
+<span id="cb4-292"><a href="#cb4-292" aria-hidden="true" tabindex="-1"></a>varies across zones, and controlling for it is equivalent to subtracting it.</span>
+<span id="cb4-293"><a href="#cb4-293" aria-hidden="true" tabindex="-1"></a>Its form depends on the shock design.</span>
+<span id="cb4-294"><a href="#cb4-294" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-295"><a href="#cb4-295" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Design 1: the 397 shocks are exchangeable within each period. Every</span>
+<span id="cb4-296"><a href="#cb4-296" aria-hidden="true" tabindex="-1"></a>  industry then has the same expected shock, the period mean $\bar g_t$, which</span>
+<span id="cb4-297"><a href="#cb4-297" aria-hidden="true" tabindex="-1"></a>  is 4.8 in the first period and 17.3 in the second, and @eq-ri-ss-mu gives</span>
+<span id="cb4-298"><a href="#cb4-298" aria-hidden="true" tabindex="-1"></a>  $\mu_\ell = S_\ell \bar g_t$. Only a zone's manufacturing intensity is</span>
+<span id="cb4-299"><a href="#cb4-299" aria-hidden="true" tabindex="-1"></a>  treated as predictable.</span>
+<span id="cb4-300"><a href="#cb4-300" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Design 2: the shocks are exchangeable only within each of the 20 two-digit</span>
+<span id="cb4-301"><a href="#cb4-301" aria-hidden="true" tabindex="-1"></a>  SIC sectors in each period. Each industry's expected shock is its sector's</span>
+<span id="cb4-302"><a href="#cb4-302" aria-hidden="true" tabindex="-1"></a>  mean $\bar g_{mt}$, and $\mu_\ell = \sum_m S_{\ell m} \bar g_{mt}$, where</span>
+<span id="cb4-303"><a href="#cb4-303" aria-hidden="true" tabindex="-1"></a>  $S_{\ell m}$ is the zone's share in sector $m$. A zone's sector mix is also</span>
+<span id="cb4-304"><a href="#cb4-304" aria-hidden="true" tabindex="-1"></a>  treated as predictable: a zone heavy in electronics is expected to receive a</span>
+<span id="cb4-305"><a href="#cb4-305" aria-hidden="true" tabindex="-1"></a>  large instrument.</span>
+<span id="cb4-306"><a href="#cb4-306" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-307"><a href="#cb4-307" aria-hidden="true" tabindex="-1"></a>ADH control for the start-of-period manufacturing share with one coefficient</span>
+<span id="cb4-308"><a href="#cb4-308" aria-hidden="true" tabindex="-1"></a>for both periods, which approximates design 1's $\mu_\ell$. The second row</span>
+<span id="cb4-309"><a href="#cb4-309" aria-hidden="true" tabindex="-1"></a>drops that control, so nothing recenters the instrument, and it is valid only</span>
+<span id="cb4-310"><a href="#cb4-310" aria-hidden="true" tabindex="-1"></a>if the shares are exogenous. All fits use ADH's other controls,</span>
+<span id="cb4-311"><a href="#cb4-311" aria-hidden="true" tabindex="-1"></a>census-division effects, population weights and standard errors clustered by</span>
+<span id="cb4-312"><a href="#cb4-312" aria-hidden="true" tabindex="-1"></a>state, with the GPSS replication files.</span>
+<span id="cb4-313"><a href="#cb4-313" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-316"><a href="#cb4-316" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb4-317"><a href="#cb4-317" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: ri-adh</span></span>
+<span id="cb4-318"><a href="#cb4-318" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb4-319"><a href="#cb4-319" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-320"><a href="#cb4-320" aria-hidden="true" tabindex="-1"></a>adh <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/adh_master.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb4-321"><a href="#cb4-321" aria-hidden="true" tabindex="-1"></a>tr  <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/adh_shares_triplets.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb4-322"><a href="#cb4-322" aria-hidden="true" tabindex="-1"></a>shk <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/adh_shocks.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb4-323"><a href="#cb4-323" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-324"><a href="#cb4-324" aria-hidden="true" tabindex="-1"></a>by_row <span class="ot">&lt;-</span> <span class="cf">function</span>(v) {                        <span class="co"># sum over industries, by zone</span></span>
+<span id="cb4-325"><a href="#cb4-325" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">&lt;-</span> <span class="fu">numeric</span>(<span class="fu">nrow</span>(adh)); s <span class="ot">&lt;-</span> <span class="fu">rowsum</span>(v, tr<span class="sc">$</span>row)</span>
+<span id="cb4-326"><a href="#cb4-326" aria-hidden="true" tabindex="-1"></a>  out[<span class="fu">as.integer</span>(<span class="fu">rownames</span>(s))] <span class="ot">&lt;-</span> s[, <span class="dv">1</span>]; out</span>
+<span id="cb4-327"><a href="#cb4-327" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-328"><a href="#cb4-328" aria-hidden="true" tabindex="-1"></a>sector  <span class="ot">&lt;-</span> <span class="fu">paste</span>(shk<span class="sc">$</span>sic87dd <span class="sc">%/%</span> <span class="dv">100</span>, shk<span class="sc">$</span>year)</span>
+<span id="cb4-329"><a href="#cb4-329" aria-hidden="true" tabindex="-1"></a>g_bar_m <span class="ot">&lt;-</span> <span class="fu">tapply</span>(shk<span class="sc">$</span>g, sector, mean)</span>
+<span id="cb4-330"><a href="#cb4-330" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-331"><a href="#cb4-331" aria-hidden="true" tabindex="-1"></a>adh <span class="ot">&lt;-</span> <span class="fu">mutate</span>(adh, <span class="at">B =</span> <span class="fu">by_row</span>(tr<span class="sc">$</span>share <span class="sc">*</span> shk<span class="sc">$</span>g[tr<span class="sc">$</span>col]), <span class="at">S =</span> <span class="fu">by_row</span>(tr<span class="sc">$</span>share),</span>
+<span id="cb4-332"><a href="#cb4-332" aria-hidden="true" tabindex="-1"></a>              <span class="at">mu2 =</span> <span class="fu">by_row</span>(tr<span class="sc">$</span>share <span class="sc">*</span> g_bar_m[sector[tr<span class="sc">$</span>col]]))</span>
+<span id="cb4-333"><a href="#cb4-333" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-334"><a href="#cb4-334" aria-hidden="true" tabindex="-1"></a>controls <span class="ot">&lt;-</span> <span class="st">"l_sh_popedu_c + l_sh_popfborn + l_sh_empl_f + l_sh_routine33 +</span></span>
+<span id="cb4-335"><a href="#cb4-335" aria-hidden="true" tabindex="-1"></a><span class="st">             l_task_outsource + t2 | division"</span></span>
+<span id="cb4-336"><a href="#cb4-336" aria-hidden="true" tabindex="-1"></a>iv <span class="ot">&lt;-</span> <span class="cf">function</span>(extra) {</span>
+<span id="cb4-337"><a href="#cb4-337" aria-hidden="true" tabindex="-1"></a>  <span class="fu">feols</span>(<span class="fu">as.formula</span>(<span class="fu">paste</span>(<span class="st">"d_sh_empl_mfg ~"</span>, extra, controls, <span class="st">"| shock ~ B"</span>)),</span>
+<span id="cb4-338"><a href="#cb4-338" aria-hidden="true" tabindex="-1"></a>        adh, <span class="at">weights =</span> <span class="sc">~</span>weights, <span class="at">cluster =</span> <span class="sc">~</span>statefip)</span>
+<span id="cb4-339"><a href="#cb4-339" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-340"><a href="#cb4-340" aria-hidden="true" tabindex="-1"></a>fits <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">"Bartik, ADH controls"</span>                <span class="ot">=</span> <span class="fu">iv</span>(<span class="st">"l_shind_manuf_cbp +"</span>),</span>
+<span id="cb4-341"><a href="#cb4-341" aria-hidden="true" tabindex="-1"></a>             <span class="st">"Bartik, no manufacturing control"</span>    <span class="ot">=</span> <span class="fu">iv</span>(<span class="st">""</span>),</span>
+<span id="cb4-342"><a href="#cb4-342" aria-hidden="true" tabindex="-1"></a>             <span class="st">"Bartik, design 1 mu (S x period)"</span>    <span class="ot">=</span> <span class="fu">iv</span>(<span class="st">"S + S:t2 +"</span>),</span>
+<span id="cb4-343"><a href="#cb4-343" aria-hidden="true" tabindex="-1"></a>             <span class="st">"Bartik, design 2 mu (sector means)"</span>  <span class="ot">=</span> <span class="fu">iv</span>(<span class="st">"mu2 +"</span>))</span>
+<span id="cb4-344"><a href="#cb4-344" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(<span class="at">specification =</span> <span class="fu">names</span>(fits),</span>
+<span id="cb4-345"><a href="#cb4-345" aria-hidden="true" tabindex="-1"></a>       <span class="at">estimate =</span> <span class="fu">sapply</span>(fits, \(f) <span class="fu">coef</span>(f)[<span class="st">"fit_shock"</span>]),</span>
+<span id="cb4-346"><a href="#cb4-346" aria-hidden="true" tabindex="-1"></a>       <span class="at">se       =</span> <span class="fu">sapply</span>(fits, \(f) <span class="fu">se</span>(f)[<span class="st">"fit_shock"</span>])) <span class="sc">|&gt;</span></span>
+<span id="cb4-347"><a href="#cb4-347" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span>
+<span id="cb4-348"><a href="#cb4-348" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb4-349"><a href="#cb4-349" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-350"><a href="#cb4-350" aria-hidden="true" tabindex="-1"></a>The first row reproduces ADH's −0.596: an increase in import exposure of</span>
+<span id="cb4-351"><a href="#cb4-351" aria-hidden="true" tabindex="-1"></a>$1,000 per worker over a decade lowers the manufacturing employment share by</span>
+<span id="cb4-352"><a href="#cb4-352" aria-hidden="true" tabindex="-1"></a>about 0.6 percentage points. Without the manufacturing-share control the</span>
+<span id="cb4-353"><a href="#cb4-353" aria-hidden="true" tabindex="-1"></a>estimate is −0.712.</span>
+<span id="cb4-354"><a href="#cb4-354" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-355"><a href="#cb4-355" aria-hidden="true" tabindex="-1"></a>Each of the last two rows removes one source of variation. ADH's estimate</span>
+<span id="cb4-356"><a href="#cb4-356" aria-hidden="true" tabindex="-1"></a>partly compares zones with more and less manufacturing across the two periods:</span>
+<span id="cb4-357"><a href="#cb4-357" aria-hidden="true" tabindex="-1"></a>because the mean shock more than triples, a manufacturing-heavy zone gets a</span>
+<span id="cb4-358"><a href="#cb4-358" aria-hidden="true" tabindex="-1"></a>much larger instrument in the second period whichever industries China hit.</span>
+<span id="cb4-359"><a href="#cb4-359" aria-hidden="true" tabindex="-1"></a>Controlling for design 1's $\mu_\ell$ removes that comparison, and the estimate</span>
+<span id="cb4-360"><a href="#cb4-360" aria-hidden="true" tabindex="-1"></a>falls to −0.267 (0.087). ADH's control is close to $S_\ell$, with a</span>
+<span id="cb4-361"><a href="#cb4-361" aria-hidden="true" tabindex="-1"></a>correlation of 0.92, but one coefficient cannot absorb a term whose slope more</span>
+<span id="cb4-362"><a href="#cb4-362" aria-hidden="true" tabindex="-1"></a>than triples between periods. Design 2 also removes the comparison across</span>
+<span id="cb4-363"><a href="#cb4-363" aria-hidden="true" tabindex="-1"></a>sectors, such as electronics and toys against food and paper, and the estimate</span>
+<span id="cb4-364"><a href="#cb4-364" aria-hidden="true" tabindex="-1"></a>falls to −0.144 (0.117).</span>
+<span id="cb4-365"><a href="#cb4-365" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-366"><a href="#cb4-366" aria-hidden="true" tabindex="-1"></a>Whether the removed comparisons are confounded is the substantive question.</span>
+<span id="cb4-367"><a href="#cb4-367" aria-hidden="true" tabindex="-1"></a>If manufacturing-heavy zones declined faster in the 2000s for other reasons,</span>
+<span id="cb4-368"><a href="#cb4-368" aria-hidden="true" tabindex="-1"></a>such as automation, the design 1 control is needed and ADH overstate the</span>
+<span id="cb4-369"><a href="#cb4-369" aria-hidden="true" tabindex="-1"></a>effect. But the average shock is itself part of the China shock, since</span>
+<span id="cb4-370"><a href="#cb4-370" aria-hidden="true" tabindex="-1"></a>Chinese imports rose across nearly all of manufacturing. Designs 1 and 2 treat</span>
+<span id="cb4-371"><a href="#cb4-371" aria-hidden="true" tabindex="-1"></a>that average as predictable and use only the variation in which industries</span>
+<span id="cb4-372"><a href="#cb4-372" aria-hidden="true" tabindex="-1"></a>China hit harder than average, so they cannot measure an effect that works</span>
+<span id="cb4-373"><a href="#cb4-373" aria-hidden="true" tabindex="-1"></a>through manufacturing as a whole. ADH's −0.596 does use it, and it is valid if</span>
+<span id="cb4-374"><a href="#cb4-374" aria-hidden="true" tabindex="-1"></a>the shares are exogenous given the controls. The data cannot tell us which</span>
+<span id="cb4-375"><a href="#cb4-375" aria-hidden="true" tabindex="-1"></a>assumption holds. Every estimate is negative, and recentering shows how much</span>
+<span id="cb4-376"><a href="#cb4-376" aria-hidden="true" tabindex="-1"></a>of the size depends on the assumption.</span>
+<span id="cb4-377"><a href="#cb4-377" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-378"><a href="#cb4-378" aria-hidden="true" tabindex="-1"></a><span class="fu">## The Medicaid application</span></span>
+<span id="cb4-379"><a href="#cb4-379" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-380"><a href="#cb4-380" aria-hidden="true" tabindex="-1"></a>@borusyak-hull-2026 instrument Medicaid eligibility in the 2014 ACA expansion</span>
+<span id="cb4-381"><a href="#cb4-381" aria-hidden="true" tabindex="-1"></a>with actual minus expected eligibility, treating expansion as random within</span>
+<span id="cb4-382"><a href="#cb4-382" aria-hidden="true" tabindex="-1"></a>the governor's party. The first-stage partial $R^2$ rises from 0.01 to 0.80</span>
+<span id="cb4-383"><a href="#cb4-383" aria-hidden="true" tabindex="-1"></a>over the simulated instrument and the standard error on crowd-out falls by</span>
+<span id="cb4-384"><a href="#cb4-384" aria-hidden="true" tabindex="-1"></a>44%. Most of the gain comes from the 18% of the sample whose eligibility the</span>
+<span id="cb4-385"><a href="#cb4-385" aria-hidden="true" tabindex="-1"></a>expansion could change; outside it, the recentered instrument is zero, and in</span>
+<span id="cb4-386"><a href="#cb4-386" aria-hidden="true" tabindex="-1"></a>the full sample without an exposure control it is less precise than the</span>
+<span id="cb4-387"><a href="#cb4-387" aria-hidden="true" tabindex="-1"></a>simulated one <span class="co">[</span><span class="ot">@borusyak-hull-2026, Table A4</span><span class="co">]</span>. Their 2012–2013 placebo on</span>
+<span id="cb4-388"><a href="#cb4-388" aria-hidden="true" tabindex="-1"></a>private insurance is −0.011, half the main estimate of −0.023 (Table A2).</span>
+<span id="cb4-389"><a href="#cb4-389" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-390"><a href="#cb4-390" aria-hidden="true" tabindex="-1"></a><span class="fu">## Spillovers: deworming</span></span>
+<span id="cb4-391"><a href="#cb4-391" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-392"><a href="#cb4-392" aria-hidden="true" tabindex="-1"></a>@miguel-kremer-2004 study a deworming programme in 75 primary schools in</span>
+<span id="cb4-393"><a href="#cb4-393" aria-hidden="true" tabindex="-1"></a>Busia, Kenya. The schools were listed alphabetically within strata and</span>
+<span id="cb4-394"><a href="#cb4-394" aria-hidden="true" tabindex="-1"></a>assigned in turn to three groups of 25, which started treatment in different</span>
+<span id="cb4-395"><a href="#cb4-395" aria-hidden="true" tabindex="-1"></a>years. Worms spread between children, so treating one school can lower</span>
+<span id="cb4-396"><a href="#cb4-396" aria-hidden="true" tabindex="-1"></a>infection at schools nearby. To measure this, they count the pupils at</span>
+<span id="cb4-397"><a href="#cb4-397" aria-hidden="true" tabindex="-1"></a>treated schools within 3 km of each school, and they control for the total</span>
+<span id="cb4-398"><a href="#cb4-398" aria-hidden="true" tabindex="-1"></a>number of pupils within 3 km.</span>
+<span id="cb4-399"><a href="#cb4-399" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-400"><a href="#cb4-400" aria-hidden="true" tabindex="-1"></a>Let $D_j$ be 1 if school $j$ is treated, $n_j$ its number of pupils, $p_j$</span>
+<span id="cb4-401"><a href="#cb4-401" aria-hidden="true" tabindex="-1"></a>the probability that it is treated, and $j \sim i$ mean that $j$ is another</span>
+<span id="cb4-402"><a href="#cb4-402" aria-hidden="true" tabindex="-1"></a>school within 3 km of school $i$. The spillover exposure of school $i$ and its</span>
+<span id="cb4-403"><a href="#cb4-403" aria-hidden="true" tabindex="-1"></a>expected value are</span>
+<span id="cb4-404"><a href="#cb4-404" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-405"><a href="#cb4-405" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb4-406"><a href="#cb4-406" aria-hidden="true" tabindex="-1"></a>x_i = \sum_{j \sim i} n_j D_j, \qquad \mu_i = \sum_{j \sim i} n_j p_j .</span>
+<span id="cb4-407"><a href="#cb4-407" aria-hidden="true" tabindex="-1"></a>$$ {#eq-ri-spill}</span>
+<span id="cb4-408"><a href="#cb4-408" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-409"><a href="#cb4-409" aria-hidden="true" tabindex="-1"></a>The shocks $g$ are the assignments, and the predetermined variables $w$ are the</span>
+<span id="cb4-410"><a href="#cb4-410" aria-hidden="true" tabindex="-1"></a>locations and pupil counts. Assignment is random, but a school in a dense area</span>
+<span id="cb4-411"><a href="#cb4-411" aria-hidden="true" tabindex="-1"></a>has more treated neighbours in every draw. If density also affects the</span>
+<span id="cb4-412"><a href="#cb4-412" aria-hidden="true" tabindex="-1"></a>outcome, through crowding or sanitation, the exposure is correlated with the</span>
+<span id="cb4-413"><a href="#cb4-413" aria-hidden="true" tabindex="-1"></a>error. In the first year one third of the schools were treated, so $p_j = 1/3$</span>
+<span id="cb4-414"><a href="#cb4-414" aria-hidden="true" tabindex="-1"></a>for every school and $\mu_i$ is one third of the total pupils within 3 km.</span>
+<span id="cb4-415"><a href="#cb4-415" aria-hidden="true" tabindex="-1"></a>Miguel and Kremer's total-pupils control is therefore the recentering. The</span>
+<span id="cb4-416"><a href="#cb4-416" aria-hidden="true" tabindex="-1"></a>exposure is the treatment itself, as eligibility was in the simulation, so</span>
+<span id="cb4-417"><a href="#cb4-417" aria-hidden="true" tabindex="-1"></a>the estimator is OLS controlling for $\mu_i$, estimator 4 above. If the</span>
+<span id="cb4-418"><a href="#cb4-418" aria-hidden="true" tabindex="-1"></a>treatment probability differed across schools, for example by stratum, the</span>
+<span id="cb4-419"><a href="#cb4-419" aria-hidden="true" tabindex="-1"></a>control would have to be $\mu_i$ and not the total pupils.</span>
+<span id="cb4-420"><a href="#cb4-420" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-421"><a href="#cb4-421" aria-hidden="true" tabindex="-1"></a>A second simulation checks this in a district like Busia. We place 75 schools</span>
+<span id="cb4-422"><a href="#cb4-422" aria-hidden="true" tabindex="-1"></a>in a 30 km by 30 km district, half around a town and half spread over the</span>
+<span id="cb4-423"><a href="#cb4-423" aria-hidden="true" tabindex="-1"></a>rest, and give each about 400 pupils. In each draw exactly 25 schools are</span>
+<span id="cb4-424"><a href="#cb4-424" aria-hidden="true" tabindex="-1"></a>treated, so $p_j = 1/3$. Let $N_i$ be the total pupils at other schools within</span>
+<span id="cb4-425"><a href="#cb4-425" aria-hidden="true" tabindex="-1"></a>3 km and $\eta_i \sim N(0, 0.05^2)$ a school error. The outcome, school</span>
+<span id="cb4-426"><a href="#cb4-426" aria-hidden="true" tabindex="-1"></a>participation, is</span>
+<span id="cb4-427"><a href="#cb4-427" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-428"><a href="#cb4-428" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb4-429"><a href="#cb4-429" aria-hidden="true" tabindex="-1"></a>y_i = 0.05 D_i + 0.03 x_i - 0.02 N_i + \eta_i ,</span>
+<span id="cb4-430"><a href="#cb4-430" aria-hidden="true" tabindex="-1"></a>$$ {#eq-ri-spill-dgp}</span>
+<span id="cb4-431"><a href="#cb4-431" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-432"><a href="#cb4-432" aria-hidden="true" tabindex="-1"></a>with $x_i$ and $N_i$ in thousands of pupils. Treatment raises participation by</span>
+<span id="cb4-433"><a href="#cb4-433" aria-hidden="true" tabindex="-1"></a>5 points at the school and by 3 points per thousand treated pupils nearby.</span>
+<span id="cb4-434"><a href="#cb4-434" aria-hidden="true" tabindex="-1"></a>Schools in dense areas have lower participation for other reasons. As before,</span>
+<span id="cb4-435"><a href="#cb4-435" aria-hidden="true" tabindex="-1"></a>the schools, their pupils and errors are fixed, and the 1,000 replications</span>
+<span id="cb4-436"><a href="#cb4-436" aria-hidden="true" tabindex="-1"></a>redraw which 25 schools are treated. We regress $y_i$ on $D_i$ and on (a)</span>
+<span id="cb4-437"><a href="#cb4-437" aria-hidden="true" tabindex="-1"></a>$x_i$, (b) $x_i - \mu_i$, or (c) $x_i$ and $N_i$, with</span>
+<span id="cb4-438"><a href="#cb4-438" aria-hidden="true" tabindex="-1"></a>heteroskedasticity-robust standard errors.</span>
+<span id="cb4-439"><a href="#cb4-439" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-442"><a href="#cb4-442" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb4-443"><a href="#cb4-443" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: ri-deworm</span></span>
+<span id="cb4-444"><a href="#cb4-444" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb4-445"><a href="#cb4-445" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-446"><a href="#cb4-446" aria-hidden="true" tabindex="-1"></a>schools <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/deworm_schools.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb4-447"><a href="#cb4-447" aria-hidden="true" tabindex="-1"></a>treat   <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(<span class="fu">read_csv</span>(<span class="st">"data/deworm_draws.csv"</span>, <span class="at">show_col_types =</span> <span class="cn">FALSE</span>)[, <span class="sc">-</span><span class="dv">1</span>])</span>
+<span id="cb4-448"><a href="#cb4-448" aria-hidden="true" tabindex="-1"></a>near <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">*</span> (<span class="fu">as.matrix</span>(<span class="fu">dist</span>(schools[, <span class="fu">c</span>(<span class="st">"east"</span>, <span class="st">"north"</span>)])) <span class="sc">&lt;</span> <span class="dv">3</span>)  <span class="co"># within 3 km</span></span>
+<span id="cb4-449"><a href="#cb4-449" aria-hidden="true" tabindex="-1"></a><span class="fu">diag</span>(near) <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb4-450"><a href="#cb4-450" aria-hidden="true" tabindex="-1"></a>N  <span class="ot">&lt;-</span> <span class="fu">drop</span>(near <span class="sc">%*%</span> schools<span class="sc">$</span>pupils) <span class="sc">/</span> <span class="dv">1000</span>   <span class="co"># total pupils nearby, thousands</span></span>
+<span id="cb4-451"><a href="#cb4-451" aria-hidden="true" tabindex="-1"></a>mu <span class="ot">&lt;-</span> N <span class="sc">/</span> <span class="dv">3</span>                                  <span class="co"># expected treated pupils nearby</span></span>
+<span id="cb4-452"><a href="#cb4-452" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-453"><a href="#cb4-453" aria-hidden="true" tabindex="-1"></a>one_assign <span class="ot">&lt;-</span> <span class="cf">function</span>(r) {</span>
+<span id="cb4-454"><a href="#cb4-454" aria-hidden="true" tabindex="-1"></a>  D <span class="ot">&lt;-</span> treat[r, ]</span>
+<span id="cb4-455"><a href="#cb4-455" aria-hidden="true" tabindex="-1"></a>  d <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">D =</span> D, <span class="at">x =</span> <span class="fu">drop</span>(near <span class="sc">%*%</span> (schools<span class="sc">$</span>pupils <span class="sc">*</span> D)) <span class="sc">/</span> <span class="dv">1000</span>, <span class="at">N =</span> N,</span>
+<span id="cb4-456"><a href="#cb4-456" aria-hidden="true" tabindex="-1"></a>              <span class="at">x_rc =</span> x <span class="sc">-</span> mu, <span class="at">y =</span> <span class="fl">0.05</span> <span class="sc">*</span> D <span class="sc">+</span> <span class="fl">0.03</span> <span class="sc">*</span> x <span class="sc">-</span> <span class="fl">0.02</span> <span class="sc">*</span> N <span class="sc">+</span> schools<span class="sc">$</span>eta)</span>
+<span id="cb4-457"><a href="#cb4-457" aria-hidden="true" tabindex="-1"></a>  fits <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="fu">feols</span>(y <span class="sc">~</span> D <span class="sc">+</span> x, d, <span class="at">vcov =</span> <span class="st">"hetero"</span>),</span>
+<span id="cb4-458"><a href="#cb4-458" aria-hidden="true" tabindex="-1"></a>               <span class="fu">feols</span>(y <span class="sc">~</span> D <span class="sc">+</span> x_rc, d, <span class="at">vcov =</span> <span class="st">"hetero"</span>),</span>
+<span id="cb4-459"><a href="#cb4-459" aria-hidden="true" tabindex="-1"></a>               <span class="fu">feols</span>(y <span class="sc">~</span> D <span class="sc">+</span> x <span class="sc">+</span> N, d, <span class="at">vcov =</span> <span class="st">"hetero"</span>))</span>
+<span id="cb4-460"><a href="#cb4-460" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sapply</span>(fits, <span class="cf">function</span>(f) <span class="fu">c</span>(<span class="at">est =</span> <span class="fu">unname</span>(<span class="fu">coef</span>(f)[<span class="dv">3</span>]), <span class="at">se =</span> <span class="fu">unname</span>(<span class="fu">se</span>(f)[<span class="dv">3</span>])))</span>
+<span id="cb4-461"><a href="#cb4-461" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-462"><a href="#cb4-462" aria-hidden="true" tabindex="-1"></a>dw <span class="ot">&lt;-</span> <span class="fu">simplify2array</span>(<span class="fu">mclapply</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(treat)), one_assign, <span class="at">mc.cores =</span> <span class="dv">6</span>))</span>
+<span id="cb4-463"><a href="#cb4-463" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-464"><a href="#cb4-464" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(<span class="at">estimator =</span> <span class="fu">c</span>(<span class="st">"(a) Exposure, no control"</span>, <span class="st">"(b) Recentered exposure"</span>,</span>
+<span id="cb4-465"><a href="#cb4-465" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"(c) Exposure, control for nearby pupils"</span>),</span>
+<span id="cb4-466"><a href="#cb4-466" aria-hidden="true" tabindex="-1"></a>       <span class="at">mean     =</span> <span class="fu">apply</span>(dw[<span class="st">"est"</span>, , ], <span class="dv">1</span>, mean),</span>
+<span id="cb4-467"><a href="#cb4-467" aria-hidden="true" tabindex="-1"></a>       <span class="at">sd       =</span> <span class="fu">apply</span>(dw[<span class="st">"est"</span>, , ], <span class="dv">1</span>, sd),</span>
+<span id="cb4-468"><a href="#cb4-468" aria-hidden="true" tabindex="-1"></a>       <span class="at">coverage =</span> <span class="fu">apply</span>(<span class="fu">abs</span>(dw[<span class="st">"est"</span>, , ] <span class="sc">-</span> <span class="fl">0.03</span>) <span class="sc">&lt;=</span> <span class="fl">1.96</span> <span class="sc">*</span> dw[<span class="st">"se"</span>, , ], <span class="dv">1</span>, mean)) <span class="sc">|&gt;</span></span>
+<span id="cb4-469"><a href="#cb4-469" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span>
+<span id="cb4-470"><a href="#cb4-470" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb4-471"><a href="#cb4-471" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-472"><a href="#cb4-472" aria-hidden="true" tabindex="-1"></a>Without the control, the spillover estimate averages −0.024 against a true</span>
+<span id="cb4-473"><a href="#cb4-473" aria-hidden="true" tabindex="-1"></a>0.03, and its intervals never contain 0.03. Dense schools have more treated</span>
+<span id="cb4-474"><a href="#cb4-474" aria-hidden="true" tabindex="-1"></a>neighbours and lower participation, and the regression assigns that gap to the</span>
+<span id="cb4-475"><a href="#cb4-475" aria-hidden="true" tabindex="-1"></a>spillover. Both recentered versions are centred on 0.03. Regressing on</span>
+<span id="cb4-476"><a href="#cb4-476" aria-hidden="true" tabindex="-1"></a>$x_i - \mu_i$ alone leaves $-0.02 N_i$ in the error, so its standard deviation</span>
+<span id="cb4-477"><a href="#cb4-477" aria-hidden="true" tabindex="-1"></a>is 0.038, about twice the 0.020 of (c). Neighbouring schools share that error</span>
+<span id="cb4-478"><a href="#cb4-478" aria-hidden="true" tabindex="-1"></a>and the same treated schools, so the robust intervals of (b) contain 0.03 only</span>
+<span id="cb4-479"><a href="#cb4-479" aria-hidden="true" tabindex="-1"></a>43% of the time. With the control for nearby pupils the remaining error is</span>
+<span id="cb4-480"><a href="#cb4-480" aria-hidden="true" tabindex="-1"></a>independent across schools, and coverage is 92%.</span>
+<span id="cb4-481"><a href="#cb4-481" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-482"><a href="#cb4-482" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb4-483"><a href="#cb4-483" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-484"><a href="#cb4-484" aria-hidden="true" tabindex="-1"></a>Shift-share is one formula instrument, with the formula and the design fixed</span>
+<span id="cb4-485"><a href="#cb4-485" aria-hidden="true" tabindex="-1"></a>by convention. Any formula of shocks and exposure is valid once its expected</span>
+<span id="cb4-486"><a href="#cb4-486" aria-hidden="true" tabindex="-1"></a>value over the shock design is subtracted, and the most efficient formula is</span>
+<span id="cb4-487"><a href="#cb4-487" aria-hidden="true" tabindex="-1"></a>the recentered best prediction of the treatment. Applied to Bartik, this has two consequences. When the shares do not sum to one, the regression must control for the sum of shares times the period's mean shock. When the treatment depends on the shocks through more than shares times shocks, a prediction built from the treatment's own formula is a stronger instrument than Bartik. In the ADH data the first consequence alone moves the estimate from −0.60 to −0.27. The same logic covers spillovers. A school's expected exposure to treated neighbours is the treatment probability times its nearby pupils, which is the control Miguel and Kremer used.</span>
+<span id="cb4-488"><a href="#cb4-488" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-489"><a href="#cb4-489" aria-hidden="true" tabindex="-1"></a>For the shift-share construction, the share and shock views, and inference,</span>
+<span id="cb4-490"><a href="#cb4-490" aria-hidden="true" tabindex="-1"></a>see the previous chapter, <span class="co">[</span><span class="ot">Shift-Share Instrumental Variables</span><span class="co">](shift-share-iv.qmd)</span>.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

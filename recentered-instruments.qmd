@@ -398,7 +398,8 @@ for both periods, which approximates design 1's $\mu_\ell$. The second row
 drops that control, so nothing recenters the instrument, and it is valid only
 if the shares are exogenous. All fits use ADH's other controls,
 census-division effects, population weights and standard errors clustered by
-state, with the GPSS replication files.
+state, with the GPSS replication files. The clustered standard errors
+reproduce ADH; we return to inference under the shock design below.
 
 ```{r}
 #| label: ri-adh
@@ -461,6 +462,81 @@ through manufacturing as a whole. ADH's −0.596 does use it, and it is valid if
 the shares are exogenous given the controls. The data cannot tell us which
 assumption holds. Every estimate is negative, and recentering shows how much
 of the size depends on the assumption.
+
+### Inference under the shock design
+
+The standard errors above are clustered by state. They reproduce ADH, but they
+describe a different source of randomness from the one designs 1 and 2 rely
+on. Under those designs the random part is which industries received which
+shocks, and every zone's instrument is built from the same 397 shocks in each
+period. Inference that follows the design reshuffles the shocks, as the
+simulation redrew the thresholds, and asks how unusual the observed data are
+among the reshuffles [@borusyak-hull-2023].
+
+Let $y_\ell$ be the change in zone $\ell$'s manufacturing employment share
+and $x_\ell$ its US import exposure. For a hypothesised effect $b$, form
+$e_\ell(b) = y_\ell - b x_\ell$. If $b = \beta$, $e_\ell(b)$ is the
+contribution of the controls plus the error, and under the design it is the
+same whichever reshuffle of the shocks occurred. Let $\theta(b)$ be the
+coefficient on the Bartik instrument $B_\ell$ in a weighted regression of
+$e_\ell(b)$ on $B_\ell$ and the controls, including the design's $\mu_\ell$.
+We recompute $B_\ell$ and $\theta(b)$ under 1,999 reshuffles permitted by the
+design, holding $e_\ell(b)$ fixed. The p-value for $b$ is the share of
+reshuffles, counting the observed one, whose $|\theta(b)|$ is at least the
+observed value. The 95% interval collects the values of $b$ whose p-value is
+above 0.05. At the IV estimate $\theta$ is zero, so the interval contains the
+estimate, and the test does not need a strong first stage. It does need the
+reshuffles to be equally likely given the errors, which is a little more than
+@eq-ri-exog. The reshuffles are stored in the data folder, so both books use
+the same ones.
+
+```{r}
+#| label: ri-adh-perm
+#| cache: true
+#| dependson: ri-adh
+
+perms <- list(read_csv("data/adh_perms_design1.csv", show_col_types = FALSE),
+              read_csv("data/adh_perms_design2.csv", show_col_types = FALSE))
+W0 <- model.matrix(~ l_sh_popedu_c + l_sh_popfborn + l_sh_empl_f + l_sh_routine33 +
+                     l_task_outsource + t2 + factor(division), adh)
+W  <- list(cbind(W0, adh$S, adh$S * adh$t2),   # design 1: mu = S x period mean
+           cbind(W0, adh$mu2))                 # design 2: mu = sector means
+b_grid <- (-1500:1000) / 1000                  # hypothesised effects b
+sw <- sqrt(adh$weights)
+
+ri_test <- function(W, perm) {
+  q   <- qr(sw * W)
+  res <- function(v) qr.resid(q, sw * v)       # weighted residual on controls and mu
+  yt  <- res(adh$d_sh_empl_mfg); xt <- res(adh$shock)
+  # theta(b) = sum(Bt * (yt - b xt)) / sum(Bt^2) is linear in b, so keep three sums
+  sums <- function(B) { bt <- res(B); c(sum(bt * yt), sum(bt * xt), sum(bt^2)) }
+  obs  <- sums(adh$B)
+  sims <- do.call(rbind, mclapply(perm, function(p)       # one reshuffling per column
+    sums(by_row(tr$share * shk$g[p[tr$col]])), mc.cores = 6))
+  p_val <- sapply(b_grid, function(b) {
+    theta <- function(m) abs(m[, 1] - b * m[, 2]) / m[, 3]
+    (1 + sum(theta(sims) >= theta(rbind(obs)))) / (nrow(sims) + 1)
+  })
+  ok <- b_grid[p_val > 0.05]
+  c(lo = min(ok), hi = max(ok), p0 = p_val[b_grid == 0])
+}
+ri <- mapply(ri_test, W, perms)
+
+tibble(design   = c("Design 1 (S x period)", "Design 2 (sector means)"),
+       estimate = sapply(fits[3:4], \(f) coef(f)["fit_shock"]),
+       state_lo = estimate - 1.96 * sapply(fits[3:4], \(f) se(f)["fit_shock"]),
+       state_hi = estimate + 1.96 * sapply(fits[3:4], \(f) se(f)["fit_shock"]),
+       ri_lo = ri["lo", ], ri_hi = ri["hi", ], ri_p0 = ri["p0", ]) |>
+  kable(digits = 3)
+```
+
+The intervals that reshuffle the shocks are wider than the clustered ones.
+Under design 1 the interval runs from −0.526 to −0.016, against −0.438 to
+−0.096 with state clustering, and the p-value for no effect is 0.036. Under
+design 2 it runs from −0.418 to 0.107, and the p-value is 0.226. With the
+design's own inference, design 1 still finds a negative effect at the 5%
+level, but its interval nearly reaches zero, and design 2 cannot rule out no
+effect.
 
 ### A two-zone example
 
@@ -594,7 +670,12 @@ Schools in dense areas have lower participation for other reasons. As before,
 the schools, their pupils and errors are fixed, and the 1,000 replications
 redraw which 25 schools are treated. We regress $y_i$ on $D_i$ and on (a)
 $x_i$, (b) $x_i - \mu_i$, or (c) $x_i$ and $N_i$, with
-heteroskedasticity-robust standard errors.
+heteroskedasticity-robust standard errors. The table reports the mean and
+standard deviation of each estimate over the replications, the coverage of
+the robust 95% intervals for 0.03, and the mean robust standard error. Only
+the assignment changes across replications, so the standard deviation is the
+estimate's sampling variation under the design, and a robust standard error
+is accurate when it matches it.
 
 ```{r}
 #| label: ri-deworm
@@ -622,7 +703,8 @@ tibble(estimator = c("(a) Exposure, no control", "(b) Recentered exposure",
                      "(c) Exposure, control for nearby pupils"),
        mean     = apply(dw["est", , ], 1, mean),
        sd       = apply(dw["est", , ], 1, sd),
-       coverage = apply(abs(dw["est", , ] - 0.03) <= 1.96 * dw["se", , ], 1, mean)) |>
+       coverage = apply(abs(dw["est", , ] - 0.03) <= 1.96 * dw["se", , ], 1, mean),
+       mean_se  = apply(dw["se", , ], 1, mean)) |>
   kable(digits = 3)
 ```
 
@@ -631,10 +713,18 @@ Without the control, the spillover estimate averages −0.024 against a true
 neighbours and lower participation, and the regression assigns that gap to the
 spillover. Both recentered versions are centred on 0.03. Regressing on
 $x_i - \mu_i$ alone leaves $-0.02 N_i$ in the error, so its standard deviation
-is 0.038, about twice the 0.020 of (c). Neighbouring schools share that error
-and the same treated schools, so the robust intervals of (b) contain 0.03 only
-43% of the time. With the control for nearby pupils the remaining error is
-independent across schools, and coverage is 92%.
+is 0.038, about twice the 0.020 of (c). Neighbouring schools share that error and the same treated schools, so the
+robust standard error of (b) averages 0.016 against a standard deviation of
+0.038, and its intervals contain 0.03 only 43% of the time. With the control
+for nearby pupils the remaining error is independent across schools, the
+robust standard error averages 0.017 against 0.020, and coverage is 92%. That
+match is a property of this simulation, where the school errors are
+independent. The design does not guarantee it, because every school's
+exposure comes from the same 25 treated schools. In a single data set the
+inference that follows the design redraws the assignment, as we reshuffled
+the shocks for ADH. It has to hypothesise both the direct effect and the
+spillover, because a school's outcome under another assignment depends on
+both.
 
 ### A two-school example
 
@@ -729,7 +819,7 @@ the design:
 Shift-share is one formula instrument, with the formula and the design fixed
 by convention. Any formula of shocks and exposure is valid once its expected
 value over the shock design is subtracted, and the most efficient formula is
-the recentered best prediction of the treatment. Applied to Bartik, this has two consequences. When the shares do not sum to one, the regression must control for the sum of shares times the period's mean shock. When the treatment depends on the shocks through more than shares times shocks, a prediction built from the treatment's own formula is a stronger instrument than Bartik. In the ADH data the first consequence alone moves the estimate from −0.60 to −0.27. The same logic covers spillovers. A school's expected exposure to treated neighbours is the treatment probability times its nearby pupils, which is the control Miguel and Kremer used.
+the recentered best prediction of the treatment. Applied to Bartik, this has two consequences. When the shares do not sum to one, the regression must control for the sum of shares times the period's mean shock. When the treatment depends on the shocks through more than shares times shocks, a prediction built from the treatment's own formula is a stronger instrument than Bartik. In the ADH data the first consequence alone moves the estimate from −0.60 to −0.27, and inference that reshuffles the shocks gives it a 95% interval of −0.53 to −0.02, wider than the state-clustered one. The same logic covers spillovers. A school's expected exposure to treated neighbours is the treatment probability times its nearby pupils, which is the control Miguel and Kremer used.
 
 For the shift-share construction, the share and shock views, and inference,
 see the previous chapter, [Shift-Share Instrumental Variables](shift-share-iv.qmd).

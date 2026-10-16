@@ -331,19 +331,20 @@ treated units contribute to the average.
 
 Targeted maximum likelihood estimation is due to van der Laan and Rubin [-@vanderlaan-rubin-2006]; van der Laan and Rose [-@vanderlaan-rose-2011] is the book-length treatment, and the source of the Super Learner used for the nuisance fits.
 
-TMLE is a variant of IF based estimator. It is also a doubly robust estimator. See Mark van der Laan and his coauthors for the recent development of TMLE.
+TMLE is a variant of an IF-based estimator. It is also a doubly robust estimator. See Mark van der Laan and his coauthors for the recent development of TMLE.
 
 TMLE targets the same ATE with the same nuisance library, so we should expect
 it to agree with `npcausal`.
 
 ```{r tmle1, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
 library(tmle)
+set.seed(1)   # SuperLearner's cross-validation folds are random
 TMLE<- tmle(Y=data$Y,A=data$A,W=W, family="binomial", Q.SL.library=SL.library, g.SL.library=SL.library)
 
 TMLE$estimates$ATE
 ```
 
-TMLE gives 0.1893 with an interval of $[0.1288, 0.2498]$, against AIPW's 0.1894
+TMLE gives 0.1885 with an interval of $[0.1301, 0.2469]$, against AIPW's 0.1894
 and `npcausal`'s 0.1943. The three agree to well within a standard error, which
 is what the theory predicts: they share an efficient influence function and
 differ only in how they solve its estimating equation.
@@ -364,7 +365,7 @@ This model is quite general, except it does not allow interaction of $d$ and $x$
 
 The basic idea of doubleML is to use any machine learning algorithm to estimate outcome equation ($l_0(X) = E(Y | X)$) and treatment equation ($m_0(X) = E(D | X)$). Then get the residuals, namely $\tilde Y=Y-\hat l_0(X)$ and $\tilde D = D - \hat m_0(X)$.
 
-Then regress $\tilde Y$ on $\tilde D$. Based on FWL theorem, you get $\hat \theta$.
+Then regress $\tilde Y$ on $\tilde D$. By the Frisch-Waugh-Lovell (FWL) theorem, you get $\hat \theta$.
 
 An important component here is to specify a Neyman-orthogonal score function. In the case of PLR, the "partialling-out" score (the DoubleML default, matching the residual-on-residual regression above) is
 
@@ -398,9 +399,6 @@ lgr::get_logger("mlr3")$set_threshold("warn")
 learner = lrn("regr.ranger", num.trees=500,  max.depth=5, min.node.size=2)
 ml_l = learner$clone()
 ml_m = learner$clone()
-learner = lrn("regr.glmnet")
-ml_g_sim = learner$clone()
-ml_m_sim = learner$clone()
 set.seed(123)
 obj_dml_plr = DoubleMLPLR$new(dml_data, ml_l=ml_l, ml_m=ml_m)
 obj_dml_plr$fit()
@@ -408,7 +406,7 @@ obj_dml_plr$summary()
 ```
 
 DoubleML returns 0.19257 with a standard error of 0.03136, in line with AIPW's
-0.1894 and TMLE's 0.1893.
+0.1894 and TMLE's 0.1885.
 
 One caveat on what this number is. The partially linear model has no
 treatment-covariate interaction, so its $\theta$ is not the ATE when effects are
@@ -421,8 +419,26 @@ predict count most. It equals the ATE only when the effect is constant. Here
 the two are close, 0.193 against 0.203, but that is a property of this DGP and
 not a general result.
 
+For the ATE itself, DoubleML has the interactive regression model,
+`DoubleMLIRM`. It allows the effect to vary with $X$ and solves the same AIPW
+efficient-influence-function score as `npcausal` and `tmle`, so all three target
+the same number. With a binary treatment and a binary outcome, both nuisances
+are classifiers:
+
+```{r doubleml-irm, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+ml_g_irm <- lrn("classif.ranger", num.trees = 500, max.depth = 5, min.node.size = 2)
+ml_m_irm <- lrn("classif.ranger", num.trees = 500, max.depth = 5, min.node.size = 2)
+set.seed(123)
+obj_dml_irm <- DoubleMLIRM$new(dml_data, ml_g = ml_g_irm, ml_m = ml_m_irm,
+                               score = "ATE", trimming_threshold = 0.01)
+obj_dml_irm$fit()
+obj_dml_irm$summary()
+```
+
+`DoubleMLIRM` gives 0.1811 with a standard error of 0.0338. It sits a little below the other two estimators of the ATE, AIPW's 0.1894 and TMLE's 0.1885, and well within a standard error of each, and below the population ATE of 0.2028 by about two thirds of a standard error. The partially linear 0.1926 happened to be closer here, but it estimates a different quantity.
+
 ## Summary
 
 Flexible machine-learning nuisance models avoid having to guess a functional form, but a plug-in estimator built on them carries their regularisation bias into the average. Estimators based on the efficient influence function remove that bias to first order. AIPW, TMLE and DoubleML all do this. What remains is a product of the outcome-model error and the propensity-score error, so each nuisance needs to converge only faster than $n^{-1/4}$. Cross-fitting keeps the remaining empirical-process term small.
 
-In the simulation the population ATE is 0.2028. The plug-in gives 0.1825, with no standard error. Cross-fitted AIPW from `npcausal` gives 0.1943 (0.0316), TMLE 0.1893 and DoubleML 0.1926. The last targets a variance-weighted average of conditional effects, which equals the ATE only when the effect is constant.
+In the simulation the population ATE is 0.2028. The plug-in gives 0.1825, with no standard error. Cross-fitted AIPW from `npcausal` gives 0.1943 (0.0316), TMLE 0.1885 and DoubleML's partially linear model 0.1926. That last one targets a variance-weighted average of conditional effects, which equals the ATE only when the effect is constant; DoubleML's interactive model, which targets the ATE itself, gives 0.1811 (0.0338).

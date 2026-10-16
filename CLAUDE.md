@@ -488,3 +488,24 @@ readings, LOO not clean after renormalization; mediation adds M(w) indep W | X;
 g-formula assumptions stated, A0 contrast is the early-only vs never regime.
 Not done (new analysis, not fixes): executing the weighted-LATE formula in iv-rdd.
 Full render clean; re-executed chapter outputs identical except BART's timing line.
+
+## Google Research review fixes (2026-10-16, branch `google-review-fixes`)
+
+Verified log: `~/projects/books/_review6/VERIFY_GOOGLE_CG_20261016.md` (19 confirmed, 6
+partial, 4 refuted). All 19 confirmed items fixed, plus the six suggestions. **Poisson IV:**
+eq-poisson-iv-14 is now the Windmeijer (2000) moment; the tail argument is replaced by the
+bound log h - rho r_hat in (0, rho^2/2); the simulation is a correlated-random-effects DGP
+(c_i built from the unit means of z and x) with a 499-rep `mclapply` cluster bootstrap;
+Stata comment and `i.time` fixed. **Heterogeneity:** every learner now uses OOB
+predictions (`predict(fit)`), seeds per chunk, X-learner weighting paragraph; all prose
+numbers updated (ranking now X 0.986, forest 0.984, S 0.976, T 0.973, DR 0.953, R 0.951).
+**Seeds:** tmle and lmtp were unseeded, so HTML and PDF executions differed; now seeded and
+HTML == PDF in every re-executed chapter. **New material:** `rddensity` + `rdrandinf` on a
+discrete running variable (iv-rdd), `att_gt`/`sunab` comparison (did; the gap to TWFE is
+the control group, not the covariate), HonestDiD relative-magnitude bounds on Walmart
+(did-continuous; `method = "C-LF"` — FLCI needs CVXR >= 1.8, which needs Rust; installed
+CVXR 1.0-15 and HonestDiD with `dependencies = FALSE`), DoubleMLIRM next to TMLE
+(nonparametric), SNMM and proximal-inference pointers (g-methods, identification).
+**Survival:** fixed-horizon IPCW at tau = 5. **PDF:** fvextra code wrapping, DejaVu Sans Mono
+for Unicode in code, KOMA tocnumwidth for "12.10.". References: 12 bib entries added,
+plain-text citations converted. Not done: partial items P1-P6 and the typo list.

@@ -1,7 +1,8 @@
 # Causal Discovery: Latent Variables
 
 ```{r}
-#| include: false
+#| code-fold: true
+#| code-summary: "Setup: packages and graph-plotting helpers (graphnel_to_ig, pag_to_ig, plot_ig)"
 suppressPackageStartupMessages({
   library(pcalg)
   library(graph)
@@ -112,7 +113,7 @@ Just as DAGs have Markov equivalence classes represented by CPDAGs, MAGs have eq
 **Reading a PAG for policy purposes:**
 
 - A definite $X \to Y$ edge is the most useful finding: any intervention on $X$ propagates to $Y$ regardless of which specific MAG the data came from.
-- A definite $X \leftrightarrow Y$ edge is a warning: before using regression of $Y$ on $X$ to estimate a causal effect, you must address the hidden confounder — through an instrument, a proxy, or a natural experiment.
+- A definite $X \leftrightarrow Y$ edge is a warning: before using regression of $Y$ on $X$ to estimate a causal effect, you must address the hidden confounder — through an instrument, a proxy, or a natural experiment. A proxy here means proximal causal inference, which identifies the effect from two proxies of the hidden confounder, a negative-control exposure and a negative-control outcome [@miao-geng-tchetgen-2018; @tchetgen-tchetgen-2024-proximal]; the [proximal chapter](https://xiangao.github.io/blog_book/proximal-intro.html) of *Topics on Econometrics and Causal Inference* introduces it.
 - $\circ$ marks indicate what you *don't* know. Additional data, temporal ordering, or experimental variation can resolve them.
 
 ## FCI and RFCI: The R Toolkit
@@ -121,8 +122,8 @@ R's `pcalg` package provides two algorithms for the latent-variable case:
 
 | Algorithm | Output | Cost |
 |---|---|---|
-| **FCI** (Spirtes, Meek & Richardson, 1995) | Full PAG (skeleton + all orientation marks) | Expensive: the Possible-D-SEP stage performs many additional CI tests |
-| **RFCI** (Colombo, Maathuis, Kalisch & Richardson, 2012) | PAG with possibly fewer/weaker orientations | Cheaper: skips the Possible-D-SEP tests |
+| **FCI** [@spirtes-meek-richardson-1995-fci] | Full PAG (skeleton + all orientation marks) | Expensive: the Possible-D-SEP stage performs many additional CI tests |
+| **RFCI** [@colombo-maathuis-kalisch-richardson-2012-rfci] | PAG with possibly fewer/weaker orientations | Cheaper: skips the Possible-D-SEP tests |
 
 RFCI can give fewer orientations than FCI, and its skeleton converges to a
 (uniquely defined) *supergraph* of the true PAG skeleton — in special
@@ -193,12 +194,14 @@ ancestors_of <- function(dag, target) {
 # directed edges where one observed node is an ancestor of the other in the
 # full DAG, bidirected edges where neither is an ancestor of the other.
 #
-# NOTE: this is a SIMPLIFIED oracle for the skeleton/F1 comparison below,
-# not a full authoritative MAG. A true MAG projection can carry more
-# subtle endpoint marks when directed and confounding paths coexist
-# (e.g. an edge that is both a causal ancestor and confounded). Use this
-# as an observed-variable adjacency oracle, not as a definitive
-# MAG/PAG endpoint ground truth.
+# The true MAG over the observed variables (no selection variables). Two
+# observed nodes are adjacent iff no subset of the other observed nodes
+# d-separates them in the full DAG, and the edge is oriented by ancestry:
+# u -> v if u is an ancestor of v, v -> u if the reverse, u <-> v if neither.
+# Ancestry wins even when a latent confounder is also present. A MAG has only
+# tails and arrowheads; circle marks appear only in the PAG, the class FCI
+# returns, so compare FCI's output with this MAG through its skeleton and its
+# invariant marks, not mark by mark.
 true_mag_amat <- function(dag, observed_names) {
   p <- length(observed_names)
   amat <- matrix(0L, p, p, dimnames = list(observed_names, observed_names))
@@ -329,7 +332,7 @@ conditional independences left to find, and each missed edge costs more.
 
 ```{r}
 #| label: fig-fci-pag
-#| fig-cap: "PAG estimated by FCI. Dashed edges indicate endpoints with circle (○) marks — orientations the algorithm could not determine. Solid double-headed arrows (↔) mark edges with an invariant arrowhead at both ends, which under the maintained assumptions indicates a latent confounding path rather than one identified hidden variable."
+#| fig-cap: "PAG estimated by FCI. Dashed edges indicate endpoints with circle ($\\circ$) marks — orientations the algorithm could not determine. Solid double-headed arrows (↔) mark edges with an invariant arrowhead at both ends, which under the maintained assumptions indicates a latent confounding path rather than one identified hidden variable."
 #| fig-width: 5.5
 #| fig-height: 4.5
 plot_ig(ig_fci, layout = obs_layout)
@@ -349,7 +352,7 @@ In practice for economic research: focus first on $\leftrightarrow$ edges. Under
 
 ## RFCI Algorithm
 
-**RFCI** (Really Fast Causal Inference; Colombo et al., 2012) skips FCI's expensive **Possible-D-SEP pruning stage** entirely — the stage responsible for most of FCI's CI tests. To stay sound without it, RFCI adds a few extra CI tests of its own inside the collider and discriminating-path checks; the orientation-rule propagation is kept.
+**RFCI** (Really Fast Causal Inference; @colombo-maathuis-kalisch-richardson-2012-rfci) skips FCI's expensive **Possible-D-SEP pruning stage** entirely — the stage responsible for most of FCI's CI tests. To stay sound without it, RFCI adds a few extra CI tests of its own inside the collider and discriminating-path checks; the orientation-rule propagation is kept.
 
 **Key differences from FCI:**
 
@@ -401,7 +404,7 @@ not enough to conclude that, which is what the Monte Carlo below is for.
 
 ```{r}
 #| label: fig-latent-skeletons
-#| fig-cap: "True MAG vs. PAGs recovered by FCI and RFCI. Directed arrows are definite cause-to-effect; bidirected (↔) edges flag hidden common causes; circle (○) marks indicate orientations the algorithm could not resolve. RFCI typically leaves more circles than FCI because its orientation phase is deliberately more conservative."
+#| fig-cap: "True MAG vs. PAGs recovered by FCI and RFCI. Directed arrows are definite cause-to-effect; bidirected ($\\leftrightarrow$) edges flag hidden common causes; circle ($\\circ$) marks indicate orientations the algorithm could not resolve. RFCI typically leaves more circles than FCI because its orientation phase is deliberately more conservative."
 #| fig-width: 12
 #| fig-height: 4.5
 op <- par(mfrow = c(1, 3), mar = c(1, 1, 3, 1))
@@ -504,9 +507,9 @@ can outweigh the Possible-D-SEP saving on sparse draws.
 
 | Property | PC / GES | FCI | RFCI |
 |---|---|---|---|
-| Latent confounders | ✗ assumes none | ✓ handles | ✓ handles |
+| Latent confounders | No: assumes none | Yes | Yes |
 | Output | CPDAG | Full PAG | Skeleton + partial PAG |
-| Skeleton consistency | ✓ | ✓ | converges to a slight supergraph |
+| Skeleton consistency | Yes | Yes | converges to a slight supergraph |
 | Orientation coverage | full | full (under faithfulness) | partial (conservative) |
 | CI cost | PC: PC's cost; GES: none | skeleton + Possible-D-SEP tests | skeleton only (no Possible-D-SEP) |
 

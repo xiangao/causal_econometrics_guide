@@ -27,7 +27,7 @@ I cover:
 
 1. Cox proportional hazards models with covariate adjustment.
 2. Inverse probability of censoring weighting (IPCW).
-3. Restricted mean survival time (RMST) differences.
+3. Restricted mean survival time (RMST) differences [@uno-2014-rmst].
 4. Doubly robust survival estimators in `riskRegression`.
 
 ## The challenge of censored outcomes
@@ -194,8 +194,8 @@ rmst_arm <- function(time, event, tau) {
 rmst_trt  <- rmst_arm(df$time[df$trt == 1], df$event[df$trt == 1], tau)
 rmst_ctrl <- rmst_arm(df$time[df$trt == 0], df$event[df$trt == 0], tau)
 
-cat(sprintf("RMST(τ=5) under treatment: %.3f years\n", rmst_trt))
-cat(sprintf("RMST(τ=5) under control:   %.3f years\n", rmst_ctrl))
+cat(sprintf("RMST(tau=5) under treatment: %.3f years\n", rmst_trt))
+cat(sprintf("RMST(tau=5) under control:   %.3f years\n", rmst_ctrl))
 cat(sprintf("Difference:                %.3f years\n", rmst_trt - rmst_ctrl))
 ```
 
@@ -235,7 +235,16 @@ construct.
 
 If censoring is informative, for example if sicker patients drop out earlier,
 treating censoring as random is biased. IPCW weights observations by the
-inverse probability of remaining uncensored, conditional on covariates.
+inverse probability of remaining uncensored, conditional on covariates. The
+weights belong to a target. For the risk by a horizon $\tau$, write $\tilde T_i$
+for the observed time, $\delta_i$ for the event indicator and
+$G(t \mid X) = P(C > t \mid X)$ for the probability of remaining uncensored. A unit
+whose event is observed by $\tau$ gets weight $1/G(\tilde T_i \mid X_i)$; a unit
+still under observation at $\tau$, with or without a later event, gets
+$1/G(\tau \mid X_i)$; a unit censored before $\tau$ gets 0. This needs
+$G(\tau \mid X) > 0$. Here follow-up ends administratively at 12 years, so
+$G(t \mid X) = 0$ for $t \geq 12$ and only horizons below 12 are estimable. We use
+$\tau = 5$, the horizon of the doubly-robust estimate below.
 
 ```{r}
 #| label: ipcw
@@ -267,14 +276,30 @@ sc_idx  <- findInterval(df_sub$time, sc_fit$time)
 sc_at_t <- sc_fit$surv[cbind(pmax(sc_idx, 1), seq_len(nrow(df_sub)))]
 sc_at_t[sc_idx == 0] <- 1  # before the first censoring event, S_C = 1
 
-# IPCW weight: 1 / P(C > T_i | X_i) for event times, 0 for censoring times
-df_sub$ipcw <- ifelse(df_sub$event == 1, 1 / pmax(sc_at_t, 0.01), 0)
-summary(df_sub$ipcw[df_sub$event == 1])
+# IPCW weights for the risk by tau = 5
+tau_h  <- 5
+g_tau  <- sc_fit$surv[findInterval(tau_h, sc_fit$time), ]     # G(tau | X_i)
+event_by_tau <- df_sub$event == 1 & df_sub$time <= tau_h
+at_risk_tau  <- df_sub$time > tau_h
+df_sub$ipcw  <- ifelse(event_by_tau, 1 / sc_at_t,
+                ifelse(at_risk_tau, 1 / g_tau, 0))           # 0 if censored before tau
+summary(df_sub$ipcw[df_sub$ipcw > 0])
+
+# Risk by tau in each arm: IPTW (df$ipw, above) times IPCW, Hajek-normalized
+risk_tau <- function(a) {
+  w <- with(df_sub, ipw * ipcw * (trt == a))
+  sum(w * event_by_tau) / sum(w)
+}
+r1 <- risk_tau(1); r0 <- risk_tau(0)
+cat(sprintf("IPTW x IPCW risk by t = 5: treated %.3f, control %.3f, difference %.3f\n",
+            r1, r0, r1 - r0))
 ```
 
 IPCW upweights observations that remain uncensored despite having a high
-predicted chance of censoring. The weights here run from 1.001 to 1.353 with a
-mean of 1.149, which is mild. That is expected in this simulation: censoring is
+predicted chance of censoring. The non-zero weights here run from 1.001 to 1.155
+with a mean of 1.114, which is mild. Combined with the treatment weights, they
+give a risk of an event by year 5 of 0.292 under treatment and 0.391 under
+control, a difference of $-0.099$, close to the estimates of the next section. That is expected in this simulation: censoring is
 exponential dropout with a 40-year mean plus an administrative cutoff, and
 neither depends on the covariates in a way that would make censoring strongly
 informative. The correction is available and small; in a study where sicker

@@ -31,7 +31,7 @@ $(X,D,Y)$.
 I use four kinds of tools:
 
 - **Meta-learners**: S-, T-, X-, R-, and DR-learners.
-- **Causal forests**: random forests designed for CATE estimation.
+- **Causal forests** [@athey-tibshirani-wager-2019]: random forests designed for CATE estimation.
 - **BLP and CLAN**: simple summaries and tests of heterogeneity.
 - **Policy trees**: rules for deciding who should be treated.
 
@@ -103,21 +103,27 @@ $$ {#eq-heterogeneous-effects-2}
 ```{r}
 #| label: s-learner
 #| cache: true
+set.seed(11)
 
 # Use a flexible learner — random forest from grf::regression_forest
 XD_train <- cbind(D = D, X)
 fit_S <- regression_forest(XD_train, Y, num.trees = 500)
 
-# Counterfactual predictions at D = 1 and D = 0 for every X
+# Counterfactual predictions at D = 1 and D = 0 for every X. At a unit's own
+# (D, X), use grf's out-of-bag prediction: predict(fit) with no newdata is honest,
+# while predict(fit, newdata) uses every tree, including those that saw the unit.
+oob_S <- predict(fit_S)$predictions
 mu1 <- predict(fit_S, cbind(D = rep(1, n), X))$predictions
 mu0 <- predict(fit_S, cbind(D = rep(0, n), X))$predictions
+mu1[D == 1] <- oob_S[D == 1]
+mu0[D == 0] <- oob_S[D == 0]
 tau_S <- mu1 - mu0
 
 cor_S <- cor(tau_S, tau)
 cat(sprintf("S-learner CATE correlation with truth: %.3f\n", cor_S))
 ```
 
-The S-learner's estimates correlate 0.970 with the true individual effects. It
+The S-learner's estimates correlate 0.976 with the true individual effects. It
 is simple, and its weakness is that the model may treat $D$ as a minor
 predictor of $Y$ and shrink the treatment effect toward zero.
 
@@ -129,19 +135,22 @@ controls. Then $\hat\tau^T(x) = \hat\mu_1(x) - \hat\mu_0(x)$.
 ```{r}
 #| label: t-learner
 #| cache: true
+set.seed(12)
 
 fit_T1 <- regression_forest(X[D == 1, ], Y[D == 1], num.trees = 500)
 fit_T0 <- regression_forest(X[D == 0, ], Y[D == 0], num.trees = 500)
 
 mu1_T <- predict(fit_T1, X)$predictions
 mu0_T <- predict(fit_T0, X)$predictions
+mu1_T[D == 1] <- predict(fit_T1)$predictions   # out-of-bag on the training arm
+mu0_T[D == 0] <- predict(fit_T0)$predictions
 tau_T <- mu1_T - mu0_T
 
 cor_T <- cor(tau_T, tau)
 cat(sprintf("T-learner CATE correlation with truth: %.3f\n", cor_T))
 ```
 
-The T-learner correlates 0.968, essentially the same as the S-learner. Giving
+The T-learner correlates 0.973, essentially the same as the S-learner. Giving
 treatment and control separate outcome models can help with heterogeneity, but
 it can also extrapolate badly when the treated and control covariate
 distributions do not overlap.
@@ -155,6 +164,7 @@ pseudo-effects as functions of $X$.
 ```{r}
 #| label: x-learner
 #| cache: true
+set.seed(13)
 
 # Step 1: T-learner fits (already done above)
 # Step 2: Pseudo-outcomes
@@ -167,10 +177,12 @@ fit_X0 <- regression_forest(X[D == 0, ], D0_pseudo, num.trees = 500)
 
 tau_X1 <- predict(fit_X1, X)$predictions
 tau_X0 <- predict(fit_X0, X)$predictions
+tau_X1[D == 1] <- predict(fit_X1)$predictions   # out-of-bag on the training arm
+tau_X0[D == 0] <- predict(fit_X0)$predictions
 
 # Step 4: Weighted combination — use propensity score as the weight
 ps_fit <- regression_forest(X, D, num.trees = 500)
-ps_hat <- predict(ps_fit, X)$predictions
+ps_hat <- predict(ps_fit)$predictions   # out-of-bag
 ps_hat <- pmin(pmax(ps_hat, 0.02), 0.98)   # trim
 
 tau_X <- ps_hat * tau_X0 + (1 - ps_hat) * tau_X1
@@ -179,7 +191,14 @@ cor_X <- cor(tau_X, tau)
 cat(sprintf("X-learner CATE correlation with truth: %.3f\n", cor_X))
 ```
 
-The X-learner correlates 0.984, the best of the five meta-learners here. The improvement comes from the extra smoothing step: regressing the pseudo-effects
+The weights in step 4 look crossed, with $\hat e(x)$ on $\hat\tau_{X0}$, the estimate
+built from control units. That is deliberate [@kunzel-2019-metalearners]. Where $\hat e(x)$ is
+small, treated units are scarce, so $\hat\mu_1$ is poorly estimated, and the control
+pseudo-effects $\hat\mu_1(X) - Y$ inherit its noise. The treated pseudo-effects
+$Y - \hat\mu_0(X)$ rest on $\hat\mu_0$, fitted on the many controls, so there
+$\hat\tau_{X1}$ gets the weight $1 - \hat e(x)$, close to one.
+
+The X-learner correlates 0.986, the best of the five meta-learners here. The improvement comes from the extra smoothing step: regressing the pseudo-effects
 on $X$ imposes that the effect is a function of the covariates, which is true by
 construction in this DGP. The X-learner is also useful when one treatment arm is
 much smaller than the other.
@@ -225,13 +244,13 @@ weights_R <- (D - e_hat)^2
 
 # Regress pseudo-outcomes on X with weights — use a regression forest
 fit_R <- regression_forest(X, pseudo_R, sample.weights = weights_R, num.trees = 500)
-tau_R <- predict(fit_R, X)$predictions
+tau_R <- predict(fit_R)$predictions   # out-of-bag
 
 cor_R <- cor(tau_R, tau)
 cat(sprintf("R-learner CATE correlation with truth: %.3f\n", cor_R))
 ```
 
-The R-learner correlates 0.930, the weakest here. Errors in the nuisance models
+The R-learner correlates 0.951, the weakest here. Errors in the nuisance models
 have only second-order effects on the target, which is the theoretical appeal,
 but the pseudo-outcome divides by $D_i - \hat e(X_i)$, and that denominator is
 near zero for any unit whose treatment is well predicted. Those units get
@@ -253,6 +272,7 @@ $$ {#eq-heterogeneous-effects-4}
 ```{r}
 #| label: dr-learner
 #| cache: true
+set.seed(15)
 
 mu1_cf <- numeric(n); mu0_cf <- numeric(n); e_cf <- numeric(n)
 for (k in 1:2) {
@@ -274,13 +294,13 @@ pseudo_DR <- (mu1_cf - mu0_cf) +
              (1 - D) * (Y - mu0_cf) / (1 - e_cf)
 
 fit_DR <- regression_forest(X, pseudo_DR, num.trees = 500)
-tau_DR <- predict(fit_DR, X)$predictions
+tau_DR <- predict(fit_DR)$predictions   # out-of-bag
 
 cor_DR <- cor(tau_DR, tau)
 cat(sprintf("DR-learner CATE correlation with truth: %.3f\n", cor_DR))
 ```
 
-The DR-learner correlates 0.931. Its pseudo-outcome has no random denominator,
+The DR-learner correlates 0.953. Its pseudo-outcome has no random denominator,
 but it does carry the two inverse-probability terms, and like the R-learner it
 cross-fits on two folds, so each nuisance model is trained on 2,500 observations
 rather than 5,000. Both properties cost accuracy at this sample size. The
@@ -297,6 +317,7 @@ inference.
 ```{r}
 #| label: causal-forest
 #| cache: true
+set.seed(16)
 
 cf <- causal_forest(X = X, Y = Y, W = D, num.trees = 2000)
 
@@ -310,8 +331,8 @@ cat(sprintf("\nCausal forest AIPW ATE: %.3f  (SE = %.3f, true = %.3f)\n",
             ate_cf["estimate"], ate_cf["std.err"], mean(tau)))
 ```
 
-The causal forest correlates 0.983 with the truth, matching the X-learner, and
-its doubly-robust ATE is 1.994 with a standard error of 0.031 against a true
+The causal forest correlates 0.984 with the truth, matching the X-learner, and
+its doubly-robust ATE is 1.995 with a standard error of 0.031 against a true
 2.006. Use `predict(cf, estimate.variance = TRUE)` when pointwise confidence
 intervals are needed.
 
@@ -325,7 +346,7 @@ red line and how tightly the points cluster around it.
 ```{r}
 #| label: compare-plot
 #| cache: true
-#| fig-cap: "Estimated CATE vs true τ(x) = 1 + 2*X1 for each estimator. Closer to the dashed line = better."
+#| fig-cap: "Estimated CATE vs true $\\tau(x) = 1 + 2X_1$ for each estimator. Closer to the dashed line = better."
 #| fig-width: 10
 #| fig-height: 6
 
@@ -350,14 +371,14 @@ ggplot(comparison, aes(x = X1, y = Predicted)) +
   facet_wrap(~ Estimator, ncol = 3) +
   labs(x = expression(X[1]),
        y = "Estimated CATE",
-       caption = "Red dashed line = true τ(x) = 1 + 2*X1") +
+       caption = "Red dashed line = true tau(x) = 1 + 2*X1") +
   theme_minimal()
 ```
 
 All six recover the upward slope. Ranked by correlation with the truth, the
-X-learner (0.984) and the causal forest (0.983) come first, the S- and
-T-learners next (0.970 and 0.968), and the R- and DR-learners last (0.930 and
-0.931). Correlation measures how well a learner ranks units. It does not check
+X-learner (0.986) and the causal forest (0.984) come first, the S- and
+T-learners next (0.976 and 0.973), and the R- and DR-learners last (0.951 and
+0.953). Correlation measures how well a learner ranks units. It does not check
 magnitudes: an estimate equal to twice the true CATE has correlation one. For
 the size of the effects we would also report the error against the truth on
 independent data, the bias of the implied ATE, and calibration. The ranking could
@@ -379,14 +400,15 @@ which `grf` estimates with valid standard errors:
 ```{r}
 #| label: blp
 #| cache: true
+set.seed(17)
 
 blp <- best_linear_projection(cf, A = X)
 print(blp)
 ```
 
-The coefficient on $X_1$ is 2.008 with a standard error of 0.105, against a
-true slope of 2. The intercept is 1.078 against a true 1. None of $X_2$ through
-$X_5$ is significant, with coefficients between $-0.115$ and 0.044 and standard
+The coefficient on $X_1$ is 2.019 with a standard error of 0.105, against a
+true slope of 2. The intercept is 1.065 against a true 1. None of $X_2$ through
+$X_5$ is significant, with coefficients between $-0.120$ and 0.043 and standard
 errors around 0.105. The projection finds the one effect modifier and correctly
 reports nothing for the other four.
 
@@ -425,8 +447,8 @@ vi_df <- tibble(variable = paste0("X", 1:p), importance = as.numeric(vi)) |>
 print(vi_df)
 ```
 
-$X_1$ takes 0.725 of the importance. The other four sit between 0.053 and
-0.095, well below the 0.2 each would receive if the forest split at random.
+$X_1$ takes 0.720 of the importance. The other four sit between 0.057 and
+0.084, well below the 0.2 each would receive if the forest split at random.
 The forest found the effect modifier without being told which one it was.
 
 ## Policy trees: who should we treat?
@@ -441,7 +463,8 @@ effects into a simple treatment rule.
 
 # double_robust_scores() returns an n x 2 matrix of AIPW scores,
 # one column per action: Gamma_i(control), Gamma_i(treated)
-Gamma <- double_robust_scores(cf)
+Gamma <- double_robust_scores(cf)   # fitted on ALL rows: see the caveat below.
+# For a clean evaluation, fit the forest and the scores within each split.
 cost <- 2     # cost of treating one unit, in outcome units
 
 # Net value of each action: control stays as is, treating pays the cost.
@@ -488,17 +511,17 @@ is overfitting, and it is visible here only because the rule was learned on one
 half of the sample and valued on the other. The split is not a fully independent
 test. The forest and the scores $\Gamma$ were fitted on all rows before the split;
 the scores are out-of-bag, which limits the reuse but does not remove it. A
-clean evaluation splits before fitting the forest. On the held-out half it treats 42.8%
+clean evaluation splits before fitting the forest. On the held-out half it treats 42.7%
 of units against an optimal 49.7%.
 
-The held-out value is $0.475$ against $0.262$ for treating everyone: a gain of
+The held-out value is $0.477$ against $0.265$ for treating everyone: a gain of
 $0.212$ per unit with a standard error of $0.032$. The gain is real, at about
 six and a half standard errors from zero, and the reason is the cost. With a cost
 of 2 and $\tau(x) = 1+2x_1$, units with $x_1 < 0.5$ have $\tau(x) < 2$ and are
 not worth treating.
 
 The depth-1 tree, fitted on the same half, does better: a held-out gain of
-$0.243$ with a standard error of $0.029$, from one split rather than three. For
+$0.243$ with a standard error of $0.030$, from one split rather than three. For
 this DGP the optimal rule is a single threshold at $x_1 = 0.5$, so the extra
 depth is spent on noise, and the held-out comparison prices it. The practical
 lesson is to fit the shallower tree as well and compare them out of sample,
@@ -556,7 +579,7 @@ knitr::kable(clan_df[, c("quintile", "est.estimate", "se.std.err", "lo", "hi")],
              caption = "GATES: quintile-specific ATEs sorted by predicted CATE. Heterogeneity is evident if quintile estimates differ.")
 ```
 
-The quintile ATEs rise monotonically from 1.263 to 2.810, and the standard
+The quintile ATEs rise monotonically from 1.272 to 2.819, and the standard
 errors are all about 0.068, so the top and bottom quintiles are more than
 twenty standard errors apart. The heterogeneity is not a graphical artefact.
 The range also sits inside the true $[1, 3]$, as it must, and the quintile
@@ -621,6 +644,7 @@ naive estimate is badly biased upward:
 ```{r}
 #| label: cf-naive
 #| cache: true
+set.seed(21)
 
 X_panel <- as.matrix(df_panel[, "V1", drop = FALSE])
 
@@ -633,7 +657,7 @@ cat(sprintf("Naive panel CF ATE: %.3f  (SE = %.3f)\n",
 cat(sprintf("True ATE: %.3f\n", mean(tau_panel)))
 ```
 
-The naive forest returns 1.706 with a standard error of 0.127 against a true
+The naive forest returns 1.715 with a standard error of 0.125 against a true
 0.566. It is off by three times the truth, and about nine standard errors away.
 
 Adding `clusters = firm` keeps a firm's observations together when `grf`
@@ -645,6 +669,7 @@ estimate stays close to the naive one:
 ```{r}
 #| label: cf-clustered
 #| cache: true
+set.seed(22)
 
 cf_clust <- causal_forest(X = X_panel, Y = df_panel$Y, W = df_panel$W,
                           clusters = df_panel$firm,
@@ -655,7 +680,7 @@ cat(sprintf("Clustered panel CF ATE: %.3f  (SE = %.3f)\n",
             ate_clust["estimate"], ate_clust["std.err"]))
 ```
 
-Clustering gives 1.741 with a standard error of 0.163. The estimate moved
+Clustering gives 1.746 with a standard error of 0.165. The estimate moved
 slightly further from the truth, not closer, and the standard error grew. This
 is the point: `clusters=` is about honesty and inference, never about
 confounding.
@@ -673,6 +698,7 @@ forest:
 ```{r}
 #| label: cf-demean
 #| cache: true
+set.seed(23)
 
 df_dm <- df_panel |>
   group_by(firm) |>
@@ -691,7 +717,7 @@ cat(sprintf("Within-transform CF ATE: %.3f  (SE = %.3f)\n",
             ate_fe["estimate"], ate_fe["std.err"]))
 ```
 
-The within transform gives 0.577 with a standard error of 0.103. Sweeping out
+The within transform gives 0.584 with a standard error of 0.101. Sweeping out
 the firm means removed the additive firm effect, which is the confounder here and
 which clustering did not touch. The estimate sits close to the average effect of
 0.566, but that closeness is a feature of this design. After demeaning, the
@@ -706,8 +732,8 @@ construction with an orthogonal score.
 So how much does ignoring the panel cost? The two ways of ignoring it have very
 different prices, and this section has kept them apart on purpose. Ignoring the
 panel in the *inference* costs little here: clustering moved the estimate from
-1.706 to 1.741 and widened the standard error from 0.127 to 0.163. Ignoring it
-in the *identification* costs everything: 1.706 against a true 0.566 is three
+1.715 to 1.746 and widened the standard error from 0.125 to 0.165. Ignoring it
+in the *identification* costs everything: 1.715 against a true 0.566 is three
 times the truth and about nine standard errors out, and clustering does not
 touch it. The magnitude is specific to this design --- it scales with how
 strongly the unit effect drives treatment and outcome, 0.5 and 1 here --- but

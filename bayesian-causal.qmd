@@ -152,7 +152,7 @@ $\tau_i$.
 ```{r}
 #| label: bart-ite
 #| cache: true
-#| fig-cap: "BART posterior mean of the conditional average effect at each unit's covariates vs true τ(x) = 1 + 2 X₁. Shaded band shows pointwise 95% credible intervals."
+#| fig-cap: "BART posterior mean of the conditional average effect at each unit's covariates vs true $\\tau(x) = 1 + 2X_1$. Shaded band shows pointwise 95% credible intervals."
 #| fig-width: 8
 #| fig-height: 5
 
@@ -175,7 +175,7 @@ ggplot(df_ite, aes(x = X1)) +
   geom_abline(aes(intercept = 1, slope = 2), colour = "firebrick",
               linetype = "dashed", linewidth = 1) +
   labs(x = "X1", y = "Conditional average treatment effect",
-       caption = "Red dashed = true τ(x). Blue band = pointwise 95% credible interval.") +
+       caption = "Red dashed = true tau(x). Blue band = pointwise 95% credible interval.") +
   theme_minimal()
 ```
 
@@ -199,12 +199,18 @@ create noisy treatment-effect estimates.
 BCF writes the conditional mean as
 
 $$
-\mathbb{E}[Y \mid D, X] = \mu(X) + \tau(X)\, D,
+\mathbb{E}[Y \mid D, X] = \mu\big(X, \hat\pi(X)\big) + \tau(X)\, D,
 $$ {#eq-bayesian-causal-1}
 
-and puts separate priors on $\mu(X)$ and $\tau(X)$. The treatment-effect
-part is regularized more strongly, which helps avoid overfitting
-heterogeneity.
+where $\hat\pi(X)$ is an estimated propensity score, and puts separate priors on
+$\mu(\cdot)$ and $\tau(\cdot)$ [@hahn-murray-carvalho-2020-bcf]. Both pieces matter. The
+treatment-effect part is regularized more strongly, which helps avoid
+overfitting heterogeneity. The propensity score enters the prognostic forest
+as a covariate. That gives the trees a one-dimensional summary of how treatment
+was assigned, so shrinking $\mu(\cdot)$ toward simple functions does not push
+confounding into $\tau(\cdot)$, the regularization-induced confounding described
+above. This is why `bcf()` takes `piHat` as an input, and why the plain BART fit,
+which sees only $(D, X)$, has no such protection.
 
 ```{r}
 #| label: bcf-fit
@@ -231,7 +237,6 @@ piHat  <- predict(ps_fit, type = "response")
 # figure in this chapter moves. Seed the worker so the chapter is reproducible.
 tmp_in  <- tempfile(fileext = ".rds")
 tmp_out <- tempfile(fileext = ".rds")
-tmp_err <- tempfile(fileext = ".log")
 saveRDS(list(Y = df$Y, D = df$D, X = X, piHat = piHat), tmp_in)
 status <- system(paste0("Rscript -e '",
   "set.seed(42); ",
@@ -251,7 +256,7 @@ bcf_fit <- readRDS(tmp_out)
 if (is.null(bcf_fit$tau)) {
   stop("BCF subprocess produced no 'tau' draws; aborting.")
 }
-unlink(c(tmp_in, tmp_out, tmp_err))
+unlink(c(tmp_in, tmp_out))
 ```
 
 The propensity score enters BCF as data, so we fit it first by logistic
@@ -293,7 +298,7 @@ $\tau(x)$ as the dashed red line.
 ```{r}
 #| label: compare-ite
 #| cache: true
-#| fig-cap: "BCF (left) vs BART (right) posterior-mean conditional average effects against the true τ(x) = 1 + 2 X₁."
+#| fig-cap: "BART (left) vs BCF (right) posterior-mean conditional average effects against the true $\\tau(x) = 1 + 2X_1$."
 #| fig-width: 9
 #| fig-height: 4
 
@@ -365,8 +370,7 @@ frequentist methods in earlier chapters are often simpler.
   the trees while `grf` uses honest sample-splitting.
 - The [Sensitivity Analysis](sensitivity-analysis.qmd) chapter's
   Cinelli-Hazlett bounds are frequentist; the Bayesian analog is a
-  prior on the unmeasured-confounder strength (cf. McCandless et al.
-  2007).
+  prior on the unmeasured-confounder strength [cf. @mccandless-gustafson-levy-2007].
 - For Bayesian *Numpyro*-style hierarchical models, see the [companion
   blog chapter](https://xiangao.github.io/blog_book/numpyro.html).
 

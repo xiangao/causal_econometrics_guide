@@ -71,7 +71,7 @@ Y  <- true_mu(D) + 0.3 * X1 - 0.3 * X2 + rnorm(n)
 
 df <- tibble(Y = Y, D = D, X1 = X1, X2 = X2)
 cat(sprintf("Treatment range: [%.2f, %.2f]\n", min(D), max(D)))
-cat(sprintf("True μ(d=2) = %.2f, μ(d=4) = %.2f, μ(d=6) = %.2f\n",
+cat(sprintf("True mu(d=2) = %.2f, mu(d=4) = %.2f, mu(d=6) = %.2f\n",
             true_mu(2), true_mu(4), true_mu(6)))
 ```
 
@@ -143,7 +143,7 @@ ggplot() +
             linetype = "dashed", linewidth = 1.0) +
   labs(x = "Dose D", y = "Expected outcome E[Y(d)]",
        colour = "Method",
-       caption = "Black dashed line = true μ(d) = 1 + 2d - 0.15 d²") +
+       caption = "Black dashed line = true mu(d) = 1 + 2d - 0.15 d^2") +
   theme_minimal()
 ```
 
@@ -214,7 +214,7 @@ dose $d$ for unit $i$ is the normal density evaluated there,
 
 $$
 \hat r(d, x_i) = \frac{1}{\hat\sigma\sqrt{2\pi}}
-  \exp\!\left\{-\frac{\bigl(d - x_i'\hat\beta\bigr)^2}{2\hat\sigma^2}\right\}.
+  \exp\!\left\{-\frac{\bigl(d - \hat\beta_0 - x_i'\hat\beta\bigr)^2}{2\hat\sigma^2}\right\}.
 $$ {#eq-continuous-treatments-gpshat}
 
 That is the whole calculation: one linear regression, then one density
@@ -360,7 +360,7 @@ next to the GPS curve and the truth.
 #| label: drf
 #| cache: true
 
-# Outcome model μ̂(D, X): flexible polynomial
+# Outcome model mu_hat(D, X): flexible polynomial
 mu_fit <- lm(Y ~ D + I(D^2) + X1 + X2 + I(D * X1) + I(D * X2), data = df)
 df$mu_at_obs <- predict(mu_fit)
 
@@ -509,6 +509,7 @@ Then fit the LMTP estimator with `lmtp::lmtp_tmle`:
 
 # TMLE-based LMTP estimator with super-learners for nuisance functions
 # (using SL.glm to keep it fast; in practice use richer SL libraries)
+set.seed(511)   # cross-fitting folds are random
 lmtp_fit <- lmtp_tmle(
   data       = lmtp_data,
   trt        = c("A_1", "A_2"),
@@ -527,8 +528,8 @@ lmtp_fit <- lmtp_tmle(
 tidy(lmtp_fit)
 ```
 
-The set-to-zero policy gives 0.118 with a standard error of 0.0252 and a 95%
-interval of $[0.068, 0.167]$, which covers the true 0.125.
+The set-to-zero policy gives 0.117 with a standard error of 0.0251 and a 95%
+interval of $[0.068, 0.166]$, which covers the true 0.125.
 
 The useful part of `lmtp` is that it handles the time-ordering of
 covariates, treatments, and outcomes: $L_2$ is a post-treatment covariate for
@@ -549,6 +550,7 @@ shift_one <- function(data, trt) {
   rep(1, length(a))
 }
 
+set.seed(510)   # cross-fitting folds are random
 lmtp_one <- lmtp_tmle(
   data       = lmtp_data,
   trt        = c("A_1", "A_2"),
@@ -567,9 +569,9 @@ as.data.frame(contrast$estimates)
 ```
 
 The contrast is the difference between the two policy-specific mean outcomes.
-Treat-always gives 1.103 against a true 1.125, treat-never gives 0.118 against
-a true 0.125, and their difference is 0.9855 with a standard error of 0.0349
-and a 95% interval of $[0.917, 1.054]$. The true contrast is exactly 1, and the
+Treat-always gives 1.109 against a true 1.125, treat-never gives 0.117 against
+a true 0.125, and their difference is 0.9921 with a standard error of 0.0347
+and a 95% interval of $[0.924, 1.060]$. The true contrast is exactly 1, and the
 interval covers it.
 
 ## Choosing among the three

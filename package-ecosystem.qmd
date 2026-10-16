@@ -20,12 +20,19 @@ Rscript -e 'install.packages("BiocManager"); BiocManager::install(c("graph","RBG
 Rscript -e 'install.packages(c(
   "remotes", "BART", "bcf", "broom", "causaldata", "causaldrf",
   "causaleffect", "cobalt", "dagitty", "data.table", "did", "DoubleML",
-  "etwfe", "EValue", "fixest", "ggdag", "gmm", "grf", "haven", "hdm",
-  "igraph", "ipw", "ivreg", "knitr", "lavaan", "lmtest", "lmtp", "ltmle",
-  "marginaleffects", "MatchIt", "mlr3", "mlr3learners", "pcalg",
-  "policytree", "ranger", "rdrobust", "riskRegression", "sandwich", "sem",
-  "sensemakr", "SuperLearner", "survey", "survminer", "tidyverse", "tmle",
-  "WeightIt"))'
+  "earth", "etwfe", "EValue", "fixest", "gam", "ggdag", "glmnet", "grf",
+  "haven", "hdm", "HonestDiD", "igraph", "ipw", "ivreg", "knitr", "lavaan",
+  "lgr", "lmtest", "lmtp", "ltmle", "marginaleffects", "MatchIt", "mlr3",
+  "mlr3learners", "pcalg", "policytree", "ranger", "rddensity", "rdlocrand",
+  "rdrobust", "riskRegression", "sandwich", "sem", "sensemakr",
+  "SuperLearner", "survey", "survminer", "tidyverse", "tmle", "WeightIt",
+  "xgboost"))'
+
+# HonestDiD imports CVXR, whose current CRAN version needs a Rust toolchain to
+# build. Without one, install the older CVXR first, then HonestDiD on its own:
+#   Rscript -e 'remotes::install_version("CVXR", "1.0-15", upgrade = "never")'
+#   Rscript -e 'install.packages("HonestDiD", dependencies = FALSE)'
+# The book uses only HonestDiD's C-LF method, which runs on CVXR 1.0-15.
 
 # 3. GitHub packages the book needs in order to render
 Rscript -e 'remotes::install_github(c("ehkennedy/npcausal", "nhejazi/medoutcon",
@@ -44,25 +51,27 @@ The book uses Quarto's `execute: freeze: auto` setting (configured in `_quarto.y
 
 | Package | Used For | Main Book Chapters |
 |---|---|---|
-| `dagitty` [@textor-dagitty-2016] | DAG and ADMG construction, adjustment-set search, d-separation | Identification, DAG workflow, Smoking cessation |
+| `dagitty` [@textor-dagitty-2016] | DAG and ADMG construction, adjustment-set search, d-separation | Identification, DAG workflow, Smoking cessation, Graph to estimate |
 | `ggdag` | Visual rendering of DAGs/ADMGs built with `dagitty` | Identification, DAG workflow, IV/RDD |
-| `causaleffect` [@tikka-hyttinen-karvanen-2019] | Pearl–Shpitser ID algorithm for general ADMGs | DAG workflow |
+| `causaleffect` [@tikka-hyttinen-karvanen-2019] | Pearl–Shpitser ID algorithm for general ADMGs | DAG workflow, Graph to estimate |
 | `tidyverse` (`dplyr`, `tidyr`, `purrr`, `ggplot2`) | Data wrangling and plotting throughout | Every chapter |
 | `haven` | Reading Stata `.dta` files used as examples | Estimation, DiD, Shift-share IV |
 | `causaldata` | Built-in NHEFS and other causal-inference example datasets | Sensitivity analysis, Smoking cessation, IV/RDD |
 | `hdm` | Pension (`pension`) dataset and high-dimensional inference | Estimation |
-| `SuperLearner` | Stacked machine-learning nuisance estimation | Nonparametric |
+| `SuperLearner` | Stacked machine-learning nuisance estimation; its learners need `earth`, `gam`, `glmnet` and `xgboost` | Nonparametric |
 | `npcausal` | Influence-function-based ATE/ATT estimators (Edward Kennedy) | Nonparametric |
 | `tmle` | Targeted maximum likelihood estimation | Nonparametric |
 | `DoubleML`, `mlr3`, `mlr3learners` | Double/debiased ML for partially linear and interactive models | Nonparametric |
-| `did` | Callaway & Sant'Anna estimators; `mpdta` example dataset | DiD |
+| `did` | Callaway & Sant'Anna estimators (`att_gt`); `mpdta` example dataset | DiD |
 | `etwfe` | Wooldridge's extended TWFE for staggered DiD | DiD |
-| `fixest` | High-dimensional fixed-effects OLS, Poisson, IV; clustered SEs | DiD, IV/RDD, Poisson-IV |
+| `fixest` | High-dimensional fixed-effects OLS, Poisson, IV; clustered SEs | DiD, DiD with continuous treatment, IV/RDD, Shift-share IV, Recentered instruments, Poisson-IV |
 | `synthdid` | Standard DiD, synthetic control, synthetic DiD; Prop 99 example | DiD |
 | `sem` | Classical two-stage least squares via `tsls()` | IV/RDD |
 | `MASS` | Multivariate normal sampling for IV simulations | IV/RDD |
 | `rdrobust` | Local-polynomial RDD, sharp and fuzzy designs | IV/RDD |
-| `gmm` | Generalized method of moments for nonlinear IV | Poisson-IV |
+| `rdlocrand` | Local-randomization inference for RDD with a discrete running variable | IV/RDD |
+| `rddensity` | Manipulation (density) test at the cutoff | IV/RDD |
+| `HonestDiD` [@rambachan-roth-2023] | Sensitivity of event-study estimates to parallel-trends violations | DiD with continuous treatment |
 | `lavaan` | SEM and CFA syntax for classical mediation | Mediation |
 | `medoutcon` | Causal mediation: natural and interventional (in)direct effects | Mediation |
 | `pcalg` | PC, GES, FCI, RFCI causal-discovery algorithms | Causal Discovery (both chapters) |
@@ -91,9 +100,9 @@ The book uses Quarto's `execute: freeze: auto` setting (configured in `_quarto.y
 | `ivreg` | Two-stage least squares with diagnostic tests | IV/RDD |
 | `lmtest`, `sandwich` | Robust and clustered covariance matrices, and the tests that use them | Estimation, IV/RDD |
 | `broom` | Tidying model objects into data frames for tables and plots | Most estimation chapters |
-| `data.table` | Builds the `medoutcon` example dataset (`as.data.table`, `setnames`) | Mediation |
+| `data.table` | Fast reading and reshaping (`fread`, `CJ`, `rbindlist`); builds the `medoutcon` example dataset | DiD with continuous treatment, Mediation, Survival |
 | `knitr` | Table rendering with `kable` | Ten chapters, throughout |
-| `parallel` | `parLapply` cluster bootstrap of the second-stage SEs (ships with R) | Poisson-IV |
+| `parallel` | `mclapply` for the cluster bootstrap, the shock permutations and the discovery Monte Carlo (ships with R) | Poisson-IV, Recentered instruments, Causal discovery |
 | `bartik.weight` | Rotemberg weights for shift-share designs (GitHub; `eval: false`) | Shift-share IV |
 | `ShiftShareSE` | Adao-Kolesar-Morales standard errors (GitHub; `eval: false`) | Shift-share IV |
 | `ssaggregate` | BHJ shock-level aggregation and inference (GitHub; `eval: false`) | Shift-share IV |

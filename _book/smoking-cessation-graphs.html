@@ -725,7 +725,7 @@ E[Y(a)] = E_X\{E(Y \mid A=a, X)\}.
 </div>
 </div>
 <p>Quitters gain 3.29 kg more than continuing smokers, with a standard error of 0.50 and a 95% interval of <span class="math inline">\([2.32, 4.27]\)</span>. Under the DAG this is the average effect of quitting versus continuing on weight change in the complete-case NHEFS population. The causal interpretation depends on the graph, especially the assumption that the measured baseline variables block the relevant backdoor paths.</p>
-<p>The <code>sd(psi) / sqrt(n)</code> standard error is the AIPW influence-function SE and is valid here because the nuisances are parametric logistic/linear fits. If you replace them with flexible machine learners, use cross-fitting and an influence-function (or bootstrap) variance instead; the plug-in SE on full-sample ML fits is not generally valid.</p>
+<p>The <code>sd(psi) / sqrt(n)</code> standard error is the AIPW influence-function SE. It is valid if both parametric fits, the logistic propensity and the linear outcome model, are correctly specified. Being parametric does not make them correct; if we rely on double robustness because one may be wrong, a bootstrap of the whole procedure is the safer variance. If you replace them with flexible machine learners, use cross-fitting and an influence-function (or bootstrap) variance instead; the plug-in SE on full-sample ML fits is not generally valid.</p>
 </section><section id="sensitivity-graph" class="level2" data-number="4.5"><h2 data-number="4.5" class="anchored" data-anchor-id="sensitivity-graph">
 <span class="header-section-number">4.5</span> Sensitivity Graph</h2>
 <p>The sensitivity parameters are those of Cinelli and Hazlett <span class="citation" data-cites="cinelli-hazlett-2020">(<a href="references.html#ref-cinelli-hazlett-2020" role="doc-biblioref">2020</a>)</span>.</p>
@@ -1496,114 +1496,116 @@ Textor, Johannes, Benito van der Zander, Mark S. Gilthorpe, Maciej Liśkiewicz, 
 <span id="cb18-203"><a href="#cb18-203" aria-hidden="true" tabindex="-1"></a>paths.</span>
 <span id="cb18-204"><a href="#cb18-204" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb18-205"><a href="#cb18-205" aria-hidden="true" tabindex="-1"></a>The <span class="in">`sd(psi) / sqrt(n)`</span> standard error is the AIPW influence-function</span>
-<span id="cb18-206"><a href="#cb18-206" aria-hidden="true" tabindex="-1"></a>SE and is valid here because the nuisances are parametric logistic/linear</span>
-<span id="cb18-207"><a href="#cb18-207" aria-hidden="true" tabindex="-1"></a>fits. If you replace them with flexible machine learners, use</span>
-<span id="cb18-208"><a href="#cb18-208" aria-hidden="true" tabindex="-1"></a>cross-fitting and an influence-function (or bootstrap) variance instead;</span>
-<span id="cb18-209"><a href="#cb18-209" aria-hidden="true" tabindex="-1"></a>the plug-in SE on full-sample ML fits is not generally valid.</span>
-<span id="cb18-210"><a href="#cb18-210" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-211"><a href="#cb18-211" aria-hidden="true" tabindex="-1"></a><span class="fu">## Sensitivity Graph</span></span>
+<span id="cb18-206"><a href="#cb18-206" aria-hidden="true" tabindex="-1"></a>SE. It is valid if both parametric fits, the logistic propensity and the</span>
+<span id="cb18-207"><a href="#cb18-207" aria-hidden="true" tabindex="-1"></a>linear outcome model, are correctly specified. Being parametric does not make</span>
+<span id="cb18-208"><a href="#cb18-208" aria-hidden="true" tabindex="-1"></a>them correct; if we rely on double robustness because one may be wrong, a</span>
+<span id="cb18-209"><a href="#cb18-209" aria-hidden="true" tabindex="-1"></a>bootstrap of the whole procedure is the safer variance. If you replace them with flexible machine learners, use</span>
+<span id="cb18-210"><a href="#cb18-210" aria-hidden="true" tabindex="-1"></a>cross-fitting and an influence-function (or bootstrap) variance instead;</span>
+<span id="cb18-211"><a href="#cb18-211" aria-hidden="true" tabindex="-1"></a>the plug-in SE on full-sample ML fits is not generally valid.</span>
 <span id="cb18-212"><a href="#cb18-212" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-213"><a href="#cb18-213" aria-hidden="true" tabindex="-1"></a>The sensitivity parameters are those of Cinelli and Hazlett <span class="co">[</span><span class="ot">-@cinelli-hazlett-2020</span><span class="co">]</span>.</span>
+<span id="cb18-213"><a href="#cb18-213" aria-hidden="true" tabindex="-1"></a><span class="fu">## Sensitivity Graph</span></span>
 <span id="cb18-214"><a href="#cb18-214" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-215"><a href="#cb18-215" aria-hidden="true" tabindex="-1"></a>Now encode a different assumption: quitting and later weight change share an unobserved common cause even after conditioning on the measured baseline variables. In an ADMG this is a bidirected edge, <span class="in">`qsmk &lt;-&gt; wt82_71`</span>. We rebuild the same graph with that one edge added and count the sufficient adjustment sets it admits.</span>
+<span id="cb18-215"><a href="#cb18-215" aria-hidden="true" tabindex="-1"></a>The sensitivity parameters are those of Cinelli and Hazlett <span class="co">[</span><span class="ot">-@cinelli-hazlett-2020</span><span class="co">]</span>.</span>
 <span id="cb18-216"><a href="#cb18-216" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-219"><a href="#cb18-219" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb18-220"><a href="#cb18-220" aria-hidden="true" tabindex="-1"></a>build_sensitivity_graph <span class="ot">&lt;-</span> <span class="cf">function</span>(baseline) {</span>
-<span id="cb18-221"><a href="#cb18-221" aria-hidden="true" tabindex="-1"></a>  edges_X_to_A <span class="ot">&lt;-</span> <span class="fu">paste0</span>(baseline, <span class="st">" -&gt; qsmk"</span>)</span>
-<span id="cb18-222"><a href="#cb18-222" aria-hidden="true" tabindex="-1"></a>  edges_X_to_Y <span class="ot">&lt;-</span> <span class="fu">paste0</span>(baseline, <span class="st">" -&gt; wt82_71"</span>)</span>
-<span id="cb18-223"><a href="#cb18-223" aria-hidden="true" tabindex="-1"></a>  body <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="fu">c</span>(edges_X_to_A, edges_X_to_Y,</span>
-<span id="cb18-224"><a href="#cb18-224" aria-hidden="true" tabindex="-1"></a>                  <span class="st">"qsmk -&gt; wt82_71"</span>, <span class="st">"qsmk &lt;-&gt; wt82_71"</span>),</span>
-<span id="cb18-225"><a href="#cb18-225" aria-hidden="true" tabindex="-1"></a>                <span class="at">collapse =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">  "</span>)</span>
-<span id="cb18-226"><a href="#cb18-226" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dagitty</span>(<span class="fu">paste0</span>(<span class="st">"dag {</span><span class="sc">\n</span><span class="st">  "</span>, body, <span class="st">"</span><span class="sc">\n</span><span class="st">}"</span>))</span>
-<span id="cb18-227"><a href="#cb18-227" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb18-228"><a href="#cb18-228" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-229"><a href="#cb18-229" aria-hidden="true" tabindex="-1"></a>sensitivity_graph <span class="ot">&lt;-</span> <span class="fu">build_sensitivity_graph</span>(baseline_vars)</span>
-<span id="cb18-230"><a href="#cb18-230" aria-hidden="true" tabindex="-1"></a>sens_adj <span class="ot">&lt;-</span> <span class="fu">adjustmentSets</span>(sensitivity_graph, <span class="at">exposure =</span> <span class="st">"qsmk"</span>,</span>
-<span id="cb18-231"><a href="#cb18-231" aria-hidden="true" tabindex="-1"></a>                           <span class="at">outcome =</span> <span class="st">"wt82_71"</span>, <span class="at">type =</span> <span class="st">"minimal"</span>)</span>
-<span id="cb18-232"><a href="#cb18-232" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Number of sufficient adjustment sets:"</span>, <span class="fu">length</span>(sens_adj), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
-<span id="cb18-233"><a href="#cb18-233" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb18-234"><a href="#cb18-234" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-235"><a href="#cb18-235" aria-hidden="true" tabindex="-1"></a>The count is zero. One edge changes the identifying conclusion: under this graph the observed NHEFS variables are not enough to identify the effect, and no adjustment set exists. The data are the same as in the previous section, and the 3.29 kg is still computable, but nothing in this graph justifies reading it as a causal effect. This is why the graph has to come before the estimator.</span>
+<span id="cb18-217"><a href="#cb18-217" aria-hidden="true" tabindex="-1"></a>Now encode a different assumption: quitting and later weight change share an unobserved common cause even after conditioning on the measured baseline variables. In an ADMG this is a bidirected edge, <span class="in">`qsmk &lt;-&gt; wt82_71`</span>. We rebuild the same graph with that one edge added and count the sufficient adjustment sets it admits.</span>
+<span id="cb18-218"><a href="#cb18-218" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-221"><a href="#cb18-221" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb18-222"><a href="#cb18-222" aria-hidden="true" tabindex="-1"></a>build_sensitivity_graph <span class="ot">&lt;-</span> <span class="cf">function</span>(baseline) {</span>
+<span id="cb18-223"><a href="#cb18-223" aria-hidden="true" tabindex="-1"></a>  edges_X_to_A <span class="ot">&lt;-</span> <span class="fu">paste0</span>(baseline, <span class="st">" -&gt; qsmk"</span>)</span>
+<span id="cb18-224"><a href="#cb18-224" aria-hidden="true" tabindex="-1"></a>  edges_X_to_Y <span class="ot">&lt;-</span> <span class="fu">paste0</span>(baseline, <span class="st">" -&gt; wt82_71"</span>)</span>
+<span id="cb18-225"><a href="#cb18-225" aria-hidden="true" tabindex="-1"></a>  body <span class="ot">&lt;-</span> <span class="fu">paste</span>(<span class="fu">c</span>(edges_X_to_A, edges_X_to_Y,</span>
+<span id="cb18-226"><a href="#cb18-226" aria-hidden="true" tabindex="-1"></a>                  <span class="st">"qsmk -&gt; wt82_71"</span>, <span class="st">"qsmk &lt;-&gt; wt82_71"</span>),</span>
+<span id="cb18-227"><a href="#cb18-227" aria-hidden="true" tabindex="-1"></a>                <span class="at">collapse =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">  "</span>)</span>
+<span id="cb18-228"><a href="#cb18-228" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dagitty</span>(<span class="fu">paste0</span>(<span class="st">"dag {</span><span class="sc">\n</span><span class="st">  "</span>, body, <span class="st">"</span><span class="sc">\n</span><span class="st">}"</span>))</span>
+<span id="cb18-229"><a href="#cb18-229" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-230"><a href="#cb18-230" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-231"><a href="#cb18-231" aria-hidden="true" tabindex="-1"></a>sensitivity_graph <span class="ot">&lt;-</span> <span class="fu">build_sensitivity_graph</span>(baseline_vars)</span>
+<span id="cb18-232"><a href="#cb18-232" aria-hidden="true" tabindex="-1"></a>sens_adj <span class="ot">&lt;-</span> <span class="fu">adjustmentSets</span>(sensitivity_graph, <span class="at">exposure =</span> <span class="st">"qsmk"</span>,</span>
+<span id="cb18-233"><a href="#cb18-233" aria-hidden="true" tabindex="-1"></a>                           <span class="at">outcome =</span> <span class="st">"wt82_71"</span>, <span class="at">type =</span> <span class="st">"minimal"</span>)</span>
+<span id="cb18-234"><a href="#cb18-234" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Number of sufficient adjustment sets:"</span>, <span class="fu">length</span>(sens_adj), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb18-235"><a href="#cb18-235" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
 <span id="cb18-236"><a href="#cb18-236" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-237"><a href="#cb18-237" aria-hidden="true" tabindex="-1"></a><span class="fu">## Structured Baseline Graph</span></span>
+<span id="cb18-237"><a href="#cb18-237" aria-hidden="true" tabindex="-1"></a>The count is zero. One edge changes the identifying conclusion: under this graph the observed NHEFS variables are not enough to identify the effect, and no adjustment set exists. The data are the same as in the previous section, and the 3.29 kg is still computable, but nothing in this graph justifies reading it as a causal effect. This is why the graph has to come before the estimator.</span>
 <span id="cb18-238"><a href="#cb18-238" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-239"><a href="#cb18-239" aria-hidden="true" tabindex="-1"></a>The simple adjustment graph is often the clearest starting point. A more detailed DAG can record baseline ordering: demographics may precede education, smoking history, activity, and baseline weight; those variables may then affect quitting and later weight change. We write that graph out, ask for its minimal adjustment set, and check whether the set equals the full baseline we used before.</span>
+<span id="cb18-239"><a href="#cb18-239" aria-hidden="true" tabindex="-1"></a><span class="fu">## Structured Baseline Graph</span></span>
 <span id="cb18-240"><a href="#cb18-240" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-243"><a href="#cb18-243" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb18-244"><a href="#cb18-244" aria-hidden="true" tabindex="-1"></a>structured_graph <span class="ot">&lt;-</span> <span class="fu">dagitty</span>(<span class="st">"dag {</span></span>
-<span id="cb18-245"><a href="#cb18-245" aria-hidden="true" tabindex="-1"></a><span class="st">  age -&gt; school</span></span>
-<span id="cb18-246"><a href="#cb18-246" aria-hidden="true" tabindex="-1"></a><span class="st">  age -&gt; smokeyrs</span></span>
-<span id="cb18-247"><a href="#cb18-247" aria-hidden="true" tabindex="-1"></a><span class="st">  age -&gt; wt71</span></span>
-<span id="cb18-248"><a href="#cb18-248" aria-hidden="true" tabindex="-1"></a><span class="st">  age -&gt; active</span></span>
-<span id="cb18-249"><a href="#cb18-249" aria-hidden="true" tabindex="-1"></a><span class="st">  age -&gt; exercise</span></span>
-<span id="cb18-250"><a href="#cb18-250" aria-hidden="true" tabindex="-1"></a><span class="st">  age -&gt; qsmk</span></span>
-<span id="cb18-251"><a href="#cb18-251" aria-hidden="true" tabindex="-1"></a><span class="st">  age -&gt; wt82_71</span></span>
-<span id="cb18-252"><a href="#cb18-252" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-253"><a href="#cb18-253" aria-hidden="true" tabindex="-1"></a><span class="st">  sex -&gt; smokeintensity</span></span>
-<span id="cb18-254"><a href="#cb18-254" aria-hidden="true" tabindex="-1"></a><span class="st">  sex -&gt; smokeyrs</span></span>
-<span id="cb18-255"><a href="#cb18-255" aria-hidden="true" tabindex="-1"></a><span class="st">  sex -&gt; wt71</span></span>
-<span id="cb18-256"><a href="#cb18-256" aria-hidden="true" tabindex="-1"></a><span class="st">  sex -&gt; qsmk</span></span>
-<span id="cb18-257"><a href="#cb18-257" aria-hidden="true" tabindex="-1"></a><span class="st">  sex -&gt; wt82_71</span></span>
-<span id="cb18-258"><a href="#cb18-258" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-259"><a href="#cb18-259" aria-hidden="true" tabindex="-1"></a><span class="st">  race -&gt; school</span></span>
-<span id="cb18-260"><a href="#cb18-260" aria-hidden="true" tabindex="-1"></a><span class="st">  race -&gt; smokeintensity</span></span>
-<span id="cb18-261"><a href="#cb18-261" aria-hidden="true" tabindex="-1"></a><span class="st">  race -&gt; qsmk</span></span>
-<span id="cb18-262"><a href="#cb18-262" aria-hidden="true" tabindex="-1"></a><span class="st">  race -&gt; wt82_71</span></span>
-<span id="cb18-263"><a href="#cb18-263" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-264"><a href="#cb18-264" aria-hidden="true" tabindex="-1"></a><span class="st">  school -&gt; smokeintensity</span></span>
-<span id="cb18-265"><a href="#cb18-265" aria-hidden="true" tabindex="-1"></a><span class="st">  school -&gt; qsmk</span></span>
-<span id="cb18-266"><a href="#cb18-266" aria-hidden="true" tabindex="-1"></a><span class="st">  school -&gt; wt82_71</span></span>
-<span id="cb18-267"><a href="#cb18-267" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-268"><a href="#cb18-268" aria-hidden="true" tabindex="-1"></a><span class="st">  smokeyrs -&gt; smokeintensity</span></span>
-<span id="cb18-269"><a href="#cb18-269" aria-hidden="true" tabindex="-1"></a><span class="st">  smokeyrs -&gt; qsmk</span></span>
-<span id="cb18-270"><a href="#cb18-270" aria-hidden="true" tabindex="-1"></a><span class="st">  smokeyrs -&gt; wt82_71</span></span>
-<span id="cb18-271"><a href="#cb18-271" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-272"><a href="#cb18-272" aria-hidden="true" tabindex="-1"></a><span class="st">  smokeintensity -&gt; qsmk</span></span>
-<span id="cb18-273"><a href="#cb18-273" aria-hidden="true" tabindex="-1"></a><span class="st">  smokeintensity -&gt; wt82_71</span></span>
-<span id="cb18-274"><a href="#cb18-274" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-275"><a href="#cb18-275" aria-hidden="true" tabindex="-1"></a><span class="st">  exercise -&gt; wt71</span></span>
-<span id="cb18-276"><a href="#cb18-276" aria-hidden="true" tabindex="-1"></a><span class="st">  exercise -&gt; qsmk</span></span>
-<span id="cb18-277"><a href="#cb18-277" aria-hidden="true" tabindex="-1"></a><span class="st">  exercise -&gt; wt82_71</span></span>
-<span id="cb18-278"><a href="#cb18-278" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-279"><a href="#cb18-279" aria-hidden="true" tabindex="-1"></a><span class="st">  active -&gt; wt71</span></span>
-<span id="cb18-280"><a href="#cb18-280" aria-hidden="true" tabindex="-1"></a><span class="st">  active -&gt; qsmk</span></span>
-<span id="cb18-281"><a href="#cb18-281" aria-hidden="true" tabindex="-1"></a><span class="st">  active -&gt; wt82_71</span></span>
-<span id="cb18-282"><a href="#cb18-282" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-283"><a href="#cb18-283" aria-hidden="true" tabindex="-1"></a><span class="st">  wt71 -&gt; qsmk</span></span>
-<span id="cb18-284"><a href="#cb18-284" aria-hidden="true" tabindex="-1"></a><span class="st">  wt71 -&gt; wt82_71</span></span>
-<span id="cb18-285"><a href="#cb18-285" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-286"><a href="#cb18-286" aria-hidden="true" tabindex="-1"></a><span class="st">  qsmk -&gt; wt82_71</span></span>
-<span id="cb18-287"><a href="#cb18-287" aria-hidden="true" tabindex="-1"></a><span class="st">}"</span>)</span>
-<span id="cb18-288"><a href="#cb18-288" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-289"><a href="#cb18-289" aria-hidden="true" tabindex="-1"></a>struct_adj <span class="ot">&lt;-</span> <span class="fu">adjustmentSets</span>(structured_graph, <span class="at">exposure =</span> <span class="st">"qsmk"</span>,</span>
-<span id="cb18-290"><a href="#cb18-290" aria-hidden="true" tabindex="-1"></a>                             <span class="at">outcome =</span> <span class="st">"wt82_71"</span>, <span class="at">type =</span> <span class="st">"minimal"</span>)</span>
-<span id="cb18-291"><a href="#cb18-291" aria-hidden="true" tabindex="-1"></a>struct_adj</span>
-<span id="cb18-292"><a href="#cb18-292" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
-<span id="cb18-293"><a href="#cb18-293" aria-hidden="true" tabindex="-1"></a>  <span class="at">matches_full_baseline =</span> <span class="fu">setequal</span>(<span class="fu">unlist</span>(struct_adj[[<span class="dv">1</span>]]), baseline_vars)</span>
-<span id="cb18-294"><a href="#cb18-294" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span> <span class="fu">kable</span>()</span>
-<span id="cb18-295"><a href="#cb18-295" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb18-296"><a href="#cb18-296" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-297"><a href="#cb18-297" aria-hidden="true" tabindex="-1"></a>The check returns <span class="in">`TRUE`</span>, and the reason is worth spelling out, because it is</span>
-<span id="cb18-298"><a href="#cb18-298" aria-hidden="true" tabindex="-1"></a>not an accident of this data set. Every arrow we added runs between baseline</span>
-<span id="cb18-299"><a href="#cb18-299" aria-hidden="true" tabindex="-1"></a>variables, and every baseline variable is pre-treatment and in the adjustment</span>
-<span id="cb18-300"><a href="#cb18-300" aria-hidden="true" tabindex="-1"></a>set. A back-door path from <span class="in">`qsmk`</span> to <span class="in">`wt82_71`</span> has to leave <span class="in">`qsmk`</span> through an</span>
-<span id="cb18-301"><a href="#cb18-301" aria-hidden="true" tabindex="-1"></a>incoming arrow, travel among the baseline variables, and then enter <span class="in">`wt82_71`</span></span>
-<span id="cb18-302"><a href="#cb18-302" aria-hidden="true" tabindex="-1"></a>from one of them. That last baseline variable has an arrow pointing into the</span>
-<span id="cb18-303"><a href="#cb18-303" aria-hidden="true" tabindex="-1"></a>outcome, so on this path it is a non-collider, and we are conditioning on it.</span>
-<span id="cb18-304"><a href="#cb18-304" aria-hidden="true" tabindex="-1"></a>The path is blocked whatever the arrows upstream of it look like. The minimal</span>
-<span id="cb18-305"><a href="#cb18-305" aria-hidden="true" tabindex="-1"></a>sufficient set is therefore still the full baseline, the identifying functional</span>
-<span id="cb18-306"><a href="#cb18-306" aria-hidden="true" tabindex="-1"></a>is unchanged, and the estimate is still 3.29 kg.</span>
-<span id="cb18-307"><a href="#cb18-307" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-308"><a href="#cb18-308" aria-hidden="true" tabindex="-1"></a>That does not make the detail useless. It records what we believe about the</span>
-<span id="cb18-309"><a href="#cb18-309" aria-hidden="true" tabindex="-1"></a>baseline ordering, which a reader may want to see. But each arrow is a causal</span>
-<span id="cb18-310"><a href="#cb18-310" aria-hidden="true" tabindex="-1"></a>assumption that can be wrong, and here none of them is needed to identify this estimand. The grouped adjustment graph asserts less and identifies the same</span>
-<span id="cb18-311"><a href="#cb18-311" aria-hidden="true" tabindex="-1"></a>thing.</span>
-<span id="cb18-312"><a href="#cb18-312" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-313"><a href="#cb18-313" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb18-241"><a href="#cb18-241" aria-hidden="true" tabindex="-1"></a>The simple adjustment graph is often the clearest starting point. A more detailed DAG can record baseline ordering: demographics may precede education, smoking history, activity, and baseline weight; those variables may then affect quitting and later weight change. We write that graph out, ask for its minimal adjustment set, and check whether the set equals the full baseline we used before.</span>
+<span id="cb18-242"><a href="#cb18-242" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-245"><a href="#cb18-245" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb18-246"><a href="#cb18-246" aria-hidden="true" tabindex="-1"></a>structured_graph <span class="ot">&lt;-</span> <span class="fu">dagitty</span>(<span class="st">"dag {</span></span>
+<span id="cb18-247"><a href="#cb18-247" aria-hidden="true" tabindex="-1"></a><span class="st">  age -&gt; school</span></span>
+<span id="cb18-248"><a href="#cb18-248" aria-hidden="true" tabindex="-1"></a><span class="st">  age -&gt; smokeyrs</span></span>
+<span id="cb18-249"><a href="#cb18-249" aria-hidden="true" tabindex="-1"></a><span class="st">  age -&gt; wt71</span></span>
+<span id="cb18-250"><a href="#cb18-250" aria-hidden="true" tabindex="-1"></a><span class="st">  age -&gt; active</span></span>
+<span id="cb18-251"><a href="#cb18-251" aria-hidden="true" tabindex="-1"></a><span class="st">  age -&gt; exercise</span></span>
+<span id="cb18-252"><a href="#cb18-252" aria-hidden="true" tabindex="-1"></a><span class="st">  age -&gt; qsmk</span></span>
+<span id="cb18-253"><a href="#cb18-253" aria-hidden="true" tabindex="-1"></a><span class="st">  age -&gt; wt82_71</span></span>
+<span id="cb18-254"><a href="#cb18-254" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-255"><a href="#cb18-255" aria-hidden="true" tabindex="-1"></a><span class="st">  sex -&gt; smokeintensity</span></span>
+<span id="cb18-256"><a href="#cb18-256" aria-hidden="true" tabindex="-1"></a><span class="st">  sex -&gt; smokeyrs</span></span>
+<span id="cb18-257"><a href="#cb18-257" aria-hidden="true" tabindex="-1"></a><span class="st">  sex -&gt; wt71</span></span>
+<span id="cb18-258"><a href="#cb18-258" aria-hidden="true" tabindex="-1"></a><span class="st">  sex -&gt; qsmk</span></span>
+<span id="cb18-259"><a href="#cb18-259" aria-hidden="true" tabindex="-1"></a><span class="st">  sex -&gt; wt82_71</span></span>
+<span id="cb18-260"><a href="#cb18-260" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-261"><a href="#cb18-261" aria-hidden="true" tabindex="-1"></a><span class="st">  race -&gt; school</span></span>
+<span id="cb18-262"><a href="#cb18-262" aria-hidden="true" tabindex="-1"></a><span class="st">  race -&gt; smokeintensity</span></span>
+<span id="cb18-263"><a href="#cb18-263" aria-hidden="true" tabindex="-1"></a><span class="st">  race -&gt; qsmk</span></span>
+<span id="cb18-264"><a href="#cb18-264" aria-hidden="true" tabindex="-1"></a><span class="st">  race -&gt; wt82_71</span></span>
+<span id="cb18-265"><a href="#cb18-265" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-266"><a href="#cb18-266" aria-hidden="true" tabindex="-1"></a><span class="st">  school -&gt; smokeintensity</span></span>
+<span id="cb18-267"><a href="#cb18-267" aria-hidden="true" tabindex="-1"></a><span class="st">  school -&gt; qsmk</span></span>
+<span id="cb18-268"><a href="#cb18-268" aria-hidden="true" tabindex="-1"></a><span class="st">  school -&gt; wt82_71</span></span>
+<span id="cb18-269"><a href="#cb18-269" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-270"><a href="#cb18-270" aria-hidden="true" tabindex="-1"></a><span class="st">  smokeyrs -&gt; smokeintensity</span></span>
+<span id="cb18-271"><a href="#cb18-271" aria-hidden="true" tabindex="-1"></a><span class="st">  smokeyrs -&gt; qsmk</span></span>
+<span id="cb18-272"><a href="#cb18-272" aria-hidden="true" tabindex="-1"></a><span class="st">  smokeyrs -&gt; wt82_71</span></span>
+<span id="cb18-273"><a href="#cb18-273" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-274"><a href="#cb18-274" aria-hidden="true" tabindex="-1"></a><span class="st">  smokeintensity -&gt; qsmk</span></span>
+<span id="cb18-275"><a href="#cb18-275" aria-hidden="true" tabindex="-1"></a><span class="st">  smokeintensity -&gt; wt82_71</span></span>
+<span id="cb18-276"><a href="#cb18-276" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-277"><a href="#cb18-277" aria-hidden="true" tabindex="-1"></a><span class="st">  exercise -&gt; wt71</span></span>
+<span id="cb18-278"><a href="#cb18-278" aria-hidden="true" tabindex="-1"></a><span class="st">  exercise -&gt; qsmk</span></span>
+<span id="cb18-279"><a href="#cb18-279" aria-hidden="true" tabindex="-1"></a><span class="st">  exercise -&gt; wt82_71</span></span>
+<span id="cb18-280"><a href="#cb18-280" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-281"><a href="#cb18-281" aria-hidden="true" tabindex="-1"></a><span class="st">  active -&gt; wt71</span></span>
+<span id="cb18-282"><a href="#cb18-282" aria-hidden="true" tabindex="-1"></a><span class="st">  active -&gt; qsmk</span></span>
+<span id="cb18-283"><a href="#cb18-283" aria-hidden="true" tabindex="-1"></a><span class="st">  active -&gt; wt82_71</span></span>
+<span id="cb18-284"><a href="#cb18-284" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-285"><a href="#cb18-285" aria-hidden="true" tabindex="-1"></a><span class="st">  wt71 -&gt; qsmk</span></span>
+<span id="cb18-286"><a href="#cb18-286" aria-hidden="true" tabindex="-1"></a><span class="st">  wt71 -&gt; wt82_71</span></span>
+<span id="cb18-287"><a href="#cb18-287" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-288"><a href="#cb18-288" aria-hidden="true" tabindex="-1"></a><span class="st">  qsmk -&gt; wt82_71</span></span>
+<span id="cb18-289"><a href="#cb18-289" aria-hidden="true" tabindex="-1"></a><span class="st">}"</span>)</span>
+<span id="cb18-290"><a href="#cb18-290" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-291"><a href="#cb18-291" aria-hidden="true" tabindex="-1"></a>struct_adj <span class="ot">&lt;-</span> <span class="fu">adjustmentSets</span>(structured_graph, <span class="at">exposure =</span> <span class="st">"qsmk"</span>,</span>
+<span id="cb18-292"><a href="#cb18-292" aria-hidden="true" tabindex="-1"></a>                             <span class="at">outcome =</span> <span class="st">"wt82_71"</span>, <span class="at">type =</span> <span class="st">"minimal"</span>)</span>
+<span id="cb18-293"><a href="#cb18-293" aria-hidden="true" tabindex="-1"></a>struct_adj</span>
+<span id="cb18-294"><a href="#cb18-294" aria-hidden="true" tabindex="-1"></a><span class="fu">data.frame</span>(</span>
+<span id="cb18-295"><a href="#cb18-295" aria-hidden="true" tabindex="-1"></a>  <span class="at">matches_full_baseline =</span> <span class="fu">setequal</span>(<span class="fu">unlist</span>(struct_adj[[<span class="dv">1</span>]]), baseline_vars)</span>
+<span id="cb18-296"><a href="#cb18-296" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span> <span class="fu">kable</span>()</span>
+<span id="cb18-297"><a href="#cb18-297" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb18-298"><a href="#cb18-298" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-299"><a href="#cb18-299" aria-hidden="true" tabindex="-1"></a>The check returns <span class="in">`TRUE`</span>, and the reason is worth spelling out, because it is</span>
+<span id="cb18-300"><a href="#cb18-300" aria-hidden="true" tabindex="-1"></a>not an accident of this data set. Every arrow we added runs between baseline</span>
+<span id="cb18-301"><a href="#cb18-301" aria-hidden="true" tabindex="-1"></a>variables, and every baseline variable is pre-treatment and in the adjustment</span>
+<span id="cb18-302"><a href="#cb18-302" aria-hidden="true" tabindex="-1"></a>set. A back-door path from <span class="in">`qsmk`</span> to <span class="in">`wt82_71`</span> has to leave <span class="in">`qsmk`</span> through an</span>
+<span id="cb18-303"><a href="#cb18-303" aria-hidden="true" tabindex="-1"></a>incoming arrow, travel among the baseline variables, and then enter <span class="in">`wt82_71`</span></span>
+<span id="cb18-304"><a href="#cb18-304" aria-hidden="true" tabindex="-1"></a>from one of them. That last baseline variable has an arrow pointing into the</span>
+<span id="cb18-305"><a href="#cb18-305" aria-hidden="true" tabindex="-1"></a>outcome, so on this path it is a non-collider, and we are conditioning on it.</span>
+<span id="cb18-306"><a href="#cb18-306" aria-hidden="true" tabindex="-1"></a>The path is blocked whatever the arrows upstream of it look like. The minimal</span>
+<span id="cb18-307"><a href="#cb18-307" aria-hidden="true" tabindex="-1"></a>sufficient set is therefore still the full baseline, the identifying functional</span>
+<span id="cb18-308"><a href="#cb18-308" aria-hidden="true" tabindex="-1"></a>is unchanged, and the estimate is still 3.29 kg.</span>
+<span id="cb18-309"><a href="#cb18-309" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-310"><a href="#cb18-310" aria-hidden="true" tabindex="-1"></a>That does not make the detail useless. It records what we believe about the</span>
+<span id="cb18-311"><a href="#cb18-311" aria-hidden="true" tabindex="-1"></a>baseline ordering, which a reader may want to see. But each arrow is a causal</span>
+<span id="cb18-312"><a href="#cb18-312" aria-hidden="true" tabindex="-1"></a>assumption that can be wrong, and here none of them is needed to identify this estimand. The grouped adjustment graph asserts less and identifies the same</span>
+<span id="cb18-313"><a href="#cb18-313" aria-hidden="true" tabindex="-1"></a>thing.</span>
 <span id="cb18-314"><a href="#cb18-314" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-315"><a href="#cb18-315" aria-hidden="true" tabindex="-1"></a>We apply the graph-first workflow to the NHEFS question of how quitting smoking affects weight change from 1971 to 1982. The adjustment DAG lets the nine baseline covariates affect both quitting and weight change, and allows no unmeasured common cause beyond them. <span class="in">`dagitty`</span> returns the full baseline as the adjustment set. AIPW on that set gives an effect of 3.29 kg, with a standard error of 0.50.</span>
+<span id="cb18-315"><a href="#cb18-315" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
 <span id="cb18-316"><a href="#cb18-316" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-317"><a href="#cb18-317" aria-hidden="true" tabindex="-1"></a>The causal reading rests on the graph. Adding one bidirected edge between quitting and weight change leaves no valid adjustment set. The number can still be computed, but nothing then justifies reading it as an effect. A more detailed ordering among the baseline variables changes nothing here, because every backdoor path ends at a baseline variable we condition on.</span>
+<span id="cb18-317"><a href="#cb18-317" aria-hidden="true" tabindex="-1"></a>We apply the graph-first workflow to the NHEFS question of how quitting smoking affects weight change from 1971 to 1982. The adjustment DAG lets the nine baseline covariates affect both quitting and weight change, and allows no unmeasured common cause beyond them. <span class="in">`dagitty`</span> returns the full baseline as the adjustment set. AIPW on that set gives an effect of 3.29 kg, with a standard error of 0.50.</span>
+<span id="cb18-318"><a href="#cb18-318" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-319"><a href="#cb18-319" aria-hidden="true" tabindex="-1"></a>The causal reading rests on the graph. Adding one bidirected edge between quitting and weight change leaves no valid adjustment set. The number can still be computed, but nothing then justifies reading it as an effect. A more detailed ordering among the baseline variables changes nothing here, because every backdoor path ends at a baseline variable we condition on.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

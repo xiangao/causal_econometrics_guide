@@ -18,8 +18,8 @@ library(bcf)
 The earlier chapters mostly compute point estimates and standard errors.
 Bayesian methods instead put priors on unknown quantities and return a
 posterior distribution. For causal inference this is useful when we want
-uncertainty about a function of the model, such as an individual treatment
-effect or a policy value, not just one coefficient.
+uncertainty about a function of the model, such as a conditional average
+treatment effect or a policy value, not just one coefficient.
 
 I use two models:
 
@@ -39,15 +39,22 @@ I use two models:
 We reuse the simulation from the [Heterogeneous Treatment Effects](heterogeneous-effects.qmd)
 chapter, at $n = 2000$ rather than 5000. Five covariates are drawn
 independently from $U(0,1)$. Treatment is
-$D \sim \text{Bernoulli}(\Lambda(-0.3 + 1.5X_2))$, the individual effect is
+$D \sim \text{Bernoulli}(\Lambda(-0.3 + 1.5X_2))$, the conditional average effect is
 $\tau(x) = 1 + 2x_1$, and the potential outcomes are
 $Y(0) = 0.5X_2 + \varepsilon$ with $\varepsilon \sim N(0,1)$ and
 $Y(1) = Y(0) + \tau(X)$. Only $X_1$ modifies the effect, only $X_2$ confounds,
 and $X_2$ is observed, so both models below are identified.
 
+Both potential outcomes share the residual $\varepsilon$, so every unit's
+individual effect $Y_i(1) - Y_i(0)$ equals $\tau(X_i)$. That equality is a feature of
+this simulation. In general $\mu(1,x) - \mu(0,x)$ is the conditional average effect
+$E[Y(1) - Y(0) \mid X = x]$, and the data, which show one potential outcome per
+person, do not identify the individual effect without a model for how the two
+potential outcomes are related.
+
 The aim is to see what a posterior adds over a point estimate: an interval for
-the ATE that requires no asymptotic argument, and an interval for every
-individual effect.
+the ATE, and an interval for the conditional average effect at every covariate
+profile.
 
 ```{r}
 #| label: dgp
@@ -85,8 +92,8 @@ For causal inference, the recipe is:
 
 1. Fit BART for $\mu(d,x)=\mathbb{E}[Y \mid D=d,X=x]$.
 2. For each unit $i$, predict counterfactuals $\mu(1, x_i)$ and $\mu(0, x_i)$.
-3. The individual treatment effect (ITE) is $\hat\tau_i = \mu(1, x_i) - \mu(0, x_i)$.
-4. Average the posterior draws to get the posterior for ATE or ITEs.
+3. The conditional average effect at unit $i$'s covariates is $\hat\tau_i = \mu(1, x_i) - \mu(0, x_i)$.
+4. Average $\hat\tau_i$ over units within each draw for the ATE; keep the draws of $\hat\tau_i$ for the CATE posterior.
 
 We run 1000 posterior draws after 200 burn-in, with $D$ and the five covariates
 as the design matrix. Each draw gives an ATE, and the spread across draws is
@@ -115,8 +122,8 @@ X_control <- cbind(D = rep(0, n), X)
 mu1_post <- predict(bart_fit, newdata = X_treat)   # 1000 x n posterior draws
 mu0_post <- predict(bart_fit, newdata = X_control)
 
-# Posterior of individual treatment effects
-tau_post <- mu1_post - mu0_post   # 1000 x n posterior draws of ITEs
+# Posterior of the CATE at each unit's covariates
+tau_post <- mu1_post - mu0_post   # 1000 x n posterior draws of tau(x_i)
 
 # Posterior summaries
 tau_mean <- rowMeans(tau_post)    # ATE in each draw
@@ -136,7 +143,7 @@ The posterior mean is 1.977 with a posterior standard deviation of 0.048 and a
 posterior draws give the uncertainty directly: no asymptotic variance formula
 and no bootstrap, just the spread of the 1000 draws.
 
-### Individual-level credible intervals
+### Credible intervals for the CATE
 
 BART also gives a posterior for each unit's treatment effect. Here I plot
 the posterior mean and pointwise credible intervals against the true
@@ -145,7 +152,7 @@ $\tau_i$.
 ```{r}
 #| label: bart-ite
 #| cache: true
-#| fig-cap: "BART-estimated individual treatment effects (mean of posterior) vs true τ(x) = 1 + 2 X₁. Shaded band shows pointwise 95% credible intervals."
+#| fig-cap: "BART posterior mean of the conditional average effect at each unit's covariates vs true τ(x) = 1 + 2 X₁. Shaded band shows pointwise 95% credible intervals."
 #| fig-width: 8
 #| fig-height: 5
 
@@ -167,15 +174,18 @@ ggplot(df_ite, aes(x = X1)) +
   geom_point(aes(y = est), size = 0.4, alpha = 0.3, colour = "steelblue") +
   geom_abline(aes(intercept = 1, slope = 2), colour = "firebrick",
               linetype = "dashed", linewidth = 1) +
-  labs(x = "X1", y = "Individual treatment effect",
+  labs(x = "X1", y = "Conditional average treatment effect",
        caption = "Red dashed = true τ(x). Blue band = pointwise 95% credible interval.") +
   theme_minimal()
 ```
 
 The blue points are posterior means, the blue ribbon is the pointwise 95%
-credible interval, and the red dashed line is the true $\tau(x) = 1+2x_1$. This
-is what a frequentist CATE estimator does not hand you for free: an interval
-for each individual, not only for the average.
+credible interval, and the red dashed line is the true $\tau(x) = 1+2x_1$. Each
+interval is posterior uncertainty about the conditional average effect at that
+covariate profile, given the BART likelihood and prior. Frequentist CATE
+estimators also give pointwise intervals; the causal forest in the
+[heterogeneous effects](heterogeneous-effects.qmd) chapter is one. The two rest
+on different assumptions, a prior and likelihood here, asymptotic theory there.
 
 ## Bayesian Causal Forests (BCF)
 
@@ -274,16 +284,16 @@ of the ATE. That is expected: the separation prior is aimed at the
 treatment-effect *function*, and averaging over units washes out most of what
 it does.
 
-### BART vs BCF: individual treatment effects
+### BART vs BCF: conditional average effects
 
-The difference, if there is one, should appear in the individual effects. Each
-panel plots the posterior-mean ITE against $X_1$, with a loess fit and the true
+The difference, if there is one, should appear in the conditional effects. Each
+panel plots the posterior-mean $\hat\tau_i$ against $X_1$, with a loess fit and the true
 $\tau(x)$ as the dashed red line.
 
 ```{r}
 #| label: compare-ite
 #| cache: true
-#| fig-cap: "BCF (left) vs BART (right) posterior-mean individual treatment effects against the true τ(x) = 1 + 2 X₁."
+#| fig-cap: "BCF (left) vs BART (right) posterior-mean conditional average effects against the true τ(x) = 1 + 2 X₁."
 #| fig-width: 9
 #| fig-height: 4
 
@@ -299,7 +309,7 @@ ggplot(df_compare, aes(X1, est)) +
   geom_abline(intercept = 1, slope = 2, linetype = "dashed",
               colour = "firebrick") +
   facet_wrap(~ method) +
-  labs(x = "X1", y = "Estimated ITE",
+  labs(x = "X1", y = "Estimated CATE",
        caption = "Red dashed = truth = 1 + 2 X1") +
   theme_minimal()
 ```
@@ -325,10 +335,10 @@ makes the posterior stable across renders.
 | Need full posterior (e.g. for downstream decisions) | Computational cost matters (BART is slow on large $n$) |
 | Hierarchical / multilevel data structure | Effects are simple averages |
 | Small sample, weak identification | Effects are well-identified |
-| Want individual-level credible intervals | Existing frequentist toolkit is sufficient |
+| Want posterior intervals for conditional effects | Existing frequentist toolkit is sufficient |
 
 Bayesian methods are most useful when the posterior itself will be used:
-for individual treatment decisions, policy values, or hierarchical models.
+for treatment decisions by covariate profile, policy values, or hierarchical models.
 If the target is just a well-identified ATE in a large sample, the
 frequentist methods in earlier chapters are often simpler.
 
@@ -365,7 +375,8 @@ frequentist methods in earlier chapters are often simpler.
 - BART estimates counterfactual outcomes by fitting a flexible outcome model.
 - BCF separates baseline outcome prediction from treatment-effect
   heterogeneity.
-- The main output is the posterior, especially for individual effects or
-  policy decisions.
+- The main output is the posterior, especially for conditional average effects
+  or policy decisions. An individual-effect reading needs a model linking the two
+  potential outcomes.
 - Computation is the main cost. For very large data, frequentist HTE methods
   are usually easier.

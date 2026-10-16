@@ -80,9 +80,10 @@ cat(sprintf("True CATE at X1 = 0.8: %.2f\n", 1 + 2 * 0.8))
 
 The realized ATE in this draw is 2.006 against a population value of 2, and the
 true CATE runs from 1.40 at $X_1 = 0.2$ to 2.60 at $X_1 = 0.8$. Because $X_2$ is
-observed and every estimator below conditions on it, unconfoundedness holds and
-all of them are consistent for the true CATE and ATE. Any differences we see
-are finite-sample behaviour, not bias from a missing variable.
+observed and every estimator below conditions on it, unconfoundedness and overlap
+identify the CATE and the ATE. Whether a fitted learner gets close also depends on
+the learner, its tuning and the sample size. Differences below come from those,
+not from a missing variable.
 
 ## Meta-learners
 
@@ -356,9 +357,12 @@ ggplot(comparison, aes(x = X1, y = Predicted)) +
 All six recover the upward slope. Ranked by correlation with the truth, the
 X-learner (0.984) and the causal forest (0.983) come first, the S- and
 T-learners next (0.970 and 0.968), and the R- and DR-learners last (0.930 and
-0.931). All six are consistent here, so this ranking is about finite-sample
-noise. It would change under a DGP where the nuisance models are misspecified,
-which is the case the doubly-robust constructions are built for.
+0.931). Correlation measures how well a learner ranks units. It does not check
+magnitudes: an estimate equal to twice the true CATE has correlation one. For
+the size of the effects we would also report the error against the truth on
+independent data, the bias of the implied ATE, and calibration. The ranking could
+change under a DGP where the nuisance models are misspecified, which is the case
+the doubly-robust constructions are built for.
 
 ## Best linear projection (BLP)
 
@@ -481,7 +485,10 @@ The first split is on $X_5$, which is not an effect modifier at all --- only
 $X_1$ is --- and $X_1$ then appears in both branches, at $0.394$ and $0.626$. So
 the fitted rule makes the treatment threshold depend on a noise covariate. That
 is overfitting, and it is visible here only because the rule was learned on one
-half of the sample and valued on the other. On the held-out half it treats 42.8%
+half of the sample and valued on the other. The split is not a fully independent
+test. The forest and the scores $\Gamma$ were fitted on all rows before the split;
+the scores are out-of-bag, which limits the reuse but does not remove it. A
+clean evaluation splits before fitting the forest. On the held-out half it treats 42.8%
 of units against an optimal 49.7%.
 
 The held-out value is $0.475$ against $0.262$ for treating everyone: a gain of
@@ -684,9 +691,12 @@ cat(sprintf("Within-transform CF ATE: %.3f  (SE = %.3f)\n",
             ate_fe["estimate"], ate_fe["std.err"]))
 ```
 
-The within transform gives 0.577 with a standard error of 0.103, against a true
-0.566. Sweeping out the firm means removed the confounding that clustering did
-not touch.
+The within transform gives 0.577 with a standard error of 0.103. Sweeping out
+the firm means removed the additive firm effect, which is the confounder here and
+which clustering did not touch. The estimate sits close to the average effect of
+0.566, but that closeness is a feature of this design. After demeaning, the
+forest targets the weighted within-firm contrast described above, and with
+heterogeneous effects that target need not equal the original ATE.
 
 The clustered, within-transformed causal forest is a heuristic analogue to a
 fixed-effect regression with heterogeneous effects, but it does not target

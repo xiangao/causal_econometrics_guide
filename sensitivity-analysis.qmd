@@ -135,9 +135,12 @@ The summary tells us:
   observed covariates.
 
 For this regression the partial $R^2$ of quitting with weight change is 3.65%.
-The robustness value at $q=1$ is 17.67%: a confounder orthogonal to the
-covariates would have to explain more than 17.67% of the residual variance of
-both quitting and weight change to bring the estimate to zero. To leave it
+The robustness value at $q=1$ is 17.67%. A confounder that explains 17.67% of the
+residual variance of both quitting and weight change, after the measured
+covariates, brings the estimate to zero; one that explains less than that of
+both cannot. It is an equal-strength threshold. A confounder can still explain
+the estimate away with one partial $R^2$ below 17.67% if the other is large
+enough, because the bias depends on their product. To leave it
 merely statistically indistinguishable from zero at the 5% level, 13.47% would
 be enough.
 
@@ -145,8 +148,9 @@ The benchmark rows put those numbers on a scale. Smoking intensity explains
 1.43% of the residual variance of quitting and 0.10% of the residual variance
 of weight change. A confounder three times as strong on both margins would move
 the estimate from 3.381 to 3.182, with a 95% interval of $[2.30, 4.07]$. None
-of the measured covariates comes near the 17.67% that would be needed, so the
-estimate is robust to a confounder resembling the ones we already control for.
+of the measured covariates comes near 17.67% on either margin, and the bounds
+built from them leave the estimate well above zero, so the estimate is robust to a
+confounder resembling the ones we already control for.
 
 The same information is easier to read as a contour plot. The horizontal axis
 is the confounder's partial $R^2$ with the treatment, the vertical axis its
@@ -212,18 +216,20 @@ print(ev)
 
 The E-value reports two numbers:
 
-- **E-value (point estimate)**: an unmeasured confounder would need to be
-  associated with both treatment and outcome by risk ratios of at least
-  this value, above and beyond the measured confounders, to fully explain
-  away the observed effect.
+- **E-value (point estimate)**: an unmeasured confounder associated with both
+  treatment and outcome by risk ratios of this value, above and beyond the
+  measured confounders, could fully explain away the observed effect; one
+  weaker than this on both could not. Like the RV, it is an equal-strength
+  threshold, and a confounder stronger on one association can be weaker on the
+  other.
 - **E-value (confidence interval)**: the minimum strength needed to shift
   the lower confidence bound to 1.
 
 The adjusted risk ratio is 1.218, with a 95% interval of $[1.135, 1.307]$.
 Quitters are about 22% more likely to gain any weight. The E-value for the
-point estimate is 1.73: an unmeasured confounder would need risk-ratio
-associations of at least 1.73 with both quitting and weight gain, beyond the
-nine measured covariates, to account for the whole association. The E-value for
+point estimate is 1.73: an unmeasured confounder with risk-ratio associations
+of 1.73 with both quitting and weight gain, beyond the nine measured covariates,
+could account for the whole association, and one below 1.73 on both could not. The E-value for
 the confidence limit is 1.53, the strength that would push the lower bound to 1.
 
 An E-value much greater than 1 suggests the result is hard to explain by

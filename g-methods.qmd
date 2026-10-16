@@ -88,8 +88,11 @@ outcome is $Y = 0.5A_0 + 0.5A_1 + 0.5L_1 + 0.5L_0 + \varepsilon$ with
 $\varepsilon \sim N(0,1)$.
 
 The truth follows from the coefficients. $A_1$ has a total effect of 0.5.
-$A_0$ has a direct effect of 0.5 plus an indirect effect through $L_1$ of
-$1.0 \times 0.5 = 0.5$, so its total effect is 1.0. Always treating versus
+With $A_1$ held at 0, $A_0$ has a direct effect of 0.5 plus an indirect effect
+through $L_1$ of $1.0 \times 0.5 = 0.5$, so the early-only versus never-treated
+regime contrast is 1.0. Letting $A_1$ respond naturally to $L_1$ would be a
+different intervention, with a larger effect, because $A_0$ then also raises the
+chance of $A_1$. Always treating versus
 never treating is therefore worth $1.0 + 0.5 = 1.5$.
 
 We fit two regressions that a reader might reach for first: one omitting $L_1$
@@ -152,7 +155,13 @@ This is exactly the setting g-methods were designed for.
 
 ## Parametric g-formula
 
-The estimator is Robins's [-@robins-1986-gformula].
+The estimator is Robins's [-@robins-1986-gformula]. It identifies the mean outcome
+under a fixed regime $\bar a$ under three assumptions. Consistency: a unit that
+follows $\bar a$ has outcome $Y(\bar a)$. Sequential exchangeability: at each time
+$t$, $Y(\bar a) \perp A_t \mid \bar A_{t-1} = \bar a_{t-1}, \bar L_t$. Positivity: every
+history that occurs under the regime has a positive probability of receiving the
+next treatment the regime assigns. In the simulation the first two hold by
+construction, since $L_0$ and $L_1$ are the only causes of treatment.
 
 The g-formula writes the mean outcome under a treatment regime as:
 
@@ -325,7 +334,8 @@ cat(sprintf("Untrimmed MSM total effect: %.3f\n",
 ```
 
 In the weighted population, $A_0$ gets 1.108 and $A_1$ gets 0.545, against true
-total effects of 1.0 and 0.5. Note what changed: with $L_1$ in the regression,
+MSM coefficients of 1.0 and 0.5, each the effect of one treatment with the other
+held fixed. Note what changed: with $L_1$ in the regression,
 $A_0$'s coefficient was 0.545, its *direct* effect. Weighting instead of
 conditioning lets $A_0$ keep its effect through $L_1$, and the coefficient
 roughly doubles.

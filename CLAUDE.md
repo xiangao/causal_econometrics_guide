@@ -461,3 +461,30 @@ estimate is 0.170172, so the prose now says 0.1702. Mirrored in the Julia book.
 ## LMTP positivity sentence (2026-10-05)
 
 `continuous-treatments.qmd`: the claim that "a shift of one unit stays inside the observed support" was too strong. Units near the edge of the support or beside a gap are shifted to doses nobody received; the text now says so and points to the feasible-shift fix. Prompted by the incremental-effects chapter added to blog_book the same day.
+
+## Codex expert review fixes (2026-10-16)
+
+Verified against `~/projects/books/report/EXPERT_REVIEW_20261016.qmd`; log in
+`~/projects/books/_review6/VERIFY_20261016.md`. **Code bug:** `causal-discovery.qmd` and
+`causal-discovery-latent.qmd` drew every directed edge backwards — igraph
+`edge.arrow.mode = 1` puts the head at the *source* vertex (checked by rendering A->B).
+Now 2 for directed edges; the PAG helper (pcalg mark at j -> mode 2) was already right.
+Caches cleared and both chapters re-executed: outputs byte-identical, only the figures
+changed, and the PISA prose (written from the adjacency matrix) matches the new figures.
+**Prose:** Bayesian chapter calls mu(1,x)-mu(0,x) the CATE, says the shared residual makes
+ITE=CATE only in the simulation, and drops "frequentist CATE estimators do not give
+intervals"; AIPW `sd(psi)/sqrt(n)` valid when both working models are correct, not because
+they are parametric (estimation, graphs-identification-estimation, NHEFS); birth-weight
+AIPW uses different covariate sets (Stata manual) — stated; heterogeneity: identification
+vs learner consistency, correlation ranks but does not check magnitudes, policy split is
+after the forest fit, demeaned forest's target need not be the ATE; DiD: PT not "weaker"
+than unconfoundedness, level PT actually holds in the Poisson DGP, persistence "bias" is
+relative to delta, not to the total effect delta*sum(rho^j); did-continuous: strong PT
+gives ATT(d|d)=ATE(d), not zero selection per group (3x3 counterexample in the text);
+kernel DR has smoothing bias d^2+h^2 at fixed h; capped weights say nothing about
+support, curves extrapolate past dose 6.39; RV and E-value are equal-strength thresholds;
+RESET checks one implication only; shift-share violation separated into GPSS and BHJ
+readings, LOO not clean after renormalization; mediation adds M(w) indep W | X;
+g-formula assumptions stated, A0 contrast is the early-only vs never regime.
+Not done (new analysis, not fixes): executing the weighted-LATE formula in iv-rdd.
+Full render clean; re-executed chapter outputs identical except BART's timing line.

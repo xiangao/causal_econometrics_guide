@@ -71,7 +71,13 @@ continuing smokers 1.98 kg, a naive difference of 2.55 kg. But quitters and
 continuers differ on many baseline characteristics. We adjust for the standard
 set by OLS --- sex, age, race, education, smoking intensity, years smoked,
 exercise, activity and baseline weight --- and print the first three
-coefficients along with the treatment estimate:
+coefficients along with the treatment estimate. These are the nine covariates of
+the [smoking cessation](smoking-cessation-graphs.qmd) chapter with two
+differences in coding. Education enters as the five-category factor `education`,
+where that chapter used years of schooling, `school`, and the categorical
+variables enter as factors, not as numbers. So the estimates here are not directly
+comparable with the AIPW estimate of 3.29 kg there; part of any difference comes
+from the specification, not the estimator.
 
 ```{r}
 #| label: ols
@@ -184,7 +190,7 @@ risk-ratio scale that an unmeasured confounder would need to have with both
 the treatment and the outcome to fully explain the observed risk ratio.
 
 To illustrate, we dichotomize weight change into any gain versus none, fit the
-risk ratio by Poisson regression with a log link on the same nine covariates,
+risk ratio by Poisson regression with a log link [@zou-2004] on the same covariates,
 and take the confidence interval from robust standard errors:
 
 ```{r}
@@ -277,11 +283,13 @@ ps_fit <- glm(qsmk ~ sex + age + race + education + smokeintensity +
               data = nhefs, family = binomial)
 nhefs$ps <- predict(ps_fit, type = "response")
 
-# Simple 1:1 nearest-neighbour matching on propensity score
+# Simple greedy 1:1 nearest-neighbour matching on the propensity score, without
+# replacement. Nothing here is random, but the result depends on row order:
+# treated units are matched in data order, and each takes its control out of the
+# pool, so later units get worse matches. MatchIt (matching chapter) avoids this.
 treated_idx <- which(nhefs$qsmk == 1)
 control_idx <- which(nhefs$qsmk == 0)
 
-set.seed(1)
 matched_pairs <- data.frame(t_idx = integer(), c_idx = integer())
 available_controls <- control_idx
 for (ti in treated_idx) {
@@ -303,10 +311,11 @@ cat(sprintf("Mean paired difference (matched ATT): %.3f kg\n",
 
 # Rosenbaum bound calculation: range of p-values for Wilcoxon signed-rank
 # under each Gamma. We compute a large-sample NORMAL APPROXIMATION to the
-# weighted Bernoulli rank sum directly rather than using a package. With 403
-# pairs it tracks the canonical bound closely, but it is an approximation:
-# there is no exact Poisson-binomial tail and no continuity correction here.
-# to keep the dependency footprint small.
+# weighted Bernoulli rank sum directly rather than using a package, to keep the
+# dependency footprint small. With 403 pairs it tracks the canonical bound
+# closely, but it is an approximation: there is no exact Poisson-binomial tail
+# and no continuity correction here. It assumes a positive effect and is an
+# upper bound only where the observed rank sum is above its mean under Gamma.
 rosenbaum_pvalue <- function(diffs, gamma) {
   # The Wilcoxon signed-rank protocol discards exact-zero paired differences
   # before ranking (a zero carries no information about the sign) and
@@ -399,7 +408,7 @@ often too wide to be useful. Tighter bounds come from adding structure to a
 specific problem: Lee (2009) bounds address sample selection/attrition (the
 outcome is observed only for selected units) by combining random assignment
 with monotone selection and trimming the over-selected arm. For IV settings,
-Mourifié and Wan (2017) provide a test of the LATE identifying assumptions
+@mourifie-wan-2017 provide a test of the LATE identifying assumptions
 (instrument validity plus monotonicity).
 
 These bounds usually complement a point estimate. They are useful when the

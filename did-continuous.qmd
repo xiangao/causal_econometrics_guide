@@ -257,6 +257,50 @@ ggplot(path, aes(e, estimate, colour = model)) +
 
 Without trends, one store raises retail employment in the 1990 cohort by 1.7% in the entry year and by 4.0% a year later, and the effect then settles near 2.7%. From year 1 on, the estimates are about twice their standard errors or more. With cohort trends the path is lower, and the gap grows from 0.6 percentage points in the entry year to 1.6 by year 9. Only the year-1 estimate, 3.1%, is more than twice its standard error. The growing gap is what we would see if the cohort trend, which is also fit on post-entry years, absorbs part of an effect that grows with exposure. The plot holds the dose at one store. The cohort's average number of stores rises from 1.08 in 1990 to 1.75 in 1999, so the effect it actually experienced grows faster than the plotted per-store effect.
 
+Cohort trends are one response to the failed pre-test, and they are fit on all
+years, so they can absorb part of a growing effect, as above. @rambachan-roth-2023
+offer another: bound how far the post-entry violation of parallel trends can
+depart from the pre-entry trend, and report the confidence set for the effect
+that is valid under that bound. Their method needs pre- and post-entry
+estimates from one regression with a joint covariance matrix. The dose
+regression above does not provide them in a common unit, so we apply it to the
+event study of store entry, fit by @sun-abraham-2021 on the same data. Most
+counties open one store at entry, so the entry effect is close to the effect of
+the first store. We use the five leads from six to two years before entry and
+the first six years after. The smoothness restriction with $M = 0$ says that the
+pre-entry trend continues on a straight line after entry; larger $M$ lets the
+slope of the violation change by up to $M$ per year.
+
+```{r dc-wm-honest, cache=TRUE, warning=FALSE, message=FALSE}
+library(HonestDiD)
+# Event study of first entry; never-treated counties get a cohort outside the panel
+wm[, cohort_sa := fifelse(cohort == 0, 10000L, as.integer(cohort))]
+es <- feols(log_retail_emp ~ sunab(cohort_sa, year) | fips + year, wm, cluster = ~fips)
+et   <- as.integer(sub("year::", "", names(coef(es))))
+keep <- c(which(et >= -6 & et <= -2), which(et >= 0 & et <= 5))
+bh <- coef(es)[keep]; sg <- vcov(es)[keep, keep]
+round(bh, 4)
+
+# Confidence sets for the entry-year effect under DeltaSD(M)
+orig <- constructOriginalCS(betahat = bh, sigma = sg,
+                            numPrePeriods = 5, numPostPeriods = 6)
+sens <- createSensitivityResults(betahat = bh, sigma = sg,
+                                 numPrePeriods = 5, numPostPeriods = 6,
+                                 Mvec = c(0, 0.005, 0.01), method = "C-LF")
+rbind(orig[, c("lb", "ub")], sens[, c("lb", "ub")])
+```
+
+The leads repeat the pre-trend test: relative to the year before entry, retail
+employment in future Walmart counties is 3.5 log points lower six years before
+and 0.3 lower two years before, a steady rise. The entry-year effect is 0.025
+with a conventional 95% interval of $[-0.024, 0.074]$. Allowing the pre-entry
+trend to continue on a straight line, $M = 0$, widens the interval to
+$[-0.12, 0.17]$, and allowing the trend to bend by up to 0.01 per year widens it
+slightly more. Under the trend we see before entry, the data cannot tell whether
+the first year's effect is positive. This agrees with the cohort-trend estimate
+of 0.0049 (0.0033) for the entry year, and it reaches that conclusion without
+fitting the trend on the post-entry years.
+
 ## Summary
 
 Wooldridge's method is ETWFE with the treatment indicator replaced by the dose. The regression in @eq-dc-reg interacts cohort, year and dose. Each interaction has its own slope $\boldsymbol\delta_{gs}$, the average effect of one more unit of dose for cohort $g$ in year $s$, and the slopes are averaged by exposure time. Covariates, cohort trends, exit and unbalanced panels enter as extra terms in the same regression.

@@ -84,7 +84,7 @@ here $W_{it} =(1[t=2] \cdot D_i)$, which is the interaction of post-treatment in
 
 This is usually called Two Way Fixed Effect (TWFE). There are multiple ways to implement the same model in practice.
 
-TWFE can be done by "Pooled OLS". That is, using OLS on time dummies and firm (individual) dummies. Wooldridge (2021) shows it's equivalent to use treatment dummies, instead of individual dummies. He also shows that this model can be equivalently implemented with fixed effect model and random effect model.
+TWFE can be done by "Pooled OLS". That is, using OLS on time dummies and firm (individual) dummies. @wooldridge-2021-etwfe shows it's equivalent to use treatment dummies, instead of individual dummies. He also shows that this model can be equivalently implemented with fixed effect model and random effect model.
 
 ## TWFE with Staggered Treatment Timing
 
@@ -98,7 +98,7 @@ However, what is $\beta$ here?
 
 ## Goodman-Bacon Decomposition
 
-Goodman-Bacon (2021) showed that $\beta$ in the TWFE is a weighted average of many different treatment effects, between treated cohorts, and control units, both can be different at different time points. The weights are a function of the size of the subsample, relative size of treatment and control units, and the timing of treatment in the sub sample. The decomposition weights themselves are non-negative and sum to one; the problem is that the units treated earlier are used as controls later. When those "forbidden" 2x2 comparisons are expressed in terms of the underlying cohort-time ATTs, some ATTs receive negative weight (de Chaisemartin and D'Haultfœuille 2020). Therefore there is no meaningful interpretation of $\beta$: it does not need to be a convex combination of treatment effects.
+@goodman-bacon-2021 showed that $\beta$ in the TWFE is a weighted average of many different treatment effects, between treated cohorts, and control units, both can be different at different time points. The weights are a function of the size of the subsample, relative size of treatment and control units, and the timing of treatment in the sub sample. The decomposition weights themselves are non-negative and sum to one; the problem is that the units treated earlier are used as controls later. When those "forbidden" 2x2 comparisons are expressed in terms of the underlying cohort-time ATTs, some ATTs receive negative weight (de Chaisemartin and D'Haultfœuille 2020). Therefore there is no meaningful interpretation of $\beta$: it does not need to be a convex combination of treatment effects.
 
 ![Bacon decomposition](images/bacon1.png)
 
@@ -106,7 +106,7 @@ Goodman-Bacon (2021) showed that $\beta$ in the TWFE is a weighted average of ma
 
 ## Wooldridge's ETWFE
 
-There are a lot of ways to deal with staggered DiD situation. Wooldridge (2021) is basically saying: This is not a problem of TWFE, it's a mis-use of TWFE. The reason we get non-sensible result of $\beta$ is that we know there is heterogeneous treatment effect, in the sense the treatment effect differs across cohort, but we force them to be the same. If we relax it, it can work. As he shows, this works when we specify cohort effects accordingly.
+There are a lot of ways to deal with staggered DiD situation. @wooldridge-2021-etwfe is basically saying: This is not a problem of TWFE, it's a mis-use of TWFE. The reason we get non-sensible result of $\beta$ is that we know there is heterogeneous treatment effect, in the sense the treatment effect differs across cohort, but we force them to be the same. If we relax it, it can work. As he shows, this works when we specify cohort effects accordingly.
 
 $$ y_{it} = \alpha_i + \phi_t + \sum_{g=g_0}^G \sum_{t=g}^T \lambda_{g,t} \times 1(g,t) + \epsilon_{i,t} $$ {#eq-did-11}
 
@@ -204,6 +204,47 @@ With `etwfe`'s default comparison group the pre-treatment estimates are forced
 to zero by construction, so their sitting on the line is arithmetic, not
 evidence for parallel trends. The Poisson example below uses
 `cgroup = "never"`, which frees them and makes the pre-period a real check.
+
+### The same data with two other staggered estimators
+
+ETWFE is one of several estimators built to avoid the forbidden comparisons of
+TWFE. Two others are standard, and both are a line of code on the same data.
+@callaway-santanna-2021 estimate a separate ATT for each cohort and year,
+comparing each cohort with the never-treated counties, and then aggregate them;
+`did::att_gt` does this, here with log population as a covariate and the
+doubly-robust estimator. @sun-abraham-2021 interact cohort with event time in a
+TWFE regression, so each coefficient uses only clean comparisons; `fixest::sunab`
+does this. Without covariates and with never-treated controls, the Sun-Abraham
+estimator coincides with ETWFE.
+
+```{r did7b, warning=FALSE, cache=TRUE, message=FALSE, echo=TRUE}
+library(did)
+set.seed(1)   # att_gt's multiplier bootstrap draws
+cs <- att_gt(yname = "lemp", tname = "year", idname = "countyreal",
+             gname = "first.treat", xformla = ~ lpop, data = mpdta,
+             control_group = "nevertreated", est_method = "dr")
+cs_simple <- aggte(cs, type = "simple")
+cs_event  <- aggte(cs, type = "dynamic")
+
+sa <- feols(lemp ~ sunab(first.treat, year) | countyreal + year,
+            data = mpdta, cluster = ~countyreal)
+sa_att   <- coeftable(summary(sa, agg = "ATT"))
+sa_event <- coeftable(summary(sa, agg = "period"))
+
+cat(sprintf("Callaway-Sant'Anna ATT %.4f (%.4f)\n", cs_simple$overall.att, cs_simple$overall.se))
+cat(sprintf("Sun-Abraham ATT        %.4f (%.4f)\n", sa_att["ATT", 1], sa_att["ATT", 2]))
+data.frame(event = 0:3,
+           CS = round(cs_event$att.egt[cs_event$egt >= 0], 3),
+           SA = round(sa_event[paste0("year::", 0:3), 1], 3))
+```
+
+The three estimators tell the same story. Callaway-Sant'Anna gives an ATT of
+$-0.042$ (0.011) and Sun-Abraham $-0.040$ (0.012), against ETWFE's $-0.051$. The
+gap is the comparison group. ETWFE by default compares with the not-yet-treated
+cohorts as well as the never-treated; both alternatives here use the never-treated
+only. Refitting ETWFE with `cgroup = "never"` gives $-0.042$ with the covariate,
+matching Callaway-Sant'Anna, and $-0.040$ without it, matching Sun-Abraham. By event time, both give about $-0.02$, $-0.05$, $-0.14$ and
+$-0.10$ to $-0.11$, the same growing effect as ETWFE.
 
 ## Example 2: Staggered DiD
 
@@ -343,7 +384,7 @@ ETWFE is not limited to linear (continuous) outcomes. When the dependent variabl
 
 The key identifying assumption shifts slightly. Instead of parallel trends on $E[Y_{it}(\infty)]$, we assume parallel trends on the **linear index** — that is, on $\log E[Y_{it}(\infty)]$ for Poisson, or on $\text{logit}\, E[Y_{it}(\infty)]$ for logit. This is Wooldridge's (2023) Conditional Parallel Trends assumption stated on $G^{-1}(E[Y])$. When the true treatment effect is multiplicative (e.g., a policy raises counts by 50% regardless of baseline), this assumption is more natural than additive PT on $Y$ itself.
 
-One implementation detail matters: the nonlinear ETWFE specification uses **cohort fixed effects** (one intercept per treatment cohort) plus year fixed effects — not individual unit fixed effects. The `etwfe` package handles this automatically. In the linear case the two are numerically equivalent (Wooldridge 2021), but in nonlinear models unit fixed effects raise the incidental-parameters problem and make average partial effects uncomputable — the unit intercepts cannot be averaged out of the nonlinear link. Wooldridge (2023) instead uses cohort intercepts (a Mundlak device), which is what `etwfe` implements.
+One implementation detail matters: the nonlinear ETWFE specification uses **cohort fixed effects** (one intercept per treatment cohort) plus year fixed effects — not individual unit fixed effects. The `etwfe` package handles this automatically. In the linear case the two are numerically equivalent [@wooldridge-2021-etwfe], but in nonlinear models unit fixed effects raise the incidental-parameters problem and make average partial effects uncomputable — the unit intercepts cannot be averaged out of the nonlinear link. @wooldridge-2023-nonlinear-did instead uses cohort intercepts (a Mundlak device), which is what `etwfe` implements.
 
 ### Simulated example: staggered count data
 
@@ -601,11 +642,11 @@ deployed docs at <https://xiangao.github.io/tvhte/> and
 
 The biggest problem with DiD is the PT assumption. There is not really a test for it, just like the unconfoundedness assumption. It is less demanding than unconfoundedness assumption, but nevertheless hard to justify sometimes.
 
-Abadie (2010)'s idea is to construct a control unit, out of many control units (donor pool), which is a weighted average of all donor units, that then hopefully is very close to the treated unit in terms of outcome, in the pre-treatment periods. This works pretty well in practice, when you have a somewhat large donor pool. Of course there is still no test for post-treatment period, but for pre-treatment periods, usually it can get almost identical trend as the treated unit. This was designed for single treated unit at the beginning, but got extended to multiple treated units later on.
+The idea of @abadie-diamond-hainmueller-2010 is to construct a control unit, out of many control units (donor pool), which is a weighted average of all donor units, that then hopefully is very close to the treated unit in terms of outcome, in the pre-treatment periods. This works pretty well in practice, when you have a somewhat large donor pool. Of course there is still no test for post-treatment period, but for pre-treatment periods, usually it can get almost identical trend as the treated unit. This was designed for single treated unit at the beginning, but got extended to multiple treated units later on.
 
 ## Synthetic DiD
 
-Arkhangelsky et al (2021) tries to combine the idea of DiD and SC. SC assigns different weights to different control units. The standard DiD is a TWFE, assigning equal weights to all time periods and units.
+@arkhangelsky-2021-sdid try to combine the idea of DiD and SC. SC assigns different weights to different control units. The standard DiD is a TWFE, assigning equal weights to all time periods and units.
 
 To see that, DiD objective function:
 
@@ -640,7 +681,7 @@ tau.hat = synthdid_estimate(setup$Y, setup$N0, setup$T0)
 summary(tau.hat)
 ```
 
-The point estimate, $-15.6$, is the headline number from Arkhangelsky et al.
+The point estimate, $-15.6$, is the headline number of @arkhangelsky-2021-sdid.
 (2021). Note that the `se` entry comes back `NA`, and that is not a glitch to
 skim past: `summary()` defaults to a **jackknife** standard error, which deletes
 one treated unit at a time. California is the *only* treated unit here, so

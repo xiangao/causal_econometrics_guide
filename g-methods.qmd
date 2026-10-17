@@ -43,7 +43,7 @@ The main tools are:
 
 ## The time-varying confounding problem
 
-The methods in this chapter are Robins's g-methods. The g-formula is Robins [-@robins-1986-gformula]; marginal structural models and IPTW are Robins, Hernán and Brumback [-@robins-hernan-brumback-2000-msm]; Hernán and Robins [-@hernan-robins-2020] is the standard reference for the whole family.
+The methods in this chapter are Robins's g-methods. The g-formula is Robins [-@robins-1986-gformula]; marginal structural models and IPTW are Robins, Hernán and Brumback [-@robins-hernan-brumback-2000-msm]; Hernán and Robins [-@hernan-robins-2020] is the standard reference for the whole family. The third member, g-estimation of structural nested mean models [@robins-1994-snmm; @vansteelandt-joffe-2014], is not covered here. It models the effect of each treatment given the history up to that point, so it can let effects vary with the time-varying confounders $L_t$, which a marginal structural model averages over. The [g-estimation chapter](https://xiangao.github.io/blog_book/g-estimation.html) of *Topics on Econometrics and Causal Inference* works through it.
 
 Consider a two-period example:
 
@@ -142,9 +142,12 @@ and no choice between these two specifications reaches it.
 
 The two failures have different sources:
 
-- Excluding $L_1$ leaves confounding from $L_1 \to A_1$ that biases $A_1$'s
-  coefficient, 0.834 against a true 0.5. It also inflates $A_0$'s coefficient
-  to 0.979 for the same reason.
+- Excluding $L_1$ leaves the backdoor path $A_1 \leftarrow L_1 \to Y$ open, which
+  biases $A_1$'s coefficient, 0.834 against a true 0.5. $A_0$'s coefficient,
+  0.979, has a different target. With $A_1$ held fixed and $L_1$ left out, it
+  measures $A_0$'s direct effect plus its effect through $L_1$, $0.5 + 0.5 = 1.0$,
+  and it lands a little below that: conditioning on $A_1$, which $L_1$ causes,
+  makes $A_0$ and the omitted part of $L_1$ dependent.
 - Including $L_1$ blocks the $A_0 \to L_1 \to Y$ pathway, so $A_0$'s
   coefficient now measures only the direct effect, not the total effect. It
   gives 0.545 against a true direct effect of 0.5, and $A_1$ gives 0.503

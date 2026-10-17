@@ -509,3 +509,10 @@ CVXR 1.0-15 and HonestDiD with `dependencies = FALSE`), DoubleMLIRM next to TMLE
 **Survival:** fixed-horizon IPCW at tau = 5. **PDF:** fvextra code wrapping, DejaVu Sans Mono
 for Unicode in code, KOMA tocnumwidth for "12.10.". References: 12 bib entries added,
 plain-text citations converted. Not done: partial items P1-P6 and the typo list.
+
+## Codex continued review (2026-10-17, branch `continued-review-fixes`)
+
+Log `~/projects/books/_review6/VERIFY_CONTINUED_20261017.md`. R1: the selective DGP clips p_D0
+first and then adds 0.50 (capped), unlike the opening DGP; prose now says so and defines the
+complier window p_D1 - p_D0. Code and numbers unchanged. R2: sensitivity-analysis comment no
+longer claims MatchIt avoids greedy order dependence (matching.qmd uses method = "nearest").

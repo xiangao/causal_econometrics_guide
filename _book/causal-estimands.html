@@ -627,7 +627,7 @@ window.Quarto = {
 </section></section><section id="when-the-estimands-differ" class="level2" data-number="2.3"><h2 data-number="2.3" class="anchored" data-anchor-id="when-the-estimands-differ">
 <span class="header-section-number">2.3</span> When the estimands differ</h2>
 <p>The three scalar estimands coincided because selection had nothing to do with the effect modifier. We now break that, and see how far apart they move.</p>
-<p>The second DGP is the first one with a single change: <span class="math inline">\(X\)</span> enters the treatment probability, <span class="math inline">\(P(D=1 \mid Z=0, U, X) = 0.10 + 0.20U + 0.6X\)</span>, clipped to <span class="math inline">\([0,1]\)</span>, with the offer adding 0.50 as before. Everything else is unchanged — a fresh sample of <span class="math inline">\(n = 20{,}000\)</span>, <span class="math inline">\(X \sim U(0,1)\)</span>, <span class="math inline">\(U \sim N(0,1)\)</span>, <span class="math inline">\(Z \sim \text{Bernoulli}(0.5)\)</span>, one shared uniform draw for the two potential treatments, <span class="math inline">\(Y(0) = 0.5X + 0.3U + \varepsilon\)</span> and <span class="math inline">\(\tau(x) = 1 + 2x\)</span>.</p>
+<p>The second DGP is the first one with a single change: <span class="math inline">\(X\)</span> enters the treatment probability, <span class="math inline">\(p_{D0} = P(D=1 \mid Z=0, U, X) = 0.10 + 0.20U + 0.6X\)</span>, clipped to <span class="math inline">\([0,1]\)</span>. The offer then raises this clipped probability by 0.50, capped at one: <span class="math inline">\(p_{D1} = \min(p_{D0} + 0.50, 1)\)</span>. This differs from the first DGP, which added 0.50 to the unclipped index before clipping. A unit with a negative index now has <span class="math inline">\(p_{D0} = 0\)</span> and <span class="math inline">\(p_{D1} = 0.50\)</span>. Everything else is unchanged — a fresh sample of <span class="math inline">\(n = 20{,}000\)</span>, <span class="math inline">\(X \sim U(0,1)\)</span>, <span class="math inline">\(U \sim N(0,1)\)</span>, <span class="math inline">\(Z \sim \text{Bernoulli}(0.5)\)</span>, one shared uniform draw for the two potential treatments, <span class="math inline">\(Y(0) = 0.5X + 0.3U + \varepsilon\)</span> and <span class="math inline">\(\tau(x) = 1 + 2x\)</span>.</p>
 <div class="cell">
 <details open="" class="code-fold"><summary>Code</summary><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb26"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span><span class="op">(</span><span class="fl">7</span><span class="op">)</span></span>
 <span><span class="va">n2</span> <span class="op">&lt;-</span> <span class="fl">20000</span></span>
@@ -669,7 +669,7 @@ window.Quarto = {
 </div>
 </div>
 <p>ATE is still 2.001, because the distribution of <span class="math inline">\(X\)</span> has not moved. ATT rises to 2.124 and LATE falls to 1.926. Since <span class="math inline">\(\tau = 1 + 2X\)</span>, every subgroup average is <span class="math inline">\(1 + 2\,\mathbb{E}[X \mid \text{subgroup}]\)</span>, so the numbers report the subgroups directly: the treated have mean <span class="math inline">\(X\)</span> of 0.562 and the compliers have mean <span class="math inline">\(X\)</span> of 0.463, against 0.5 in the population.</p>
-<p>The treated are high-<span class="math inline">\(X\)</span> because high <span class="math inline">\(X\)</span> raises the treatment probability. The compliers are low-<span class="math inline">\(X\)</span> for a less obvious reason. The offer adds 0.50 to a probability capped at 1, so a unit with <span class="math inline">\(p_{D0}\)</span> above 0.5 has a complier window of width <span class="math inline">\(1 - p_{D0}\)</span>, narrower than 0.5. High-<span class="math inline">\(X\)</span> units are the ones the cap bites on: mean window width falls from 0.49 in the bottom quartile of <span class="math inline">\(X\)</span> to 0.34 in the top, and the complier rate falls with it, from 0.48 to 0.34. So the instrument moves mostly low-<span class="math inline">\(X\)</span> units, and LATE lands below ATE.</p>
+<p>The treated are high-<span class="math inline">\(X\)</span> because high <span class="math inline">\(X\)</span> raises the treatment probability. The compliers are low-<span class="math inline">\(X\)</span> for a less obvious reason. A unit’s probability of being a complier is <span class="math inline">\(p_{D1} - p_{D0}\)</span>, its complier window. The offer adds 0.50 to a probability capped at 1, so a unit with <span class="math inline">\(p_{D0}\)</span> above 0.5 has a complier window of width <span class="math inline">\(1 - p_{D0}\)</span>, narrower than 0.5. High-<span class="math inline">\(X\)</span> units are the ones the cap bites on: mean window width falls from 0.49 in the bottom quartile of <span class="math inline">\(X\)</span> to 0.34 in the top, and the complier rate falls with it, from 0.48 to 0.34. So the instrument moves mostly low-<span class="math inline">\(X\)</span> units, and LATE lands below ATE.</p>
 <p>Here the choice between ATE, ATT and LATE changes the substantive answer.</p>
 </section><section id="which-estimand-should-you-choose" class="level2" data-number="2.4"><h2 data-number="2.4" class="anchored" data-anchor-id="which-estimand-should-you-choose">
 <span class="header-section-number">2.4</span> Which estimand should you choose?</h2>
@@ -1445,90 +1445,94 @@ Blandhol, Christine, John Bonney, Magne Mogstad, and Alexander Torgovitsky. 2025
 <span id="cb34-270"><a href="#cb34-270" aria-hidden="true" tabindex="-1"></a>the effect modifier. We now break that, and see how far apart they move.</span>
 <span id="cb34-271"><a href="#cb34-271" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb34-272"><a href="#cb34-272" aria-hidden="true" tabindex="-1"></a>The second DGP is the first one with a single change: $X$ enters the treatment</span>
-<span id="cb34-273"><a href="#cb34-273" aria-hidden="true" tabindex="-1"></a>probability, $P(D=1 \mid Z=0, U, X) = 0.10 + 0.20U + 0.6X$, clipped to $<span class="co">[</span><span class="ot">0,1</span><span class="co">]</span>$,</span>
-<span id="cb34-274"><a href="#cb34-274" aria-hidden="true" tabindex="-1"></a>with the offer adding 0.50 as before. Everything else is unchanged --- a fresh</span>
-<span id="cb34-275"><a href="#cb34-275" aria-hidden="true" tabindex="-1"></a>sample of $n = 20{,}000$, $X \sim U(0,1)$, $U \sim N(0,1)$,</span>
-<span id="cb34-276"><a href="#cb34-276" aria-hidden="true" tabindex="-1"></a>$Z \sim \text{Bernoulli}(0.5)$, one shared uniform draw for the two potential</span>
-<span id="cb34-277"><a href="#cb34-277" aria-hidden="true" tabindex="-1"></a>treatments, $Y(0) = 0.5X + 0.3U + \varepsilon$ and $\tau(x) = 1 + 2x$.</span>
-<span id="cb34-278"><a href="#cb34-278" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-281"><a href="#cb34-281" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb34-282"><a href="#cb34-282" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: dgp-selective</span></span>
-<span id="cb34-283"><a href="#cb34-283" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
-<span id="cb34-284"><a href="#cb34-284" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-285"><a href="#cb34-285" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">7</span>)</span>
-<span id="cb34-286"><a href="#cb34-286" aria-hidden="true" tabindex="-1"></a>n2 <span class="ot">&lt;-</span> <span class="dv">20000</span></span>
-<span id="cb34-287"><a href="#cb34-287" aria-hidden="true" tabindex="-1"></a>X2 <span class="ot">&lt;-</span> <span class="fu">runif</span>(n2, <span class="dv">0</span>, <span class="dv">1</span>)</span>
-<span id="cb34-288"><a href="#cb34-288" aria-hidden="true" tabindex="-1"></a>U2 <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n2)</span>
-<span id="cb34-289"><a href="#cb34-289" aria-hidden="true" tabindex="-1"></a>Z2 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n2, <span class="dv">1</span>, <span class="fl">0.5</span>)</span>
-<span id="cb34-290"><a href="#cb34-290" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-291"><a href="#cb34-291" aria-hidden="true" tabindex="-1"></a><span class="co"># High X → much more likely to take treatment (selection on X, the modifier)</span></span>
-<span id="cb34-292"><a href="#cb34-292" aria-hidden="true" tabindex="-1"></a>pD0_2 <span class="ot">&lt;-</span> <span class="fu">pmin</span>(<span class="fu">pmax</span>(<span class="fl">0.10</span> <span class="sc">+</span> <span class="fl">0.20</span> <span class="sc">*</span> U2 <span class="sc">+</span> <span class="fl">0.6</span> <span class="sc">*</span> X2, <span class="dv">0</span>), <span class="dv">1</span>)</span>
-<span id="cb34-293"><a href="#cb34-293" aria-hidden="true" tabindex="-1"></a>pD1_2 <span class="ot">&lt;-</span> <span class="fu">pmin</span>(<span class="fu">pmax</span>(pD0_2 <span class="sc">+</span> <span class="fl">0.50</span>,                 <span class="dv">0</span>), <span class="dv">1</span>)</span>
-<span id="cb34-294"><a href="#cb34-294" aria-hidden="true" tabindex="-1"></a>V2    <span class="ot">&lt;-</span> <span class="fu">runif</span>(n2)                  <span class="co"># shared draw → D1_2 &gt;= D0_2, no defiers</span></span>
-<span id="cb34-295"><a href="#cb34-295" aria-hidden="true" tabindex="-1"></a>D0_2  <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(V2 <span class="sc">&lt;</span> pD0_2)</span>
-<span id="cb34-296"><a href="#cb34-296" aria-hidden="true" tabindex="-1"></a>D1_2  <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(V2 <span class="sc">&lt;</span> pD1_2)</span>
-<span id="cb34-297"><a href="#cb34-297" aria-hidden="true" tabindex="-1"></a>D2    <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(Z2 <span class="sc">==</span> <span class="dv">1</span>, D1_2, D0_2)</span>
-<span id="cb34-298"><a href="#cb34-298" aria-hidden="true" tabindex="-1"></a>Y0_2  <span class="ot">&lt;-</span> <span class="fl">0.5</span> <span class="sc">*</span> X2 <span class="sc">+</span> <span class="fl">0.3</span> <span class="sc">*</span> U2 <span class="sc">+</span> <span class="fu">rnorm</span>(n2)</span>
-<span id="cb34-299"><a href="#cb34-299" aria-hidden="true" tabindex="-1"></a>Y1_2  <span class="ot">&lt;-</span> Y0_2 <span class="sc">+</span> <span class="fu">tau_fn</span>(X2)</span>
-<span id="cb34-300"><a href="#cb34-300" aria-hidden="true" tabindex="-1"></a>Y2    <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(D2 <span class="sc">==</span> <span class="dv">1</span>, Y1_2, Y0_2)</span>
-<span id="cb34-301"><a href="#cb34-301" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-302"><a href="#cb34-302" aria-hidden="true" tabindex="-1"></a>ate2  <span class="ot">&lt;-</span> <span class="fu">mean</span>(Y1_2 <span class="sc">-</span> Y0_2)</span>
-<span id="cb34-303"><a href="#cb34-303" aria-hidden="true" tabindex="-1"></a>att2  <span class="ot">&lt;-</span> <span class="fu">mean</span>(Y1_2[D2 <span class="sc">==</span> <span class="dv">1</span>] <span class="sc">-</span> Y0_2[D2 <span class="sc">==</span> <span class="dv">1</span>])</span>
-<span id="cb34-304"><a href="#cb34-304" aria-hidden="true" tabindex="-1"></a>compliers2 <span class="ot">&lt;-</span> (D1_2 <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">&amp;</span> (D0_2 <span class="sc">==</span> <span class="dv">0</span>)</span>
-<span id="cb34-305"><a href="#cb34-305" aria-hidden="true" tabindex="-1"></a>late2 <span class="ot">&lt;-</span> <span class="fu">mean</span>(Y1_2[compliers2] <span class="sc">-</span> Y0_2[compliers2])</span>
-<span id="cb34-306"><a href="#cb34-306" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-307"><a href="#cb34-307" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Selection-on-X DGP:</span><span class="sc">\n</span><span class="st">"</span>)</span>
-<span id="cb34-308"><a href="#cb34-308" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  ATE  = %.3f</span><span class="sc">\n</span><span class="st">"</span>, ate2))</span>
-<span id="cb34-309"><a href="#cb34-309" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  ATT  = %.3f  (now higher: treated have higher X -&gt; larger tau)</span><span class="sc">\n</span><span class="st">"</span>, att2))</span>
-<span id="cb34-310"><a href="#cb34-310" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  LATE = %.3f  (compliers' mean X drives this)</span><span class="sc">\n</span><span class="st">"</span>, late2))</span>
-<span id="cb34-311"><a href="#cb34-311" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb34-312"><a href="#cb34-312" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-313"><a href="#cb34-313" aria-hidden="true" tabindex="-1"></a>ATE is still 2.001, because the distribution of $X$ has not moved. ATT rises</span>
-<span id="cb34-314"><a href="#cb34-314" aria-hidden="true" tabindex="-1"></a>to 2.124 and LATE falls to 1.926. Since $\tau = 1 + 2X$, every subgroup</span>
-<span id="cb34-315"><a href="#cb34-315" aria-hidden="true" tabindex="-1"></a>average is $1 + 2\,\mathbb{E}<span class="co">[</span><span class="ot">X \mid \text{subgroup}</span><span class="co">]</span>$, so the numbers report</span>
-<span id="cb34-316"><a href="#cb34-316" aria-hidden="true" tabindex="-1"></a>the subgroups directly: the treated have mean $X$ of 0.562 and the compliers</span>
-<span id="cb34-317"><a href="#cb34-317" aria-hidden="true" tabindex="-1"></a>have mean $X$ of 0.463, against 0.5 in the population.</span>
-<span id="cb34-318"><a href="#cb34-318" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-319"><a href="#cb34-319" aria-hidden="true" tabindex="-1"></a>The treated are high-$X$ because high $X$ raises the treatment probability.</span>
-<span id="cb34-320"><a href="#cb34-320" aria-hidden="true" tabindex="-1"></a>The compliers are low-$X$ for a less obvious reason. The offer adds 0.50 to a</span>
-<span id="cb34-321"><a href="#cb34-321" aria-hidden="true" tabindex="-1"></a>probability capped at 1, so a unit with $p_{D0}$ above 0.5 has a complier</span>
-<span id="cb34-322"><a href="#cb34-322" aria-hidden="true" tabindex="-1"></a>window of width $1 - p_{D0}$, narrower than 0.5. High-$X$ units are the ones</span>
-<span id="cb34-323"><a href="#cb34-323" aria-hidden="true" tabindex="-1"></a>the cap bites on: mean window width falls from 0.49 in the bottom quartile of</span>
-<span id="cb34-324"><a href="#cb34-324" aria-hidden="true" tabindex="-1"></a>$X$ to 0.34 in the top, and the complier rate falls with it, from 0.48 to</span>
-<span id="cb34-325"><a href="#cb34-325" aria-hidden="true" tabindex="-1"></a>0.34. So the instrument moves mostly low-$X$ units, and LATE lands below ATE.</span>
-<span id="cb34-326"><a href="#cb34-326" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-327"><a href="#cb34-327" aria-hidden="true" tabindex="-1"></a>Here the choice between ATE, ATT and LATE changes the substantive answer.</span>
-<span id="cb34-328"><a href="#cb34-328" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-329"><a href="#cb34-329" aria-hidden="true" tabindex="-1"></a><span class="fu">## Which estimand should you choose?</span></span>
+<span id="cb34-273"><a href="#cb34-273" aria-hidden="true" tabindex="-1"></a>probability, $p_{D0} = P(D=1 \mid Z=0, U, X) = 0.10 + 0.20U + 0.6X$, clipped to</span>
+<span id="cb34-274"><a href="#cb34-274" aria-hidden="true" tabindex="-1"></a>$<span class="co">[</span><span class="ot">0,1</span><span class="co">]</span>$. The offer then raises this clipped probability by 0.50, capped at one:</span>
+<span id="cb34-275"><a href="#cb34-275" aria-hidden="true" tabindex="-1"></a>$p_{D1} = \min(p_{D0} + 0.50, 1)$. This differs from the first DGP, which added</span>
+<span id="cb34-276"><a href="#cb34-276" aria-hidden="true" tabindex="-1"></a>0.50 to the unclipped index before clipping. A unit with a negative index now</span>
+<span id="cb34-277"><a href="#cb34-277" aria-hidden="true" tabindex="-1"></a>has $p_{D0} = 0$ and $p_{D1} = 0.50$. Everything else is unchanged --- a fresh</span>
+<span id="cb34-278"><a href="#cb34-278" aria-hidden="true" tabindex="-1"></a>sample of $n = 20{,}000$, $X \sim U(0,1)$, $U \sim N(0,1)$,</span>
+<span id="cb34-279"><a href="#cb34-279" aria-hidden="true" tabindex="-1"></a>$Z \sim \text{Bernoulli}(0.5)$, one shared uniform draw for the two potential</span>
+<span id="cb34-280"><a href="#cb34-280" aria-hidden="true" tabindex="-1"></a>treatments, $Y(0) = 0.5X + 0.3U + \varepsilon$ and $\tau(x) = 1 + 2x$.</span>
+<span id="cb34-281"><a href="#cb34-281" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-284"><a href="#cb34-284" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb34-285"><a href="#cb34-285" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: dgp-selective</span></span>
+<span id="cb34-286"><a href="#cb34-286" aria-hidden="true" tabindex="-1"></a><span class="co">#| cache: true</span></span>
+<span id="cb34-287"><a href="#cb34-287" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-288"><a href="#cb34-288" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">7</span>)</span>
+<span id="cb34-289"><a href="#cb34-289" aria-hidden="true" tabindex="-1"></a>n2 <span class="ot">&lt;-</span> <span class="dv">20000</span></span>
+<span id="cb34-290"><a href="#cb34-290" aria-hidden="true" tabindex="-1"></a>X2 <span class="ot">&lt;-</span> <span class="fu">runif</span>(n2, <span class="dv">0</span>, <span class="dv">1</span>)</span>
+<span id="cb34-291"><a href="#cb34-291" aria-hidden="true" tabindex="-1"></a>U2 <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(n2)</span>
+<span id="cb34-292"><a href="#cb34-292" aria-hidden="true" tabindex="-1"></a>Z2 <span class="ot">&lt;-</span> <span class="fu">rbinom</span>(n2, <span class="dv">1</span>, <span class="fl">0.5</span>)</span>
+<span id="cb34-293"><a href="#cb34-293" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-294"><a href="#cb34-294" aria-hidden="true" tabindex="-1"></a><span class="co"># High X → much more likely to take treatment (selection on X, the modifier)</span></span>
+<span id="cb34-295"><a href="#cb34-295" aria-hidden="true" tabindex="-1"></a>pD0_2 <span class="ot">&lt;-</span> <span class="fu">pmin</span>(<span class="fu">pmax</span>(<span class="fl">0.10</span> <span class="sc">+</span> <span class="fl">0.20</span> <span class="sc">*</span> U2 <span class="sc">+</span> <span class="fl">0.6</span> <span class="sc">*</span> X2, <span class="dv">0</span>), <span class="dv">1</span>)</span>
+<span id="cb34-296"><a href="#cb34-296" aria-hidden="true" tabindex="-1"></a>pD1_2 <span class="ot">&lt;-</span> <span class="fu">pmin</span>(<span class="fu">pmax</span>(pD0_2 <span class="sc">+</span> <span class="fl">0.50</span>,                 <span class="dv">0</span>), <span class="dv">1</span>)</span>
+<span id="cb34-297"><a href="#cb34-297" aria-hidden="true" tabindex="-1"></a>V2    <span class="ot">&lt;-</span> <span class="fu">runif</span>(n2)                  <span class="co"># shared draw → D1_2 &gt;= D0_2, no defiers</span></span>
+<span id="cb34-298"><a href="#cb34-298" aria-hidden="true" tabindex="-1"></a>D0_2  <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(V2 <span class="sc">&lt;</span> pD0_2)</span>
+<span id="cb34-299"><a href="#cb34-299" aria-hidden="true" tabindex="-1"></a>D1_2  <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(V2 <span class="sc">&lt;</span> pD1_2)</span>
+<span id="cb34-300"><a href="#cb34-300" aria-hidden="true" tabindex="-1"></a>D2    <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(Z2 <span class="sc">==</span> <span class="dv">1</span>, D1_2, D0_2)</span>
+<span id="cb34-301"><a href="#cb34-301" aria-hidden="true" tabindex="-1"></a>Y0_2  <span class="ot">&lt;-</span> <span class="fl">0.5</span> <span class="sc">*</span> X2 <span class="sc">+</span> <span class="fl">0.3</span> <span class="sc">*</span> U2 <span class="sc">+</span> <span class="fu">rnorm</span>(n2)</span>
+<span id="cb34-302"><a href="#cb34-302" aria-hidden="true" tabindex="-1"></a>Y1_2  <span class="ot">&lt;-</span> Y0_2 <span class="sc">+</span> <span class="fu">tau_fn</span>(X2)</span>
+<span id="cb34-303"><a href="#cb34-303" aria-hidden="true" tabindex="-1"></a>Y2    <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(D2 <span class="sc">==</span> <span class="dv">1</span>, Y1_2, Y0_2)</span>
+<span id="cb34-304"><a href="#cb34-304" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-305"><a href="#cb34-305" aria-hidden="true" tabindex="-1"></a>ate2  <span class="ot">&lt;-</span> <span class="fu">mean</span>(Y1_2 <span class="sc">-</span> Y0_2)</span>
+<span id="cb34-306"><a href="#cb34-306" aria-hidden="true" tabindex="-1"></a>att2  <span class="ot">&lt;-</span> <span class="fu">mean</span>(Y1_2[D2 <span class="sc">==</span> <span class="dv">1</span>] <span class="sc">-</span> Y0_2[D2 <span class="sc">==</span> <span class="dv">1</span>])</span>
+<span id="cb34-307"><a href="#cb34-307" aria-hidden="true" tabindex="-1"></a>compliers2 <span class="ot">&lt;-</span> (D1_2 <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">&amp;</span> (D0_2 <span class="sc">==</span> <span class="dv">0</span>)</span>
+<span id="cb34-308"><a href="#cb34-308" aria-hidden="true" tabindex="-1"></a>late2 <span class="ot">&lt;-</span> <span class="fu">mean</span>(Y1_2[compliers2] <span class="sc">-</span> Y0_2[compliers2])</span>
+<span id="cb34-309"><a href="#cb34-309" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-310"><a href="#cb34-310" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Selection-on-X DGP:</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb34-311"><a href="#cb34-311" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  ATE  = %.3f</span><span class="sc">\n</span><span class="st">"</span>, ate2))</span>
+<span id="cb34-312"><a href="#cb34-312" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  ATT  = %.3f  (now higher: treated have higher X -&gt; larger tau)</span><span class="sc">\n</span><span class="st">"</span>, att2))</span>
+<span id="cb34-313"><a href="#cb34-313" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">sprintf</span>(<span class="st">"  LATE = %.3f  (compliers' mean X drives this)</span><span class="sc">\n</span><span class="st">"</span>, late2))</span>
+<span id="cb34-314"><a href="#cb34-314" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb34-315"><a href="#cb34-315" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-316"><a href="#cb34-316" aria-hidden="true" tabindex="-1"></a>ATE is still 2.001, because the distribution of $X$ has not moved. ATT rises</span>
+<span id="cb34-317"><a href="#cb34-317" aria-hidden="true" tabindex="-1"></a>to 2.124 and LATE falls to 1.926. Since $\tau = 1 + 2X$, every subgroup</span>
+<span id="cb34-318"><a href="#cb34-318" aria-hidden="true" tabindex="-1"></a>average is $1 + 2\,\mathbb{E}<span class="co">[</span><span class="ot">X \mid \text{subgroup}</span><span class="co">]</span>$, so the numbers report</span>
+<span id="cb34-319"><a href="#cb34-319" aria-hidden="true" tabindex="-1"></a>the subgroups directly: the treated have mean $X$ of 0.562 and the compliers</span>
+<span id="cb34-320"><a href="#cb34-320" aria-hidden="true" tabindex="-1"></a>have mean $X$ of 0.463, against 0.5 in the population.</span>
+<span id="cb34-321"><a href="#cb34-321" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-322"><a href="#cb34-322" aria-hidden="true" tabindex="-1"></a>The treated are high-$X$ because high $X$ raises the treatment probability.</span>
+<span id="cb34-323"><a href="#cb34-323" aria-hidden="true" tabindex="-1"></a>The compliers are low-$X$ for a less obvious reason. A unit's probability of</span>
+<span id="cb34-324"><a href="#cb34-324" aria-hidden="true" tabindex="-1"></a>being a complier is $p_{D1} - p_{D0}$, its complier window. The offer adds 0.50 to a</span>
+<span id="cb34-325"><a href="#cb34-325" aria-hidden="true" tabindex="-1"></a>probability capped at 1, so a unit with $p_{D0}$ above 0.5 has a complier</span>
+<span id="cb34-326"><a href="#cb34-326" aria-hidden="true" tabindex="-1"></a>window of width $1 - p_{D0}$, narrower than 0.5. High-$X$ units are the ones</span>
+<span id="cb34-327"><a href="#cb34-327" aria-hidden="true" tabindex="-1"></a>the cap bites on: mean window width falls from 0.49 in the bottom quartile of</span>
+<span id="cb34-328"><a href="#cb34-328" aria-hidden="true" tabindex="-1"></a>$X$ to 0.34 in the top, and the complier rate falls with it, from 0.48 to</span>
+<span id="cb34-329"><a href="#cb34-329" aria-hidden="true" tabindex="-1"></a>0.34. So the instrument moves mostly low-$X$ units, and LATE lands below ATE.</span>
 <span id="cb34-330"><a href="#cb34-330" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-331"><a href="#cb34-331" aria-hidden="true" tabindex="-1"></a>The estimand should come from the research question:</span>
+<span id="cb34-331"><a href="#cb34-331" aria-hidden="true" tabindex="-1"></a>Here the choice between ATE, ATT and LATE changes the substantive answer.</span>
 <span id="cb34-332"><a href="#cb34-332" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-333"><a href="#cb34-333" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Policy question <span class="pp">|</span> Right estimand <span class="pp">|</span></span>
-<span id="cb34-334"><a href="#cb34-334" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
-<span id="cb34-335"><a href="#cb34-335" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> "What if we treated everyone?" <span class="pp">|</span> ATE <span class="pp">|</span></span>
-<span id="cb34-336"><a href="#cb34-336" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> "What did treating the currently-treated achieve?" <span class="pp">|</span> ATT <span class="pp">|</span></span>
-<span id="cb34-337"><a href="#cb34-337" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> "What can the instrument tell us?" <span class="pp">|</span> LATE <span class="pp">|</span></span>
-<span id="cb34-338"><a href="#cb34-338" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> "Who benefits most?" <span class="pp">|</span> CATE($x$) <span class="pp">|</span></span>
-<span id="cb34-339"><a href="#cb34-339" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> "Does the effect vary across the outcome distribution?" <span class="pp">|</span> QTE($q$) <span class="pp">|</span></span>
-<span id="cb34-340"><a href="#cb34-340" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> "What is the distribution of individual effects?" <span class="pp">|</span> Often unidentifiable; bounds required <span class="pp">|</span></span>
-<span id="cb34-341"><a href="#cb34-341" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-342"><a href="#cb34-342" aria-hidden="true" tabindex="-1"></a>It is fine for one paper to report more than one estimand, as long as each is</span>
-<span id="cb34-343"><a href="#cb34-343" aria-hidden="true" tabindex="-1"></a>named correctly. What is not fine is to report the coefficient that is easiest</span>
-<span id="cb34-344"><a href="#cb34-344" aria-hidden="true" tabindex="-1"></a>to estimate and call it "the causal effect."</span>
+<span id="cb34-333"><a href="#cb34-333" aria-hidden="true" tabindex="-1"></a><span class="fu">## Which estimand should you choose?</span></span>
+<span id="cb34-334"><a href="#cb34-334" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-335"><a href="#cb34-335" aria-hidden="true" tabindex="-1"></a>The estimand should come from the research question:</span>
+<span id="cb34-336"><a href="#cb34-336" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-337"><a href="#cb34-337" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Policy question <span class="pp">|</span> Right estimand <span class="pp">|</span></span>
+<span id="cb34-338"><a href="#cb34-338" aria-hidden="true" tabindex="-1"></a><span class="pp">|---|---|</span></span>
+<span id="cb34-339"><a href="#cb34-339" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> "What if we treated everyone?" <span class="pp">|</span> ATE <span class="pp">|</span></span>
+<span id="cb34-340"><a href="#cb34-340" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> "What did treating the currently-treated achieve?" <span class="pp">|</span> ATT <span class="pp">|</span></span>
+<span id="cb34-341"><a href="#cb34-341" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> "What can the instrument tell us?" <span class="pp">|</span> LATE <span class="pp">|</span></span>
+<span id="cb34-342"><a href="#cb34-342" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> "Who benefits most?" <span class="pp">|</span> CATE($x$) <span class="pp">|</span></span>
+<span id="cb34-343"><a href="#cb34-343" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> "Does the effect vary across the outcome distribution?" <span class="pp">|</span> QTE($q$) <span class="pp">|</span></span>
+<span id="cb34-344"><a href="#cb34-344" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> "What is the distribution of individual effects?" <span class="pp">|</span> Often unidentifiable; bounds required <span class="pp">|</span></span>
 <span id="cb34-345"><a href="#cb34-345" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-346"><a href="#cb34-346" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
-<span id="cb34-347"><a href="#cb34-347" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-348"><a href="#cb34-348" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>ATE, ATT and LATE are different averages of the individual treatment</span>
-<span id="cb34-349"><a href="#cb34-349" aria-hidden="true" tabindex="-1"></a>  effect.</span>
-<span id="cb34-350"><a href="#cb34-350" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>CATE($x$) keeps heterogeneity by covariates. QTE($q$) describes changes</span>
-<span id="cb34-351"><a href="#cb34-351" aria-hidden="true" tabindex="-1"></a>  in the outcome distribution.</span>
-<span id="cb34-352"><a href="#cb34-352" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>With heterogeneous effects, IV estimates LATE. It should not be described</span>
-<span id="cb34-353"><a href="#cb34-353" aria-hidden="true" tabindex="-1"></a>  as ATE unless extra assumptions justify that interpretation. This is the</span>
-<span id="cb34-354"><a href="#cb34-354" aria-hidden="true" tabindex="-1"></a>  clean case with no covariates. Once we add covariates linearly to 2SLS,</span>
-<span id="cb34-355"><a href="#cb34-355" aria-hidden="true" tabindex="-1"></a>  even LATE needs a *rich covariates* condition that is rarely defended.</span>
-<span id="cb34-356"><a href="#cb34-356" aria-hidden="true" tabindex="-1"></a>  See @blandhol-et-al-2025 and the IV chapter section "When 2SLS with</span>
-<span id="cb34-357"><a href="#cb34-357" aria-hidden="true" tabindex="-1"></a>  Covariates Is *Actually* LATE".</span>
-<span id="cb34-358"><a href="#cb34-358" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Estimator choice comes after the estimand is fixed.</span>
+<span id="cb34-346"><a href="#cb34-346" aria-hidden="true" tabindex="-1"></a>It is fine for one paper to report more than one estimand, as long as each is</span>
+<span id="cb34-347"><a href="#cb34-347" aria-hidden="true" tabindex="-1"></a>named correctly. What is not fine is to report the coefficient that is easiest</span>
+<span id="cb34-348"><a href="#cb34-348" aria-hidden="true" tabindex="-1"></a>to estimate and call it "the causal effect."</span>
+<span id="cb34-349"><a href="#cb34-349" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-350"><a href="#cb34-350" aria-hidden="true" tabindex="-1"></a><span class="fu">## Summary</span></span>
+<span id="cb34-351"><a href="#cb34-351" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-352"><a href="#cb34-352" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>ATE, ATT and LATE are different averages of the individual treatment</span>
+<span id="cb34-353"><a href="#cb34-353" aria-hidden="true" tabindex="-1"></a>  effect.</span>
+<span id="cb34-354"><a href="#cb34-354" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>CATE($x$) keeps heterogeneity by covariates. QTE($q$) describes changes</span>
+<span id="cb34-355"><a href="#cb34-355" aria-hidden="true" tabindex="-1"></a>  in the outcome distribution.</span>
+<span id="cb34-356"><a href="#cb34-356" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>With heterogeneous effects, IV estimates LATE. It should not be described</span>
+<span id="cb34-357"><a href="#cb34-357" aria-hidden="true" tabindex="-1"></a>  as ATE unless extra assumptions justify that interpretation. This is the</span>
+<span id="cb34-358"><a href="#cb34-358" aria-hidden="true" tabindex="-1"></a>  clean case with no covariates. Once we add covariates linearly to 2SLS,</span>
+<span id="cb34-359"><a href="#cb34-359" aria-hidden="true" tabindex="-1"></a>  even LATE needs a *rich covariates* condition that is rarely defended.</span>
+<span id="cb34-360"><a href="#cb34-360" aria-hidden="true" tabindex="-1"></a>  See @blandhol-et-al-2025 and the IV chapter section "When 2SLS with</span>
+<span id="cb34-361"><a href="#cb34-361" aria-hidden="true" tabindex="-1"></a>  Covariates Is *Actually* LATE".</span>
+<span id="cb34-362"><a href="#cb34-362" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Estimator choice comes after the estimand is fixed.</span>
 </code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->

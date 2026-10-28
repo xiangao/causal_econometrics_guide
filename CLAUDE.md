@@ -28,7 +28,7 @@ Converted from RevealJS slides to a multi-chapter Quarto book in March 2026. Syn
 - `iv-rdd.qmd` — IV & Regression Discontinuity (with Control Function exposition)
 - `poisson-iv.qmd` — IV in Poisson with Fixed Effects (CF, GMM)
 - `mediation.qmd` — Causal Mediation Analysis
-- `sensitivity-analysis.qmd` — Sensitivity analysis (Cinelli-Hazlett OVB via sensemakr, E-values via EValue, Rosenbaum bounds)
+- `sensitivity-analysis.qmd` — Sensitivity analysis (Cinelli-Hazlett OVB via sensemakr, E-values via EValue, Rosenbaum bounds, marginal sensitivity model with ZSB and Dorn-Guo sharp bounds via quantreg)
 - `matching.qmd` — Matching estimators (MatchIt + cobalt + WeightIt; PS matching, full matching, CEM)
 - `continuous-treatments.qmd` — Continuous & multivalued treatments (Hirano-Imbens GPS, Kennedy DR, LMTP via lmtp)
 - `bayesian-causal.qmd` — Bayesian causal inference (BART + BCF; BCF wrapped in subprocess due to MCMC stdout encoding issue)
@@ -516,3 +516,13 @@ Log `~/projects/books/_review6/VERIFY_CONTINUED_20261017.md`. R1: the selective 
 first and then adds 0.50 (capped), unlike the opening DGP; prose now says so and defines the
 complier window p_D1 - p_D0. Code and numbers unchanged. R2: sensitivity-analysis comment no
 longer claims MatchIt avoids greedy order dependence (matching.qmd uses method = "nearest").
+
+## 2026-10-28: marginal sensitivity model added to sensitivity-analysis
+
+- New section for weighting estimators (Tan 2006; Zhao-Small-Bhattacharya 2019 Def 3.1,
+  eq 4.11-4.12, Prop 7.1; Dorn-Guo 2023 Thm 1-2, Prop 2, Lemma 1). Rosenbaum model now has
+  its odds-ratio display (@eq-sensitivity-rosenbaum). NHEFS: IPW ATE 3.339; 95% CI of the sharp
+  bounds excludes 0 up to Lambda = 1.5 (B = 1000, mclapply 6 cores).
+- Validation (Lambda=1 collapse, brute force, LP vs Lemma 1, QB within ZSB, MC coverage
+  299/300 at true Lambda 1.5): `~/projects/books/_review6/msm_validation/`.
+- Julia book chapter re-ported to match.

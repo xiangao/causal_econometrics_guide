@@ -29,7 +29,7 @@ conclusion?
 > [companion blog chapter on sensitivity analysis](https://xiangao.github.io/blog_book/sensitivity-analysis.html)
 > of *Topics on Econometrics and Causal Inference*.
 
-Here I use three methods:
+Here I use four methods:
 
 1. **Cinelli-Hazlett (2020) omitted-variable bias bounds** — for OLS
    regression estimates, quantifies how strong an omitted variable
@@ -42,6 +42,10 @@ Here I use three methods:
 3. **Rosenbaum bounds** — for matched estimators, the magnitude of
    non-random treatment assignment within matched pairs that would render
    the test result insignificant.
+4. **The marginal sensitivity model (Tan 2006; Zhao, Small and Bhattacharya
+   2019; Dorn and Guo 2023)** — for weighting estimators, the factor by which
+   an unmeasured confounder may move each unit's odds of treatment before the
+   confidence interval for the ATE includes zero.
 
 ## The NHEFS smoking-cessation example
 
@@ -261,7 +265,15 @@ unobserved factors. Let $\Gamma$ bound the ratio of treatment odds between
 the two units of a pair: $\Gamma = 1$ means matched pairs are perfectly
 randomised (both units equally likely to be the treated one); $\Gamma = 2$
 means hidden bias could make one unit's odds of treatment up to twice the
-other's.
+other's. Formally, let units $i$ and $j$ share the same observed covariates and
+let $\pi_i$ and $\pi_j$ be their probabilities of treatment given everything
+that affects treatment, observed or not. The model assumes
+
+$$
+\frac{1}{\Gamma} \le \frac{\pi_i (1-\pi_j)}{\pi_j (1-\pi_i)} \le \Gamma
+$$ {#eq-sensitivity-rosenbaum}
+
+[@rosenbaum-1987; @rosenbaum-2002, ch. 4].
 
 Rosenbaum bounds compute the range of $p$-values for the matched test
 under each value of $\Gamma$. The **critical $\Gamma$** is the smallest
@@ -379,12 +391,207 @@ So hidden bias that made one member of a matched pair up to about 1.5 times
 more likely to quit than the other would leave the result significant, and bias
 beyond that would not.
 
-The three analyses do not share a scale. $\Gamma$ bounds an odds ratio within a
-matched pair, the E-value bounds a risk ratio, and the robustness value is a
-partial $R^2$. They also ask different questions: $\Gamma$ and the E-value ask
-when the result stops being significant, the robustness value asks when the
-point estimate reaches zero. Reporting one of them is normal practice; the
-numbers should not be averaged or compared directly.
+## The marginal sensitivity model (weighting estimators)
+
+The model below is Tan's [-@tan-2006-distributional], in the form used by
+@zhao-small-bhattacharya-2019. The sharp bounds are those of @dorn-guo-2023.
+
+Rosenbaum's model compares the two units of a matched pair. Weighting
+estimators have no pairs. They weight each unit by the inverse of its
+estimated propensity score, so the natural bound compares each unit's true
+propensity with that score.
+
+Let $Z$ be the treatment indicator, $X$ the observed covariates and $U$ an
+unobserved confounder. The nominal propensity score $e(x) = P(Z = 1 \mid X = x)$
+is the one we estimate. The true propensity score
+$e_0(x, u) = P(Z = 1 \mid X = x, U = u)$ also conditions on $U$. Let
+$\Lambda \ge 1$ be the sensitivity parameter. The marginal sensitivity model
+assumes, for all $x$ and $u$,
+
+$$
+\frac{1}{\Lambda} \le \frac{e_0(x,u) / \{1 - e_0(x,u)\}}{e(x) / \{1 - e(x)\}} \le \Lambda
+$$ {#eq-sensitivity-msm}
+
+[@zhao-small-bhattacharya-2019, Definition 3.1]. The confounder may move a
+unit's odds of treatment at most a factor $\Lambda$ away from what the
+covariates predict. At $\Lambda = 1$ there is no hidden bias.
+
+The bound on the odds becomes a bound on each weight. Write the odds of $e_0$
+as the odds of $e$ times a factor between $1/\Lambda$ and $\Lambda$, and solve
+for $1/e_0$. A treated unit's weight must lie in
+
+$$
+1 + \frac{1/e(x) - 1}{\Lambda} \le \frac{1}{e_0(x,u)} \le 1 + \Lambda \{1/e(x) - 1\}.
+$$ {#eq-sensitivity-msm-weights}
+
+A control's weight $1/\{1 - e_0(x,u)\}$ obeys the same interval with $e$
+replaced by $1 - e$. At $\Lambda = 1$ both intervals shrink to the usual
+weights.
+
+We estimate the mean outcome in each arm by the stabilized (Hajek) IPW
+estimator, the weighted mean of $Y$ in that arm, and the ATE by the
+difference of the two means. Under the model we no longer know the weights,
+only their intervals. @zhao-small-bhattacharya-2019 [eq. 4.12] take the
+smallest and largest weighted means over all weights in the intervals. The
+largest mean puts the top weight on units with the largest outcomes, so it is
+found by sorting $Y$ and scanning one cutoff.
+
+These bounds are valid but not sharp. Some weights in the intervals cannot be
+the true ones, because the true inverse propensities must average to the
+nominal ones at each value of $X$. @dorn-guo-2023 [Theorem 1, Proposition 2]
+impose this. In the sharp upper bound for an arm, the weight jumps from the
+low to the high end of @eq-sensitivity-msm-weights at the conditional
+$\tau$-quantile of $Y$ given $X$, with $\tau = \Lambda / (1 + \Lambda)$, not at
+one cutoff for the whole sample. Their Lemma 1 computes it with one weighted
+linear quantile regression of $Y$ on $X$ in the arm. The lower bound applies
+the same step to $-Y$. Subtracting the arm bounds gives bounds on the ATE, and
+these are sharp [@dorn-guo-2023, Theorem 2]. For a confidence interval we
+follow @zhao-small-bhattacharya-2019 [eq. 4.11]. In each bootstrap sample we
+refit the propensity score and recompute the bounds. The interval runs from
+the 2.5th percentile of the lower bounds to the 97.5th percentile of the upper
+bounds.
+
+The functions below implement both bounds. We checked them outside the book.
+At $\Lambda = 1$ both return the Hajek estimate. The sorting scan matches a
+search over every vertex of the weight box. Lemma 1 matches a direct linear
+programming solution of Dorn and Guo's problem. In a simulation where the
+model holds with $\Lambda = 1.5$, the interval at $\Lambda = 1.5$ covered the
+true ATE in 299 of 300 replications.
+
+```{r}
+#| label: msm-functions
+#| cache: true
+
+# Interval for a unit's inverse true propensity under the marginal sensitivity
+# model. `e` is the nominal probability of the unit's own arm.
+msm_weight_box <- function(e, Lambda) {
+  r <- 1 / e - 1
+  list(lo = 1 + r / Lambda, hi = 1 + Lambda * r)
+}
+
+# Zhao, Small and Bhattacharya (2019, eq. 4.12): smallest and largest weighted
+# mean of y over weights in [lo, hi]. The maximum gives weight hi to the k
+# largest outcomes and lo to the rest, for some k; we scan every k.
+zsb_bounds <- function(y, lo, hi) {
+  ext <- function(y) {
+    o <- order(y, decreasing = TRUE)
+    y <- y[o]; lo <- lo[o]; hi <- hi[o]
+    num <- sum(lo * y) + c(0, cumsum((hi - lo) * y))
+    den <- sum(lo) + c(0, cumsum(hi - lo))
+    max(num / den)
+  }
+  c(lower = -ext(-y), upper = ext(y))
+}
+
+# Dorn and Guo (2023, Lemma 1): sharp upper bound from one weighted linear
+# quantile regression of y on (1, X) at tau = Lambda / (1 + Lambda), with
+# weights (1 - e) / e. The weight is 1 + Lambda (1 - e) / e above the fitted
+# quantile and 1 + (1 - e) / (e Lambda) below it.
+qb_upper <- function(y, X, e, Lambda) {
+  tau <- Lambda / (1 + Lambda)
+  G   <- cbind(1, X)
+  fit <- suppressWarnings(          # "solution may be nonunique" is harmless here
+    quantreg::rq.wfit(G, y, tau = tau, weights = (1 - e) / e, method = "br"))
+  q <- drop(G %*% fit$coefficients)
+  r <- y - q
+  (sum(r * (1 + Lambda^sign(r) * (1 - e) / e)) + sum(q / e)) / sum(1 / e)
+}
+
+qb_bounds <- function(y, X, e, Lambda) {
+  c(lower = -qb_upper(-y, X, e, Lambda), upper = qb_upper(y, X, e, Lambda))
+}
+
+# ATE bounds: treated arm with e, control arm with 1 - e, then subtract.
+msm_ate_bounds <- function(y, z, X, e, Lambda, method = c("qb", "zsb")) {
+  method <- match.arg(method)
+  arm <- function(idx, p) {
+    if (method == "qb") return(qb_bounds(y[idx], X[idx, , drop = FALSE], p, Lambda))
+    b <- msm_weight_box(p, Lambda)
+    zsb_bounds(y[idx], b$lo, b$hi)
+  }
+  t1 <- arm(z == 1, e[z == 1])
+  t0 <- arm(z == 0, 1 - e[z == 0])
+  c(lower = unname(t1["lower"] - t0["upper"]),
+    upper = unname(t1["upper"] - t0["lower"]))
+}
+```
+
+We apply them to NHEFS with the propensity score fitted above, on a grid
+$\Lambda \in [1, 2]$ in steps of 0.1, with 1,000 bootstrap samples:
+
+```{r}
+#| label: msm-nhefs
+#| cache: true
+#| dependson: [rosenbaum, msm-functions]
+
+X <- model.matrix(ps_fit)[, -1]     # the nine covariates, factors as dummies
+z <- nhefs$qsmk
+y <- nhefs$wt82_71
+lambdas <- seq(1, 2, by = 0.1)
+
+point <- t(sapply(lambdas, function(L)
+  c(msm_ate_bounds(y, z, X, nhefs$ps, L, "zsb"),
+    msm_ate_bounds(y, z, X, nhefs$ps, L, "qb"))))
+
+# Percentile bootstrap: refit the propensity score in each resample and
+# recompute the sharp bounds. Six worker processes, reproducible streams.
+RNGkind("L'Ecuyer-CMRG")
+set.seed(2026)
+B <- 1000
+boot <- parallel::mclapply(seq_len(B), function(b) {
+  i  <- sample.int(nrow(X), replace = TRUE)
+  eb <- fitted(glm.fit(cbind(1, X[i, ]), z[i], family = binomial()))
+  sapply(lambdas, function(L) msm_ate_bounds(y[i], z[i], X[i, ], eb, L, "qb"))
+}, mc.cores = 6, mc.set.seed = TRUE)
+boot <- simplify2array(boot)        # bound x Lambda x bootstrap sample
+
+msm_table <- tibble(
+  Lambda    = lambdas,
+  zsb_lower = point[, 1], zsb_upper = point[, 2],
+  qb_lower  = point[, 3], qb_upper  = point[, 4],
+  ci_lower  = apply(boot[1, , ], 1, quantile, 0.025),
+  ci_upper  = apply(boot[2, , ], 1, quantile, 0.975))
+knitr::kable(msm_table, digits = 3,
+             caption = "ATE bounds (kg) under the marginal sensitivity model: ZSB, sharp (QB) and 95% CI for the sharp bounds")
+
+robust_lambda <- max(msm_table$Lambda[msm_table$ci_lower > 0])
+cat(sprintf("Largest Lambda on the grid with the 95%% CI above zero: %.1f\n",
+            robust_lambda))
+```
+
+At $\Lambda = 1$ both bounds equal the IPW estimate, 3.339 kg, with a
+bootstrap interval from 2.354 to 4.320 kg. The bounds widen quickly. At
+$\Lambda = 1.5$ the sharp bounds run from 1.035 to 5.725 kg and the lower end
+of the interval is 0.178 kg. At $\Lambda = 1.6$ the lower end is $-0.157$ kg.
+So a confounder that moved each person's odds of quitting by up to a factor of
+1.5, beyond what the nine covariates predict, could not explain away the
+weight gain; one that moved them by a factor of 1.6 could. The sharp point
+bounds stay above zero up to $\Lambda = 1.8$, the ZSB bounds only up to 1.7.
+The sharp bounds are narrower at every $\Lambda$; at $\Lambda = 2$ they are
+7.961 kg wide against 8.672 kg.
+
+How does $\Lambda$ relate to Rosenbaum's $\Gamma$? Each model contains the
+other at a different value of its parameter
+[@zhao-small-bhattacharya-2019, Proposition 7.1]. Suppose
+@eq-sensitivity-rosenbaum holds with $\Gamma$. The nominal $e(x)$ is the
+average of $e_0(x, U)$ over $U$, so its odds lie between the smallest and
+largest true odds at $x$. Every true odds is then within a factor $\Gamma$ of
+the odds of $e(x)$, and @eq-sensitivity-msm holds with $\Lambda = \Gamma$. In
+the other direction, two units may sit a factor $\Lambda$ above and below the
+odds of $e(x)$, so @eq-sensitivity-msm with $\Lambda$ gives
+@eq-sensitivity-rosenbaum with $\Gamma = \Lambda^2$. A conclusion that
+survives $\Lambda = 1.5$ therefore survives every confounder Rosenbaum's model
+allows at $\Gamma = 1.5$. The two analyses above are still not directly
+comparable. The matched analysis tests a sharp null for the ATT with
+randomization inference; the weighting analysis bounds the ATE and uses the
+bootstrap.
+
+The four analyses do not share a scale. $\Gamma$ and $\Lambda$ bound odds
+ratios of treatment, the E-value bounds a risk ratio, and the robustness value
+is a partial $R^2$. They also ask different questions: $\Gamma$, $\Lambda$ and
+the E-value ask when the result stops being significant, the robustness value
+asks when the point estimate reaches zero. Reporting one of them is normal
+practice; the numbers should not be averaged or compared directly.
 
 ## What about partial identification?
 
@@ -414,7 +621,10 @@ with monotone selection and trimming the over-selected arm. For IV settings,
 (instrument validity plus monotonicity).
 
 These bounds usually complement a point estimate. They are useful when the
-point estimate depends too much on an untestable assumption.
+point estimate depends too much on an untestable assumption. The marginal
+sensitivity model sits between the two extremes: at $\Lambda = 1$ it gives the
+point estimate, and as $\Lambda$ grows its sharp bounds widen toward the
+no-assumption interval.
 
 ## Summary
 
@@ -423,5 +633,8 @@ point estimate depends too much on an untestable assumption.
 - Cinelli-Hazlett bounds are useful for regression estimates.
 - E-values are useful for risk ratios.
 - Rosenbaum bounds are useful for matched pairs.
+- The marginal sensitivity model is useful for weighting estimators; Dorn and
+  Guo's quantile-balancing bounds are sharp and need one quantile regression
+  per arm.
 - Observational causal estimates should usually include at least one
   sensitivity analysis.
